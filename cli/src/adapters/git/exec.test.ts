@@ -1,0 +1,112 @@
+import { access, chmod, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { delimiter, join } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import { test } from "#test/kit/fixtures.ts";
+import { GitError, gh, git, gitTry, stopGit } from "./exec.ts";
+
+const unix = describe.skipIf(process.platform === "win32");
+
+/**
+ * A `git` that starts a helper, as `git fetch` starts `git-remote-http`, and hangs.
+ * It writes its own pid before anything else and the helper's once that runs.
+ */
+async function hungGit(
+  bin: string,
+): Promise<{ git: () => Promise<number>; helper: () => Promise<number> }> {
+  const gitPid = join(bin, "git.pid");
+  const helperPid = join(bin, "helper.pid");
+  await writeFile(
+    join(bin, "git"),
+    `#!/bin/sh\necho $$ > "${gitPid}"\nsleep 30 &\necho $! > "${helperPid}"\nwait\n`,
+  );
+  await chmod(join(bin, "git"), 0o755);
+  vi.stubEnv("PATH", `${bin}${delimiter}${process.env.PATH ?? ""}`);
+  const pid = (file: string) =>
+    vi.waitFor(
+      async () => {
+        const text = (await readFile(file, "utf8")).trim();
+        if (text === "") throw new Error(`${file} is still empty`);
+        return Number(text);
+      },
+      { timeout: 5_000 },
+    );
+  return { git: () => pid(gitPid), helper: () => pid(helperPid) };
+}
+
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+unix("git", () => {
+  test("stops the git it started when the run is aborted", async ({ tmp }) => {
+    const hung = await hungGit(tmp);
+    const controller = new AbortController();
+    const started = Date.now();
+    const fetching = git(["fetch"], { timeoutMs: 60_000, signal: controller.signal });
+    const helper = await hung.helper();
+    controller.abort();
+    await expect(fetching).rejects.toMatchObject({ name: "AbortError" });
+    expect(Date.now() - started).toBeLessThan(5_000);
+    await expect.poll(() => alive(helper), { timeout: 5_000 }).toBe(false);
+  });
+
+  // The clock is faked so the timeout fires only once git and its helper are both running.
+  test("stops git's helpers too when git times out", async ({ tmp }) => {
+    const hung = await hungGit(tmp);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const fetching = git(["fetch"], { timeoutMs: 60_000 }).catch((reason: unknown) => reason);
+      const [gitPid, helper] = [await hung.git(), await hung.helper()];
+      vi.advanceTimersByTime(60_000);
+      vi.useRealTimers();
+      const error = await fetching;
+      expect(error).toBeInstanceOf(GitError);
+      expect(error).toMatchObject({ failure: "unavailable" });
+      await expect.poll(() => alive(gitPid) || alive(helper), { timeout: 5_000 }).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("stops every running git and its helpers when asked to", async ({ tmp }) => {
+    const hung = await hungGit(tmp);
+    const fetching = gitTry(["fetch"], { timeoutMs: 60_000 }).catch((reason: unknown) => reason);
+    const helper = await hung.helper();
+    stopGit();
+    await fetching;
+    await expect.poll(() => alive(helper), { timeout: 5_000 }).toBe(false);
+  });
+
+  it("returns a non-zero exit as data", async () => {
+    const attempt = await gitTry(["rev-parse", "--verify", "--quiet", "no-such-ref"], {
+      cwd: tmpdir(),
+      timeoutMs: 60_000,
+    });
+    expect(attempt.code).not.toBe(0);
+  });
+
+  // Node resolves an empty or relative PATH entry against the child's working folder,
+  // which for a fresh checkout is content the registry wrote.
+  test("never runs a git or gh planted in the folder it works in", async ({ tmp }) => {
+    for (const tool of ["git", "gh"]) {
+      await writeFile(join(tmp, tool), `#!/bin/sh\ntouch "${join(tmp, `${tool}.ran`)}"\n`);
+      await chmod(join(tmp, tool), 0o755);
+    }
+    vi.stubEnv("PATH", ["", ".", "bin", process.env.PATH ?? ""].join(delimiter));
+    try {
+      await gitTry(["--version"], { cwd: tmp, timeoutMs: 60_000 }).catch(() => undefined);
+      await gh(["--version"], { cwd: tmp, timeoutMs: 60_000 }).catch(() => undefined);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    for (const tool of ["git", "gh"]) {
+      await expect(access(join(tmp, `${tool}.ran`)), tool).rejects.toThrow();
+    }
+  });
+});

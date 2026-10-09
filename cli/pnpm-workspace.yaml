@@ -1,0 +1,29 @@
+# Not a workspace. pnpm 11 reads its configuration only from here; the same
+# settings in package.json are accepted and then ignored.
+
+# Minutes. A week is long enough for a compromised publish to be yanked first.
+minimumReleaseAge: 10080
+
+engineStrict: true
+saveExact: true
+autoInstallPeers: false
+trustPolicy: no-downgrade
+blockExoticSubdeps: true
+
+# chokidar 4 dropped chokidar 3's provenance, which reads as a downgrade.
+trustPolicyExclude:
+  - chokidar
+
+allowBuilds:
+  # Its postinstall links the platform binary.
+  esbuild: true
+
+# Ink names this only under DEV, but every bundler still has to resolve it.
+overrides:
+  react-devtools-core: link:./packaging/stubs/react-devtools-core
+  # GHSA-r4xh-jqrq-34v2: use the upstream linear-time TOML parser.
+  smol-toml: 1.9.0
+  # GHSA-g7r4-m6w7-qqqr: contain Windows development-server paths.
+  esbuild: 0.28.1
+  # GHSA-68fv-2mgg-jv7q: indexed source-map offsets must be bounded.
+  source-map-js: 1.2.2

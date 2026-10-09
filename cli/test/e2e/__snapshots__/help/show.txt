@@ -1,0 +1,21 @@
+Print an artifact without installing it
+
+Usage: aireg show <registry>/<namespace>/[<kind>/]<name>[@<version>]
+       aireg show <namespace>/[<kind>/]<name>[@<version>] --registry <registry>
+       aireg show ./<path>
+
+Options:
+  -r, --registry <registry>   The registry to read from, by name or address
+      --ref <ref>             For a git registry, the branch, tag or commit to read
+      --path <folder>         For a git registry, the folder that holds it
+      --adapter <id>          The adapter that reads the registry, when aireg cannot tell
+      --config <key>=<value>  A setting for that adapter (repeatable)
+  -g, --user                  Act on your user scope instead of this project
+
+Examples:
+  $ aireg show acme/engineering/pr-review  read a skill before installing it
+  $ aireg show ./skills/draft-skill        read one you are writing
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/show/

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 342" width="720" height="342" role="img" aria-label="A registry&#x27;s files, laid out by the file spec and kept on any storage, are read directly by clients: the aireg CLI today and an MCP server later. A planned catalog API would create, federate, and govern registries and would not serve reads.">
+<rect width="720" height="342" fill="#FFFFFF"/>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7A8583"/></marker></defs>
+<text x="30" y="26" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#17201F" text-anchor="start">Files, catalog, clients</text>
+<text x="30" y="45" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#4A5654" text-anchor="start">Clients read a registry as files. A planned catalog API would create, connect, and govern registries.</text>
+<text x="30" y="72" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="600" fill="#7A8583" text-anchor="start">CLIENTS</text>
+<rect x="30" y="80" width="210" height="52" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="135" y="100" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#17201F" text-anchor="middle">aireg CLI</text>
+<text x="135" y="118" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="middle">install, publish, keep in sync</text>
+<rect x="260" y="80" width="210" height="52" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="365" y="100" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#4A5654" text-anchor="middle">MCP server</text>
+<text x="365" y="118" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="middle">planned: read without installing</text>
+<line x1="135" y1="132" x2="135" y2="163" stroke="#7A8583" stroke-width="0.9" marker-end="url(#arrow)"/>
+<line x1="365" y1="132" x2="365" y2="163" stroke="#7A8583" stroke-width="0.9" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+<text x="145" y="152" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">read files</text>
+<rect x="30" y="164" width="440" height="78" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="250" y="184" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#085041" text-anchor="middle">registry files, laid out by the file spec</text>
+<rect x="44" y="196" width="90" height="24" rx="5" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1"/>
+<text x="89" y="208" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">registry.json</text>
+<rect x="140" y="196" width="72" height="24" rx="5" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1"/>
+<text x="176" y="208" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">index.json</text>
+<rect x="218" y="196" width="90" height="24" rx="5" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1"/>
+<text x="263" y="208" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">versions.json</text>
+<rect x="314" y="196" width="90" height="24" rx="5" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1"/>
+<text x="359" y="208" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">artifact.json</text>
+<rect x="410" y="196" width="42" height="24" rx="5" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1"/>
+<text x="431" y="208" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">files</text>
+<text x="250" y="234" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#085041" text-anchor="middle">what agents read, from disk or from storage</text>
+<line x1="250" y1="242" x2="250" y2="262" stroke="#7A8583" stroke-width="0.9"/>
+<rect x="30" y="262" width="440" height="40" rx="6" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="44" y="282" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">storage</text>
+<rect x="110" y="270" width="96" height="24" rx="5" fill="#EEF0EF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="158" y="282" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">git repository</text>
+<rect x="214" y="270" width="138" height="24" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="283" y="282" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">object storage bucket</text>
+<rect x="360" y="270" width="100" height="24" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="410" y="282" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">hosted service</text>
+<rect x="490" y="80" width="200" height="222" rx="6" fill="#FFFFFF" stroke="#BA7517" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="590" y="104" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#633806" text-anchor="middle">Catalog API</text>
+<text x="590" y="122" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#633806" text-anchor="middle">planned</text>
+<text x="590" y="154" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle">create registries</text>
+<text x="590" y="172" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle">federate them across</text>
+<text x="590" y="190" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle">teams and organizations</text>
+<text x="590" y="208" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle">govern who publishes</text>
+<text x="590" y="226" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle">and what is approved</text>
+<text x="590" y="262" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="middle">clients read files directly;</text>
+<text x="590" y="278" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="middle">reads never go through it</text>
+<line x1="490" y1="203" x2="472" y2="203" stroke="#7A8583" stroke-width="0.9" marker-end="url(#arrow)"/>
+<text x="30" y="330" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#7A8583" text-anchor="start">Teal: what clients read. Dashed amber: planned. Dashed grey: planned, or your choice.</text>
+</svg>

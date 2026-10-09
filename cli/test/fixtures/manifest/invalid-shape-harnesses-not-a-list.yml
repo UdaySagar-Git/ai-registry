@@ -1,0 +1,3 @@
+harnesses: claude
+registries:
+  kit: acme/agent-kit

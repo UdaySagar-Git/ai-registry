@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 294" width="720" height="294" role="img" aria-label="Anatomy of a registry root: registry.json, index.json, an optional kinds directory, the artifacts directory with its namespace, kind, name, versions.json and version folders, and the blobs directory.">
+<rect width="720" height="294" fill="#FFFFFF"/>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7A8583"/></marker></defs>
+<g transform="translate(0,-44)">
+<rect x="30" y="64" width="200" height="46" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="42" y="83" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#17201F" text-anchor="start">registry.json</text>
+<text x="42" y="99" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">discovery: what this root is</text>
+<rect x="250" y="64" width="200" height="46" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="262" y="83" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#17201F" text-anchor="start">index.json</text>
+<text x="262" y="99" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">catalog of every artifact</text>
+<rect x="470" y="64" width="220" height="46" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="482" y="83" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#17201F" text-anchor="start">kinds/</text>
+<text x="482" y="99" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">optional: the kind manifests</text>
+<rect x="30" y="126" width="440" height="176" rx="6" fill="#EEF0EF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="44" y="146" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#17201F" text-anchor="start">artifacts/</text>
+<text x="122" y="146" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">every artifact lives here</text>
+<rect x="46" y="158" width="408" height="130" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="58" y="176" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11.5" font-weight="normal" fill="#17201F" text-anchor="start">&lt;namespace&gt;/</text>
+<text x="170" y="176" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">the owner: a team, a workspace, a GitHub owner</text>
+<rect x="62" y="186" width="376" height="94" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="74" y="204" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11.5" font-weight="normal" fill="#17201F" text-anchor="start">&lt;kind&gt;/</text>
+<text x="150" y="204" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">skill, agent</text>
+<rect x="78" y="214" width="344" height="58" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="90" y="232" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11.5" font-weight="normal" fill="#17201F" text-anchor="start">&lt;name&gt;/</text>
+<rect x="90" y="242" width="110" height="22" rx="5" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="145" y="253" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10.5" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">versions.json</text>
+<rect x="210" y="242" width="210" height="22" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="315" y="253" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10" font-weight="normal" fill="#17201F" text-anchor="middle" dominant-baseline="central">&lt;version&gt;/  artifact.json + files</text>
+<rect x="490" y="126" width="200" height="60" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="502" y="145" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#17201F" text-anchor="start">blobs/</text>
+<text x="502" y="161" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">sha256/&lt;digest&gt;</text>
+<text x="502" y="175" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#7A8583" text-anchor="start">shared bytes, stored once</text>
+<text x="30" y="326" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#7A8583" text-anchor="start">Teal: the one file about a version that changes after publish. Dashed: optional. Paths are relative to the root.</text>
+</g>
+</svg>

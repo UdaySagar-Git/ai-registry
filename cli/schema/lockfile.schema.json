@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lockfile.schema.json",
+  "title": "manifest.lock.yml",
+  "description": "What a project resolved to, written by the CLI and read back on the next run. Timestamp-free on purpose, so two branches adding different artifacts merge without a conflict.",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "version"
+  ],
+  "properties": {
+    "version": {
+      "description": "A lock of any other version is refused rather than guessed at.",
+      "const": 1,
+      "type": "number"
+    },
+    "registries": {
+      "type": "object",
+      "patternProperties": {
+        "^(.*)$": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "source",
+            "adapter",
+            "key"
+          ],
+          "properties": {
+            "source": {
+              "minLength": 1,
+              "description": "The address, as resolved.",
+              "type": "string"
+            },
+            "adapter": {
+              "minLength": 1,
+              "description": "Which adapter served it, recorded even when the manifest left it out.",
+              "type": "string"
+            },
+            "key": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "Identity of what is read, independent of alias and of adapter.",
+              "type": "string"
+            },
+            "config": {
+              "description": "Adapter-defined scope selection, opaque to the client.",
+              "type": "object",
+              "patternProperties": {
+                "^(.*)$": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            },
+            "revision": {
+              "minLength": 1,
+              "description": "What the registry was at, when one revision covers every artifact.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "patternProperties": {
+        "^(.*)$": {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "registry",
+            "name",
+            "kind",
+            "digest",
+            "links"
+          ],
+          "properties": {
+            "registry": {
+              "minLength": 1,
+              "description": "Key into `registries`.",
+              "type": "string"
+            },
+            "id": {
+              "minLength": 1,
+              "description": "Registry-owned and stable across a rename. Absent until a publish assigns one.",
+              "type": "string"
+            },
+            "name": {
+              "minLength": 1,
+              "description": "What the registry called it.",
+              "type": "string"
+            },
+            "kind": {
+              "anyOf": [
+                {
+                  "const": "plugin",
+                  "type": "string"
+                },
+                {
+                  "const": "skill",
+                  "type": "string"
+                },
+                {
+                  "const": "agent",
+                  "type": "string"
+                }
+              ]
+            },
+            "namespace": {
+              "minLength": 1,
+              "description": "The owner inside the registry.",
+              "type": "string"
+            },
+            "address": {
+              "minLength": 1,
+              "description": "The file spec address the registry publishes it at, once published.",
+              "type": "string"
+            },
+            "content": {
+              "minLength": 1,
+              "description": "Upstream content identity, once published.",
+              "type": "string"
+            },
+            "version": {
+              "description": "What the registry published, where it has versions.",
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "description": "Where this scope's copy is, relative to its base.",
+              "type": "string"
+            },
+            "digest": {
+              "minLength": 1,
+              "description": "Digest of what was placed, so a local edit is detectable.",
+              "type": "string"
+            },
+            "origin": {
+              "description": "Set when the bytes came from a folder here rather than from upstream.",
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "harness",
+                "path"
+              ],
+              "properties": {
+                "harness": {
+                  "minLength": 1,
+                  "description": "Whose folder conventions it follows.",
+                  "type": "string"
+                },
+                "path": {
+                  "minLength": 1,
+                  "description": "Relative to the scope base.",
+                  "type": "string"
+                },
+                "step": {
+                  "minLength": 1,
+                  "description": "The step that claimed it.",
+                  "type": "string"
+                }
+              }
+            },
+            "links": {
+              "description": "Only this list is pruned, so a file the CLI never wrote is never removed.",
+              "type": "array",
+              "items": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "harness",
+                  "path",
+                  "mode"
+                ],
+                "properties": {
+                  "harness": {
+                    "minLength": 1,
+                    "description": "Harness name.",
+                    "type": "string"
+                  },
+                  "path": {
+                    "minLength": 1,
+                    "description": "Relative to the scope base, so a committed lock is machine-independent.",
+                    "type": "string"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "const": "symlink",
+                        "type": "string"
+                      },
+                      {
+                        "const": "junction",
+                        "type": "string"
+                      },
+                      {
+                        "const": "copy",
+                        "type": "string"
+                      },
+                      {
+                        "const": "fanout",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "description": "A copy's digest as written, so an edit to the harness's own copy is seen.",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "needed_by": {
+              "minItems": 1,
+              "description": "Installed artifacts whose `depends_on` edges name this version.",
+              "type": "array",
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "blocked": {
+              "minItems": 1,
+              "description": "Links asked for but not made, because something of yours is at the path. Never pruned.",
+              "type": "array",
+              "items": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "harness",
+                  "path"
+                ],
+                "properties": {
+                  "harness": {
+                    "minLength": 1,
+                    "description": "Harness name.",
+                    "type": "string"
+                  },
+                  "path": {
+                    "minLength": 1,
+                    "description": "Relative to the scope base.",
+                    "type": "string"
+                  },
+                  "by": {
+                    "minLength": 1,
+                    "description": "What is at the path instead.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

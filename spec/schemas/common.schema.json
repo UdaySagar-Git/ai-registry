@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "common.schema.json",
+  "title": "Common definitions",
+  "description": "Shared vocabulary for the file spec's documents. Referenced by $ref; never instantiated directly.",
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "description": "A sha256 digest in OCI notation: the literal prefix sha256: followed by 64 lowercase hex characters. File spec section 4.1.",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "namespace": {
+      "type": "string",
+      "description": "Owner segment of a ref. Lowercase DNS-label grammar, 1 to 64 characters. File spec section 2.1.",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Kind segment of a ref. Lowercase identifier, underscores allowed, 1 to 32 characters. File spec section 2.1.",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name segment of a ref. Same grammar as namespace. File spec section 2.1.",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"
+    },
+    "version": {
+      "type": "string",
+      "description": "A version string. Semantic versioning SHOULD be used. The literal 'latest' is reserved and invalid. File spec section 2.1.",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$",
+      "not": { "const": "latest" }
+    },
+    "ref": {
+      "type": "string",
+      "description": "A fully qualified artifact reference: namespace/kind/name@version.",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?/[a-z][a-z0-9_]{0,31}/[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?@[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$"
+    },
+    "status": {
+      "type": "string",
+      "description": "Lifecycle status of a version. Which transitions are legal is a server concern and is not defined by the file spec.",
+      "enum": ["draft", "pending_review", "active", "blocked", "deprecated", "archived"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp in UTC."
+    },
+    "format_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Storage format version, opted into per root. This schema describes version 1. Readers refuse values they do not understand."
+    },
+    "capability": {
+      "type": "string",
+      "description": "What a root offers. A format 1 file root advertises files. The other values are reserved for a future server.",
+      "enum": ["files", "pull", "push", "search", "remotes", "governance", "telemetry"]
+    },
+    "labels": {
+      "type": "object",
+      "description": "Short, indexable key/value pairs. Catalog state: covered by the catalog digest, not the content digest.",
+      "propertyNames": { "pattern": "^[a-z0-9]([a-z0-9._/-]{0,61}[a-z0-9])?$" },
+      "additionalProperties": { "type": "string", "maxLength": 128 },
+      "maxProperties": 64
+    },
+    "annotations": {
+      "type": "object",
+      "description": "Free-form key/value pairs that are stored but never indexed. Catalog state, like labels.",
+      "propertyNames": { "pattern": "^[a-z0-9]([a-z0-9._/-]{0,61}[a-z0-9])?$" },
+      "additionalProperties": { "type": "string", "maxLength": 4096 },
+      "maxProperties": 64
+    },
+    "root_url": {
+      "type": "string",
+      "description": "An HTTPS root: an origin plus an optional opaque path prefix, written without a trailing slash. File spec sections 1, 3.1 and 8.",
+      "pattern": "^https://[^\\s]*[^/\\s]$"
+    },
+    "auth": {
+      "type": "object",
+      "description": "How to authenticate against a root or a host. type none means anonymous reading. File spec section 7.",
+      "properties": {
+        "type": { "type": "string", "enum": ["none", "oauth2"] },
+        "resource_metadata": {
+          "type": "string",
+          "format": "uri",
+          "description": "RFC 9728 protected resource metadata URL. Required when type is oauth2, and the same URL the 401 challenge names."
+        },
+        "login_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Where an interactive client sends a person to obtain a token."
+        }
+      },
+      "required": ["type"],
+      "if": { "properties": { "type": { "const": "oauth2" } }, "required": ["type"] },
+      "then": { "required": ["resource_metadata"] }
+    },
+    "page": {
+      "type": "object",
+      "description": "Paging envelope for a roots_url response. Cursors are opaque. File spec section 8.",
+      "properties": {
+        "next_cursor": { "type": ["string", "null"] },
+        "size": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["next_cursor", "size"]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "namespace": "engineering",
+  "kind": "skill",
+  "name": "pr-review",
+  "latest": "1.2.0",
+  "versions": [
+    {
+      "version": "1.2.0",
+      "digest": "sha256:9cf62f496323323fae1dd9a27181de692a9dcfd8d2151d52bd1c3d36bfec6834",
+      "catalog_digest": "sha256:874b8d153ae7723b73bccd6b2cecbca09689d72fa5f1330cd21368c2fbef5b17",
+      "published_at": "2026-09-01T10:12:00Z",
+      "status": "active",
+      "yanked": false
+    },
+    {
+      "version": "1.1.0",
+      "digest": "sha256:ffc0420a7a94cf4c97aeed8875187c2208813ad079fb09dda1661d6bb3ca577f",
+      "catalog_digest": "sha256:c2282729955532d315ea3f85f9ede9bcce4cd057acb51e49b2cfa661ebdea3e8",
+      "published_at": "2026-08-14T09:00:00Z",
+      "status": "deprecated",
+      "yanked": false,
+      "reason": "superseded by 1.2.0"
+    }
+  ]
+}

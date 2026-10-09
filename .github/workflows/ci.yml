@@ -1,0 +1,318 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  # Stacked PRs target another PR branch before they are retargeted to main.
+  pull_request:
+
+permissions:
+  contents: read
+
+# Only pull requests cancel: a release needs a finished run on its main commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: cli
+
+jobs:
+  changes:
+    name: CI change detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      cli: ${{ steps.paths.outputs.cli }}
+      spec: ${{ steps.paths.outputs.spec }}
+      docs: ${{ steps.paths.outputs.docs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select required validation
+        id: paths
+        shell: python
+        run: |
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          # Pushes validate everything. PRs use the complete diff, without the
+          # API's file-count limit. Unknown paths and workflow changes run all checks.
+          required = dict(cli=True, spec=True, docs=True)
+          if os.environ["GITHUB_EVENT_NAME"] == "pull_request":
+              event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+              base = event["pull_request"]["base"]["sha"]
+              head = event["pull_request"]["head"]["sha"]
+              assert all(re.fullmatch(r"[0-9a-f]{40,64}", sha) for sha in (base, head))
+              changed = subprocess.check_output([
+                  "git", "diff", "--no-renames", "--name-only", "-z", f"{base}...{head}", "--",
+              ]).decode().split("\0")[:-1]
+              selected = dict(cli=False, spec=False, docs=False)
+              for path in changed:
+                  if path.startswith(("spec/", "examples/")):
+                      selected = dict(cli=True, spec=True, docs=True)
+                  elif path.startswith("cli/"):
+                      selected["cli"] = True
+                  elif path in ("tools/check.py", "tools/check_schemas.py", "tools/requirements.txt"):
+                      selected["spec"] = True
+                  elif (path.startswith("docs/") or path in ("mkdocs.yml", "tools/build_figures.py")
+                        or ("/" not in path and path.endswith(".md"))):
+                      selected["docs"] = True
+                  else:
+                      selected = dict(cli=True, spec=True, docs=True)
+              if changed:
+                  required = selected
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              for name, needed in required.items():
+                  output.write(f"{name}={str(needed).lower()}\n")
+
+  check:
+    name: CLI quality and coverage
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # registry validate compares released versions with the target branch.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: cli/.node-version
+          # Would shell out to pnpm before corepack has put it on PATH.
+          package-manager-cache: false
+
+      # Verifies pnpm against the integrity hash in packageManager.
+      - run: corepack enable pnpm
+
+      - id: store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('cli/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run lint:ci
+      - run: pnpm run knip
+      # Fails on a stale THIRD_PARTY_NOTICES.txt or a license outside the allowlist.
+      - run: pnpm run notices --check
+      # The e2e suites spawn the built CLI.
+      - run: pnpm run build
+      - run: node dist/main.mjs registry validate ../examples/acme-registry
+      - run: node dist/main.mjs registry validate ../examples/aireg
+      - run: pnpm run check:package
+
+      - name: Test with coverage
+        run: pnpm run test:coverage
+        env:
+          GIT_AUTHOR_NAME: ci
+          GIT_AUTHOR_EMAIL: ci@example.com
+          GIT_COMMITTER_NAME: ci
+          GIT_COMMITTER_EMAIL: ci@example.com
+
+  audit:
+    name: Dependency audit
+    uses: ./.github/workflows/dependency-audit.yml
+
+  codeql:
+    name: CodeQL
+    if: github.event.repository.private == false
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+  # Fixed jobs preserve every required check name when path selection skips them.
+  # The oldest supported runtime is 22.20.0; the other jobs share these steps.
+  compat-node-min:
+    name: CLI compatibility (Node 22.20.0, ubuntu-latest)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI_NODE_VERSION: "22.20.0"
+    steps: &compat-steps
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.CI_NODE_VERSION }}
+          package-manager-cache: false
+
+      - run: corepack enable pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+      - name: Test
+        shell: bash
+        run: |
+          [ -z "${CI_UMASK:-}" ] || umask "$CI_UMASK"
+          pnpm run test
+        env:
+          GIT_AUTHOR_NAME: ci
+          GIT_AUTHOR_EMAIL: ci@example.com
+          GIT_COMMITTER_NAME: ci
+          GIT_COMMITTER_EMAIL: ci@example.com
+
+  compat-node-current:
+    name: CLI compatibility (Node 24, ubuntu-latest)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI_NODE_VERSION: "24"
+      # The Ubuntu and Fedora login default, where new files are group-writable.
+      CI_UMASK: "002"
+    steps: *compat-steps
+
+  compat-macos:
+    name: CLI compatibility (Node 24, macos-latest)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      CI_NODE_VERSION: "24"
+    steps: *compat-steps
+
+  # Each target is built and run on its own platform, so every binary is
+  # proven to start where it ships.
+  standalone-darwin-arm64:
+    name: CLI standalone (aireg-darwin-arm64)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      CI_OS: darwin
+      CI_ARCH: arm64
+    steps: &standalone-steps
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The release build itself, unstamped, so CI proves what a release would ship.
+      - uses: ./.github/actions/aireg-build
+        with:
+          version: 0.0.0
+          commit: ${{ github.sha }}
+          os: ${{ env.CI_OS }}
+          arch: ${{ env.CI_ARCH }}
+
+  standalone-darwin-amd64:
+    name: CLI standalone (aireg-darwin-amd64)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: macos-26-intel
+    timeout-minutes: 30
+    env:
+      CI_OS: darwin
+      CI_ARCH: amd64
+    steps: *standalone-steps
+
+  standalone-linux-amd64:
+    name: CLI standalone (aireg-linux-amd64)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    env:
+      CI_OS: linux
+      CI_ARCH: amd64
+    steps: *standalone-steps
+
+  standalone-linux-arm64:
+    name: CLI standalone (aireg-linux-arm64)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 30
+    env:
+      CI_OS: linux
+      CI_ARCH: arm64
+    steps: *standalone-steps
+
+  spec:
+    name: Registry spec and schemas
+    needs: changes
+    if: needs.changes.outputs.spec == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - run: python3 -m pip install --require-hashes -r tools/requirements.txt
+      - run: python3 tools/check.py examples/acme-registry
+      - run: python3 tools/check.py examples/aireg
+      # Fails rather than skipping the instance tier if jsonschema is missing.
+      - run: python3 tools/check_schemas.py --require-jsonschema
+
+  docs:
+    name: Documentation validation
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: python3 -m pip install --require-hashes -r docs/requirements.txt
+      - run: python3 tools/build_figures.py --check
+      - run: mkdocs build --strict
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Scans the push or pull request range (all history on a first push) with a digest-pinned image.
+      # Unknown results may be live; the excluded files are tests that hold fake credentials.
+      - uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
+        with:
+          version: 3.97.9@sha256:52e67fef4d054ecff5c2ce4b4ae376626d1ef54aa0898b53cac19c25e92e14db
+          extra_args: --results=verified,unknown --exclude-paths=.github/secret-scan-exclude.txt

@@ -1,0 +1,18 @@
+Start, stop or check the background daemon that runs jobs
+
+Usage: aireg daemon [<action>]
+
+Actions:
+  start      Start the daemon
+  stop       Stop the daemon
+  restart    Restart the daemon
+  status     Show whether the daemon is running
+  autostart  Start the daemon when you log in, or stop doing so
+
+Examples:
+  $ aireg daemon status        is it running?
+  $ aireg daemon autostart on  start it when you log in
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/daemon/

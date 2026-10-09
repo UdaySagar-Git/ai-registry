@@ -1,0 +1,30 @@
+{
+  "format_version": 1,
+  "generated_at": "2026-09-03T08:05:00Z",
+  "entries": [
+    {
+      "namespace": "engineering",
+      "kind": "agent",
+      "name": "reviewer",
+      "display_name": "Reviewer",
+      "description": "Reviews pull requests on request and posts ranked findings as a review comment.",
+      "latest": "0.3.0",
+      "digest": "sha256:13acb5be38358b1be368537cd947022d6238da06a04b182a3b0fdfad7c216d8e",
+      "status": "active",
+      "catalog_digest": "sha256:bec9db2bb9bedb0888191196c0521e1cf9e747a3351a8b7cfbb5de02f99804b4",
+      "updated_at": "2026-09-03T08:00:00Z"
+    },
+    {
+      "namespace": "engineering",
+      "kind": "skill",
+      "name": "pr-review",
+      "display_name": "PR review",
+      "description": "Review a pull request for correctness, clarity, and test coverage, and leave findings ranked by severity. Uses a checklist and a scoring rubric.",
+      "latest": "1.2.0",
+      "digest": "sha256:03cfd178349ee9023e3d87a53742dea8247e90df2a76bd243bc8c6f0f54f92e7",
+      "status": "active",
+      "catalog_digest": "sha256:b51ab2bbe3bc2c3902ae6b2f9279f313db5c70ce1332ceeff5a22439beed1368",
+      "updated_at": "2026-09-01T10:12:00Z"
+    }
+  ]
+}

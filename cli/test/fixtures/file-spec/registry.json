@@ -1,0 +1,25 @@
+{
+  "kind": "registry",
+  "format_version": 1,
+  "name": "acme",
+  "slug": "acme",
+  "description": "Worked example of a file-spec root. Two kinds, one namespace, one blob.",
+  "capabilities": [
+    "files"
+  ],
+  "auth": {
+    "type": "none"
+  },
+  "blob_url": "blobs/sha256/{digest}",
+  "kinds": [
+    {
+      "name": "skill",
+      "manifest_url": "kinds/skill.json"
+    },
+    {
+      "name": "agent",
+      "manifest_url": "kinds/agent.json"
+    }
+  ],
+  "generated_at": "2026-09-03T08:05:00Z"
+}

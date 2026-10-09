@@ -1,0 +1,16 @@
+Create an agent, or start its next version
+
+Usage: aireg agent <action> [options]
+
+Actions:
+  new   Create an agent
+  bump  Start the next version of an agent
+
+Examples:
+  $ aireg agent new pr-review --namespace engineering  a new agent
+  $ aireg agent bump pr-review minor                   start its next minor version
+
+Learn more:
+  Run `aireg agent <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/kinds/

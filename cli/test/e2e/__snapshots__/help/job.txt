@@ -1,0 +1,25 @@
+Manage background jobs and read their runs
+
+Usage: aireg job [<action>] [options]
+
+Actions:
+  add      Add a job that keeps a folder in sync with a registry
+  list     List every job on this machine (alias: ls)
+  remove   Remove a job (alias: rm)
+  start    Run a job now
+  enable   Turn a job's schedule on
+  disable  Turn a job's schedule off
+  pause    Stop the schedule for every job
+  resume   Restart the schedule for every job
+  runs     List recent runs, or one run's events
+  retry    Run an earlier run's job again
+  cancel   Stop a queued or running run
+
+Examples:
+  $ aireg job add -g --watch ~/.claude/skills --to acme/engineering  publish your skills, and keep them in sync
+  $ aireg job runs                                                   what the jobs did
+
+Learn more:
+  Run `aireg job <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/job/

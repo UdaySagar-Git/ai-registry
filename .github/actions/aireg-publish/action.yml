@@ -1,0 +1,140 @@
+name: Publish aireg
+description: >-
+  Signs a channel manifest for the four staged aireg binaries, uploads them and install.sh
+  write-once, then points the channel and its installer at them. Runs only Node built-ins, this
+  repository's packaging code and the AWS CLI; needs Node, the checkout and AWS credentials.
+
+inputs:
+  dir:
+    description: Absolute path of the staged binaries and install.sh
+    required: true
+  version:
+    required: true
+  channel:
+    required: true
+  minimum-version:
+    description: Blank keeps the channel's current floor
+    required: false
+    default: ""
+  key-id:
+    required: true
+  origin:
+    required: true
+  bucket:
+    required: true
+  prefix:
+    description: Key prefix inside the bucket; blank publishes at the bucket root
+    required: false
+    default: ""
+  signing-key-secret:
+    required: true
+  trusted-keys:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Every S3 key goes through `key`, so an empty prefix never yields a leading `/` or a `//`.
+    - name: Check the prefix
+      shell: bash
+      env:
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        set -euo pipefail
+        if ! [[ "$PREFIX" =~ ^([A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*)?$ ]]; then
+          echo "::error::prefix '$PREFIX' must be empty or a/b/c with no leading or trailing slash"
+          exit 1
+        fi
+
+    - name: Sign the manifest
+      shell: bash
+      working-directory: cli
+      env:
+        DIR: ${{ inputs.dir }}
+        VERSION: ${{ inputs.version }}
+        CHANNEL: ${{ inputs.channel }}
+        MINIMUM: ${{ inputs.minimum-version }}
+        KEY_ID: ${{ inputs.key-id }}
+        ORIGIN: ${{ inputs.origin }}
+        BUCKET: ${{ inputs.bucket }}
+        PREFIX: ${{ inputs.prefix }}
+        SECRET_ID: ${{ inputs.signing-key-secret }}
+        TRUSTED_KEYS: ${{ inputs.trusted-keys }}
+      run: |
+        set -euo pipefail
+        key() { if [ -n "$PREFIX" ]; then printf '%s/%s' "$PREFIX" "$1"; else printf '%s' "$1"; fi; }
+        manifest="$RUNNER_TEMP/aireg-manifest.json"
+        artifacts=()
+        for platform in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
+          artifacts+=(--artifact "$DIR/aireg-$platform")
+        done
+        live="$(key "channels/$CHANNEL/manifest.json")"
+        if [ -z "$MINIMUM" ] && aws s3api head-object --bucket "$BUCKET" --key "$live" >/dev/null 2>&1; then
+          MINIMUM=$(aws s3 cp --only-show-errors "s3://$BUCKET/$live" - | jq -r '.minimum_version // empty')
+        fi
+        # A floor every client enforces: only an exact release version may become one.
+        if [ -n "$MINIMUM" ] && ! [[ "$MINIMUM" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::minimum-version must be a release version such as 1.2.3, not $MINIMUM"
+          exit 1
+        fi
+        # The seed reaches only the signer's environment, never the job's.
+        seed="$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query SecretString --output text)"
+        echo "::add-mask::$seed"
+        RELEASE_ED25519_PRIVATE_KEY="$seed" node --experimental-strip-types packaging/main.ts sign \
+          --key-id "$KEY_ID" --channel "$CHANNEL" --version "$VERSION" \
+          --minimum-version "${MINIMUM:-$VERSION}" --origin "$ORIGIN" "${artifacts[@]}" --output "$manifest"
+        unset seed
+        AIREG_RELEASE_KEYRING="$(printf '%s' "$TRUSTED_KEYS" | base64 | tr -d '\n')" \
+          node --experimental-strip-types packaging/main.ts verify --channel "$CHANNEL" --input "$manifest"
+
+    - name: Upload write-once
+      shell: bash
+      working-directory: ${{ inputs.dir }}
+      env:
+        VERSION: ${{ inputs.version }}
+        BUCKET: ${{ inputs.bucket }}
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        set -euo pipefail
+        key() { if [ -n "$PREFIX" ]; then printf '%s/%s' "$PREFIX" "$1"; else printf '%s' "$1"; fi; }
+        manifest="$RUNNER_TEMP/aireg-manifest.json"
+        for name in $(jq -r '.artifacts[].name' "$manifest"); do
+          object="$(key "artifacts/v$VERSION/$name")"
+          if ! aws s3api head-object --bucket "$BUCKET" --key "$object" >/dev/null 2>&1; then
+            aws s3api put-object --bucket "$BUCKET" --key "$object" --body "$name" \
+              --cache-control "public,max-age=31536000,immutable" --if-none-match '*' >/dev/null
+          fi
+        done
+        # Beside its binaries, so `AIREG_VERSION=<version>` installers can reach this release.
+        object="$(key "artifacts/v$VERSION/install.sh")"
+        if ! aws s3api head-object --bucket "$BUCKET" --key "$object" >/dev/null 2>&1; then
+          aws s3api put-object --bucket "$BUCKET" --key "$object" --body install.sh --content-type text/x-shellscript \
+            --cache-control "public,max-age=31536000,immutable" --if-none-match '*' >/dev/null
+        fi
+        check="$RUNNER_TEMP/uploaded"
+        aws s3 cp --only-show-errors --recursive "s3://$BUCKET/$(key "artifacts/v$VERSION/")" "$check/"
+        jq -r '.artifacts[] | "\(.sha256)  \(.name)"' "$manifest" > "$check/SHA256SUMS"
+        (cd "$check" && sha256sum --check --quiet SHA256SUMS)
+        cmp install.sh "$check/install.sh"
+
+    # Last, so clients only ever see a manifest whose files are already served.
+    - name: Move the channel
+      shell: bash
+      working-directory: ${{ inputs.dir }}
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        BUCKET: ${{ inputs.bucket }}
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        set -euo pipefail
+        key() { if [ -n "$PREFIX" ]; then printf '%s/%s' "$PREFIX" "$1"; else printf '%s' "$1"; fi; }
+        put() {
+          aws s3 cp --only-show-errors "$1" "s3://$BUCKET/$(key "$2")" --cache-control no-cache --content-type "$3"
+          test "$(aws s3 cp --only-show-errors "s3://$BUCKET/$(key "$2")" - | sha256sum)" = "$(sha256sum < "$1")"
+        }
+        put "$RUNNER_TEMP/aireg-manifest.json" "channels/$CHANNEL/manifest.json" application/json
+        if [ "$CHANNEL" = stable ]; then
+          put install.sh install.sh text/x-shellscript
+          # Same bytes, so `curl -fsSL <origin>/install | sh` works.
+          put install.sh install text/x-shellscript
+        fi

@@ -1,0 +1,97 @@
+import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { isWithin } from "#adapter/paths.ts";
+import { dict } from "#core/fields.ts";
+import { canonical } from "#core/fs/canonical.ts";
+import { homeDir } from "#core/fs/path.ts";
+import { resolveHarnesses } from "#core/harness/index.ts";
+import { withLease } from "#core/lease.ts";
+import { readLock } from "#core/lock.ts";
+import { readManifest } from "#core/manifest.ts";
+import { apply, recover } from "#core/plan/apply.ts";
+import { build } from "#core/plan/build.ts";
+import { fetchFrom, type Plan } from "#core/plan/model.ts";
+import { runningEntry } from "#core/release/launch.ts";
+import { type Roots, roots, toolHome, userScopeDir } from "#core/store/paths.ts";
+import { onPathIn } from "./path-setup.ts";
+
+/** The files aireg put on this machine outside projects, as `aireg self uninstall` finds them. */
+export interface Footprint {
+  /** What your user scope placed in harness folders. */
+  links: string[];
+  startupFiles: string[];
+  folders: string[];
+  /** Left in place: a CLI aireg did not install, or a folder that holds your home. */
+  kept: string[];
+}
+
+/** With nothing declared every row is stale, so the planner unlinks all of them, as `remove` would. */
+async function teardownPlan(scope: Roots): Promise<Plan> {
+  const manifest = await readManifest(scope.manifest);
+  return build(
+    { ...manifest, artifacts: [], registries: dict() },
+    await readLock(scope),
+    [],
+    { artifacts: dict() },
+    { roots: scope, targets: [], harnesses: resolveHarnesses(), force: false, copy: false },
+  );
+}
+
+/** The links in harness folders; the copies they point at go with the scope's folder. */
+function linksOf(plan: Plan, env: NodeJS.ProcessEnv): string[] {
+  const dir = userScopeDir(env);
+  return plan.actions.flatMap((action) =>
+    action.kind === "unlink" && !isWithin(dir, action.to) ? [action.to] : [],
+  );
+}
+
+/** aireg's two folders that exist; a moved home that holds the home directory itself is kept. */
+function folders(env: NodeJS.ProcessEnv): { folders: string[]; kept: string[] } {
+  const home = homeDir(env);
+  const found = { folders: [] as string[], kept: [] as string[] };
+  for (const dir of [userScopeDir(env), toolHome(env)]) {
+    if (existsSync(dir)) (isWithin(dir, home) ? found.kept : found.folders).push(dir);
+  }
+  return found;
+}
+
+export async function footprint(env: NodeJS.ProcessEnv = process.env): Promise<Footprint> {
+  const { folders: own, kept } = folders(env);
+  const entry = runningEntry();
+  if (entry !== undefined && !isWithin(toolHome(env), canonical(entry))) kept.push(entry);
+  return {
+    links: linksOf(await teardownPlan(roots("user", homeDir(env), env)), env),
+    startupFiles: onPathIn(env),
+    folders: own,
+    kept,
+  };
+}
+
+/** aireg's own teardown of the user scope, under its lease so no job writes beside it. */
+export async function unlinkUserScope(env: NodeJS.ProcessEnv = process.env): Promise<string[]> {
+  const scope = roots("user", homeDir(env), env);
+  return withLease(scope, { wait: true }, async () => {
+    // A run that crashed may have linked paths the lock never recorded.
+    await recover(scope, await readLock(scope));
+    const plan = await teardownPlan(scope);
+    await apply(plan, scope, fetchFrom([]));
+    return linksOf(plan, env);
+  });
+}
+
+/** Looked up again here, since the teardown itself may have written to either folder. */
+export async function deleteFolders(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<{ deleted: string[]; failed: string[] }> {
+  const deleted: string[] = [];
+  const failed: string[] = [];
+  for (const dir of folders(env).folders) {
+    try {
+      await rm(dir, { recursive: true, force: true });
+      deleted.push(dir);
+    } catch {
+      failed.push(dir);
+    }
+  }
+  return { deleted, failed };
+}

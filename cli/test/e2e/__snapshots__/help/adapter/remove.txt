@@ -1,0 +1,11 @@
+Remove an adapter
+
+Usage: aireg adapter remove <id> [--dry-run]
+Aliases: aireg adapter rm
+
+Options:
+      --dry-run  Print what would change without changing it
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/adapter/

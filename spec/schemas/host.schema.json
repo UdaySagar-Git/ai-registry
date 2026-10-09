@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "host.schema.json",
+  "title": "Host document",
+  "description": "What GET https://{host}/.well-known/registry.json returns when the host serves several roots rather than being one. Told apart from a registry document by kind. Lists the roots the caller may see; an anonymous caller sees the public subset. File spec section 8.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "host",
+      "description": "Required here. The two well-known documents are told apart by this field, and only the registry document may omit it."
+    },
+    "format_version": { "$ref": "common.schema.json#/$defs/format_version" },
+    "name": {
+      "type": "string",
+      "description": "Human-readable host name.",
+      "maxLength": 200
+    },
+    "description": { "type": "string", "maxLength": 4000 },
+    "auth": {
+      "$ref": "common.schema.json#/$defs/auth",
+      "description": "How to authenticate to the host. One token covers every root on the host that the token grants."
+    },
+    "roots": {
+      "type": "array",
+      "description": "The roots this caller may see, inline. A caller with a token sees the roots that token grants; the anonymous list is a subset of it.",
+      "items": { "$ref": "#/$defs/root" },
+      "maxItems": 10000
+    },
+    "roots_url": {
+      "type": "string",
+      "format": "uri-reference",
+      "description": "Where the roots are paged instead of being listed inline. Its response is a roots page."
+    },
+    "generated_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+  },
+  "required": ["kind", "format_version", "name"],
+  "oneOf": [
+    { "required": ["roots"] },
+    { "required": ["roots_url"] }
+  ],
+  "$defs": {
+    "root": {
+      "type": "object",
+      "description": "One root on this host.",
+      "properties": {
+        "slug": {
+          "$ref": "common.schema.json#/$defs/namespace",
+          "description": "The root's slug, equal to that root's registry.json slug. It is the root's path prefix on this host."
+        },
+        "url": {
+          "$ref": "common.schema.json#/$defs/root_url",
+          "description": "The root, without a trailing slash. GET {url}/registry.json MUST return a registry document."
+        },
+        "name": { "type": "string", "maxLength": 200 },
+        "role": {
+          "type": "string",
+          "enum": ["viewer", "member", "admin"],
+          "description": "The caller's role on this root, when the host chooses to disclose it."
+        }
+      },
+      "required": ["slug", "url"]
+    },
+    "roots_page": {
+      "type": "object",
+      "description": "The response of roots_url.",
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/$defs/root" } },
+        "page": { "$ref": "common.schema.json#/$defs/page" }
+      },
+      "required": ["items", "page"]
+    }
+  }
+}

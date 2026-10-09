@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-descriptor.schema.json",
+  "title": "File descriptor",
+  "description": "One entry in an envelope's files[] array. Names bytes by path inside the version and by sha256 digest. The client verifies every byte against the digest wherever it was fetched from. File spec sections 2.3, 3.5 and 4.1.",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Path relative to the version directory, segments separated by '/'. File spec section 2.3: no leading '/', no empty, '.' or '..' segment, no backslash, ':' or control character, and no segment stored as .git. The pattern holds what a regular expression can, using lookahead, which RE2-based validators reject; a reader also removes HFS+ ignored code points before the .git comparison and refuses two paths of one version that are equal once case-folded.",
+      "pattern": "^(?!\\.{1,2}(?:/|$))(?![.][Gg][Ii][Tt][. ]*(?:/|$))(?![Gg][Ii][Tt]~1[. ]*(?:/|$))[^/\\\\:\\u0000-\\u001f\\u007f-\\u009f]+(?:/(?!\\.{1,2}(?:/|$))(?![.][Gg][Ii][Tt][. ]*(?:/|$))(?![Gg][Ii][Tt]~1[. ]*(?:/|$))[^/\\\\:\\u0000-\\u001f\\u007f-\\u009f]+)*$",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "digest": { "$ref": "common.schema.json#/$defs/digest" },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Byte length of the file."
+    },
+    "media_type": {
+      "type": "string",
+      "description": "IANA media type. Optional.",
+      "maxLength": 255
+    },
+    "urls": {
+      "type": "array",
+      "description": "Where the bytes may be fetched. A relative URI resolves against the version directory. When absent, the client resolves through the root's blob_url template using the digest, which is how a blob-backed file is named.",
+      "items": { "type": "string", "format": "uri-reference", "maxLength": 2048 },
+      "minItems": 1,
+      "maxItems": 16
+    }
+  },
+  "required": ["path", "digest", "size"]
+}

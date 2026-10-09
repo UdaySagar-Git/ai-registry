@@ -1,0 +1,65 @@
+import type { Styler } from "#core/output.ts";
+import { cells } from "#core/term/format.ts";
+import { type Mark, titleLine } from "./layout.ts";
+import {
+  ask,
+  CANCEL,
+  type Canceled,
+  type Keypress,
+  type Machine,
+  type PromptIo,
+} from "./prompt.ts";
+
+export interface TextOptions {
+  message: string;
+  style: Styler;
+  /** Taken when the answer is left empty, and shown until something is typed. */
+  initial?: string | undefined;
+}
+
+const CONTROL = /\p{Cc}/gu;
+
+class Typing implements Machine<string> {
+  private readonly options: TextOptions;
+  private value = "";
+  private ended: Mark = "active";
+
+  constructor(options: TextOptions) {
+    this.options = options;
+  }
+
+  press(key: Keypress): { answer: string | Canceled } | undefined {
+    if (this.ended !== "active") return undefined;
+    if (key.cancel) {
+      this.ended = "cancel";
+      return { answer: CANCEL };
+    }
+    if (key.enter) {
+      this.ended = "submit";
+      return { answer: this.value.trim() || (this.options.initial ?? "") };
+    }
+    if (key.erase)
+      this.value = cells(this.value)
+        .slice(0, -1)
+        .map((cell) => cell.text)
+        .join("");
+    else if (!key.modified) this.value += key.text.replace(CONTROL, "");
+    return undefined;
+  }
+
+  lines(): string[] {
+    const { style, message, initial = "" } = this.options;
+    if (this.ended === "cancel")
+      return [titleLine(style, "cancel", message, style.dim("canceled"))];
+    if (this.ended === "submit") {
+      return [titleLine(style, "submit", message, style.dim(this.value || initial))];
+    }
+    return [
+      titleLine(style, "active", message, this.value === "" ? style.dim(initial) : this.value),
+    ];
+  }
+}
+
+export async function text(options: TextOptions, io: PromptIo): Promise<string | Canceled> {
+  return await ask(io, new Typing(options));
+}

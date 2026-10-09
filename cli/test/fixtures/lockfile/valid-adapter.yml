@@ -1,0 +1,22 @@
+version: 1
+registries:
+  hosted:
+    source: https://registry.example
+    adapter: acme
+    key: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    config:
+      team: platform
+artifacts:
+  pr-review:
+    registry: hosted
+    id: skill_123
+    name: review
+    kind: skill
+    address: skills/review
+    content: "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    version: 2.2.0
+    digest: "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    links:
+      - harness: claude
+        path: .claude/skills/pr-review
+        mode: symlink

@@ -1,0 +1,163 @@
+#!/bin/sh
+trap '[ "${installer_complete:-false}" = true ] || exit 1' 0
+
+install_script() {
+set -eu
+if (set -o pipefail) 2>/dev/null; then
+  set -o pipefail
+fi
+
+# Both are build-time literals. The version was checked against SemVer when this file was
+# generated, so nothing below re-parses it before using it as a directory name.
+VERSION="{{Version}}"
+ORIGIN="{{Origin}}"
+name="{{Name}}"
+
+fail() {
+  echo "$name installer: $*" >&2
+  exit 1
+}
+
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    output=$(sha256sum "$1")
+  elif command -v shasum >/dev/null 2>&1; then
+    output=$(shasum -a 256 "$1")
+  else
+    fail "sha256sum or shasum is required"
+  fi
+  printf '%s\n' "${output%% *}"
+}
+
+# Fetches a release file and holds it to the digest pinned in this script. A terminal
+# gets curl's one-line progress bar, erased once the download is done.
+fetch() {
+  progress=--silent
+  [ -t 2 ] && progress=--progress-bar
+  curl --proto '=https' --tlsv1.2 --fail "$progress" --show-error --location \
+    --output "$stage_dir/$2" "{{ArtifactBase}}/$1"
+  if [ -t 2 ]; then
+    printf '\033[1A\033[2K' >&2
+  fi
+  [ "$(sha256_file "$stage_dir/$2")" = "$3" ] || fail "checksum mismatch for $1"
+  chmod 755 "$stage_dir/$2"
+}
+
+# Another release installs through its own installer, which pins that release's digests.
+# Only SemVer's characters pass, so the version stays one path segment.
+install_release() {
+  case "$1" in
+    ''|*[!0-9A-Za-z.+-]*) fail "{{VersionEnv}} must be a version, such as 1.2.3 (got $1)" ;;
+  esac
+  script=$(mktemp) || fail "cannot create a temporary file"
+  trap 'status=$?; rm -f "$script"; [ "${installer_complete:-false}" = true ] || exit 1; exit "$status"' 0
+  trap 'exit 1' HUP INT TERM
+  echo "Downloading the $name $1 installer from $ORIGIN..." >&2
+  curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+    --output "$script" "{{Artifacts}}/v$1/install.sh" \
+    || fail "$ORIGIN has no $name $1"
+  code=0
+  # Not stdin: under `curl | sh` that is the rest of this script.
+  {{VersionEnv}}="$1" sh "$script" < /dev/null || code=$?
+  [ "$code" -eq 0 ] || exit "$code"
+}
+
+detect_platform() {
+  case "$(uname -s)" in
+    Darwin) os=darwin ;;
+    Linux) os=linux ;;
+    *) fail "unsupported operating system: $(uname -s)" ;;
+  esac
+  case "$(uname -m)" in
+    x86_64|amd64) arch=amd64 ;;
+    arm64|aarch64) arch=arm64 ;;
+    *) fail "unsupported architecture: $(uname -m)" ;;
+  esac
+  # A shell under Rosetta reports x86_64 on Apple silicon; the native build is the one to run.
+  # sysctl is named in full because /usr/sbin is often missing from PATH.
+  if [ "$os-$arch" = darwin-amd64 ] && [ "$(/usr/sbin/sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ]; then
+    arch=arm64
+  fi
+  # Captured rather than piped: under pipefail an early-exiting grep can fail the pipe.
+  if [ "$os" = linux ]; then
+    case "$(ldd --version 2>&1 || true)" in
+      *musl*) fail "musl-based Linux, such as Alpine, is not supported yet" ;;
+    esac
+    if [ -e /lib/libc.musl-x86_64.so.1 ] || [ -e /lib/libc.musl-aarch64.so.1 ]; then
+      fail "musl-based Linux, such as Alpine, is not supported yet"
+    fi
+  fi
+  # The x64 builds use AVX2 instructions, which crash an older CPU on the first command.
+  case "$os-$arch" in
+    linux-amd64) features=$(cat /proc/cpuinfo 2>/dev/null || echo avx2) ;;
+    darwin-amd64) features=$(/usr/sbin/sysctl -n hw.optional.avx2_0 2>/dev/null || true) ;;
+    *) features=avx2 ;;
+  esac
+  case "$features" in
+    *avx2*|1) ;;
+    *) fail "this CPU lacks AVX2, which the $os-$arch build needs" ;;
+  esac
+}
+
+main() {
+  command -v curl >/dev/null 2>&1 || fail "curl is required"
+  : "${HOME:?HOME is required}"
+  want="${{{VersionEnv}}:-$VERSION}"
+  want="${want#v}"
+  if [ "$want" != "$VERSION" ]; then
+    install_release "$want"
+    return 0
+  fi
+  detect_platform
+
+  case "$os-$arch" in
+    darwin-amd64) expected="{{DarwinAMD64}}" ;;
+    darwin-arm64) expected="{{DarwinARM64}}" ;;
+    linux-amd64) expected="{{LinuxAMD64}}" ;;
+    linux-arm64) expected="{{LinuxARM64}}" ;;
+  esac
+
+  home_dir="${{{HomeEnv}}:-$HOME/{{HomeDir}}}"
+  cli_dir="$home_dir/cli"
+  # Inside aireg's home, not $TMPDIR: a noexec /tmp cannot run the download, and from
+  # here the binary places itself with one rename on the same filesystem.
+  stage_dir="$cli_dir/.incoming-$$"
+  # A killed installer leaves its staging folder; remove those whose process is gone.
+  for stale in "$cli_dir"/.incoming-*; do
+    if [ -d "$stale" ] && ! kill -0 "${stale##*-}" 2>/dev/null; then
+      rm -rf "$stale"
+    fi
+  done
+  # Owner-only under any umask, as aireg requires; -m covers only the last folder, so the home goes first.
+  mkdir -p -m 700 "$home_dir" 2>/dev/null || fail "cannot write $home_dir; set {{HomeEnv}} to a folder you own"
+  mkdir -p "$stage_dir" 2>/dev/null || fail "cannot write $cli_dir; set {{HomeEnv}} to a folder you own"
+  trap 'status=$?; rm -rf "$stage_dir"; [ "${installer_complete:-false}" = true ] || exit 1; exit "$status"' 0
+  trap 'exit 1' HUP INT TERM
+
+  echo "Downloading $name $VERSION for $os/$arch from $ORIGIN..." >&2
+  fetch "{{Name}}-$os-$arch" "$name" "$expected"
+  binary="$stage_dir/$name"
+
+  # `aireg --setup` places the binary, puts aireg on PATH and offers the default registries.
+  # Its stdin is the terminal when a person can answer, never this piped script.
+  code=0
+  if [ -t 1 ] && [ -z "${CI:-}" ] && (exec < /dev/tty) 2>/dev/null; then
+    "$binary" --setup < /dev/tty || code=$?
+  else
+    "$binary" --setup < /dev/null || code=$?
+  fi
+  if [ "$code" -gt 128 ]; then
+    echo "$name installer: $name was stopped by signal $((code - 128)) before it finished installing" >&2
+    exit "$code"
+  elif [ "$code" -ne 0 ]; then
+    echo "$name installer: $name $VERSION did not finish installing" >&2
+    exit "$code"
+  fi
+  "$home_dir/bin/$name" --version > /dev/null 2>&1 || fail "installed, but $home_dir/bin/$name does not run"
+}
+
+main "$@"
+}
+
+install_script "$@"
+installer_complete=true

@@ -1,0 +1,16 @@
+Create a skill, or start its next version
+
+Usage: aireg skill <action> [options]
+
+Actions:
+  new   Create a skill
+  bump  Start the next version of a skill
+
+Examples:
+  $ aireg skill new pr-review --namespace engineering  a new skill
+  $ aireg skill bump pr-review minor                   start its next minor version
+
+Learn more:
+  Run `aireg skill <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/kinds/

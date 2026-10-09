@@ -1,0 +1,13 @@
+Remove aireg and your user scope from this machine
+
+Usage: aireg self uninstall [-y] [--dry-run]
+
+Options:
+      --dry-run  Print what would change without changing it
+
+Examples:
+  $ aireg self uninstall --dry-run  see what it removes
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/self/

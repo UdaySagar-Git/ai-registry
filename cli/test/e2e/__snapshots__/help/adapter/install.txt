@@ -1,0 +1,11 @@
+Install an adapter from the release server
+
+Usage: aireg adapter install <id> [options]
+
+Options:
+      --dry-run  Print what would change without changing it
+      --force    Install it again even if it is installed
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/adapter/

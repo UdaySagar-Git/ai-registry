@@ -1,0 +1,85 @@
+# aireg status
+
+Check installed artifacts against the lockfile, and list the ones nothing manages.
+
+## Synopsis
+
+```text
+aireg status [-g]
+```
+
+## Description
+
+`aireg status` checks each artifact the lockfile records against what is on disk, without contacting any registry. Outside a project it checks your user scope. Each artifact gets one state:
+
+| State | Meaning |
+|---|---|
+| `ok` | Installed as the lockfile records it. |
+| `missing` | The stored copy, or a link in a harness folder, is missing, or something else holds the path the link needs. |
+| `dangling` | A harness link was replaced by a file or folder of yours, or points outside the scope. |
+| `edited` | The installed copy was edited after it was installed. With `--copy`, that includes the copy in the harness folder. |
+
+The table shows each artifact's kind, version and registry, then a column per harness: `✓` when linked there, `missing`, `replaced`, `foreign` when its link points outside the scope, or `-` when it isn't installed there. A version marked `pinned` is held by the manifest.
+
+`status` ends with what to run next. Run [`aireg install`](install.md) to restore missing or dangling artifacts, which first moves a file or folder of yours that replaced a link to `.registry/backups/`, and [`aireg sync`](sync.md) to compare an edit with the registry.
+
+A link aireg did not make is `missing` too, with the reason: a folder of yours already at the path, or another artifact of the same name installed there. `install` leaves your folder alone, so move it, or give one artifact another name with `as:` in the manifest, then run `aireg install`.
+
+Below the table, `status` lists the unmanaged artifacts: skills and agents in your harness folders that aireg didn't install. Publish one to a registry to manage it, with [`aireg publish`](publish.md).
+
+In a project, `status` also warns about an artifact installed in both the project and your user scope, because your harness decides which one it loads.
+
+## Options
+
+`status` takes `-g`, to check your user scope. See [Command options](options.md#command-options).
+
+## JSON output
+
+```json
+{"ok": true, "data": {
+  "scope": "project",
+  "artifacts": [{"name": "engineering/pr-review", "state": "ok", "harnesses": {"agents": "linked", "claude": "linked"}}],
+  "shadowed": [],
+  "unmanaged": [{"name": "lint", "kind": "skill", "harnesses": ["claude"], "path": "/home/me/project/.claude/skills/lint"}]
+}}
+```
+
+A harness's value is `linked`, `missing`, `replaced` or `foreign`. An artifact that isn't `ok` also has a `detail` saying why. `shadowed` names the artifacts installed both here and in your user scope, which the warning above is about; it is always empty for `-g`.
+
+## Exit status
+
+- `0`: every artifact is `ok`, or nothing is installed. Unmanaged artifacts don't change the exit status.
+- `2`: an argument was given.
+- `3`: at least one artifact is `missing`, `dangling` or `edited`.
+
+## Examples
+
+Check this project:
+
+```bash
+aireg status
+```
+
+```text
+1 installed in this project
+  artifact   kind   version  from  agents  claude  state
+  pr-review  skill  0.1.0    acme  ✓       ✓       ok
+
+✓ Everything matches the lockfile.
+```
+
+Check your user scope:
+
+```bash
+aireg status -g
+```
+
+Fail if anything installed in the project is out of date or was edited:
+
+```bash
+aireg install --frozen && aireg status
+```
+
+## See also
+
+[`aireg list`](list.md), [`aireg install`](install.md), [CLI reference](index.md)

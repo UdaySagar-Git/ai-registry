@@ -1,0 +1,21 @@
+Uninstall artifacts
+
+Usage: aireg remove <name>... [options]
+       aireg remove --all [options]
+Aliases: aireg rm
+
+Options:
+  -s, --select <name>  The artifacts or namespaces to act on
+      --all            Act on everything, without asking
+  -g, --user           Act on your user scope instead of this project
+      --dry-run        Print what would change without changing it
+      --frozen         Fail with exit status 3 if the lockfile or the manifest would change
+      --force          Overwrite artifacts edited after they were installed
+
+Examples:
+  $ aireg remove pr-review  one artifact
+  $ aireg remove -g --all   everything in your user scope
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/remove/

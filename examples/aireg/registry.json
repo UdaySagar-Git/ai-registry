@@ -1,0 +1,13 @@
+{
+  "kind": "registry",
+  "format_version": 1,
+  "name": "ai-registry",
+  "slug": "ai-registry",
+  "description": "Skills for working with registries through the aireg CLI.",
+  "capabilities": [
+    "files"
+  ],
+  "auth": {
+    "type": "none"
+  }
+}

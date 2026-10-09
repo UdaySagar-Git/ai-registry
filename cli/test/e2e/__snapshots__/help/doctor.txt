@@ -1,0 +1,10 @@
+Check that this machine can install artifacts
+
+Usage: aireg doctor
+
+Examples:
+  $ aireg doctor  check this machine before installing
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/doctor/

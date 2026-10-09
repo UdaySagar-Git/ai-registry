@@ -1,0 +1,2 @@
+# The schema validator for tools/check_schemas.py. tools/requirements.txt locks it; see its header to regenerate.
+jsonschema==4.26.0

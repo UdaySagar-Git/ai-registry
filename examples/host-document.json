@@ -1,0 +1,16 @@
+{
+  "kind": "host",
+  "format_version": 1,
+  "name": "Example registry host",
+  "description": "Synthetic host document: what GET https://registry.example.com/.well-known/registry.json returns to a caller who belongs to two organizations.",
+  "auth": {
+    "type": "oauth2",
+    "resource_metadata": "https://registry.example.com/.well-known/oauth-protected-resource",
+    "login_url": "https://registry.example.com/login"
+  },
+  "roots": [
+    { "slug": "acme", "url": "https://registry.example.com/acme", "name": "Acme", "role": "member" },
+    { "slug": "globex", "url": "https://registry.example.com/globex", "name": "Globex", "role": "viewer" }
+  ],
+  "generated_at": "2026-09-17T09:00:00Z"
+}

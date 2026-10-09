@@ -1,0 +1,17 @@
+Print what a registry publishes, without installing it
+
+Usage: aireg registry show [<registry>] [options]
+
+Options:
+      --ref <ref>             For a git registry, the branch, tag or commit to read
+      --path <folder>         For a git registry, the folder that holds it
+      --adapter <id>          The adapter that reads the registry, when aireg cannot tell
+      --config <key>=<value>  A setting for that adapter (repeatable)
+  -g, --user                  Act on your user scope instead of this project
+
+Examples:
+  $ aireg registry show acme  what acme publishes
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/registry/

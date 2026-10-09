@@ -1,0 +1,32 @@
+Install artifacts from a registry
+
+Usage: aireg add <registry>[/<namespace>[/[<kind>/]<name>[@<version>]]] [options]
+       aireg add <namespace>[/<name>]... --registry <registry> [options]
+       aireg add <address> [-s <name>]... [--as <name>] [options]
+       aireg add
+
+Options:
+  -s, --select <name>         The artifacts or namespaces to act on
+      --all                   Act on everything, without asking
+      --for <harness>         The harnesses to install into, comma-separated, or * for all of them
+      --copy                  Copy into each harness folder instead of linking
+      --as <name>             The name to save the registry under
+  -r, --registry <registry>   The registry to install from, by name or address
+      --ref <ref>             For a git registry, the branch, tag or commit to read
+      --path <folder>         For a git registry, the folder that holds it
+      --adapter <id>          The adapter that reads the registry, when aireg cannot tell
+      --config <key>=<value>  A setting for that adapter (repeatable)
+      --no-auto-update        Do not keep a user scope install up to date in the background
+  -g, --user                  Act on your user scope instead of this project
+      --dry-run               Print what would change without changing it
+      --frozen                Fail with exit status 3 if the lockfile or the manifest would change
+      --force                 Overwrite artifacts edited after they were installed
+
+Examples:
+  $ aireg add acme/engineering                                        a namespace, in this project
+  $ aireg add -g acme/engineering/pr-review@1.2.0                     one artifact, pinned, for you in every project
+  $ aireg add ../acme-registry/artifacts/engineering/skill/pr-review  one artifact, from its folder in a registry
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/add/

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 372" width="720" height="372" role="img" aria-label="One registry holding skills and agents, read by any client for any harness, and stored on one storage: a folder or a git repository today, and later an object storage bucket or a hosted service.">
+<rect width="720" height="372" fill="#FFFFFF"/>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7A8583"/></marker></defs>
+<text x="30" y="26" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#17201F" text-anchor="start">One registry, any client, any storage</text>
+<text x="30" y="45" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#4A5654" text-anchor="start">A registry that follows the specification is a set of files. Who reads them and where they live are both open.</text>
+<rect x="30" y="64" width="150" height="34" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="105" y="81" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#17201F" text-anchor="middle" dominant-baseline="central">Claude Code</text>
+<rect x="200" y="64" width="150" height="34" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="275" y="81" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#17201F" text-anchor="middle" dominant-baseline="central">Codex</text>
+<rect x="370" y="64" width="150" height="34" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="445" y="81" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#17201F" text-anchor="middle" dominant-baseline="central">Cursor</text>
+<rect x="540" y="64" width="150" height="34" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="615" y="81" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#17201F" text-anchor="middle" dominant-baseline="central">Copilot</text>
+<line x1="105.0" y1="98" x2="105.0" y2="118" stroke="#7A8583" stroke-width="0.9"/>
+<line x1="275.0" y1="98" x2="275.0" y2="118" stroke="#7A8583" stroke-width="0.9"/>
+<line x1="445.0" y1="98" x2="445.0" y2="118" stroke="#7A8583" stroke-width="0.9"/>
+<line x1="615.0" y1="98" x2="615.0" y2="118" stroke="#7A8583" stroke-width="0.9"/>
+<rect x="30" y="118" width="660" height="44" rx="6" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="44" y="140" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">any client, any number</text>
+<rect x="230" y="128" width="110" height="24" rx="5" fill="#EEF0EF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="285" y="140" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">aireg CLI</text>
+<rect x="352" y="128" width="150" height="24" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="427" y="140" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">MCP server (planned)</text>
+<rect x="514" y="128" width="70" height="24" rx="5" fill="#EEF0EF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="549" y="140" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">CI job</text>
+<line x1="105.0" y1="162" x2="105.0" y2="176" stroke="#7A8583" stroke-width="0.9"/>
+<line x1="275.0" y1="162" x2="275.0" y2="176" stroke="#7A8583" stroke-width="0.9"/>
+<line x1="445.0" y1="162" x2="445.0" y2="176" stroke="#7A8583" stroke-width="0.9"/>
+<line x1="615.0" y1="162" x2="615.0" y2="176" stroke="#7A8583" stroke-width="0.9"/>
+<rect x="30" y="176" width="660" height="78" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="360" y="194" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#085041" text-anchor="middle">registry</text>
+<rect x="275" y="204" width="80" height="24" rx="5" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1"/>
+<text x="315" y="216" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">skills</text>
+<rect x="365" y="204" width="80" height="24" rx="5" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1"/>
+<text x="405" y="216" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">agents</text>
+<text x="360" y="245" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#085041" text-anchor="middle">defined by the specification: versions, ownership, status, digests, dependencies</text>
+<line x1="360" y1="254" x2="360" y2="270" stroke="#7A8583" stroke-width="0.9"/>
+<rect x="30" y="270" width="660" height="44" rx="6" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="44" y="292" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">any storage, pick one</text>
+<rect x="200" y="280" width="70" height="24" rx="5" fill="#EEF0EF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="235" y="292" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">folder</text>
+<rect x="282" y="280" width="110" height="24" rx="5" fill="#EEF0EF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="337" y="292" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">git repository</text>
+<rect x="404" y="280" width="150" height="24" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="479" y="292" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">object storage bucket</text>
+<rect x="566" y="280" width="110" height="24" rx="5" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="621" y="292" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#4A5654" text-anchor="middle" dominant-baseline="central">hosted service</text>
+<text x="30" y="342" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#7A8583" text-anchor="start">Teal: what the specification defines. Grey: your choice on both sides. Dashed: planned, or no client reads it yet.</text>
+<text x="30" y="359" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#7A8583" text-anchor="start">aireg reads a registry from a folder or a git repository.</text>
+</svg>

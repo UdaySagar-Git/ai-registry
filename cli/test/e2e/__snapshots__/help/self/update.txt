@@ -1,0 +1,18 @@
+Update aireg to the latest release
+
+Usage: aireg self update [--check] [--dry-run] [--force]
+       aireg self update --rollback [--dry-run]
+
+Options:
+      --check     Check for a newer release without installing it
+      --rollback  Go back to the version installed before this one
+      --dry-run   Print what would change without changing it
+      --force     Install the newest release even if it is installed
+
+Examples:
+  $ aireg self update          update aireg
+  $ aireg self update --check  is there a newer release?
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/self/

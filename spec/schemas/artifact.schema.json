@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "artifact.schema.json",
+  "title": "Artifact envelope",
+  "description": "The artifact.json document stored in every version directory: a fixed header, an open spec the kind owns, file descriptors, and outbound relationships. This is the reader's contract, with spec left opaque. Readers MUST ignore unknown fields, so no object here is closed. File spec section 3.4.",
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "aireg.sh/v1",
+      "description": "Envelope identifier, fixed for storage format 1. An opaque token: it names the envelope, not the kind, and nothing dereferences it."
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/kind",
+      "description": "The artifact's kind. MUST equal the <kind> path segment the file sits under. There is no metadata.kind."
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "common.schema.json#/$defs/name" },
+        "namespace": { "$ref": "common.schema.json#/$defs/namespace" },
+        "version": { "$ref": "common.schema.json#/$defs/version" },
+        "display_name": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "status": {
+          "$ref": "common.schema.json#/$defs/status",
+          "description": "Status at publish time. Informative only; versions.json is authoritative. Removed before the content digest is computed, so status can move without breaking a pin."
+        },
+        "labels": { "$ref": "common.schema.json#/$defs/labels" },
+        "annotations": { "$ref": "common.schema.json#/$defs/annotations" },
+        "source": {
+          "type": "object",
+          "description": "Provenance of the content.",
+          "properties": {
+            "type": { "type": "string", "enum": ["git", "upload", "remote", "generated"] },
+            "uri": { "type": "string", "format": "uri-reference", "maxLength": 2048 },
+            "revision": { "type": "string", "maxLength": 256 }
+          },
+          "required": ["type"]
+        },
+        "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "created_by": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Subject that published the version. An opaque identifier; never an email address on a public registry."
+        },
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest",
+          "description": "The content digest, computed as file spec section 4.2 defines. An indexer fills it; an author MAY omit it in a pull request. Removed before the digest over this document is computed."
+        },
+        "uid": {
+          "type": "string",
+          "format": "uuid",
+          "description": "An identifier a hosted registry MAY mint. A client MUST NOT require it; the ref is the identity."
+        }
+      },
+      "required": ["name", "namespace", "version"]
+    },
+    "files": {
+      "type": "array",
+      "items": { "$ref": "file-descriptor.schema.json" },
+      "minItems": 1,
+      "maxItems": 10000
+    },
+    "spec": {
+      "type": "object",
+      "description": "The kind's own document, unchanged. Validated against the kind manifest at publish; opaque to this schema and to readers."
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "relationship.schema.json" },
+      "maxItems": 1000
+    }
+  },
+  "required": ["apiVersion", "kind", "metadata", "files", "spec"]
+}

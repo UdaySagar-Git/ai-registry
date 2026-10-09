@@ -1,0 +1,18 @@
+Read and write aireg's own settings
+
+Usage: aireg config [<action>]
+
+Actions:
+  list   List every setting (alias: ls)
+  get    Print one setting
+  set    Change one setting
+  unset  Put one setting back to its default
+  path   Print where the settings file is
+
+Examples:
+  $ aireg config set defaults.namespace acme/engineering  publish there by default
+  $ aireg config get defaults.namespace                   read a setting in a script
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/config/

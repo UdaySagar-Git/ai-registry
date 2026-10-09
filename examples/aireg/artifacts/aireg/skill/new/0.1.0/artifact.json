@@ -1,0 +1,28 @@
+{
+  "apiVersion": "aireg.sh/v1",
+  "kind": "skill",
+  "metadata": {
+    "name": "new",
+    "namespace": "aireg",
+    "version": "0.1.0",
+    "description": "Set up a registry of skills and agents for a person or a team, from nothing to installed. Use when asked to create, start or set up a registry, share skills with a team, or turn a folder of existing skills into a registry.",
+    "digest": "sha256:818534a0c47cecf7af1e6723798e80c70a48f59b749cee95e78faf441bec7569"
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:740c1d0f704a9f8d22e030b3e562677d9c7d8a9457d320b2b2c449cebf9e98b7",
+      "size": 5055,
+      "media_type": "text/markdown",
+      "urls": [
+        "SKILL.md"
+      ]
+    }
+  ],
+  "spec": {
+    "name": "new",
+    "description": "Set up a registry of skills and agents for a person or a team, from nothing to installed. Use when asked to create, start or set up a registry, share skills with a team, or turn a folder of existing skills into a registry.",
+    "compatibility": "Needs the aireg CLI and git, on macOS or Linux. GitHub steps use gh.",
+    "license": "Apache-2.0"
+  }
+}

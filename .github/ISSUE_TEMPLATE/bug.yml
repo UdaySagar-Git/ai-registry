@@ -1,0 +1,109 @@
+name: Bug report
+description: aireg, the file spec, the docs or an example registry doesn't behave as it should.
+labels: ["bug", "status:needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please [search existing issues](https://github.com/atlanai/ai-registry/issues?q=is%3Aissue) first.
+
+        **Found a security issue?** Don't report it here. Follow [SECURITY.md](https://github.com/atlanai/ai-registry/blob/main/SECURITY.md) to report it privately.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - aireg (the CLI)
+        - File spec or schemas
+        - Documentation site
+        - Example registries
+        - Spec checks (tools/)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: For aireg, paste the command you ran and its full output. For the spec or the docs, link the section and quote the text that's wrong.
+      placeholder: |
+        $ aireg add acme/engineering/pr-review
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened instead. For the spec, say which rule it breaks or which reading you expected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Needed for aireg bugs. The smallest set of steps that shows the bug, from a clean start. Say where the registry lives (a local folder, a git repository, or a hosted registry aireg reads through an adapter) and link to it or describe its layout. Use synthetic data.
+      placeholder: |
+        1. mkdir demo && cd demo && git init
+        2. aireg registry add github.com/atlanai/ai-registry --path examples/acme-registry
+        3. aireg add acme/engineering
+        4. ...
+
+  - type: input
+    id: version
+    attributes:
+      label: aireg version
+      description: The output of `aireg --version`, and the last version that worked, if any. Leave empty for spec or docs bugs.
+      placeholder: 0.1.0
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: aireg runs on macOS and Linux.
+      options:
+        - macOS, Apple silicon
+        - macOS, Intel
+        - Linux, x86-64
+        - Linux, arm64
+        - Other
+        - Not relevant
+
+  - type: dropdown
+    id: agents
+    attributes:
+      label: Coding agents involved
+      description: Which coding agents aireg installed into, or should have.
+      multiple: true
+      options:
+        - Claude Code
+        - Codex
+        - Cursor
+        - Another agent that reads .agents
+        - None
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: aireg doctor output and logs
+      description: For aireg bugs, paste the output of `aireg doctor`. It shows versions, folders under your home and whether credentials are stored, never the credentials themselves. For a sync or daemon problem, add the relevant lines from `aireg logs`, with tokens and private URLs removed.
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: When it started, whether it happens every time, or a workaround you found.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues and didn't find this bug.
+          required: true
+        - label: This report contains no tokens, credentials or private data.
+          required: true

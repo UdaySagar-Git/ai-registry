@@ -1,0 +1,10 @@
+Run a job now
+
+Usage: aireg job start <job> [--mode <mode>]
+
+Options:
+      --mode <mode>  What the run does: sync, pull or publish (default sync)
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/job/

@@ -1,0 +1,17 @@
+Sign in to your registries, and manage the accounts aireg uses
+
+Usage: aireg auth [<action>] [<registry>] [options]
+
+Actions:
+  login   Sign in to a registry
+  list    List the accounts aireg signs in with (alias: ls)
+  logout  Sign out, keeping the account
+  remove  Delete an account (alias: rm)
+
+Examples:
+  $ aireg auth login acme  sign in to the acme registry
+
+Learn more:
+  Run `aireg auth <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/auth/

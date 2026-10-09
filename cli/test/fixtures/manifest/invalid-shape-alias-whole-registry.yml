@@ -1,0 +1,6 @@
+registries:
+  hosted:
+    url: https://registry.example
+artifacts:
+  - ref: hosted
+    as: everything

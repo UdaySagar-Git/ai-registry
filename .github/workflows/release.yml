@@ -1,0 +1,306 @@
+# Releases the cli/package.json version of aireg to the stable channel and GitHub Releases.
+# Repository variables, public because every binary embeds them: RELEASE_ORIGIN_PROD,
+# RELEASE_TRUSTED_KEYS_PROD, optional RELEASE_PREFIX (the origin's path; default: bucket root).
+# Secrets of the `release` environment, so logs only ever show ***: RELEASE_AWS_REGION,
+# RELEASE_ROLE_ARN, RELEASE_BUCKET, RELEASE_SIGNING_KEY_SECRET (the Secrets Manager id of the key).
+# Approval is the release-gate environment. The publisher role trusts only OIDC tokens for the
+# `release` environment, which only the publish job uses, and that job runs no pnpm install.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and stage, publish nothing
+        type: boolean
+        default: false
+      minimum_version:
+        description: Oldest aireg that may keep running (blank keeps the current floor)
+        type: string
+        required: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  # Empty publishes at the bucket root; a non-empty prefix must also be the origin's path.
+  RELEASE_PREFIX: ${{ vars.RELEASE_PREFIX || '' }}
+  RELEASE_ORIGIN: ${{ vars.RELEASE_ORIGIN_PROD }}
+  RELEASE_TRUSTED_KEYS: ${{ vars.RELEASE_TRUSTED_KEYS_PROD }}
+
+jobs:
+  plan:
+    name: Plan stable release
+    if: github.repository == 'atlanai/ai-registry'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      previous: ${{ steps.plan.outputs.previous }}
+      key_id: ${{ steps.plan.outputs.key_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: plan
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          MINIMUM: ${{ inputs.minimum_version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$*" >&2; exit 1; }
+          [ "$GITHUB_REF" = refs/heads/main ] || fail "releases run from main"
+          plain='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          version=$(jq -r .version cli/package.json)
+          [[ "$version" =~ $plain ]] || fail "cli/package.json version '$version' is not MAJOR.MINOR.PATCH"
+          if [ -n "$MINIMUM" ]; then
+            [[ "$MINIMUM" =~ $plain ]] || fail "minimum_version '$MINIMUM' is not MAJOR.MINOR.PATCH"
+            [ "$(printf '%s\n%s\n' "$version" "$MINIMUM" | sort -V | tail -1)" = "$version" ] || fail "minimum_version is newer than $version"
+          fi
+          if git rev-parse -q --verify "refs/tags/aireg-v$version" >/dev/null && [ "$DRY_RUN" != true ]; then
+            fail "aireg-v$version already exists; bump cli/package.json in a release PR"
+          fi
+          passed=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&status=success" --jq .total_count)
+          [ "$passed" -gt 0 ] || fail "CI has not passed on $GITHUB_SHA"
+          for name in RELEASE_ORIGIN RELEASE_TRUSTED_KEYS; do
+            [ -n "${!name}" ] || fail "$name is not set"
+          done
+          echo "::warning::darwin binaries are not notarized; browser downloads will be blocked"
+          [[ "$RELEASE_ORIGIN" == https://* ]] || fail "the release origin must be https"
+          # Slash-separated plain segments, no leading or trailing slash; empty means the bucket root.
+          [[ "$RELEASE_PREFIX" =~ ^([A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*)?$ ]] || fail "RELEASE_PREFIX '$RELEASE_PREFIX' must be empty or a/b/c with no leading or trailing slash"
+          key_id=$(jq -er 'if type == "object" and length == 1 then keys[0] else error("") end' <<< "$RELEASE_TRUSTED_KEYS") || fail "the trusted keyring must hold exactly one key"
+          previous=$(git tag -l 'aireg-v*' --sort=-v:refname | grep -E '^aireg-v[0-9]+\.[0-9]+\.[0-9]+$' | grep -vxF "aireg-v$version" | head -1 || true)
+          printf 'version=%s\nprevious=%s\nkey_id=%s\n' "$version" "$previous" "$key_id" >> "$GITHUB_OUTPUT"
+
+  # The only approval: required reviewers on release-gate hold every later job.
+  approve:
+    name: Approve stable release
+    needs: plan
+    if: ${{ !inputs.dry_run }}
+    environment: release-gate
+    permissions: {}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: echo "aireg $VERSION approved"
+
+  build:
+    name: Release binary (${{ matrix.os }}-${{ matrix.arch }})
+    needs: [plan, approve]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.approve.result == 'success' || (inputs.dry_run && needs.approve.result == 'skipped')) }}
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: darwin, arch: arm64, runner: macos-26}
+          - {os: darwin, arch: amd64, runner: macos-26-intel}
+          - {os: linux, arch: amd64, runner: ubuntu-26.04}
+          - {os: linux, arch: arm64, runner: ubuntu-26.04-arm}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/aireg-build
+        with:
+          version: ${{ needs.plan.outputs.version }}
+          commit: ${{ github.sha }}
+          origin: ${{ env.RELEASE_ORIGIN }}
+          trusted-keys: ${{ env.RELEASE_TRUSTED_KEYS }}
+          os: ${{ matrix.os }}
+          arch: ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aireg-binary-${{ matrix.os }}-${{ matrix.arch }}
+          path: cli/dist-standalone/bin/
+          if-no-files-found: error
+
+  # Assembles every release file and attests it, with no cloud credentials and no installed
+  # packages. Its digests output is what the later jobs check their download against.
+  stage:
+    name: Stage release files
+    needs: [plan, build]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      digests: ${{ steps.digests.outputs.digests }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: cli/.node-version
+          package-manager-cache: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: aireg-binary-*
+          path: cli/dist-standalone/bin
+          merge-multiple: true
+
+      # packaging/main.ts imports only Node built-ins and this repository, so no install is needed.
+      - name: Render the installer
+        working-directory: cli
+        env:
+          AIREG_RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          AIREG_RELEASE_ORIGIN: ${{ env.RELEASE_ORIGIN }}
+        run: node --experimental-strip-types packaging/main.ts installer
+
+      - name: Collect the release files
+        run: |
+          set -euo pipefail
+          mkdir release
+          cp cli/dist-standalone/bin/aireg-darwin-* cli/dist-standalone/bin/aireg-linux-* \
+            cli/dist-standalone/install.sh LICENSE NOTICE cli/THIRD_PARTY_NOTICES.txt release/
+          (cd release && sha256sum -- * > SHA256SUMS)
+
+      - id: attest
+        if: ${{ !inputs.dry_run }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            release/aireg-*
+            release/install.sh
+
+      - id: digests
+        working-directory: release
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          if [ -n "$BUNDLE" ]; then cp "$BUNDLE" "aireg-$VERSION.sigstore.json"; fi
+          { echo "digests<<END_OF_DIGESTS"; sha256sum -- *; echo END_OF_DIGESTS; } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aireg-release
+          path: release/
+          if-no-files-found: error
+
+  publish:
+    name: Publish stable release
+    needs: [plan, stage]
+    if: ${{ !cancelled() && !inputs.dry_run && needs.stage.result == 'success' }}
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check the release environment
+        env:
+          # A boolean, so this log shows only true/false, never the values.
+          SECRETS_SET: ${{ secrets.RELEASE_AWS_REGION != '' && secrets.RELEASE_ROLE_ARN != '' && secrets.RELEASE_BUCKET != '' && secrets.RELEASE_SIGNING_KEY_SECRET != '' }}
+        run: |
+          if [ "$SECRETS_SET" != true ]; then
+            echo "::error::set RELEASE_AWS_REGION, RELEASE_ROLE_ARN, RELEASE_BUCKET and RELEASE_SIGNING_KEY_SECRET as secrets of the release environment"
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: cli/.node-version
+          package-manager-cache: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: aireg-release
+          path: release
+
+      - name: Check the staged files
+        env:
+          DIGESTS: ${{ needs.stage.outputs.digests }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$DIGESTS" > "$RUNNER_TEMP/staged.sha256"
+          cd release
+          sha256sum --check --strict --quiet "$RUNNER_TEMP/staged.sha256"
+          [ "$(find . -type f | wc -l)" -eq "$(wc -l < "$RUNNER_TEMP/staged.sha256")" ]
+
+      # Credentials come last: every later step runs only this repository's code and the AWS CLI.
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.RELEASE_ROLE_ARN }}
+          aws-region: ${{ secrets.RELEASE_AWS_REGION }}
+          role-duration-seconds: 900
+          mask-aws-account-id: true
+
+      - uses: ./.github/actions/aireg-publish
+        with:
+          dir: ${{ github.workspace }}/release
+          version: ${{ needs.plan.outputs.version }}
+          channel: stable
+          minimum-version: ${{ inputs.minimum_version }}
+          key-id: ${{ needs.plan.outputs.key_id }}
+          origin: ${{ env.RELEASE_ORIGIN }}
+          bucket: ${{ secrets.RELEASE_BUCKET }}
+          prefix: ${{ env.RELEASE_PREFIX }}
+          signing-key-secret: ${{ secrets.RELEASE_SIGNING_KEY_SECRET }}
+          trusted-keys: ${{ env.RELEASE_TRUSTED_KEYS }}
+
+  # Last, so the tag only ever names a release whose channel is already live.
+  github-release:
+    name: Create the GitHub Release
+    needs: [plan, stage, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: aireg-release
+          path: release
+
+      - name: Check the staged files
+        env:
+          DIGESTS: ${{ needs.stage.outputs.digests }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$DIGESTS" > "$RUNNER_TEMP/staged.sha256"
+          cd release
+          sha256sum --check --strict --quiet "$RUNNER_TEMP/staged.sha256"
+          [ "$(find . -type f | wc -l)" -eq "$(wc -l < "$RUNNER_TEMP/staged.sha256")" ]
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          PREVIOUS: ${{ needs.plan.outputs.previous }}
+        run: |
+          set -euo pipefail
+          tag="aireg-v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then exit 0; fi
+          gh release create "$tag" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "aireg $VERSION" --latest --generate-notes ${PREVIOUS:+--notes-start-tag "$PREVIOUS"}

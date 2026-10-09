@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "versions.schema.json",
+  "title": "Versions document",
+  "description": "The versions.json document at artifacts/<namespace>/<kind>/<name>/versions.json. One entry per published version. This document is authoritative for status and yanked; everything else about a version is immutable. File spec section 3.3.",
+  "type": "object",
+  "properties": {
+    "namespace": { "$ref": "common.schema.json#/$defs/namespace" },
+    "kind": { "$ref": "common.schema.json#/$defs/kind" },
+    "name": { "$ref": "common.schema.json#/$defs/name" },
+    "latest": {
+      "$ref": "common.schema.json#/$defs/version",
+      "description": "The version a bare ref resolves to. MUST be listed in versions[] and, when any version is active and not yanked, MUST be the newest of those (file spec section 3.3). Both rules are checked by the checker, not by this schema."
+    },
+    "versions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "description": "Entries SHOULD be ordered newest first.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "version": { "$ref": "common.schema.json#/$defs/version" },
+          "digest": {
+            "$ref": "common.schema.json#/$defs/digest",
+            "description": "Content digest, file spec section 4.2. Never changes; a lockfile pins it."
+          },
+          "catalog_digest": {
+            "$ref": "common.schema.json#/$defs/digest",
+            "description": "Digest over the content digest plus mutable catalog state, file spec section 4.3. Moves on relabel, status change, or yank."
+          },
+          "published_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+          "status": { "$ref": "common.schema.json#/$defs/status" },
+          "yanked": {
+            "type": "boolean",
+            "description": "True when the version must not be selected by range resolution. Bytes remain resolvable to a pinned digest."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional human-readable reason for the current status or yank.",
+            "maxLength": 1000
+          }
+        },
+        "required": ["version", "digest", "published_at", "status", "yanked"]
+      }
+    }
+  },
+  "required": ["namespace", "kind", "name", "latest", "versions"]
+}

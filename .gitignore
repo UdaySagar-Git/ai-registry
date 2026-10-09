@@ -1,0 +1,111 @@
+# ─── OS Files ───────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ─── IDE & Editor Settings ──────────────────────────────────────────────────
+.vscode/*
+# Allow sharing recommended extensions.
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ─── Environment & Secrets ──────────────────────────────────────────────────
+.env
+.env.*
+# Allow committed example and template env files.
+!.env.example
+*.env
+.envrc
+secrets/
+secret.yml
+secret.yaml
+secrets.yml
+secrets.yaml
+
+# ─── Credentials & Certificates ─────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.jks
+*.p8
+*.ppk
+credentials.json
+credentials.yaml
+credentials.yml
+service-account*.json
+*-sa-key.json
+application_default_credentials.json
+.aws/
+kubeconfig
+.npmrc
+.netrc
+.pypirc
+.git-credentials
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+dist/
+build/
+# The planner's tests, not a Python build.
+!cli/src/core/plan/build/
+
+# ─── Node.js ────────────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-error.log*
+.npm/
+.yarn/
+
+# ─── Local aireg and coding agent state ─────────────────────────────────────
+# Running aireg or a coding agent in this checkout writes these; examples/ keep their own.
+/.registry/
+/.aireg/
+/.agents/
+/.claude/
+/.codex/
+/.cursor/
+
+# ─── Logs & Temp Files ──────────────────────────────────────────────────────
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.cache
+*.pid
+
+# ─── Package / Archive Files ────────────────────────────────────────────────
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ─── Documentation site build output ────────────────────────────────────────
+site/

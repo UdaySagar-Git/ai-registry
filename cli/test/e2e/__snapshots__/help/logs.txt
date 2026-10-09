@@ -1,0 +1,23 @@
+Read aireg's diagnostic logs
+
+Usage: aireg logs [options]
+
+Options:
+  -f, --follow         Keep printing new entries as they are written
+  -n, --tail <count>   How many of the newest entries to print
+      --since <time>   Only entries since this time: 15m, 2h, 1d or a date
+      --until <time>   Only entries until this time
+      --level <level>  Only entries at this level or above
+      --grep <text>    Only entries that contain this text
+      --daemon         Read the daemon's log
+      --cli            Read the CLI's log
+      --stderr         Read the daemon's stderr
+      --previous       Read the last rotated copy instead
+
+Examples:
+  $ aireg logs --daemon --level warn  why a background sync failed
+  $ aireg logs --cli --since 5m       the CLI's last five minutes
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/logs/

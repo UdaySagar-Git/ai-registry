@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kinds/agent.json",
+  "title": "agent",
+  "description": "An agent definition: either an A2A agent card (agent-card.json) or an AGENT.md with front-matter, plus a runtime block naming the harness, framework, provider, and model it runs on. spec wraps the card or the front-matter unchanged and adds runtime.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "MUST equal metadata.name in the envelope.",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "card": {
+      "type": "object",
+      "description": "The A2A agent card, verbatim, when the agent ships agent-card.json. Opaque to this manifest."
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "harness": {
+          "type": "string",
+          "description": "What runs the agent, such as claude-code or custom.",
+          "minLength": 1
+        },
+        "framework": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Model provider identifier."
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Model identifier as the provider names it."
+        },
+        "environment": {
+          "type": "object",
+          "description": "Environment variable NAMES the agent expects, with a description or a non-secret default as the value. Never a secret value.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "harness"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "runtime"
+  ],
+  "additionalProperties": false,
+  "x-registry-schema-version": 1,
+  "x-registry-searchable": [
+    "/name",
+    "/description",
+    "/runtime/harness"
+  ],
+  "x-registry-embeddings": [
+    "/description"
+  ],
+  "x-registry-edges": [
+    {
+      "rel_type": "depends_on",
+      "to_kinds": [
+        "skill",
+        "agent",
+        "mcp_server"
+      ],
+      "cardinality": "many",
+      "direction": "outbound"
+    },
+    {
+      "rel_type": "supersedes",
+      "to_kinds": [
+        "agent"
+      ],
+      "cardinality": "one",
+      "direction": "outbound"
+    }
+  ],
+  "x-registry-files": {
+    "one_of": [
+      [
+        {
+          "path": "AGENT.md",
+          "media_type": "text/markdown"
+        }
+      ],
+      [
+        {
+          "path": "agent-card.json",
+          "media_type": "application/json"
+        }
+      ]
+    ]
+  },
+  "x-registry-attachment": false,
+  "x-registry-gated": false
+}

@@ -1,0 +1,66 @@
+{
+  "apiVersion": "aireg.sh/v1",
+  "kind": "skill",
+  "metadata": {
+    "name": "pr-review",
+    "namespace": "engineering",
+    "version": "1.2.0",
+    "display_name": "PR review",
+    "description": "Review a pull request for correctness, clarity, and test coverage, and leave findings ranked by severity. Uses a checklist and a scoring rubric.",
+    "status": "active",
+    "labels": {
+      "category": "engineering"
+    },
+    "annotations": {
+      "acme.example/owner-team": "developer-experience"
+    },
+    "source": {
+      "type": "git",
+      "uri": "https://github.com/acme/skills",
+      "revision": "9b7e6d5c4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d"
+    },
+    "created_at": "2026-09-01T10:12:00Z",
+    "created_by": "acme-ci",
+    "digest": "sha256:9cf62f496323323fae1dd9a27181de692a9dcfd8d2151d52bd1c3d36bfec6834"
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:d990e1beb31b95d0918e65df238e85b8ec4fc34a3af123a295da0b9cf092948a",
+      "size": 757,
+      "media_type": "text/markdown",
+      "urls": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "path": "references/checklist.md",
+      "digest": "sha256:597c4fffa58633659d51a1b3c4727cf2af21f270c95faf9564f854bea087f1ba",
+      "size": 329,
+      "media_type": "text/markdown",
+      "urls": [
+        "references/checklist.md"
+      ]
+    },
+    {
+      "path": "assets/rubric.json",
+      "digest": "sha256:28eb2235f00fa89d30904eb6e4a3625dca764a66a67aa9d55c56218c5138fc0c",
+      "size": 116,
+      "media_type": "application/json"
+    }
+  ],
+  "spec": {
+    "name": "pr-review",
+    "description": "Review a pull request for correctness, clarity, and test coverage, and leave findings ranked by severity. Uses a checklist and a scoring rubric.",
+    "license": "Apache-2.0",
+    "metadata": {
+      "category": "engineering"
+    }
+  },
+  "relationships": [
+    {
+      "rel_type": "supersedes",
+      "to": "engineering/skill/pr-review@1.1.0"
+    }
+  ]
+}

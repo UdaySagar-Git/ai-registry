@@ -1,0 +1,5 @@
+$schema: https://raw.githubusercontent.com/atlanai/ai-registry/main/cli/schema/manifest.schema.json
+registries:
+  kit: acme/agent-kit
+artifacts:
+  - kit/lint

@@ -1,0 +1,12 @@
+Update aireg, or uninstall it
+
+Usage: aireg self <action> [options]
+
+Actions:
+  update     Update aireg to the latest release
+  uninstall  Remove aireg and your user scope from this machine
+
+Learn more:
+  Run `aireg self <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/self/

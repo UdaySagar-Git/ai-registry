@@ -1,0 +1,26 @@
+Sync this project with its registries
+
+Usage: aireg sync [<registry>] [options]
+       aireg sync resolve <name> --mine | --theirs
+
+Actions:
+  resolve  Settle an artifact edited both here and in the registry
+
+Options:
+      --pull <policy>     What to do with changes the registry made: on, report or off
+      --publish <policy>  What to do with edits made here: on, report or off
+      --delete <policy>   What to do with artifacts deleted here: on, report or off
+      --adopt <policy>    What to do with artifacts no registry has yet: on, report or off
+      --claim <policy>    Whether to manage a folder that matches the registry: on, report or off
+  -s, --select <name>     The artifacts or namespaces to act on
+      --dry-run           Print what would change without changing it
+  -g, --user              Act on your user scope instead of this project
+
+Examples:
+  $ aireg sync --dry-run     what would change
+  $ aireg sync --publish on  pull changes, and publish your edits
+
+Learn more:
+  Run `aireg sync <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/sync/

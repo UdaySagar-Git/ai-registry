@@ -1,0 +1,24 @@
+Declare the registries you install from, or create and check one of your own
+
+Usage: aireg registry [<action>] [options]
+
+Actions:
+  add       Declare a registry to install from
+  list      List the registries you have declared (alias: ls)
+  show      Print what a registry publishes, without installing it
+  remove    Remove a declared registry (alias: rm)
+  init      Create a registry in a folder
+  index     Index new versions and update index.json
+  validate  Check a registry against the file spec
+
+Options:
+  -g, --user  Act on your user scope instead of this project
+
+Examples:
+  $ aireg registry add github.com/acme/ai-registry --as acme  name a registry once
+  $ aireg registry validate                                   check the registry in this folder
+
+Learn more:
+  Run `aireg registry <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/registry/

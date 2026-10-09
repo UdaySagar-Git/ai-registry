@@ -1,0 +1,88 @@
+aireg [VERSION]
+Install agent artifacts from any registry into any agent harness.
+
+Usage: aireg <command> [options]
+       aireg help <command> [<action>]
+
+Examples:
+  $ aireg registry add github.com/acme/ai-registry -g  name a registry once, for every project
+  $ aireg add -g acme/engineering                      a namespace, for you in every project
+  $ aireg add acme/engineering/pr-review@1.2.0         one artifact, pinned in this project
+  $ aireg show acme/engineering/pr-review              read one without installing it
+  $ aireg status --json                                check for changes, as JSON
+  $ aireg install --frozen                             fail if the lockfile or manifest would change
+  $ aireg daemon status                                check background sync
+
+Set up:
+  init       Set up a project (creates .registry/manifest.yml)
+  registry   Declare the registries you install from, or create and check one of your own
+             add  list  show  remove  init  index  validate
+  auth       Sign in to your registries, and manage the accounts aireg uses
+             login  list  logout  remove
+
+Install:
+  search     Find artifacts in the registries you have declared
+  add        Install artifacts from a registry
+  remove     Uninstall artifacts
+  install    Make this project match its manifest
+  update     Take the newest version each registry offers
+  show       Print an artifact without installing it
+
+Check:
+  console    Open a full-screen view of installed artifacts, jobs and registries
+  status     Check installed artifacts against the lockfile, and list the ones nothing manages
+  list       List what is installed
+  outdated   Check each registry for newer versions of what is installed
+  harnesses  List the harnesses aireg can install into, and which this machine has
+
+Share:
+  sync       Sync this project with its registries
+             resolve
+  publish    Publish artifacts to a registry, as new versions
+  skill      Create a skill, or start its next version
+             new  bump
+  agent      Create an agent, or start its next version
+             new  bump
+
+Automate:
+  job        Manage background jobs and read their runs
+             add  list  remove  start  enable  disable  pause  resume  runs  retry  cancel
+  daemon     Start, stop or check the background daemon that runs jobs
+             start  stop  restart  status  autostart
+
+Maintain:
+  config     Read and write aireg's own settings
+             list  get  set  unset  path
+  doctor     Check that this machine can install artifacts
+  unlock     Show or clear a stuck write lock
+  adapter    Install an adapter, or write a new one
+             install  list  remove  init
+  logs       Read aireg's diagnostic logs
+  self       Update aireg, or uninstall it
+             update  uninstall
+
+Options:
+      --json               Machine-readable output
+      --verbose            Print each step
+  -q, --quiet              Print only results, warnings and errors
+      --color <when>       Color the output: auto, always or never
+      --no-color           The same as --color never
+      --log-level <level>  The diagnostic log level, on stderr and in the log file
+      --map [format]       Print the full command tree and exit: tree, compact or json
+  -y, --yes                Take the defaults without asking
+  -h, --help               Print help, or after a command, its help
+  -v, --version            Print the version and exit
+
+Questions:
+  On a terminal, commands that change things ask before they do.
+  Every question has an option that answers it, and the option wins.
+  Nothing is asked with --yes or --json, without a terminal, in CI,
+  or inside a coding agent.
+
+Exit codes:
+  0 success   1 error   2 usage error   3 changes found   4 sign-in needed
+
+Learn more:
+  Run `aireg help <command>` for a command's options and examples.
+  Docs:   https://atlanai.github.io/ai-registry/reference/
+  Issues: https://github.com/atlanai/ai-registry/issues

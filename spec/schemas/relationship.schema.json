@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "relationship.schema.json",
+  "title": "Relationship",
+  "description": "A directed outbound edge from the artifact version that carries it to another artifact version. Legal rel_type values and target kinds are declared per kind in the kind manifest's x-registry-edges. Inbound edges are never stored. File spec sections 3.4, 4.3 and 6.",
+  "type": "object",
+  "properties": {
+    "rel_type": {
+      "type": "string",
+      "description": "Edge type, for example depends_on or supersedes.",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "to": {
+      "$ref": "common.schema.json#/$defs/ref",
+      "description": "Target as a fully qualified ref, resolved within the same root."
+    },
+    "annotations": { "$ref": "common.schema.json#/$defs/annotations" }
+  },
+  "required": ["rel_type", "to"]
+}

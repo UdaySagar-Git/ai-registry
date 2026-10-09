@@ -1,0 +1,49 @@
+import { describe, expect, it } from "vitest";
+import { emptyLock } from "#core/lock.ts";
+import { build } from "#core/plan/build.ts";
+import type { Acquired } from "#core/plan/model.ts";
+import { parseRef } from "#core/ref.ts";
+import { acquired, entry, kitManifest, PLAN_OPTIONS } from "#test/kit/builders/plan.ts";
+
+describe("dependencies", () => {
+  it("land in the harnesses their dependent was narrowed to", () => {
+    const reviewer = "artifacts/eng/agent/reviewer.md";
+    const lint = "artifacts/eng/skill/lint";
+    const [source] = acquired([
+      entry({ name: "reviewer", kind: "agent", path: reviewer, group: "eng" }),
+      entry({ name: "lint", path: lint, group: "eng" }),
+    ]) as [Acquired];
+    const need = { namespace: "eng", kind: "skill" as const, name: "lint", version: "1.0.0" };
+    source.placements.set(reviewer, {
+      id: reviewer,
+      name: "reviewer",
+      contentId: "sha256:r",
+      version: "0.3.0",
+      needs: [need],
+    });
+    source.placements.set(lint, {
+      id: lint,
+      name: "lint",
+      contentId: "sha256:l",
+      version: "1.0.0",
+    });
+    const wanted = kitManifest([]);
+    wanted.artifacts = [{ ...parseRef("kit/eng/agent/reviewer"), targets: ["claude"] }];
+
+    const plan = build(
+      wanted,
+      emptyLock(),
+      [source],
+      { artifacts: {} },
+      {
+        ...PLAN_OPTIONS,
+        targets: ["claude", "codex"],
+      },
+    );
+    const into = plan.actions.flatMap((action) =>
+      action.kind === "link" && action.name === "lint" ? [action.harness] : [],
+    );
+    expect(into).toEqual(["claude"]);
+    expect(plan.neededBy).toEqual({ lint: ["reviewer"] });
+  });
+});

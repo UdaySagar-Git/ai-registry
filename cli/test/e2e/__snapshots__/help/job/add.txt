@@ -1,0 +1,25 @@
+Add a job that keeps a folder in sync with a registry
+
+Usage: aireg job add [<folder>] --registry <registry> [options]
+       aireg job add [<folder>] --watch <folder>... --to <registry>/<namespace> [options]
+
+Options:
+      --registry <registry>        The registry to keep in sync with
+      --watch <folder>             A folder whose skills and agents the job publishes (repeatable)
+      --to <registry>/<namespace>  Where the watched folders publish
+      --interval <seconds>         How often the job runs, in seconds (default 900)
+      --name <name>                An id for the job, in place of the default
+      --pull <policy>              What to do with changes the registry made: on, report or off
+      --publish <policy>           What to do with edits made here: on, report or off
+      --delete <policy>            What to do with artifacts deleted here: on, report or off
+      --adopt <policy>             What to do with artifacts no registry has yet: on, report or off
+      --claim <policy>             Whether to manage a folder that matches the registry: on, report or off
+  -s, --select <name>              Also add these artifacts to the manifest
+  -g, --user                       Act on your user scope instead of this project
+      --for <harness>              The harnesses to install into, comma-separated, or * for all of them
+      --account <account>          The account an adapter's job type runs as
+      --kind <kind>                A job type an installed adapter adds
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/job/

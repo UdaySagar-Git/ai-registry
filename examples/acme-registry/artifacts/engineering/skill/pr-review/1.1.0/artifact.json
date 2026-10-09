@@ -1,0 +1,40 @@
+{
+  "apiVersion": "aireg.sh/v1",
+  "kind": "skill",
+  "metadata": {
+    "name": "pr-review",
+    "namespace": "engineering",
+    "version": "1.1.0",
+    "display_name": "PR review",
+    "description": "Review a pull request for correctness, clarity, and test coverage, and leave findings ranked by severity.",
+    "status": "active",
+    "labels": {
+      "category": "engineering"
+    },
+    "source": {
+      "type": "git",
+      "uri": "https://github.com/acme/skills",
+      "revision": "3f2a9c1e7b4d5a6f8c0e1d2b3a4f5e6d7c8b9a01"
+    },
+    "created_at": "2026-08-14T09:00:00Z",
+    "created_by": "acme-ci",
+    "digest": "sha256:ffc0420a7a94cf4c97aeed8875187c2208813ad079fb09dda1661d6bb3ca577f"
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:87c145cfcb1f71178939367a87e917aa39518b96419fca470c722a06b9487f8e",
+      "size": 550,
+      "media_type": "text/markdown",
+      "urls": [
+        "SKILL.md"
+      ]
+    }
+  ],
+  "spec": {
+    "name": "pr-review",
+    "description": "Review a pull request for correctness, clarity, and test coverage, and leave findings ranked by severity.",
+    "license": "Apache-2.0"
+  },
+  "relationships": []
+}

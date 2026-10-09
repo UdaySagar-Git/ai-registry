@@ -1,0 +1,16 @@
+List what is installed
+
+Usage: aireg list [-g]
+       aireg list <name> [-g]
+Aliases: aireg ls
+
+Options:
+  -g, --user  Act on your user scope instead of this project
+
+Examples:
+  $ aireg list                        what this project installs
+  $ aireg list engineering/pr-review  where one came from
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/list/

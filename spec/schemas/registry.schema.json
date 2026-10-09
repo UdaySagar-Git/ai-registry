@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "registry.schema.json",
+  "title": "Registry discovery document",
+  "description": "The registry.json document at a root, and what an origin root serves at /.well-known/registry.json. Tells a client the storage format, what the root offers, how to authenticate, and where blobs and kind manifests live. File spec section 3.1.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "registry",
+      "description": "Distinguishes this from a host document. Absent means registry."
+    },
+    "format_version": { "$ref": "common.schema.json#/$defs/format_version" },
+    "name": {
+      "type": "string",
+      "description": "Human-readable registry name.",
+      "maxLength": 200
+    },
+    "slug": {
+      "$ref": "common.schema.json#/$defs/namespace",
+      "description": "Owner slug: the org-level workspace slug on a hosted root, the repository owner on a repository root. Never appears in a path."
+    },
+    "description": { "type": "string", "maxLength": 4000 },
+    "url": {
+      "$ref": "common.schema.json#/$defs/root_url",
+      "description": "The canonical root. SHOULD be present on an HTTPS root; a directory has no fixed address and omits it. A client records it as the registry's identity and MUST NOT follow it as a redirect."
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "What this root offers. A file root advertises files. Other values are reserved for a future server.",
+      "items": { "$ref": "common.schema.json#/$defs/capability" },
+      "uniqueItems": true
+    },
+    "auth": { "$ref": "common.schema.json#/$defs/auth" },
+    "blob_url": {
+      "type": "string",
+      "description": "URI template for content-addressed blobs. MUST contain the literal {digest}, which expands to the bare 64-hex digest without the sha256: prefix. A relative template resolves against the root. Default: blobs/sha256/{digest}.",
+      "pattern": "\\{digest\\}",
+      "default": "blobs/sha256/{digest}"
+    },
+    "kinds": {
+      "type": "array",
+      "description": "Kinds this root holds and where their manifests live.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "$ref": "common.schema.json#/$defs/kind" },
+          "manifest_url": {
+            "type": "string",
+            "format": "uri-reference",
+            "description": "Where the kind manifest lives: a JSON Schema for spec plus the x-registry-* keywords. A relative reference resolves against the root, so a root may serve its own manifests."
+          }
+        },
+        "required": ["name", "manifest_url"]
+      }
+    },
+    "generated_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "api_version": {
+      "type": "string",
+      "const": "v1",
+      "description": "Kept for a future server. A format 1 file root omits it."
+    }
+  },
+  "required": ["format_version", "name", "capabilities"]
+}

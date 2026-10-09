@@ -1,0 +1,13 @@
+List recent runs, or one run's events
+
+Usage: aireg job runs [<run>] [options]
+
+Options:
+      --job <job>      Only this job's runs
+      --state <state>  Only runs in this state
+      --limit <n>      How many runs to list, from 1 to 500
+      --follow         With a run id, print its events until it finishes
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/job/

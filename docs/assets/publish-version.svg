@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 712 630" width="712" height="630" role="img" aria-label="Updating run-benchmark to 0.2.0: aireg skill bump creates the folder, and aireg registry index writes its artifact.json and rewrites versions.json and index.json.">
+<rect width="712" height="630" fill="#FFFFFF"/>
+<line x1="31" y1="102" x2="31" y2="122" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="31" y1="122" x2="43" y2="122" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="57" y1="134" x2="57" y2="154" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="57" y1="154" x2="69" y2="154" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="83" y1="166" x2="83" y2="186" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="83" y1="186" x2="95" y2="186" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="57" y1="134" x2="57" y2="218" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="57" y1="218" x2="69" y2="218" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="83" y1="230" x2="83" y2="250" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="83" y1="250" x2="95" y2="250" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="83" y1="230" x2="83" y2="282" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="83" y1="282" x2="95" y2="282" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="109" y1="294" x2="109" y2="314" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="109" y1="314" x2="121" y2="314" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="109" y1="294" x2="109" y2="346" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="109" y1="346" x2="121" y2="346" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="358" x2="135" y2="378" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="378" x2="147" y2="378" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="358" x2="135" y2="410" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="410" x2="147" y2="410" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="109" y1="294" x2="109" y2="442" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="109" y1="442" x2="121" y2="442" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="454" x2="135" y2="474" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="474" x2="147" y2="474" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="454" x2="135" y2="506" stroke="#B9C2BF" stroke-width="1"/>
+<line x1="135" y1="506" x2="147" y2="506" stroke="#B9C2BF" stroke-width="1"/>
+<rect x="20" y="14" width="116" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="29" y="26" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">registry.json</text>
+<text x="333" y="26" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">unchanged</text>
+<rect x="20" y="46" width="94" height="24" rx="4" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/>
+<text x="29" y="58" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#633806" text-anchor="start" dominant-baseline="central">index.json</text>
+<rect x="122" y="49" width="57" height="18" rx="9" fill="#FAEEDA" stroke="#BA7517" stroke-width="0.8"/>
+<text x="150" y="58" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#633806" text-anchor="middle" dominant-baseline="central">changed</text>
+<text x="333" y="58" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">aireg registry index moves run-benchmark&#x27;s latest to 0.2.0</text>
+<rect x="20" y="78" width="94" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="29" y="90" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">artifacts/</text>
+<rect x="46" y="110" width="109" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="55" y="122" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">engineering/</text>
+<rect x="72" y="142" width="63" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="81" y="154" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">agent/</text>
+<rect x="98" y="174" width="86" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="107" y="186" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">reviewer/</text>
+<text x="333" y="186" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">untouched</text>
+<rect x="72" y="206" width="63" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="81" y="218" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">skill/</text>
+<rect x="98" y="238" width="94" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="107" y="250" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">pr-review/</text>
+<text x="333" y="250" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">untouched</text>
+<rect x="98" y="270" width="124" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="107" y="282" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">run-benchmark/</text>
+<rect x="124" y="302" width="116" height="24" rx="4" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/>
+<text x="133" y="314" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#633806" text-anchor="start" dominant-baseline="central">versions.json</text>
+<rect x="248" y="305" width="57" height="18" rx="9" fill="#FAEEDA" stroke="#BA7517" stroke-width="0.8"/>
+<text x="276" y="314" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#633806" text-anchor="middle" dominant-baseline="central">changed</text>
+<text x="333" y="314" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">aireg registry index adds 0.2.0 and points latest at it</text>
+<rect x="124" y="334" width="63" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="133" y="346" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">0.1.0/</text>
+<rect x="195" y="337" width="51" height="18" rx="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="220" y="346" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">active</text>
+<text x="333" y="346" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">untouched; anyone pinned to it still verifies</text>
+<rect x="150" y="366" width="116" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="159" y="378" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">artifact.json</text>
+<rect x="150" y="398" width="78" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="159" y="410" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">SKILL.md</text>
+<rect x="124" y="430" width="63" height="24" rx="4" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="133" y="442" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#085041" text-anchor="start" dominant-baseline="central">0.2.0/</text>
+<rect x="195" y="433" width="32" height="18" rx="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="211" y="442" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="normal" fill="#085041" text-anchor="middle" dominant-baseline="central">new</text>
+<text x="333" y="442" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">created by aireg skill bump run-benchmark minor</text>
+<rect x="150" y="462" width="116" height="24" rx="4" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="159" y="474" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#085041" text-anchor="start" dominant-baseline="central">artifact.json</text>
+<text x="333" y="474" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">written by aireg registry index: files[] with digests</text>
+<rect x="150" y="494" width="78" height="24" rx="4" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="159" y="506" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#085041" text-anchor="start" dominant-baseline="central">SKILL.md</text>
+<text x="333" y="506" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">your edit</text>
+<rect x="20" y="526" width="63" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="29" y="538" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">blobs/</text>
+<rect x="20" y="558" width="63" height="24" rx="4" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="29" y="570" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" font-weight="normal" fill="#17201F" text-anchor="start" dominant-baseline="central">kinds/</text>
+<rect x="20" y="602" width="14" height="14" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="40" y="609" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">new in this release</text>
+<rect x="183" y="602" width="14" height="14" rx="3" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/>
+<text x="203" y="609" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">rewritten by aireg registry index</text>
+<rect x="433" y="602" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#B9C2BF" stroke-width="1"/>
+<text x="453" y="609" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#4A5654" text-anchor="start" dominant-baseline="central">untouched</text>
+</svg>

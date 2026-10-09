@@ -1,0 +1,18 @@
+Install an adapter, or write a new one
+
+Usage: aireg adapter [<action>] [<id>] [options]
+
+Actions:
+  install  Install an adapter from the release server
+  list     List the adapters this machine has (alias: ls)
+  remove   Remove an adapter (alias: rm)
+  init     Write a new adapter package to start from
+
+Examples:
+  $ aireg adapter install acme  read acme registries
+  $ aireg adapter init acme     start an adapter package to develop
+
+Learn more:
+  Run `aireg adapter <action> --help` for an action's options.
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/adapter/

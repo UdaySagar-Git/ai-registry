@@ -1,0 +1,10 @@
+harnesses:
+  - claude
+  - codex
+registries:
+  kit: acme/agent-kit
+artifacts:
+  - kit/format
+  - ref: kit/lint
+    harnesses:
+      - claude

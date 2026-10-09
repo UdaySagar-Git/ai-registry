@@ -1,0 +1,25 @@
+name: demo
+description: One of each kind of source, all on one shape.
+harnesses:
+  - claude
+  - codex
+registries:
+  shorthand: acme/agent-kit
+  pinned:
+    source: https://github.com/acme/agent-kit.git
+    ref: v2.1.0
+  local:
+    source: ../sibling-marketplace
+  hosted:
+    source: https://registry.example
+    config:
+      team: platform
+  named:
+    source: https://registry.internal.example
+    adapter: acme
+artifacts:
+  - shorthand/skill/lint
+  - pinned/agent/review
+  - local
+  - ref: hosted/engineering/skill/pr-review
+    as: platform-review

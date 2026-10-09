@@ -1,0 +1,12 @@
+Write a new adapter package to start from
+
+Usage: aireg adapter init <id> [options]
+
+Options:
+      --dir <folder>  The folder to write the package into
+      --dry-run       Print what would change without changing it
+      --force         Overwrite the folder if it exists
+
+Learn more:
+  Run `aireg --help` for the global options (--json, --verbose, -q, --color, --no-color, --log-level, -y).
+  Docs: https://atlanai.github.io/ai-registry/reference/adapter/

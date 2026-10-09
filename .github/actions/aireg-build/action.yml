@@ -1,0 +1,71 @@
+name: Build aireg
+description: Compiles and runs aireg for this runner's platform.
+
+inputs:
+  version:
+    required: true
+  commit:
+    required: true
+  origin:
+    description: Blank builds a binary that does not update itself
+    required: false
+    default: ""
+  trusted-keys:
+    required: false
+    default: ""
+  os:
+    required: true
+  arch:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: cli/.node-version
+        package-manager-cache: false
+
+    # Exact: the binary embeds this Bun, and packaging/targets.ts refuses any other.
+    - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      with:
+        bun-version-file: cli/.bun-version
+
+    - name: Compile
+      shell: bash
+      working-directory: cli
+      env:
+        AIREG_RELEASE_VERSION: ${{ inputs.version }}
+        AIREG_RELEASE_COMMIT: ${{ inputs.commit }}
+        AIREG_RELEASE_ORIGIN: ${{ inputs.origin }}
+        TRUSTED_KEYS: ${{ inputs.trusted-keys }}
+      run: |
+        set -euo pipefail
+        corepack enable pnpm
+        pnpm install --frozen-lockfile
+        AIREG_RELEASE_KEYRING="$(printf '%s' "$TRUSTED_KEYS" | base64 | tr -d '\n')"
+        export AIREG_RELEASE_KEYRING
+        pnpm run release:compile
+
+    - name: Run
+      shell: bash
+      working-directory: cli/dist-standalone/bin
+      env:
+        BINARY: aireg-${{ inputs.os }}-${{ inputs.arch }}
+        VERSION: ${{ inputs.version }}
+        AIREG_DISABLE_UPDATE_CHECK: "1"
+      run: |
+        set -euo pipefail
+        # Bun signs Apple silicon builds itself; a bad signature runs here but is killed elsewhere.
+        if [ "$BINARY" = aireg-darwin-arm64 ]; then
+          codesign --verify --strict "./$BINARY"
+        fi
+        test "$("./$BINARY" --version)" = "$VERSION"
+        "./$BINARY" --help >/dev/null
+        # `doctor` runs far more of the binary than `--version` does.
+        log="$RUNNER_TEMP/doctor.log"
+        if ! "./$BINARY" doctor > "$log" 2>&1 || grep -q "Cannot find native binding" "$log"; then
+          echo "::error::$BINARY failed to run doctor"
+          cat "$log"
+          exit 1
+        fi

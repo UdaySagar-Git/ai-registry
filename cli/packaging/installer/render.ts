@@ -1,0 +1,75 @@
+import { createHash } from "node:crypto";
+import { readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { envName } from "#core/env.ts";
+import { HOME_DIR, NAME } from "#core/product.ts";
+import type { ReleasePlatform } from "#core/release/urls.ts";
+import { TARGETS } from "#packaging/targets.ts";
+import { artifactBaseUrl, artifactsUrl, installerOrigin } from "./origin.ts";
+
+const TEMPLATE = new URL("install.sh.tmpl", import.meta.url);
+
+const PLACEHOLDER = /\{\{([A-Za-z0-9_]+)\}\}/g;
+
+export interface InstallerConfig {
+  readonly version: string;
+  /** The https release origin, such as https://aireg.sh. */
+  readonly origin: string;
+  /** Directory holding the compiled `aireg-<os>-<arch>` assets. */
+  readonly binaryDir: string;
+}
+
+const DIGEST_KEY = {
+  "darwin-amd64": "DarwinAMD64",
+  "darwin-arm64": "DarwinARM64",
+  "linux-amd64": "LinuxAMD64",
+  "linux-arm64": "LinuxARM64",
+} as const satisfies Record<ReleasePlatform, string>;
+
+/**
+ * Fails on a name with no value *or* a value with no name. The second half
+ * catches a renamed placeholder, which ships a script that can never match.
+ */
+export function renderTemplate(source: string, values: Readonly<Record<string, string>>): string {
+  const unused = new Set(Object.keys(values));
+  const rendered = source.replace(PLACEHOLDER, (_match: string, key: string): string => {
+    const value = values[key];
+    if (value === undefined) throw new Error(`installer template has no value for {{${key}}}`);
+    unused.delete(key);
+    return value;
+  });
+  if (unused.size > 0) {
+    throw new Error(`installer template never used ${[...unused].sort().join(", ")}`);
+  }
+  return rendered;
+}
+
+function digestOf(path: string): string {
+  const stats = statSync(path);
+  if (!stats.isFile() || stats.size === 0) throw new Error(`${path} is not a built binary`);
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+export function renderInstaller(config: InstallerConfig): string {
+  const origin = installerOrigin(config.origin);
+  const artifactBase = artifactBaseUrl(config.origin, config.version);
+  const artifacts = artifactsUrl(config.origin);
+  if (origin === undefined || artifactBase === undefined || artifacts === undefined) {
+    throw new Error("installer needs an https origin with a plain path and an exact version");
+  }
+  const values: Record<string, string> = {
+    Version: config.version,
+    Origin: origin,
+    ArtifactBase: artifactBase,
+    Artifacts: artifacts,
+    VersionEnv: envName("VERSION"),
+    Name: NAME,
+    HomeDir: HOME_DIR,
+    HomeEnv: envName("HOME"),
+  };
+  for (const target of TARGETS) {
+    const key = DIGEST_KEY[target.platform];
+    values[key] = digestOf(join(config.binaryDir, target.filename));
+  }
+  return renderTemplate(readFileSync(TEMPLATE, "utf8"), values);
+}

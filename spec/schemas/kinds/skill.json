@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kinds/skill.json",
+  "title": "skill",
+  "description": "An agent skill as defined by the Agent Skills specification: a SKILL.md with YAML front-matter and a markdown body, optionally with references/, scripts/, and assets/. spec is the parsed front-matter, unchanged; the publisher parses it at publish so it never drifts from the file.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Skill name. MUST equal metadata.name in the envelope.",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX identifier or a reference to a license file."
+    },
+    "allowed-tools": {
+      "type": "string",
+      "description": "Space-separated tool allowlist, as written in the front-matter."
+    },
+    "compatibility": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Environment requirements, free text."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary front-matter metadata. String values only.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "name",
+    "description"
+  ],
+  "additionalProperties": false,
+  "x-registry-schema-version": 1,
+  "x-registry-searchable": [
+    "/name",
+    "/description"
+  ],
+  "x-registry-embeddings": [
+    "/description"
+  ],
+  "x-registry-edges": [
+    {
+      "rel_type": "depends_on",
+      "to_kinds": [
+        "skill"
+      ],
+      "cardinality": "many",
+      "direction": "outbound"
+    },
+    {
+      "rel_type": "supersedes",
+      "to_kinds": [
+        "skill"
+      ],
+      "cardinality": "one",
+      "direction": "outbound"
+    }
+  ],
+  "x-registry-files": {
+    "required": [
+      {
+        "path": "SKILL.md",
+        "media_type": "text/markdown"
+      }
+    ],
+    "optional": [
+      {
+        "glob": "references/**"
+      },
+      {
+        "glob": "scripts/**"
+      },
+      {
+        "glob": "assets/**"
+      }
+    ]
+  },
+  "x-registry-attachment": false,
+  "x-registry-gated": false
+}

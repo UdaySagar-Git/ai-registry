@@ -1,0 +1,28 @@
+{
+  "apiVersion": "aireg.sh/v1",
+  "kind": "skill",
+  "metadata": {
+    "name": "add",
+    "namespace": "aireg",
+    "version": "0.1.0",
+    "description": "Find, read, install and update skills and agents from a registry, in this project or for the user. Use when asked to add or connect a registry, install or read a skill or agent, see what a registry offers, check that installed skills are current, or keep them checked in CI.",
+    "digest": "sha256:20d2e58e905748842ca801986c7e83f63437205e9174dfc02506bc7fc92f919b"
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:f4ff5ab230c52e8a4f885723d4c3913b448c6779f3eddf29a9ba09d907823c3f",
+      "size": 5282,
+      "media_type": "text/markdown",
+      "urls": [
+        "SKILL.md"
+      ]
+    }
+  ],
+  "spec": {
+    "name": "add",
+    "description": "Find, read, install and update skills and agents from a registry, in this project or for the user. Use when asked to add or connect a registry, install or read a skill or agent, see what a registry offers, check that installed skills are current, or keep them checked in CI.",
+    "compatibility": "Needs the aireg CLI and git, on macOS or Linux.",
+    "license": "Apache-2.0"
+  }
+}

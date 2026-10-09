@@ -1,0 +1,28 @@
+{
+  "apiVersion": "aireg.sh/v1",
+  "kind": "skill",
+  "metadata": {
+    "name": "publish",
+    "namespace": "aireg",
+    "version": "0.1.0",
+    "description": "Publish a skill or agent to a registry, or release a new version of one. Use when asked to publish, share, contribute or release a skill or agent, update one that is already in a registry, publish a project's skills from CI, or fix what registry validation reports.",
+    "digest": "sha256:9067557c4a907073d8f53fa6a97710442cf5bbab38ce1099c7a83d760ac3da6f"
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:dec181687c4eef429900d29eb209bba476e6b4d0c7e45559f621e90cd1b1ac6d",
+      "size": 6559,
+      "media_type": "text/markdown",
+      "urls": [
+        "SKILL.md"
+      ]
+    }
+  ],
+  "spec": {
+    "name": "publish",
+    "description": "Publish a skill or agent to a registry, or release a new version of one. Use when asked to publish, share, contribute or release a skill or agent, update one that is already in a registry, publish a project's skills from CI, or fix what registry validation reports.",
+    "compatibility": "Needs the aireg CLI and git, on macOS or Linux.",
+    "license": "Apache-2.0"
+  }
+}

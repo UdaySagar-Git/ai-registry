@@ -1,0 +1,104 @@
+{
+  "name": "@atlanai/aireg",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Install agent artifacts from any registry into any agent harness.",
+  "keywords": [
+    "agent",
+    "skills",
+    "registry",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atlanai/ai-registry.git",
+    "directory": "cli"
+  },
+  "homepage": "https://atlanai.github.io/ai-registry/",
+  "bugs": {
+    "url": "https://github.com/atlanai/ai-registry/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "bin": {
+    "aireg": "bin/aireg.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/adapter.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#package.json": "./package.json",
+    "#adapter/*": "./src/adapter/*",
+    "#adapters/*": "./src/adapters/*",
+    "#accounts/*": "./src/accounts/*",
+    "#cli/*": "./src/cli/*",
+    "#core/*": "./src/core/*",
+    "#daemon/*": "./src/daemon/*",
+    "#engine/*": "./src/engine/*",
+    "#harnesses/*": "./src/harnesses/*",
+    "#self/*": "./src/self/*",
+    "#schema/*": "./schema/*",
+    "#scripts/*": "./scripts/*",
+    "#packaging/*": "./packaging/*",
+    "#test/*": "./test/*"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "schema",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.txt"
+  ],
+  "scripts": {
+    "dev": "node --experimental-strip-types --no-warnings src/main.ts",
+    "build": "tsup && tsc -p tsconfig.types.json",
+    "typecheck": "tsc -b --force",
+    "lint": "biome check .",
+    "lint:ci": "biome ci .",
+    "fix": "biome lint --only=correctness/noUnusedImports --write --unsafe . && biome check --write .",
+    "knip": "knip",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "vitest run --project e2e",
+    "test:contract": "vitest run --project contract",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "schema": "node --experimental-strip-types scripts/schema/generate.ts",
+    "notices": "node --experimental-strip-types scripts/notices/generate.ts",
+    "check:package": "publint --strict",
+    "release:compile": "node --experimental-strip-types packaging/main.ts compile",
+    "verify": "pnpm run typecheck && pnpm run lint:ci && pnpm run knip && pnpm run notices --check && pnpm run build && pnpm run check:package && pnpm run test"
+  },
+  "dependencies": {
+    "ink": "6.3.1",
+    "react": "19.2.0",
+    "string-width": "7.2.0",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "@sinclair/typebox": "0.34.52",
+    "@types/node": "26.4.1",
+    "@types/react": "19.2.2",
+    "@vitest/coverage-v8": "4.1.11",
+    "ajv": "8.20.0",
+    "knip": "6.34.0",
+    "publint": "0.3.24",
+    "tsup": "8.5.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  },
+  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621"
+}

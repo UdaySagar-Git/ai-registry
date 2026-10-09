@@ -1,0 +1,5 @@
+registries:
+  kit: acme/agent-kit
+artifacts:
+  - kit/toolkit/skill/format
+  - kit/toolkit

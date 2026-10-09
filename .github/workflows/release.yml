@@ -1,8 +1,9 @@
 # Releases the cli/package.json version of aireg to the stable channel and GitHub Releases.
-# Variables: RELEASE_ORIGIN_PROD, RELEASE_TRUSTED_KEYS_PROD, RELEASE_MACOS_CODESIGN_IDENTIFIER,
-# optional RELEASE_PREFIX. Secrets of the `release` environment: RELEASE_AWS_REGION,
-# RELEASE_ROLE_ARN, RELEASE_BUCKET, RELEASE_SIGNING_KEY_SECRET, RELEASE_MACOS_ROLE_ARN,
-# RELEASE_MACOS_SIGNING_SECRET. Approval is the release-gate environment.
+# Variables (public): RELEASE_ORIGIN_PROD, RELEASE_TRUSTED_KEYS_PROD, RELEASE_MACOS_CODESIGN_IDENTIFIER,
+# optional RELEASE_PREFIX. Secrets, so logs mask every AWS detail: AWS_REGION, AWS_PUBLISH_ROLE and
+# AWS_SIGN_ROLE (to log in), and AWS_CONFIG_SECRET, the AWS Secrets Manager JSON secret everything else
+# comes from (keys `bucket`, `signing_key_secret`, `macos_signing_secret`), masked once read.
+# Approval is the release-gate environment on the jobs that log in to AWS, the only environment AWS trusts.
 name: Release
 
 on:
@@ -81,24 +82,9 @@ jobs:
           previous=$(git tag -l 'aireg-v*' --sort=-v:refname | grep -E '^aireg-v[0-9]+\.[0-9]+\.[0-9]+$' | grep -vxF "aireg-v$version" | head -1 || true)
           printf 'version=%s\nprevious=%s\nkey_id=%s\n' "$version" "$previous" "$key_id" >> "$GITHUB_OUTPUT"
 
-  # The only approval: required reviewers on release-gate hold every later job.
-  approve:
-    name: Approve stable release
-    needs: plan
-    if: ${{ !inputs.dry_run }}
-    environment: release-gate
-    permissions: {}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - env:
-          VERSION: ${{ needs.plan.outputs.version }}
-        run: echo "aireg $VERSION approved"
-
   build:
     name: Release binary (${{ matrix.os }}-${{ matrix.arch }})
-    needs: [plan, approve]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.approve.result == 'success' || (inputs.dry_run && needs.approve.result == 'skipped')) }}
+    needs: plan
     permissions:
       contents: read
     runs-on: ${{ matrix.runner }}
@@ -135,20 +121,21 @@ jobs:
   sign-macos:
     name: Sign and notarize the macOS binaries
     needs: [plan, build]
-    if: ${{ !cancelled() && needs.build.result == 'success' }}
-    environment: release
+    # Dry runs stage unsigned binaries, so they never wait for approval.
+    if: ${{ !cancelled() && !inputs.dry_run && needs.build.result == 'success' }}
+    environment: release-gate
     permissions:
       id-token: write
     runs-on: macos-26
     timeout-minutes: 60
     steps:
-      - name: Check the release environment
+      - name: Check the signing secrets
         env:
-          # A boolean, so this log shows only true/false, never the values.
-          SECRETS_SET: ${{ secrets.RELEASE_AWS_REGION != '' && secrets.RELEASE_MACOS_ROLE_ARN != '' && secrets.RELEASE_MACOS_SIGNING_SECRET != '' }}
+          # A boolean, so this log shows only true/false.
+          SECRETS_SET: ${{ secrets.AWS_SIGN_ROLE != '' && secrets.AWS_REGION != '' && secrets.AWS_CONFIG_SECRET != '' }}
         run: |
           if [ "$SECRETS_SET" != true ]; then
-            echo "::error::set RELEASE_AWS_REGION, RELEASE_MACOS_ROLE_ARN and RELEASE_MACOS_SIGNING_SECRET as secrets of the release environment"
+            echo "::error::set the AWS_REGION, AWS_SIGN_ROLE and AWS_CONFIG_SECRET repository secrets"
             exit 1
           fi
 
@@ -160,8 +147,8 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ secrets.RELEASE_MACOS_ROLE_ARN }}
-          aws-region: ${{ secrets.RELEASE_AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_SIGN_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
           role-duration-seconds: 900
           mask-aws-account-id: true
 
@@ -169,12 +156,15 @@ jobs:
       - name: Sign and notarize
         working-directory: bin
         env:
-          SIGNING_SECRET: ${{ secrets.RELEASE_MACOS_SIGNING_SECRET }}
+          CONFIG_SECRET: ${{ secrets.AWS_CONFIG_SECRET }}
           VERSION: ${{ needs.plan.outputs.version }}
         run: |
           set -euo pipefail
           umask 077
           secret="$RUNNER_TEMP/apple.json"
+          SIGNING_SECRET=$(aws secretsmanager get-secret-value --secret-id "$CONFIG_SECRET" \
+            --query SecretString --output text | jq -er '.macos_signing_secret | select(type == "string" and length > 0)')
+          echo "::add-mask::$SIGNING_SECRET"
           aws secretsmanager get-secret-value --secret-id "$SIGNING_SECRET" \
             --query SecretString --output text > "$secret"
           field() { jq -er --arg k "$1" '.[$k] | select(type == "string" and length > 0)' "$secret"; }
@@ -263,7 +253,7 @@ jobs:
   stage:
     name: Stage release files
     needs: [plan, build, sign-macos]
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.sign-macos.result == 'success' }}
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.sign-macos.result == 'success' || (inputs.dry_run && needs.sign-macos.result == 'skipped')) }}
     permissions:
       contents: read
       id-token: write
@@ -332,20 +322,21 @@ jobs:
     name: Publish stable release
     needs: [plan, stage]
     if: ${{ !cancelled() && !inputs.dry_run && needs.stage.result == 'success' }}
-    environment: release
+    # The only approval: release-gate reviewers hold this job; AWS trusts no other environment.
+    environment: release-gate
     permissions:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check the release environment
+      - name: Check the publish secrets
         env:
-          # A boolean, so this log shows only true/false, never the values.
-          SECRETS_SET: ${{ secrets.RELEASE_AWS_REGION != '' && secrets.RELEASE_ROLE_ARN != '' && secrets.RELEASE_BUCKET != '' && secrets.RELEASE_SIGNING_KEY_SECRET != '' }}
+          # A boolean, so this log shows only true/false.
+          SECRETS_SET: ${{ secrets.AWS_PUBLISH_ROLE != '' && secrets.AWS_REGION != '' && secrets.AWS_CONFIG_SECRET != '' }}
         run: |
           if [ "$SECRETS_SET" != true ]; then
-            echo "::error::set RELEASE_AWS_REGION, RELEASE_ROLE_ARN, RELEASE_BUCKET and RELEASE_SIGNING_KEY_SECRET as secrets of the release environment"
+            echo "::error::set the AWS_REGION, AWS_PUBLISH_ROLE and AWS_CONFIG_SECRET repository secrets"
             exit 1
           fi
 
@@ -376,10 +367,27 @@ jobs:
       # Credentials come last: every later step runs only this repository's code and the AWS CLI.
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ secrets.RELEASE_ROLE_ARN }}
-          aws-region: ${{ secrets.RELEASE_AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_PUBLISH_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
           role-duration-seconds: 900
           mask-aws-account-id: true
+
+      # Masked step outputs pass within this job only; GitHub drops masked values from job outputs.
+      - id: config
+        name: Read the release config
+        env:
+          SECRET_ID: ${{ secrets.AWS_CONFIG_SECRET }}
+        run: |
+          set -euo pipefail
+          config="$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query SecretString --output text)"
+          for field in bucket signing_key_secret; do
+            if ! value="$(jq -er --arg f "$field" '.[$f] | select(type == "string" and test("^[^\\r\\n]+$"))' <<< "$config" 2>/dev/null)"; then
+              echo "::error::the release config secret must be JSON with a non-empty, single-line string '$field'"
+              exit 1
+            fi
+            echo "::add-mask::$value"
+            printf '%s=%s\n' "$field" "$value" >> "$GITHUB_OUTPUT"
+          done
 
       - uses: ./.github/actions/aireg-publish
         with:
@@ -389,9 +397,9 @@ jobs:
           minimum-version: ${{ inputs.minimum_version }}
           key-id: ${{ needs.plan.outputs.key_id }}
           origin: ${{ env.RELEASE_ORIGIN }}
-          bucket: ${{ secrets.RELEASE_BUCKET }}
+          bucket: ${{ steps.config.outputs.bucket }}
           prefix: ${{ env.RELEASE_PREFIX }}
-          signing-key-secret: ${{ secrets.RELEASE_SIGNING_KEY_SECRET }}
+          signing-key-secret: ${{ steps.config.outputs.signing_key_secret }}
           trusted-keys: ${{ env.RELEASE_TRUSTED_KEYS }}
 
   # Last, so the tag only ever names a release whose channel is already live.

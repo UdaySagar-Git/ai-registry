@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { credentialsForManifest } from "#accounts/credentials.ts";
 import { isAdapterError, type Want } from "#adapter/index.ts";
 import { list, quoted, sanitizeText } from "#adapter/text.ts";
+import { loadAdapter } from "#core/adapter/registry.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { dict } from "#core/fields.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
@@ -21,6 +22,7 @@ import { build, clashMessage } from "#core/plan/build.ts";
 import { formatNeed, type Unresolved, wantOf } from "#core/plan/depends.ts";
 import type { Acquired, Action, Plan } from "#core/plan/model.ts";
 import { fetchFrom } from "#core/plan/model.ts";
+import { wrappedInLock, wrapsNamespaces } from "#core/plan/namespaces.ts";
 import { survey } from "#core/plan/survey.ts";
 import { blockedTargets } from "#core/plan/writable.ts";
 import { unmetEngine } from "#core/semver.ts";
@@ -386,7 +388,14 @@ async function plan(
   for (const alias of hooks.aliases ?? aliases) {
     if (view.rows(alias).some(([name]) => moving.has(name))) continue;
     const source = view.source(alias);
-    if (source !== undefined && answers(manifest, source, hooks.held)) settled.set(alias, source);
+    if (source === undefined || !answers(manifest, source, hooks.held)) continue;
+    // Only user scope wraps; an adapter that will not load leaves its rows as the lock has them.
+    const namespacePlugins =
+      roots.scope === "user" &&
+      (await loadAdapter(source.origin.adapter).then(wrapsNamespaces, () =>
+        wrappedInLock(view.rows(alias), { roots, harnesses }),
+      ));
+    settled.set(alias, { ...source, namespacePlugins });
   }
   // Only a registry being opened needs its account, which may refresh a token.
   const open = async (only: readonly string[]) =>
@@ -557,6 +566,13 @@ async function write(
   warn(printer, recoveredNotices(roots, await prepareWrite(loaded)));
 
   const targets = resolveTargets(manifest, harnesses, common);
+  // Reports name every tool picked, including those an entry's own `harnesses:` adds.
+  const named = [
+    ...new Set([
+      ...targets,
+      ...manifest.artifacts.flatMap((ref) => ref.targets ?? []).filter((name) => name in harnesses),
+    ]),
+  ];
   const { planned, acquired } = await plan(loaded, common, printer, cwd, hooks, targets);
   try {
     refuseClash(planned, hooks.adding);
@@ -575,14 +591,14 @@ async function write(
       const aside = new Set(
         [...guards].flatMap(([path, guard]) => (guard === "backup" ? [path] : [])),
       );
-      report.plan(planned, roots, aside, { targets, harnesses });
-      return { plan: planned, applied: undefined, before: lock, targets, harnesses };
+      report.plan(planned, roots, aside, { targets: named, harnesses });
+      return { plan: planned, applied: undefined, before: lock, targets: named, harnesses };
     }
 
     await refuseBlocked(planned);
 
-    if (hooks.approve !== undefined && !(await hooks.approve(planned, targets))) {
-      return { plan: planned, applied: undefined, before: lock, targets, harnesses };
+    if (hooks.approve !== undefined && !(await hooks.approve(planned, named))) {
+      return { plan: planned, applied: undefined, before: lock, targets: named, harnesses };
     }
 
     const edited = formatManifest(manifest) !== loaded.manifestAsRead;
@@ -594,7 +610,7 @@ async function write(
       planned,
       acquired,
       targets,
-      (action) => report.step(action, planned, { targets, harnesses }),
+      (action) => report.step(action, planned, { targets: named, harnesses }),
       async () => {
         // Nothing was recorded, so the manifest must not ask for it.
         if (edited && (await unrecorded(roots, lock)))
@@ -609,7 +625,7 @@ async function write(
     if (edited && !landed && applied.unstaged.length > 0)
       await restore(roots.manifest, before, written);
     refuseUnstaged(applied.unstaged, landed, printer);
-    return { plan: planned, applied, before: lock, targets, harnesses };
+    return { plan: planned, applied, before: lock, targets: named, harnesses };
   } finally {
     await closeAll(acquired);
   }

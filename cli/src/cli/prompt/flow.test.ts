@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { PassThrough } from "node:stream";
 import { describe, expect, it } from "vitest";
+import { unhandled } from "#cli/render/tools.ts";
 import { resolveHarnesses } from "#core/harness/index.ts";
 import { emptyLock, type LockArtifact } from "#core/lock.ts";
 import { Printer } from "#core/output.ts";
@@ -15,7 +16,6 @@ import {
   linkedTargets,
   methodIsMeaningful,
   type PlanContext,
-  unhandled,
   unreached,
 } from "./flow.ts";
 

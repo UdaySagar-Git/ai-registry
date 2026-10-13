@@ -212,7 +212,14 @@ async function askFields(step: Interaction, fields: Record<string, unknown>, tod
   for (const path of [...todo]) {
     const label = path.replaceAll(".", " ");
     const message = label.charAt(0).toUpperCase() + label.slice(1);
-    const answer = await text({ message, style: step.printer.errStyle }, step.io);
+    const answer = await text(
+      {
+        message,
+        style: step.printer.errStyle,
+        hint: "Type a value, or press Enter to leave it as TODO for now.",
+      },
+      step.io,
+    );
     if (canceled(answer)) return false;
     if (answer !== "") assign(fields, todo, path.split("."), answer);
   }
@@ -226,7 +233,14 @@ async function askName(kind: string, step: Interaction): Promise<string | undefi
       code: ErrorCode.Usage,
       hint: `Run \`aireg ${kind} new <name>\`.`,
     });
-  const answer = await text({ message: "Name", style: step.printer.errStyle }, step.io);
+  const answer = await text(
+    {
+      message: "Name",
+      style: step.printer.errStyle,
+      hint: "Type a name: lowercase letters, digits and hyphens, such as pr-review.",
+    },
+    step.io,
+  );
   return canceled(answer) ? undefined : nameOf(answer, answer);
 }
 

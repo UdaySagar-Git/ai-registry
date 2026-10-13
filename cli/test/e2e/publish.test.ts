@@ -786,6 +786,39 @@ describe("publishing from a project", () => {
     }
   }, 60_000);
 
+  test("keeps a copy sent with --force into a clone, and warns before update replaces it", async ({
+    aireg,
+    git,
+  }) => {
+    const scratch = join(root, "force-clone");
+    const mp = join(root, "force-clone-repo");
+    const clone = join(root, "force-clone-clone");
+    const seed = registry(mp).skill("acme/seed@1.0.0", { body: "body\n" });
+    await seed.write();
+    await git.init(mp);
+    await git.commit(mp, "initial");
+    await git(root, "clone", "-q", mp, clone);
+    await mkdir(join(scratch, ".claude"), { recursive: true });
+    await writeManifestIn(
+      scratch,
+      `registries:\n  kit:\n    source: file://${mp}\nartifacts:\n  - kit/acme/skill/seed`,
+    );
+    expect((await aireg(["install"], { cwd: scratch })).code).toBe(0);
+    // A teammate releases 1.0.1 after this copy was installed, and the clone pulls it.
+    await seed.skill("acme/seed@1.0.1", { body: "theirs\n" }).write();
+    await git.commit(mp, "seed 1.0.1");
+    await git(clone, "pull", "-q");
+    const copy = join(scratch, ".claude", "skills", "seed", "SKILL.md");
+    await appendFile(copy, "Mine.\n");
+
+    const sent = await aireg(["publish", "seed", "--to", join(clone, "acme"), "--yes", "--force"], {
+      cwd: scratch,
+    });
+    expect(sent.code, sent.stderr).toBe(0);
+    expect(await readFile(copy, "utf8")).toContain("Mine.");
+    expect(sent.stderr).toMatch(/serves seed 1\.0\.1, not the 1\.0\.2 you published/);
+  }, 60_000);
+
   test("refuses new work with no destination or an undeclared one, and takes your default namespace", async ({
     aireg,
     git,

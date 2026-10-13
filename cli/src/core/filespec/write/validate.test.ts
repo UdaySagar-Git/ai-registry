@@ -8,8 +8,7 @@ import { validateRoot } from "./validate.ts";
 
 type Builder = ReturnType<typeof registry>;
 
-const AGENT =
-  "---\nname: reviewer\ndescription: Reviews.\nruntime:\n  harness: claude-code\n---\nReview.\n";
+const AGENT = "---\nname: reviewer\ndescription: Reviews.\n---\nReview.\n";
 
 /** A clean registry: a skill, and an agent that depends on it. */
 function clean(root: string): Builder {
@@ -102,6 +101,17 @@ const CASES: Case[] = [
     message: 'is named "other" in its front matter',
   },
   {
+    name: "an agent whose runtime names no harness",
+    edit: (root) =>
+      put(
+        root,
+        "artifacts/eng/agent/helper/1.0.0/AGENT.md",
+        "---\nname: helper\ndescription: d\nruntime:\n  model: m\n---\n",
+      ),
+    path: "artifacts/eng/agent/helper/1.0.0",
+    message: "harness",
+  },
+  {
     name: "a dependency the registry does not hold",
     build: (registry) =>
       registry.agent("eng/helper@1.0.0", {
@@ -181,6 +191,16 @@ describe("validateRoot", () => {
 
     expect(validated).toMatchObject({ name: "team", namespaces: 1, artifacts: 2, versions: 2 });
     expect(validated.problems).toEqual([]);
+  });
+
+  test("takes an agent that names its runtime", async ({ root }) => {
+    const agent =
+      "---\nname: reviewer\ndescription: Reviews.\nruntime:\n  harness: claude-code\n---\nReview.\n";
+    await registry(root, { name: "team" })
+      .agent("eng/reviewer@0.3.0", { description: "Reviews.", files: { "AGENT.md": agent } })
+      .write();
+
+    expect((await validateRoot(root)).problems).toEqual([]);
   });
 
   test.for(CASES)("names $name", async (each, { root }) => {

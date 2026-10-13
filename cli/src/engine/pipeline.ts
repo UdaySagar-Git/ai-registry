@@ -473,7 +473,11 @@ export function recoveredNotices(roots: Roots, recovered: Recovered): ApplyNotic
   }));
 }
 
-export function appliedNotices(roots: Roots, applied: ApplyResult): ApplyNotice[] {
+export function appliedNotices(
+  roots: Roots,
+  applied: ApplyResult,
+  harnesses: Harnesses,
+): ApplyNotice[] {
   const notices: ApplyNotice[] = applied.backedUp.map((moved) => ({
     message: `Moved your ${moved.what} ${displayPath(roots, moved.path)} to ${displayPath(roots, moved.to)}.`,
   }));
@@ -491,7 +495,16 @@ export function appliedNotices(roots: Roots, applied: ApplyResult): ApplyNotice[
           : `Did not install ${name} at ${displayPath(roots, path)}: ${sanitizeText(reason)}.`,
     });
   }
+  for (const { name, harness, reason } of applied.unrendered) {
+    notices.push({
+      message: `Did not install ${name} for ${displayName(harnesses, harness)}: ${reason}.`,
+    });
+  }
   return notices;
+}
+
+function displayName(harnesses: Harnesses, harness: string): string {
+  return harnesses[harness]?.displayName ?? harness;
 }
 
 export function unstagedNotices(unstaged: Readonly<ApplyResult["unstaged"]>): ApplyNotice[] {
@@ -618,7 +631,7 @@ async function write(
       },
     );
 
-    warn(printer, appliedNotices(roots, applied));
+    warn(printer, appliedNotices(roots, applied, harnesses));
 
     const landed = applied.installed.length > 0;
     // An edit none of whose artifacts landed must not leave the manifest asking for them.

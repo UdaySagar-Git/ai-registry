@@ -22,6 +22,7 @@ function printed(
     removed: [],
     kept: [],
     carried: [],
+    unrendered: [],
     ...applied,
   } as unknown as ApplyResult;
   summarize(printer, {

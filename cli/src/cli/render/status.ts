@@ -172,13 +172,18 @@ export function renderStatus(
         (absent ? `, and \`aireg install${flag}\` to restore what is missing.` : "."),
     );
   } else if (absent) {
-    const repairable = statuses.some(
-      (item) => (item.state === "missing" || item.state === "dangling") && item.blocked !== true,
-    );
-    printer.hint(
-      repairable
-        ? `Run \`aireg install${flag}\` to restore what is missing.`
-        : `Move what is in the way, or give one artifact another name with \`as:\` in the manifest, then run \`aireg install${flag}\`.`,
-    );
+    printer.hint(absentHint(statuses, flag));
   }
+}
+
+/** What puts a missing link back: `install`, once a folder of yours or the setting allows it. */
+function absentHint(statuses: readonly ArtifactStatus[], flag: string): string {
+  const repairable = statuses.some(
+    (item) => (item.state === "missing" || item.state === "dangling") && item.blocked !== true,
+  );
+  if (repairable) return `Run \`aireg install${flag}\` to restore what is missing.`;
+  if (statuses.some((item) => item.taken === true)) {
+    return `Run \`aireg install${flag}\` with \`defaults.name-collision\` set to rename, the default, to install what was left out under its namespace and name.`;
+  }
+  return `Move what is in the way, then run \`aireg install${flag}\`.`;
 }

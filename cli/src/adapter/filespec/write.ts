@@ -20,6 +20,8 @@ export interface OfferedVersion {
   description?: string | undefined;
   /** The row's status in `versions.json`; `active` unless a status change set another. */
   status?: string | undefined;
+  /** The row's `catalog_digest`, when it has one; `index.json` repeats it. */
+  catalogDigest?: string | undefined;
 }
 
 function objectAt(value: unknown, path: string): Record<string, unknown> {
@@ -156,6 +158,7 @@ export function mergedIndex(
       digest: item.digest,
       status: item.status ?? "active",
       ...(item.description === undefined ? {} : { description: item.description }),
+      ...(item.catalogDigest === undefined ? {} : { catalog_digest: item.catalogDigest }),
     };
     const index = at.get(rowKey(row));
     if (index === undefined) {
@@ -164,7 +167,9 @@ export function mergedIndex(
       moved = true;
       continue;
     }
-    const merged = { ...rows[index], ...row };
+    const merged: Record<string, unknown> = { ...rows[index], ...row };
+    // The entry repeats its latest row's catalog_digest, so an older row's is dropped.
+    if (item.catalogDigest === undefined) merged.catalog_digest = undefined;
     if (JSON.stringify(merged) === JSON.stringify(rows[index])) continue;
     rows[index] = merged;
     moved = true;

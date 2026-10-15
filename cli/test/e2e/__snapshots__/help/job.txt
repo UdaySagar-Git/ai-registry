@@ -16,8 +16,8 @@ Actions:
   cancel   Stop a queued or running run
 
 Examples:
-  $ aireg job add -g --watch ~/.claude/skills --to acme/engineering  publish your skills, and keep them in sync
-  $ aireg job runs                                                   what the jobs did
+  $ aireg job add -g --registry acme  keep your user scope in sync with acme
+  $ aireg job runs                    what the jobs did
 
 Learn more:
   Run `aireg job <action> --help` for an action's options.

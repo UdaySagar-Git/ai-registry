@@ -1,7 +1,8 @@
-import { isAbsolute, resolve } from "node:path";
+import { resolve } from "node:path";
 import { list as listOf, plural, quoted } from "#adapter/text.ts";
 import { qualify } from "#cli/commands/add.ts";
 import { addContributedJob } from "#cli/commands/job/contributed.ts";
+import { existing, jobNamed, needsJob, noJob, typedFolder } from "#cli/commands/job/find.ts";
 import type { RunsOptions } from "#cli/commands/job/runs.ts";
 import { parse } from "#cli/options.ts";
 import { cannotPublish } from "#cli/publish/target.ts";
@@ -17,6 +18,7 @@ import {
   type Job,
   STEP_POLICIES,
   type StepPolicy,
+  watchedFolders,
 } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -153,9 +155,7 @@ interface Described {
 
 /** Where a job works: the folders it watches, its first rooted step, or its kinds. */
 function target(job: Job): string {
-  const watched = job.steps.flatMap((step) =>
-    step.kind === "origins" ? step.select.map((item) => underHome(item.from)) : [],
-  );
+  const watched = watchedFolders(job).map(underHome);
   if (watched.length > 0) return watched.join(", ");
   const rooted = job.steps.find((step) => step.root !== undefined);
   return rooted?.root === undefined
@@ -191,10 +191,7 @@ function originsOf(own: Own, cwd: string): { to: string; from: string[] } | unde
       hint: "Name where to publish: `aireg job add --watch <folder> --to <registry>/<namespace>`.",
     });
   }
-  const from = watched.map((folder) =>
-    folder.startsWith("~") || isAbsolute(folder) ? folder : resolve(cwd, folder),
-  );
-  return { to: own.to, from };
+  return { to: own.to, from: watched.map((folder) => typedFolder(folder, cwd)) };
 }
 
 /** What `job add` checks on its own, so a command that fails it never starts the daemon. */
@@ -227,7 +224,8 @@ async function plannedJob(
   return { origins, alias, scope, jobRoot, source, refs, policy: policy(own) };
 }
 
-async function add(
+/** `aireg job add`, and `aireg watch add`, which is the same with only its folders. */
+export async function add(
   context: CommandContext,
   root: string | undefined,
   own: Own,
@@ -242,8 +240,12 @@ async function add(
   const planned = await plannedJob(context, root, own, common);
   const { origins, refs } = planned;
   return withDaemon(async (client) => {
-    const { config: updated, job } = await withFreshConfig(client, (config) =>
-      client.request("job.create", {
+    const {
+      config: updated,
+      job,
+      existed,
+    } = await withFreshConfig(client, async (config) => {
+      const made = await client.request("job.create", {
         expectedRevision: config.revision,
         root: planned.jobRoot,
         scope: planned.scope,
@@ -259,51 +261,24 @@ async function add(
           ...(origins === undefined ? {} : { publish: "on" as const }),
           ...planned.policy,
         },
-      }),
-    );
-    context.printer.format === "json"
-      ? context.printer.json({ ok: true, data: { job, revision: updated.revision } })
-      : context.printer.success(
-          origins === undefined
-            ? `Added job ${job.id}, which syncs ${target(job)}.`
-            : `Added job ${job.id}, which publishes ${listOf(origins.from.map(underHome))} to ${origins.to}.`,
-        );
-  });
-}
-
-function noJob(wanted: string, hint = "Run `aireg job list` to see the jobs."): AiregError {
-  return new AiregError(`No job named ${quoted(wanted)}.`, { code: ErrorCode.NotFound, hint });
-}
-
-function needsJob(action: string): AiregError {
-  return new AiregError(`\`aireg job ${action}\` needs a job name.`, {
-    code: ErrorCode.Usage,
-    hint: `Name the job: \`aireg job ${action} <job>\`.`,
-  });
-}
-
-/** Looked up before the daemon starts: naming a job that does not exist does not need it. */
-async function existing(wanted: string): Promise<void> {
-  if (findJob(await readConfig(), wanted) === undefined) throw noJob(wanted);
-}
-
-async function remove(context: CommandContext, wanted: string | undefined): Promise<void> {
-  if (wanted === undefined) throw needsJob("remove");
-  await existing(wanted);
-  await withDaemon(async (client) => {
-    const job = await withFreshConfig(client, async (config) => {
-      const found = findJob(config, wanted);
-      if (found === undefined) throw noJob(wanted);
-      await client.request("settings.patch", {
-        expectedRevision: config.revision,
-        jobs: { remove: [found.id] },
       });
-      return found;
+      return { ...made, existed: config.jobs.some((item) => item.id === made.job.id) };
     });
     context.printer.format === "json"
-      ? context.printer.json({ ok: true, data: { jobId: job.id } })
-      : context.printer.success(`Removed job ${job.name ?? job.id}.`);
+      ? context.printer.json({ ok: true, data: { job, revision: updated.revision } })
+      : context.printer.success(saved(job, existed));
   });
+}
+
+/** What the job does now; one replaced under the id it had is updated, not added. */
+function saved(job: Job, existed: boolean): string {
+  const verb = existed ? "Updated" : "Added";
+  const to = job.steps.find((step) => step.kind === "origins")?.to;
+  const watched = watchedFolders(job).map(underHome);
+  if (to !== undefined && watched.length > 0) {
+    return `${verb} job ${job.id}, which publishes ${listOf(watched)} to ${to}.`;
+  }
+  return `${verb} job ${job.id}, which syncs ${target(job)}.`;
 }
 
 /**
@@ -361,8 +336,7 @@ async function setEnabled(
   await existing(wanted);
   await withDaemon(async (client) => {
     const job = await withFreshConfig(client, async (config) => {
-      const found = findJob(config, wanted);
-      if (found === undefined) throw noJob(wanted);
+      const found = jobNamed(config, wanted);
       await client.request("settings.patch", {
         expectedRevision: config.revision,
         jobs: { upsert: [{ ...found, schedule: { ...found.schedule, enabled } }] },
@@ -408,7 +382,7 @@ export async function run(context: CommandContext): Promise<void> {
   return runAction(spec, action, {
     list: () => list(context),
     add: () => add(context, argument, own, common),
-    remove: () => remove(context, argument),
+    remove: async () => (await import("#cli/commands/job/remove.ts")).remove(context, argument),
     start: () => start(context, argument, own.mode),
     enable: () => setEnabled(context, argument, true),
     disable: () => setEnabled(context, argument, false),

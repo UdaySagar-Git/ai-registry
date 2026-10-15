@@ -166,7 +166,8 @@ describe("removing a registry", () => {
       expect(refused.stderr).toContain(
         "Job job_skills_demo uses registry demo to publish your folders.",
       );
-      expect(refused.stderr).toContain("aireg job remove job_skills_demo");
+      // Written as the person reads it, and runnable as printed.
+      expect(refused.stderr).toContain("aireg watch remove ~/mine -g");
       expect(await jobIds(aireg, tmp)).toEqual(["job_skills_demo"]);
       expect(await readFile(join(home.scope, "manifest.yml"), "utf8")).toContain("demo:");
     } finally {
@@ -262,7 +263,7 @@ describe("a watch job over a namespace your user scope installs", () => {
     const skills = dirname(dirname(notes));
     const added = await aireg(["job", "add", "-g", "--watch", skills, "--to", "demo/personal"]);
     expect(added.code, added.stderr).toBe(0);
-    const job = /Added job (\S+),/.exec(added.stdout)?.[1] ?? "";
+    const job = /(?:Added|Updated) job (\S+),/.exec(added.stdout)?.[1] ?? "";
     const run = async () => {
       const id = /run_[0-9a-f-]+/.exec((await aireg(["job", "start", job])).stdout)?.[0] ?? "";
       const followed = (await aireg(["job", "runs", id, "--follow"])).stdout;
@@ -338,6 +339,94 @@ describe("a watch job over a namespace your user scope installs", () => {
       expect(await readFile(join(backups, kept[0] ?? ""), "utf8")).toContain("New.");
       expect(await run()).not.toMatch(/published/);
       expect(await readFile(versions, "utf8")).not.toContain('"0.1.2"');
+    } finally {
+      await aireg(["daemon", "stop"]);
+    }
+  }, 120_000);
+
+  const jobs = async (aireg: Aireg) =>
+    (
+      JSON.parse((await aireg(["job", "list", "--json"])).stdout) as {
+        data: { jobs: { id: string; steps: { kind: string; policy: string }[] }[] };
+      }
+    ).data.jobs;
+
+  test("stops watching a folder and keeps the job that keeps the install up to date", async ({
+    aireg,
+    home,
+    tmp,
+  }) => {
+    try {
+      const { notes, versions, run } = await watching({ aireg, home, tmp });
+      const skills = dirname(dirname(notes));
+      const unwatched = await aireg(["watch", "remove", skills, "-g"]);
+      expect(unwatched.code, unwatched.stderr).toBe(0);
+      const steps = (await jobs(aireg)).map((item) =>
+        item.steps.map((step) => `${step.kind} ${step.policy}`),
+      );
+      expect(steps).toEqual([["pull on", "publish report", "prune report"]]);
+
+      await writeFile(notes, body("New."));
+      expect(await run()).not.toMatch(/published/);
+      expect(await readFile(versions, "utf8")).not.toContain('"0.1.1"');
+    } finally {
+      await aireg(["daemon", "stop"]);
+    }
+  }, 120_000);
+
+  test("refuses to send a watched scope's folders somewhere else", async ({ aireg, home, tmp }) => {
+    try {
+      const { notes } = await watching({ aireg, home, tmp });
+      const before = await jobs(aireg);
+      const drafts = join(home.dir, "drafts");
+      await mkdir(drafts, { recursive: true });
+      const moved = await aireg(["watch", "add", drafts, "--to", "demo/other", "-g"]);
+      expect(moved.code).toBe(2);
+      expect(moved.stderr).toContain(
+        `already publishes ${dirname(dirname(notes))} to demo/personal`,
+      );
+      expect(await jobs(aireg)).toEqual(before);
+    } finally {
+      await aireg(["daemon", "stop"]);
+    }
+  }, 120_000);
+
+  test("keeps publishing a watched folder when its job is added again", async ({
+    aireg,
+    home,
+    tmp,
+  }) => {
+    try {
+      const { notes, versions, run } = await watching({ aireg, home, tmp });
+      const again = await aireg(["job", "add", "-g", "--registry", "demo"]);
+      expect(again.code, again.stderr).toBe(0);
+      expect(again.stdout).toContain("Updated job job_skills_demo, which publishes");
+      await writeFile(notes, body("Again."));
+      await run();
+      expect(await readFile(versions, "utf8")).toContain('"0.1.1"');
+    } finally {
+      await aireg(["daemon", "stop"]);
+    }
+  }, 120_000);
+
+  test("says when removing a job leaves what it kept up to date without one", async ({
+    aireg,
+    home,
+    tmp,
+  }) => {
+    try {
+      const { job } = await watching({ aireg, home, tmp });
+      const removed = await aireg(["job", "remove", job]);
+      expect(removed.code, removed.stderr).toBe(0);
+      expect(removed.stderr).toContain("no longer kept up to date");
+
+      // The hint, run exactly as printed.
+      const printed = /`aireg (job add -g --registry demo)`/.exec(removed.stderr)?.[1];
+      expect(printed).toBeDefined();
+      expect((await aireg((printed ?? "").split(" "))).code).toBe(0);
+      expect((await jobs(aireg)).map((item) => item.steps.map((step) => step.kind))).toEqual([
+        ["pull", "publish", "prune"],
+      ]);
     } finally {
       await aireg(["daemon", "stop"]);
     }

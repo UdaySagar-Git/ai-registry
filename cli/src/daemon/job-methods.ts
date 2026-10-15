@@ -1,6 +1,6 @@
 import { AccountService } from "#accounts/service.ts";
 import { expandHome } from "#adapter/paths.ts";
-import { quoted } from "#adapter/text.ts";
+import { list, quoted } from "#adapter/text.ts";
 import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import {
@@ -9,6 +9,7 @@ import {
   type Job,
   type RegistryConfig,
   type Step,
+  unwatchCommand,
 } from "#core/config/model.ts";
 import { readConfig, writeConfig } from "#core/config/repository.ts";
 import { tokenVariable } from "#core/env.ts";
@@ -327,11 +328,16 @@ export async function createJob(
   await withLease(scopeRoots, { wait: true, ...(signal === undefined ? {} : { signal }) }, () =>
     declareRegistry(scopeRoots, alias, location, adapter, sourceConfig, wanted),
   );
-  // A new job starts from what a sync run by hand does.
-  const policy = inputs.syncPolicy(params, "policy", FOREGROUND_POLICY);
   const origins = originsStep(
     params,
     latest.jobs.find((item) => item.id === id),
+    scope,
+  );
+  // A new job starts from what a sync run by hand does; folders it watches are there to publish.
+  const policy = inputs.syncPolicy(
+    params,
+    "policy",
+    origins === undefined ? FOREGROUND_POLICY : { ...FOREGROUND_POLICY, publish: "on" },
   );
   const job: Job = {
     id,
@@ -387,7 +393,11 @@ function optionalSteps(policy: SyncPolicy, root: string): Step[] {
 }
 
 /** The folders asked for, joined to those the job already watches for the same destination. */
-function originsStep(params: Record<string, unknown>, existing: Job | undefined): Step | undefined {
+function originsStep(
+  params: Record<string, unknown>,
+  existing: Job | undefined,
+  scope: Scope,
+): Step | undefined {
   const before = existing?.steps.find((step) => step.kind === "origins");
   if (params.origins === undefined) return before;
   const asked = inputs.object(params.origins, "origins");
@@ -399,7 +409,18 @@ function originsStep(params: Record<string, unknown>, existing: Job | undefined)
       `The destination must be <registry>/<namespace>, not ${quoted(to)}.`,
     );
   }
-  const kept = before?.to === to ? before.select.map((selector) => selector.from) : [];
+  const kept = before?.select.map((selector) => selector.from) ?? [];
+  // One job publishes to one place, so moving its folders elsewhere is asked for, never done in passing.
+  if (before !== undefined && before.to !== to && kept.length > 0) {
+    throw new ProtocolError(
+      RpcErrorCode.InvalidParams,
+      `This scope already publishes ${list(kept)} to ${before.to}.`,
+      {
+        code: ErrorCode.Usage,
+        hint: `Publish to ${before.to} instead, or first run \`${unwatchCommand(kept, scope)}\`.`,
+      },
+    );
+  }
   const folders = [...new Set([...kept, ...from])];
   return {
     name: "origins",

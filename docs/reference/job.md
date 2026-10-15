@@ -41,13 +41,13 @@ Each action's own options are listed with it below. `job add` also takes `-g`, t
 
 Adds a job that keeps a project, or with `-g` your user scope, in sync with a registry. `<folder>` is the project, and defaults to the current folder. The registry must already be declared in that scope; see [`aireg registry add`](registry.md#aireg-registry-add).
 
-Each registry has one job per scope on this machine. Running `job add` again for the same registry and scope replaces that scope's job, under the id it already has; to give it another id with `--name`, remove it first. Another project, or `-g`, gets a job of its own. Options you leave out go back to their defaults; folders it already watches for the same `--to` are kept. A new job runs straight away.
+Each registry has one job per scope on this machine. Running `job add` again for the same registry and scope updates that scope's job, under the id it already has; to give it another id with `--name`, remove it first. Another project, or `-g`, gets a job of its own. Options you leave out go back to their defaults, except that folders it already watches are kept, and go on publishing. A new job runs straight away.
 
 | Option | Description |
 |---|---|
 | `--registry <registry>` | The registry to keep in sync with. |
-| `--watch <folder>` | A folder whose skills and agents the job publishes, such as `~/.claude/skills`. Repeat it for more than one. aireg copies from these folders and never moves or deletes your files, unless you settle a conflict with `aireg sync resolve --theirs`, which first moves your copy to `.registry/backups/`. Needs `--to`. |
-| `--to <registry>/<namespace>` | Where the watched folders publish. A git registry is refused: aireg doesn't push to git. |
+| `--watch <folder>` | A folder whose skills and agents the job publishes, such as `~/.claude/skills`, as [`aireg watch add`](watch.md#aireg-watch-add) does. Repeat it for more than one. Needs `--to`. |
+| `--to <registry>/<namespace>` | Where the watched folders publish. A git registry is refused: aireg doesn't push to git. So is another place than the job's watched folders already publish to. |
 | `--interval <seconds>` | How often the job runs. Defaults to `900` (15 minutes). At least `60`, at most `86400`. |
 | `--name <name>` | The job's id. Defaults to `job_skills_<registry>`, or `job_skills_<registry>-<folder>` when another scope's job has that id. |
 | `--pull <policy>` | What to do when the registry changed something. Defaults to `on`. |
@@ -68,7 +68,9 @@ Lists every job on this machine: its id, registry, its folder, how often it runs
 
 ## aireg job remove
 
-Removes a job. The artifacts it installed stay installed. For a job that watched folders, aireg forgets the copies it kept of what they hold, in the scope's lockfile and `.registry/artifacts/`, unless another job still watches them; your folders stay as they are, and what the job published stays in the registry. `rm` is the same command.
+Removes a job. The artifacts it installed stay installed, but nothing keeps them up to date in the background any more; aireg warns when that is the case and prints the `aireg job add` that brings it back. For a job that watched folders, aireg forgets the copies it kept of what they hold, in the scope's lockfile and `.registry/artifacts/`, unless another job still watches them; your folders stay as they are, and what the job published stays in the registry. `rm` is the same command.
+
+Since a registry has one job per scope, the job `aireg add -g` starts and the one a watch uses are the same job. To stop publishing a folder and keep the job, run [`aireg watch remove <folder>`](watch.md#aireg-watch-remove) instead.
 
 ## aireg job start
 
@@ -129,16 +131,16 @@ With `runs --follow --json`, each event prints as its own line.
 
 - `0`: success.
 - `1`: the registry isn't declared, it publishes nothing a `-s` name names, the job or run doesn't exist (including for `start`), the daemon didn't start or isn't running, or the run can't be retried.
-- `2`: the action is unknown, `remove`, `enable`, `disable` or `start` was given no job, `pause` or `resume` was given one, an option's value isn't valid, `--registry`, `--watch`, `--to` or `--account` is missing, `start` was given an unknown mode, `retry` or `cancel` was given no run, a run id isn't of the form `run_<uuid>`, or `--to` names a registry that takes no publishes.
+- `2`: the action is unknown, `remove`, `enable`, `disable` or `start` was given no job, `pause` or `resume` was given one, an option's value isn't valid, `--registry`, `--watch`, `--to` or `--account` is missing, `start` was given an unknown mode, `retry` or `cancel` was given no run, a run id isn't of the form `run_<uuid>`, or `--to` names a registry that takes no publishes or another place than the job's watched folders publish to.
 - `4`: the registry needs a sign-in and there is no account signed in to it. A job can't use `AIREG_TOKEN_<NAME>`, since the daemon never sees it: run `aireg auth login <registry>` first.
 
 ## Examples
 
-Publish the skills you keep in Claude Code to a team registry, and keep them in sync:
+Keep your user scope in sync with a team registry:
 
 ```bash
 aireg registry add ../acme-registry -g
-aireg job add -g --watch ~/.claude/skills --to acme/engineering
+aireg job add -g --registry acme
 ```
 
 Run that job now, then check what it did:
@@ -156,4 +158,4 @@ aireg job remove job_skills_acme
 
 ## See also
 
-[`aireg daemon`](daemon.md), [`aireg sync`](sync.md), [`aireg console`](console.md), [CLI reference](index.md)
+[`aireg watch`](watch.md), [`aireg daemon`](daemon.md), [`aireg sync`](sync.md), [`aireg console`](console.md), [CLI reference](index.md)

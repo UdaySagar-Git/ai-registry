@@ -1,5 +1,7 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
-import { emptyRegistryConfig, type Job } from "#core/config/model.ts";
+import { emptyRegistryConfig, type Job, type StepPolicy } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
 import { AiregError } from "#core/errors.ts";
 import { Printer } from "#core/output.ts";
@@ -12,13 +14,14 @@ vi.mock("#daemon/service.ts", () => daemon);
 
 let home: string;
 
-function context(argv: string[], out: string[] = []): CommandContext {
+function context(argv: string[], out: string[] = [], err: string[] = []): CommandContext {
   return {
     argv,
     cwd: home,
     printer: new Printer({
       format: "json",
       out: { write: (text: string) => out.push(text), isTTY: false },
+      err: { write: (text: string) => err.push(text), isTTY: false },
     }),
     host: {
       version: "test",
@@ -108,5 +111,54 @@ describe("a job named by a name other than its id", () => {
     await run(context(["remove", "nightly"], out));
     expect(sent).toEqual([{ expectedRevision: 1, jobs: { remove: ["job_contributed_1"] } }]);
     expect(JSON.parse(out.join(""))).toEqual({ ok: true, data: { jobId: "job_contributed_1" } });
+  });
+});
+
+/** One step of a job, rooted at `root`. */
+const step = (kind: string, root = "/scope", policy: StepPolicy = "on", needs: string[] = []) => ({
+  name: kind,
+  kind,
+  needs,
+  root,
+  select: [],
+  policy,
+  extra: {},
+});
+const job = (id: string, steps: Job["steps"], enabled = true): Job => ({
+  id,
+  account: "acc_acme",
+  schedule: { every: 900, enabled },
+  steps,
+});
+
+describe("removing the job that keeps a project's installs up to date", () => {
+  const installs = "registries:\n  acme: ../acme\nartifacts:\n  - acme/engineering\n";
+
+  test.each([
+    ["warns", true, installs, "on", true],
+    ["says nothing for a disabled job", false, installs, "on", false],
+    ["says nothing for a job that never pulled", false, installs, "off", true],
+    ["still succeeds when the manifest cannot be read", false, "artifacts: [oops\n", "on", true],
+  ] as const)("%s", async (_, warns, manifest, policy, enabled) => {
+    const project = join(home, "project");
+    await mkdir(join(project, ".registry"), { recursive: true });
+    await writeFile(join(project, ".registry", "manifest.yml"), manifest);
+    const config = {
+      ...emptyRegistryConfig(),
+      accounts: [{ id: "acc_acme", registry: "acme" }],
+      jobs: [job("job_skills_acme", [step("pull", project, policy)], enabled)],
+    };
+    await writeConfig(config, 0);
+    const client = {
+      request: async (method: string) => {
+        if (method === "state.snapshot") return { config: { ...config, revision: 1 } };
+        await writeConfig({ ...config, jobs: [] }, 1);
+        return {};
+      },
+    };
+    daemon.withDaemon.mockImplementation((work: (client: unknown) => unknown) => work(client));
+    const err: string[] = [];
+    await run(context(["remove", "job_skills_acme"], [], err));
+    expect(err.join("").includes("no longer kept up to date")).toBe(warns);
   });
 });

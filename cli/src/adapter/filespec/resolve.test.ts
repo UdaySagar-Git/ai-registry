@@ -28,6 +28,31 @@ const OPS_ADD: SpecArtifact = {
   ],
 };
 
+/** Blocked at its newest version, with nothing active to stand in as latest. */
+const OPS_GATE: SpecArtifact = {
+  namespace: "ops",
+  kind: "skill",
+  name: "gate",
+  latest: "1.1.0",
+  versions: [
+    { version: "1.0.0", status: "deprecated", files: { "SKILL.md": skillBody("gate") } },
+    {
+      version: "1.1.0",
+      status: "blocked",
+      reason: "leaks tokens",
+      files: { "SKILL.md": skillBody("gate", "gate", "1.1.0") },
+    },
+  ],
+};
+
+/** Waiting on review, so it has no release yet. */
+const OPS_DRAFT: SpecArtifact = {
+  namespace: "ops",
+  kind: "skill",
+  name: "draft",
+  versions: [{ version: "0.1.0", status: "draft", files: { "SKILL.md": skillBody("draft") } }],
+};
+
 async function root(
   extra: readonly SpecArtifact[] = [],
   dir?: string,
@@ -103,6 +128,49 @@ describe("resolveFromRoot", () => {
       wanted: [{ name: "use" }],
     });
     expect(artifacts.map((item) => item.envelope.metadata.name)).toEqual(["use"]);
+  });
+
+  test("withholds a blocked version even when pinned, and says why", async () => {
+    const read = await root([OPS_GATE]);
+    const resolved = await resolveFromRoot(read, {
+      blobUrl: "blobs",
+      wanted: [{ name: "gate", namespace: "ops", version: "1.1.0" }],
+    });
+    expect(resolved).toEqual({
+      artifacts: [],
+      withheld: [
+        {
+          namespace: "ops",
+          kind: "skill",
+          name: "gate",
+          version: "1.1.0",
+          status: "blocked",
+          reason: "leaks tokens",
+        },
+      ],
+    });
+  });
+
+  test("never takes a blocked latest for a request that does not pin it", async () => {
+    const read = await root([OPS_GATE]);
+    const resolved = await resolveFromRoot(read, { blobUrl: "blobs", wanted: [{ name: "gate" }] });
+    expect(resolved.artifacts).toEqual([]);
+    expect(resolved.withheld?.map((item) => [item.version, item.status])).toEqual([
+      ["1.1.0", "blocked"],
+    ]);
+  });
+
+  test("withholds a draft unless a pin names it", async () => {
+    const read = await root([OPS_DRAFT]);
+    const unpinned = await resolveFromRoot(read, { blobUrl: "blobs", wanted: [{ name: "draft" }] });
+    expect(unpinned.artifacts).toEqual([]);
+    expect(unpinned.withheld?.map((item) => item.status)).toEqual(["draft"]);
+    const pinned = await resolveFromRoot(read, {
+      blobUrl: "blobs",
+      wanted: [{ name: "draft", version: "0.1.0" }],
+    });
+    expect(pinned.artifacts.map((item) => item.id)).toEqual(["artifacts/ops/skill/draft/0.1.0"]);
+    expect(pinned.withheld).toBeUndefined();
   });
 
   test("verifies the envelope as written, fields it does not know included", async () => {

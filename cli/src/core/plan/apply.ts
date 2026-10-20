@@ -6,7 +6,7 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord } from "#core/fields.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { digest } from "#core/fs/digest.ts";
-import { fanOut, link } from "#core/fs/link.ts";
+import { fanOut, inspect, link } from "#core/fs/link.ts";
 import { PRIVATE_DIR } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
 import { entries, exists, present, pruneEmptyParent, remove, unseal } from "#core/fs/tree.ts";
@@ -20,8 +20,9 @@ import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { PROJECTIONS_DIR, type Roots } from "#core/store/paths.ts";
 import { assemble } from "./assemble.ts";
 import { type Carried, carriedBy } from "./carries.ts";
+import { commandSkill } from "./command-skill.ts";
 import { backUp, guardLink, type LinkGuard } from "./link-guard.ts";
-import type { Action, Fetch, Plan, Staged } from "./model.ts";
+import type { Action, Fetch, Plan, PluginDocument, Staged } from "./model.ts";
 import { projectionsOf } from "./projection.ts";
 import { applyRegistrations } from "./register.ts";
 import { assertRemovable, removal, removeContained } from "./removable.ts";
@@ -121,6 +122,8 @@ export interface ApplyResult {
   unstaged: { name: string; reason: string; error: unknown }[];
   /** Links not made: a person's own file or folder is at the destination, or `reason` says why. */
   kept: { name: string; path: string; reason?: string }[];
+  /** Copies already on disk, byte for byte what this run installs, recorded as aireg's in place. */
+  adopted: { name: string; path: string }[];
   /** A person's own file or folder that stood where a recorded link was, and where it was moved. */
   backedUp: {
     path: string;
@@ -210,7 +213,10 @@ interface Run {
   copies: Map<string, string>;
   degraded: Set<string>;
   /** Projections to rebuild once every clone has landed: dir -> content, readers. */
-  plugins: Map<string, { content: string; harnesses: Set<string> }>;
+  plugins: Map<
+    string,
+    { content: string; harnesses: Set<string>; document?: PluginDocument | undefined }
+  >;
   /** Fan-out directories to refresh once their projections are final: dir -> projection. */
   fanned: Map<string, string>;
   /** Plugin directories placed as copies, copied again once every member has landed. */
@@ -221,6 +227,7 @@ interface Run {
   performed: Performed;
   installed: Set<string>;
   kept: ApplyResult["kept"];
+  adopted: ApplyResult["adopted"];
   backedUp: ApplyResult["backedUp"];
   recorded: Lock | undefined;
   /** The lock as this run found it. */
@@ -335,11 +342,12 @@ async function assemblePlugin(run: Run, action: ActionOf<"link">): Promise<void>
   const found = run.plugins.get(action.from) ?? {
     content: action.content,
     harnesses: new Set<string>(),
+    document: action.document,
   };
   found.harnesses.add(action.harness);
   run.plugins.set(action.from, found);
   await guardManagedPath(action.from, run.roots);
-  await assemble(action.from, action.content, found.harnesses);
+  await assemble(action.from, action.content, found.harnesses, found.document);
 }
 
 /** Whether aireg writes this placement's file itself, rather than linking or copying a tree. */
@@ -358,6 +366,7 @@ async function rendering(action: ActionOf<"link">): Promise<Rendered | undefined
   const read = await readFile(action.from, "utf8").catch(() => undefined);
   if (read === undefined) return undefined;
   const source = action.rename === undefined ? read : withName(read, action.rename);
+  if (action.command !== undefined) return commandSkill(action.command, source);
   if (action.codec === undefined) return { text: source };
   return applyCodec(action.codec, source);
 }
@@ -399,6 +408,10 @@ async function linkInto(run: Run, action: ActionOf<"link">): Promise<void> {
     });
   }
   if (guard === "keep") {
+    if (action.adopt === true) {
+      await adoptOrKeep(run, action, key);
+      return;
+    }
     run.kept.push({ name: action.name, path: action.to });
     run.skipped.add(key);
     return;
@@ -443,6 +456,35 @@ async function linkInto(run: Run, action: ActionOf<"link">): Promise<void> {
   run.pathModes.set(action.to, mode);
   if (mode === "copy") run.copies.set(action.to, await digest(action.to));
   if (!action.copy && mode === "copy") run.degraded.add(action.harness);
+  run.performed.link += 1;
+  run.installed.add(action.name);
+}
+
+/**
+ * A copy another tool left where this link goes is taken over as aireg's own when it holds exactly
+ * what this run installs, and is never rewritten; one that differs reads as edited and stays.
+ */
+async function adoptOrKeep(run: Run, action: ActionOf<"link">, key: string): Promise<void> {
+  const state = await inspect(action.to);
+  const same =
+    state.exists &&
+    !state.isLink &&
+    (await exists(action.from)) &&
+    (await digest(action.to)) === (await digest(action.from));
+  if (!same) {
+    run.kept.push({
+      name: action.name,
+      path: action.to,
+      reason:
+        "it holds other bytes than aireg installs, so it reads as edited and was left as it is",
+    });
+    run.skipped.add(key);
+    return;
+  }
+  run.modes.set(key, "copy");
+  run.pathModes.set(action.to, "copy");
+  run.copies.set(action.to, await digest(action.to));
+  run.adopted.push({ name: action.name, path: action.to });
   run.performed.link += 1;
   run.installed.add(action.name);
 }
@@ -560,9 +602,9 @@ function perform(run: Run, action: Action): Promise<void> {
 async function finish(run: Run, plan: Plan): Promise<void> {
   const { roots } = run;
   // At link time a projection would see only the kind whose artifact happened to be first.
-  for (const [dir, { content, harnesses }] of run.plugins) {
+  for (const [dir, { content, harnesses, document }] of run.plugins) {
     await guardManagedPath(dir, roots);
-    await assemble(dir, content, harnesses);
+    await assemble(dir, content, harnesses, document);
   }
   for (const [to, from] of run.fanned) {
     await assertRemovable(to, roots);
@@ -609,6 +651,7 @@ export async function apply(
     performed: { stage: 0, clone: 0, link: 0, unlink: 0 },
     installed: new Set(),
     kept: [],
+    adopted: [],
     backedUp: [],
     recorded: undefined,
     before,
@@ -647,6 +690,7 @@ export async function apply(
     degraded: [...run.degraded].sort(),
     unstaged: [...run.unstaged].map(([name, { reason, error }]) => ({ name, reason, error })),
     kept: run.kept,
+    adopted: run.adopted,
     backedUp: run.backedUp,
     carried: await carriedBy(plan, run.recorded, roots),
     unrendered: run.unrendered,

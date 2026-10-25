@@ -43,11 +43,13 @@ fetch() {
   chmod 755 "$stage_dir/$2"
 }
 
-# Another release installs through its own installer, which pins that release's digests.
+# Another release installs through its own installer, held to the digest pinned here for it.
 # Only SemVer's characters pass, so the version stays one path segment.
 install_release() {
   case "$1" in
     ''|*[!0-9A-Za-z.+-]*) fail "{{VersionEnv}} must be a version, such as 1.2.3 (got $1)" ;;
+{{Installers}}
+    *) fail "this installer has no digest for $name $1; run that release's own installer from {{Artifacts}}/v$1/install.sh" ;;
   esac
   script=$(mktemp) || fail "cannot create a temporary file"
   trap 'status=$?; rm -f "$script"; [ "${installer_complete:-false}" = true ] || exit 1; exit "$status"' 0
@@ -56,6 +58,7 @@ install_release() {
   curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
     --output "$script" "{{Artifacts}}/v$1/install.sh" \
     || fail "$ORIGIN has no $name $1"
+  [ "$(sha256_file "$script")" = "$pinned" ] || fail "checksum mismatch for the $name $1 installer"
   code=0
   # Not stdin: under `curl | sh` that is the rest of this script.
   {{VersionEnv}}="$1" sh "$script" < /dev/null || code=$?

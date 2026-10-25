@@ -24,19 +24,34 @@ if ($PSVersionTable.PSEdition -ne 'Core') {
   [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 }
 
-# Another release installs through its own installer, which pins that release's digests.
+# Another release installs through its own installer, held to the digest pinned here for it.
 # Only SemVer's characters pass, so the version stays one path segment.
 function Install-Release([string] $Want) {
   if ($Want -notmatch '^[0-9A-Za-z.+-]+$') {
     Fail "{{VersionEnv}} must be a version, such as 1.2.3 (got $Want)"
   }
-  Write-Host "Downloading the $Name $Want installer from $Origin..."
-  try {
-    $script = (Invoke-WebRequest -UseBasicParsing -Uri "{{Artifacts}}/v$Want/install.ps1").Content
-  } catch {
-    Fail "$Origin has no Windows installer for $Name $Want"
+  $pinned = @{
+{{Installers}}
+  }[$Want]
+  if (-not $pinned) {
+    Fail "this installer has no digest for $Name $Want; run that release's own installer from {{Artifacts}}/v$Want/install.ps1"
   }
-  if ($script -is [byte[]]) { $script = [Text.Encoding]::UTF8.GetString($script) }
+  Write-Host "Downloading the $Name $Want installer from $Origin..."
+  # Hashed as the bytes on disk, which a decoded response body is not.
+  $file = [IO.Path]::GetTempFileName()
+  try {
+    try {
+      Invoke-WebRequest -UseBasicParsing -Uri "{{Artifacts}}/v$Want/install.ps1" -OutFile $file
+    } catch {
+      Fail "$Origin has no Windows installer for $Name $Want"
+    }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant() -ne $pinned) {
+      Fail "checksum mismatch for the $Name $Want installer"
+    }
+    $script = [IO.File]::ReadAllText($file, [Text.Encoding]::UTF8)
+  } finally {
+    Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue
+  }
   # That installer reads the same {{VersionEnv}}, which names its own version.
   Invoke-Expression $script
 }

@@ -1,0 +1,31 @@
+{
+  "0.1.0": {
+    "install.sh": "27f1a25333ee00a1696ae336f9a5a85d9e735108c44b99b935f34e92ed51cb84"
+  },
+  "0.1.1": {
+    "install.sh": "bf0a1b858e6a46c24822558390d68b8344093b494457701ede17442b305f075e"
+  },
+  "0.1.2": {
+    "install.sh": "d5a43de8f7422ad2ba9f19c857d77553e02b0f1c9cbb4ca4dada8c232185d520"
+  },
+  "0.1.3": {
+    "install.sh": "4741dfff26d6febb46ac934b641ae5cabefdb0d4fd6bb1939ccd1beffee682de",
+    "install.ps1": "203f943ce91c8342c8ca665101da23e3d6ffb48fcce036a9af614760aa917a94"
+  },
+  "0.1.4": {
+    "install.sh": "85e62fa41ee5cf011b753e29e932f3f53717494bd2beff582dec2ad54c65be34",
+    "install.ps1": "526746076238a3db1e9b8f5eeb17c68b44531cc97ee535ad2f3bfc8f64715bc6"
+  },
+  "0.1.5": {
+    "install.sh": "210c3ed35539860bd30d6e128d22aa3dc33fbcf004669bef6d74c596e3d760d9",
+    "install.ps1": "10690026ff9460d7b16737e512ca2308b4d2b91135890277242deadbd77806eb"
+  },
+  "0.1.6": {
+    "install.sh": "2ed6c85e1cd895841e9dec14066138e4d571c8fad0c92dfb03986dff4f36548d",
+    "install.ps1": "b5a14aac0c5af895f2f1250934b4b6d0bd96a1bd2ad6d51df2f62b0b12283fe1"
+  },
+  "0.1.7": {
+    "install.sh": "4148cb5bd627468b59374b9dcd62566059d972e9f870bd15e7543d1f482d116e",
+    "install.ps1": "acc89d3644f9794d361964a829059baae593704749a37d0657d6071ebae214ad"
+  }
+}

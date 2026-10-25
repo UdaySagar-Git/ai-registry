@@ -5,7 +5,7 @@
 | Variable | Description |
 |---|---|
 | `AIREG_HOME` | aireg's own folder. Defaults to `~/.aireg`. |
-| `AIREG_VERSION` | Read by the installer: the release to install, such as `0.1.0`. Defaults to the latest. |
+| `AIREG_VERSION` | Read by the installer: the release to install, such as `0.1.0`. Defaults to the latest. An installer installs only its own release or an earlier one, whose installer it checks against a pinned sha256. |
 | `AIREG_USER_SCOPE` | Your user scope, where `-g` installs. Defaults to `~/.registry`. |
 | `AIREG_LOG_LEVEL` | The same as `--log-level`. The option wins when both are set. |
 | `AIREG_GIT_TIMEOUT_MS` | How long a git operation may take, in whole milliseconds, such as `60000`. Defaults to `300000` (five minutes). Any other value is refused. |

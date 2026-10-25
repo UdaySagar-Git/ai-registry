@@ -10,6 +10,8 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
+import { gte, parseVersion } from "#adapter/semver.ts";
+import { releaseTag } from "#core/product.ts";
 import { TARGETS } from "#packaging/targets.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { renderInstaller, renderTemplate, renderWindowsInstaller } from "./render.ts";
@@ -28,7 +30,7 @@ function binaries(body: (filename: string) => string | Uint8Array = (name) => na
   return dir;
 }
 
-function render(overrides: Record<string, string> = {}): string {
+function render(overrides: Partial<Parameters<typeof renderInstaller>[0]> = {}): string {
   return renderInstaller({
     version: "1.2.3",
     origin: "https://releases.example.com/aireg",
@@ -37,15 +39,41 @@ function render(overrides: Record<string, string> = {}): string {
   });
 }
 
-/** Runs a script under `sh` in a throwaway HOME and returns its exit status. */
-function runSh(script: string, env: Record<string, string> = {}): number | null {
+/** Runs a script under `sh` in a throwaway HOME. */
+function runSh(
+  script: string,
+  env: Record<string, string> = {},
+): { status: number | null; stderr: string } {
   const dir = mkdtempSync(join(scratch, "aireg-run-"));
   const file = join(dir, "install.sh");
   writeFileSync(file, script);
   return spawnSync("sh", [file], {
     encoding: "utf8",
     env: { PATH: process.env.PATH ?? "", HOME: join(dir, "home"), ...env },
-  }).status;
+  });
+}
+
+function sha256(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+/** A `curl` that saves `body` as whatever it is asked to download, and logs each download. */
+function fakeCurl(body: string): { path: string; downloads: string } {
+  const bin = mkdtempSync(join(scratch, "aireg-bin-"));
+  const downloads = join(bin, "downloads");
+  writeFileSync(join(bin, "body"), body);
+  writeFileSync(
+    join(bin, "curl"),
+    [
+      "#!/bin/sh",
+      'while [ "$1" != --output ]; do shift; done',
+      `echo "$2" >> "${downloads}"`,
+      `cp "${join(bin, "body")}" "$2"`,
+      "",
+    ].join("\n"),
+  );
+  chmodSync(join(bin, "curl"), 0o755);
+  return { path: `${bin}:${process.env.PATH ?? ""}`, downloads };
 }
 
 describe("renderTemplate", () => {
@@ -178,6 +206,32 @@ describe("renderWindowsInstaller", () => {
     const script = renderWindows();
     expect(script.indexOf("Get-FileHash")).toBeLessThan(script.indexOf("& $binary --setup"));
   });
+
+  test("runs another release's installer only once it matches the digest pinned for it", () => {
+    const script = renderWindowsInstaller({
+      version: "1.2.3",
+      origin: "https://releases.example.com/aireg",
+      binaryDir: binaries(),
+      earlier: { "1.0.0": { "install.sh": sha256("sh"), "install.ps1": sha256("ps1") } },
+    });
+    expect(script).toContain(`'1.0.0' = '${sha256("ps1")}'`);
+    expect(script).not.toContain(sha256("sh"));
+    expect(script.indexOf("-ne $pinned")).toBeLessThan(script.indexOf("Invoke-Expression"));
+  });
+});
+
+describe("installers.json", () => {
+  test("pins the installers of every earlier release", () => {
+    const table = JSON.parse(readFileSync(new URL("installers.json", import.meta.url), "utf8"));
+    const current = JSON.parse(
+      readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+    );
+    const released = execFileSync("git", ["tag", "--list", releaseTag("*")], { encoding: "utf8" })
+      .split("\n")
+      .map((tag) => tag.slice(releaseTag("").length))
+      .filter((version) => parseVersion(version) !== undefined && !gte(version, current.version));
+    expect(released.filter((version) => table[version] === undefined)).toEqual([]);
+  });
 });
 
 // install.sh is checked with POSIX sh and bash, which Windows runners do not ship as `sh`.
@@ -193,38 +247,60 @@ describe.skipIf(process.platform === "win32")("the rendered installer", () => {
     const script = render();
     const withoutMarker = script.slice(0, script.lastIndexOf("installer_complete=true\n"));
     expect(withoutMarker).not.toBe(script);
-    expect(runSh(withoutMarker)).not.toBe(0);
-    expect(runSh(script.slice(0, Math.floor(script.length / 2)))).not.toBe(0);
+    expect(runSh(withoutMarker).status).not.toBe(0);
+    expect(runSh(script.slice(0, Math.floor(script.length / 2))).status).not.toBe(0);
     // Even the marker on its own, with the body cut short, is refused.
     expect(
-      runSh(`${script.slice(0, Math.floor(script.length / 2))}\ninstaller_complete=true\n`),
+      runSh(`${script.slice(0, Math.floor(script.length / 2))}\ninstaller_complete=true\n`).status,
     ).not.toBe(0);
   }, 30_000);
 
   test("removes another release's installer when that install is interrupted", () => {
-    const bin = mkdtempSync(join(scratch, "aireg-bin-"));
-    const downloads = join(bin, "downloads");
     // The downloaded installer interrupts the one that started it, as a Ctrl-C would.
-    writeFileSync(
-      join(bin, "curl"),
-      [
-        "#!/bin/sh",
-        'while [ "$1" != --output ]; do shift; done',
-        `echo "$2" >> "${downloads}"`,
-        "echo 'kill -INT $PPID; kill -INT $$; sleep 5' > \"$2\"",
-        "",
-      ].join("\n"),
-    );
-    chmodSync(join(bin, "curl"), 0o755);
+    const body = "kill -INT $PPID; kill -INT $$; sleep 5\n";
+    const curl = fakeCurl(body);
 
-    const status = runSh(render(), {
-      PATH: `${bin}:${process.env.PATH ?? ""}`,
+    const { status } = runSh(render({ earlier: { "1.0.0": { "install.sh": sha256(body) } } }), {
+      PATH: curl.path,
       AIREG_VERSION: "1.0.0",
     });
 
     expect(status).not.toBe(0);
-    const scripts = readFileSync(downloads, "utf8").trim().split("\n");
+    const scripts = readFileSync(curl.downloads, "utf8").trim().split("\n");
     expect(scripts).toHaveLength(1);
     expect(scripts.filter((path) => existsSync(path))).toEqual([]);
+  }, 30_000);
+
+  test("runs another release's installer only when it matches the digest pinned for it", () => {
+    const body = 'echo ran >> "$MARKER"\n';
+    const marker = join(scratch, "marker");
+    const env = { PATH: fakeCurl(body).path, AIREG_VERSION: "1.0.0", MARKER: marker };
+
+    const tampered = runSh(
+      render({ earlier: { "1.0.0": { "install.sh": sha256("other") } } }),
+      env,
+    );
+    expect(tampered.status).not.toBe(0);
+    expect(tampered.stderr).toContain("checksum mismatch for the aireg 1.0.0 installer");
+    expect(existsSync(marker)).toBe(false);
+
+    const pinned = runSh(render({ earlier: { "1.0.0": { "install.sh": sha256(body) } } }), env);
+    expect(pinned.status).toBe(0);
+    expect(readFileSync(marker, "utf8")).toBe("ran\n");
+  }, 30_000);
+
+  test("refuses a release it pins no installer for, before downloading anything", () => {
+    const curl = fakeCurl("echo ran\n");
+
+    const { status, stderr } = runSh(render({ earlier: {} }), {
+      PATH: curl.path,
+      AIREG_VERSION: "2.0.0",
+    });
+
+    expect(status).not.toBe(0);
+    expect(stderr).toContain(
+      "run that release's own installer from https://releases.example.com/aireg/artifacts/v2.0.0/install.sh",
+    );
+    expect(existsSync(curl.downloads)).toBe(false);
   }, 30_000);
 });

@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { formatVersion, parseVersion } from "#adapter/semver.ts";
 import { envName } from "#core/env.ts";
+import { hasOnly, isRecord } from "#core/fields.ts";
+import { isSha256Hex } from "#core/fs/hash.ts";
 import { HOME_DIR, NAME } from "#core/product.ts";
 import type { ReleasePlatform } from "#core/release/urls.ts";
 import { TARGETS } from "#packaging/targets.ts";
@@ -9,6 +12,9 @@ import { artifactBaseUrl, artifactsUrl, installerOrigin } from "./origin.ts";
 
 const SH_TEMPLATE = new URL("install.sh.tmpl", import.meta.url);
 const POWERSHELL_TEMPLATE = new URL("install.ps1.tmpl", import.meta.url);
+/** The sha256 of each installer every earlier release published, from its SHA256SUMS. */
+const EARLIER_INSTALLERS = new URL("installers.json", import.meta.url);
+const INSTALLER_FILES = ["install.sh", "install.ps1"] as const;
 
 const PLACEHOLDER = /\{\{([A-Za-z0-9_]+)\}\}/g;
 
@@ -18,6 +24,8 @@ export interface InstallerConfig {
   readonly origin: string;
   /** Directory holding the compiled `aireg-<os>-<arch>[.exe]` assets. */
   readonly binaryDir: string;
+  /** Per earlier version, its installers' sha256 by filename; defaults to installers.json. */
+  readonly earlier?: Readonly<Record<string, Readonly<Record<string, string>>>>;
 }
 
 const DIGEST_KEY = {
@@ -53,6 +61,35 @@ function digestOf(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
+/**
+ * `[version, sha256]` for each earlier release that published `file`. Both are written
+ * into the script, so only an exact version and a hex digest pass.
+ */
+function earlierInstallers(earlier: unknown, file: string): [string, string][] {
+  if (!isRecord(earlier)) throw new Error("installers.json must map versions to digests");
+  return Object.entries(earlier).flatMap(([version, files]): [string, string][] => {
+    const parsed = parseVersion(version);
+    if (parsed === undefined || formatVersion(parsed) !== version)
+      throw new Error(`installers.json: ${version} is not an exact version`);
+    if (!hasOnly(files, INSTALLER_FILES))
+      throw new Error(`installers.json: ${version} names a file that is not an installer`);
+    const digest = files[file];
+    if (digest === undefined) return [];
+    if (typeof digest !== "string" || !isSha256Hex(digest))
+      throw new Error(`installers.json: ${version} ${file} is not a sha256`);
+    return [[version, digest]];
+  });
+}
+
+function pinnedInstallers(config: InstallerConfig, windows: boolean): string {
+  const earlier = config.earlier ?? JSON.parse(readFileSync(EARLIER_INSTALLERS, "utf8"));
+  return earlierInstallers(earlier, windows ? "install.ps1" : "install.sh")
+    .map(([version, digest]) =>
+      windows ? `    '${version}' = '${digest}'` : `    ${version}) pinned=${digest} ;;`,
+    )
+    .join("\n");
+}
+
 /** The values both installers share, and the digests of the platforms `windows` selects. */
 function installerValues(config: InstallerConfig, windows: boolean): Record<string, string> {
   const origin = installerOrigin(config.origin);
@@ -70,6 +107,7 @@ function installerValues(config: InstallerConfig, windows: boolean): Record<stri
     Name: NAME,
     HomeDir: HOME_DIR,
     HomeEnv: envName("HOME"),
+    Installers: pinnedInstallers(config, windows),
   };
   for (const target of TARGETS) {
     if ((target.os === "windows") !== windows) continue;

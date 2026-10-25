@@ -332,11 +332,21 @@ function stringList(raw: unknown, ref: string, key: string): string[] | undefine
   return names;
 }
 
+/** Controls and characters that hide or reorder text: a registry's name is shown everywhere. */
+const UNSHOWABLE = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+
 function parseRegistries(root: Record<string, unknown>): Record<string, RegistrySource> {
   const registries = root.registries;
   if (registries === undefined || registries === null) return {};
   if (typeof registries !== "object" || Array.isArray(registries)) {
     throw new ManifestError("`registries:` must map names to addresses.");
+  }
+  const unshowable = Object.keys(registries).filter((alias) => UNSHOWABLE.test(alias));
+  if (unshowable.length > 0) {
+    throw new ManifestError(
+      `${list(unshowable.map(quoted))} cannot name a registry.`,
+      "Rename each one and its `artifacts:` entries in manifest.yml, using lowercase letters, digits and hyphens, then run `aireg install`.",
+    );
   }
   const out = dict<RegistrySource>();
   for (const [alias, raw] of Object.entries(registries as Record<string, unknown>)) {

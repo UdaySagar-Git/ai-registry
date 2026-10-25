@@ -349,10 +349,22 @@ function parseRegistries(root: Record<string, unknown>): Record<string, Registry
     );
   }
   const out = dict<RegistrySource>();
+  // A registry's installed copies live in a folder named after it, and `Team` and `team`
+  // name one folder: sharing it, either could read the other's copies as its own.
+  const folders = new Map<string, string>();
   for (const [alias, raw] of Object.entries(registries as Record<string, unknown>)) {
     if (RESERVED_KEYS.has(alias)) {
       throw new ManifestError(`${quoted(alias)} cannot name a registry.`);
     }
+    const folder = sanitizeName(alias);
+    const other = folders.get(folder);
+    if (other !== undefined) {
+      throw new ManifestError(
+        `Registries ${quoted(other)} and ${quoted(alias)} would share the folder .registry/artifacts/${folder}.`,
+        "Rename one of them and its `artifacts:` entries in manifest.yml, using lowercase letters, digits and hyphens, then run `aireg install`.",
+      );
+    }
+    folders.set(folder, alias);
     out[alias] = parseSource(alias, raw);
   }
   return out;

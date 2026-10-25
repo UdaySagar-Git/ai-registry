@@ -611,3 +611,16 @@ describe("an address", () => {
     expect(() => parseManifest(`registries:\n  acme:\n    source: ${long}\n`)).toThrow(/too long/);
   });
 });
+
+test("never writes registries that would share a storage folder", async ({ tmp }) => {
+  const project = roots("project", tmp);
+  await writeManifest(project, parseManifest("registries:\n  Team: ../b\n"));
+  const before = await readFile(project.manifest, "utf8");
+  const manifest = await readManifest(project.manifest);
+  manifest.registries.team = { location: "../a", adapter: undefined, config: {} };
+
+  await expect(writeManifest(project, manifest)).rejects.toThrow(
+    'Registries "Team" and "team" would share the folder .registry/artifacts/team.',
+  );
+  expect(await readFile(project.manifest, "utf8")).toBe(before);
+});

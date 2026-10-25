@@ -45,7 +45,7 @@ test("offers new local work in the namespace the account publishes into", async 
     { scope: "project", cwd: tmp },
     { config: {} } as never,
     { id: "acc_1", registry: "acme", defaultNamespace: "engineering" },
-    new Map([["hello", "publish"]]),
+    new Map([["skill:hello", "publish"]]),
     new AbortController().signal,
     { event: () => {} },
   );

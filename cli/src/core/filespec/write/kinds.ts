@@ -95,7 +95,7 @@ export async function kindsOf(root: string | undefined): Promise<Record<string, 
   return kinds;
 }
 
-/** Each manifest `registry.json` names in the root that cannot be used, and what is checked instead. */
+/** Each manifest `registry.json` names in the root that cannot be used, and what becomes of its kind. */
 export async function manifestProblems(root: string): Promise<{ path: string; message: string }[]> {
   return (await listedKinds(root)).flatMap(({ name, url, served, invalid }) => {
     if (invalid === true) {
@@ -104,9 +104,24 @@ export async function manifestProblems(root: string): Promise<{ path: string; me
     }
     if (url === undefined || served === undefined || !("problem" in served)) return [];
     const instead =
-      BUNDLED[name] === undefined ? "not checked" : "checked against the one aireg bundles";
-    return [{ path: url, message: `${served.problem}, so ${quoted(name)} is ${instead}` }];
+      BUNDLED[name] === undefined
+        ? "is left out and its artifacts fail"
+        : "is checked against the one aireg bundles";
+    return [{ path: url, message: `${served.problem}, so ${quoted(name)} ${instead}` }];
   });
+}
+
+/** Where a kind `registry.json` names is served, and why it is left out, when it is. */
+export async function leftOutKind(
+  root: string,
+  name: string,
+): Promise<{ path: string; problem: string } | undefined> {
+  if (BUNDLED[name] !== undefined) return undefined;
+  const found = (await listedKinds(root)).find((kind) => kind.name === name);
+  if (found?.url === undefined || found.served === undefined || !("problem" in found.served)) {
+    return undefined;
+  }
+  return { path: found.url, problem: found.served.problem };
 }
 
 async function served(root: string, url: string): Promise<Served> {

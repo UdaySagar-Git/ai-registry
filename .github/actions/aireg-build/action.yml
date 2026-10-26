@@ -43,7 +43,8 @@ runs:
         set -euo pipefail
         npm install --global --force corepack@0.34.6
         corepack enable pnpm
-        pnpm install --frozen-lockfile
+        # Bun bundles src/main.ts itself, so only the packages the CLI runs with are needed.
+        pnpm install --frozen-lockfile --prod
         AIREG_RELEASE_KEYRING="$(printf '%s' "$TRUSTED_KEYS" | base64 | tr -d '\n')"
         export AIREG_RELEASE_KEYRING
         pnpm run release:compile

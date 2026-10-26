@@ -99,6 +99,18 @@ jobs:
           # Would shell out to pnpm before corepack has put it on PATH.
           package-manager-cache: false
 
+      # Corepack downloads pnpm on every run otherwise; the pin it is keyed on carries pnpm's hash.
+      - id: corepack
+        shell: bash
+        run: |
+          echo "COREPACK_HOME=$RUNNER_TEMP/corepack" >> "$GITHUB_ENV"
+          echo "pin=$(node -p 'require("./package.json").packageManager')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/corepack
+          key: corepack-${{ runner.os }}-${{ steps.corepack.outputs.pin }}
+
       # Verifies pnpm against the integrity hash in packageManager.
       # Hosted Windows runners preinstall Yarn shims; replace them with Corepack.
       - run: npm install --global --force corepack@0.34.6 && corepack enable pnpm
@@ -177,6 +189,18 @@ jobs:
         with:
           node-version: ${{ env.CI_NODE_VERSION }}
           package-manager-cache: false
+
+      # Corepack downloads pnpm on every run otherwise; the pin it is keyed on carries pnpm's hash.
+      - id: corepack
+        shell: bash
+        run: |
+          echo "COREPACK_HOME=$RUNNER_TEMP/corepack" >> "$GITHUB_ENV"
+          echo "pin=$(node -p 'require("./package.json").packageManager')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/corepack
+          key: corepack-${{ runner.os }}-${{ steps.corepack.outputs.pin }}
 
       - run: npm install --global --force corepack@0.34.6 && corepack enable pnpm
 

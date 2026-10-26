@@ -7,12 +7,9 @@ import { runDaemon } from "./runtime.ts";
 describe("daemon runtime", () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  test("exits cleanly when another daemon already owns the socket", async ({ daemon }) => {
-    await daemon.start();
-    await expect(runDaemon("test")).resolves.toBe(0);
-  });
-
-  test("drops a registry token it inherited, in any case", async ({ daemon }) => {
+  test("exits cleanly when another daemon owns the socket, dropping a token it inherited in any case", async ({
+    daemon,
+  }) => {
     await daemon.start();
     vi.stubEnv("aireg_token_kit", "synthetic-token");
     await expect(runDaemon("test")).resolves.toBe(0);

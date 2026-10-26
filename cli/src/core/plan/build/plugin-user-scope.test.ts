@@ -68,8 +68,6 @@ describe("a plugin, projected at user scope", () => {
     expect(plan.actions.filter((action) => action.kind === "stage")).toHaveLength(1);
   });
 
-  // No plugin container, so the namespace arrives as its parts: one link per
-  // member, straight into the content rather than at an assembled plugin.
   it("reaches the universal layout as parts, because it has no plugin directory", () => {
     const links = linksTo(run(["agents"]).actions, "agents");
     expect(links.length).toBeGreaterThan(0);

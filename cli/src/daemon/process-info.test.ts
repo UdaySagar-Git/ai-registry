@@ -12,6 +12,8 @@ describe("isDaemonProcess", () => {
       ["-e", "setTimeout(() => {}, 30000)", "--", "--internal-daemon"],
       { stdio: "ignore" },
     );
+    // Asked alongside the daemon, as each ask starts PowerShell on Windows.
+    const self = isDaemonProcess(process.pid);
     try {
       await once(child, "spawn");
       const pid = child.pid ?? 0;
@@ -22,11 +24,11 @@ describe("isDaemonProcess", () => {
         if (!found) await delay(100);
       }
       expect(found).toBe(true);
-      expect(await isDaemonProcess(process.pid)).toBe(false);
+      expect(await self).toBe(false);
     } finally {
       child.kill();
     }
-  }, 60_000);
+  });
 
   test("never asks about a pid that is not a plain positive integer", async () => {
     expect(await isDaemonProcess(-1)).toBe(false);

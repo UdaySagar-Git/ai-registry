@@ -5,18 +5,21 @@ import { describe, expect } from "vitest";
 import { parse } from "yaml";
 import { registry } from "#test/kit/builders/registry.ts";
 import { type Aireg, test } from "#test/kit/fixtures.ts";
-import { lockPath } from "#test/kit/scope.ts";
+import { lockPath, writeManifestIn } from "#test/kit/scope.ts";
 
 /** `lint` installed by name and `format` and `notes` through their namespace; `extra` is not installed. */
-async function installed(aireg: Aireg, market: string): Promise<void> {
+async function installed(aireg: Aireg, project: string, market: string): Promise<void> {
   await registry(market, { name: "acme", slug: "acme" })
     .skill("acme/lint@1.0.0")
     .skill("acme/extra@1.0.0")
     .skill("tools/format@1.0.0")
     .skill("tools/notes@1.0.0")
     .write();
-  expect((await aireg(["init", "--for", "claude"])).code).toBe(0);
-  expect((await aireg(["registry", "add", market, "--as", "acme"])).code).toBe(0);
+  // What `init --for claude` and `registry add` write, without running either.
+  await writeManifestIn(
+    project,
+    `harnesses:\n  - claude\nregistries:\n  acme: ${JSON.stringify(market)}\nartifacts: []\n`,
+  );
   for (const address of ["acme/skill/lint", "acme/tools"]) {
     const added = await aireg(["add", address, "-y"]);
     expect(added.code, added.stderr).toBe(0);
@@ -48,10 +51,10 @@ describe("a registry that stops listing an installed artifact", () => {
     tmp,
   }) => {
     const market = join(tmp, "market");
-    await installed(aireg, market);
+    await installed(aireg, project, market);
     await listOnly(market, (name) => name !== "notes");
 
-    // Adding another artifact reads the registry again, which used to take this one out.
+    // Adding another artifact reads the registry again, which must not take this one out.
     const add = await aireg(["add", "acme/skill/extra", "-y"]);
     expect(add.code, add.stderr).toBe(0);
     expect(add.stderr).toContain('acme no longer lists "tools/notes", so it was kept.');
@@ -73,11 +76,11 @@ describe("a registry that stops listing an installed artifact", () => {
     const again = await aireg(["update", "-y"]);
     expect(again.code, again.stderr).toBe(0);
     expect(again.stderr).not.toContain("no longer lists");
-  }, 60_000);
+  });
 
   test("keeps everything when the listing is empty", async ({ aireg, project, tmp }) => {
     const market = join(tmp, "market");
-    await installed(aireg, market);
+    await installed(aireg, project, market);
     await listOnly(market, () => false);
 
     const update = await aireg(["update", "-y"]);
@@ -90,31 +93,27 @@ describe("a registry that stops listing an installed artifact", () => {
       expect(existsSync(skill(project, name))).toBe(true);
     }
     expect(await lockedNames(project)).toEqual(["lint", "tools/format", "tools/notes"]);
-  }, 60_000);
+  });
 
   test("is left for you by sync and by a background job", async ({ aireg, project, tmp }) => {
     const market = join(tmp, "market");
-    await installed(aireg, market);
+    await installed(aireg, project, market);
     await listOnly(market, (name) => name !== "notes");
-    try {
-      const synced = await aireg(["sync"]);
-      expect(synced.code).toBe(3);
-      expect(`${synced.stdout}${synced.stderr}`).toContain("acme no longer lists it");
-      expect(existsSync(skill(project, "notes"))).toBe(true);
+    const synced = await aireg(["sync"]);
+    expect(synced.code).toBe(3);
+    expect(`${synced.stdout}${synced.stderr}`).toContain("acme no longer lists it");
+    expect(existsSync(skill(project, "notes"))).toBe(true);
 
-      const added = await aireg(["job", "add", "--registry", "acme"]);
-      expect(added.code, added.stderr).toBe(0);
-      const state = async () => {
-        const runs = JSON.parse((await aireg(["job", "runs", "--json"])).stdout) as {
-          data: { runs: { state: string }[] };
-        };
-        return runs.data.runs[0]?.state;
+    const added = await aireg(["job", "add", "--registry", "acme"]);
+    expect(added.code, added.stderr).toBe(0);
+    const state = async () => {
+      const runs = JSON.parse((await aireg(["job", "runs", "--json"])).stdout) as {
+        data: { runs: { state: string }[] };
       };
-      await expect.poll(state, { interval: 200, timeout: 20_000 }).toBe("attention");
-      expect(existsSync(skill(project, "notes"))).toBe(true);
-      expect(await lockedNames(project)).toEqual(["lint", "tools/format", "tools/notes"]);
-    } finally {
-      await aireg(["daemon", "stop"]);
-    }
-  }, 60_000);
+      return runs.data.runs[0]?.state;
+    };
+    await expect.poll(state, { interval: 200, timeout: 20_000 }).toBe("attention");
+    expect(existsSync(skill(project, "notes"))).toBe(true);
+    expect(await lockedNames(project)).toEqual(["lint", "tools/format", "tools/notes"]);
+  });
 });

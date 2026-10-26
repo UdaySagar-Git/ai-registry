@@ -4,10 +4,21 @@ import { join, relative } from "node:path";
 import { describe, expect } from "vitest";
 import { registry } from "#test/kit/builders/registry.ts";
 import { test as base } from "#test/kit/fixtures.ts";
+import { projectTemplate } from "#test/kit/template.ts";
 
-const test = base.extend("kit", async ({ tmp }) =>
-  registry(join(tmp, "kit")).skill("kit/lint@1.0.0", { description: "Lint it." }).write(),
-);
+const test = base
+  .extend("kit", { scope: "file" }, ({ fileTmp }) =>
+    registry(join(fileTmp, "kit")).skill("kit/lint@1.0.0", { description: "Lint it." }).write(),
+  )
+  .extend("initialised", { scope: "file" }, ({ fileTmp }) =>
+    projectTemplate(join(fileTmp, "initialised"), [["init", "--for", "claude"]]),
+  )
+  .extend("declared", { scope: "file" }, ({ fileTmp, kit }) =>
+    projectTemplate(join(fileTmp, "declared"), [
+      ["init", "--for", "claude"],
+      ["registry", "add", kit, "--as", "kit"],
+    ]),
+  );
 
 /** Every file under the home, logs aside: a dry run may write a log and nothing else. */
 async function written(home: string): Promise<string[]> {
@@ -42,9 +53,8 @@ describe("--dry-run", () => {
     expect(await written(home.dir)).toEqual(before);
   });
 
-  test("leaves no lease folder in the project", async ({ aireg, project, kit }) => {
-    await aireg(["init", "--for", "claude"]);
-    expect((await aireg(["registry", "add", kit, "--as", "kit"])).code).toBe(0);
+  test("leaves no lease folder in the project", async ({ aireg, declared, project }) => {
+    await declared(project);
     const leases = join(project, ".registry", "leases");
     await rm(leases, { recursive: true, force: true });
 
@@ -57,11 +67,10 @@ describe("--dry-run", () => {
 describe("aireg remove --dry-run", () => {
   test("says a folder of yours where a link was goes to backups", async ({
     aireg,
+    declared,
     project,
-    kit,
   }) => {
-    await aireg(["init", "--for", "claude"]);
-    expect((await aireg(["registry", "add", kit, "--as", "kit"])).code).toBe(0);
+    await declared(project);
     expect((await aireg(["add", "kit/kit/skill/lint", "-y"])).code).toBe(0);
     const link = join(project, ".claude", "skills", "lint");
     await rm(link);
@@ -78,18 +87,26 @@ describe("aireg remove --dry-run", () => {
 });
 
 describe("aireg sync <registry> --dry-run", () => {
-  test("refuses a scope with no registry, as a real sync does", async ({ aireg }) => {
-    await aireg(["init", "--for", "claude"]);
-    for (const argv of [["sync", "--dry-run"], ["sync"]]) {
-      const ran = await aireg(argv);
-      expect(ran.code, argv.join(" ")).toBe(2);
-      expect(ran.stderr, argv.join(" ")).toContain("No registry is declared in this project.");
+  test("refuses a scope with no registry, as a real sync does", async ({
+    aireg,
+    initialised,
+    project,
+  }) => {
+    await initialised(project);
+    const argvs = [["sync", "--dry-run"], ["sync"]];
+    const ran = await Promise.all(argvs.map((argv) => aireg(argv)));
+    for (const [at, argv] of argvs.entries()) {
+      expect(ran[at]?.code, argv.join(" ")).toBe(2);
+      expect(ran[at]?.stderr, argv.join(" ")).toContain("No registry is declared in this project.");
     }
   });
 
-  test("refuses extra words, and takes a declared registry", async ({ aireg, kit }) => {
-    await aireg(["init", "--for", "claude"]);
-    expect((await aireg(["registry", "add", kit, "--as", "kit"])).code).toBe(0);
+  test("refuses extra words, and takes a declared registry", async ({
+    aireg,
+    declared,
+    project,
+  }) => {
+    await declared(project);
     expect((await aireg(["add", "kit", "-y"])).code).toBe(0);
 
     const extra = await aireg(["sync", "kit", "extra", "--dry-run"]);
@@ -101,8 +118,13 @@ describe("aireg sync <registry> --dry-run", () => {
 });
 
 describe("--dry-run --json", () => {
-  test("says it was a dry run, in the fields a real run fills", async ({ aireg, kit }) => {
-    await aireg(["init", "--for", "claude"]);
+  test("says it was a dry run, in the fields a real run fills", async ({
+    aireg,
+    initialised,
+    kit,
+    project,
+  }) => {
+    await initialised(project);
     const data = async (...argv: string[]) => {
       const ran = await aireg([...argv, "--json"]);
       expect(ran.code, ran.stderr).toBe(0);

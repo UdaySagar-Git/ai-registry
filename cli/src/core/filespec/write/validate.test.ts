@@ -255,6 +255,7 @@ describe("validateRoot on blob storage", () => {
     const document = JSON.parse(await readFile(at, "utf8"));
     document.blob_url = "https://cdn.example.com/blobs/sha256/{digest}";
     await writeFile(at, JSON.stringify(document));
+    await rm(join(root, RUBRIC_BLOB));
 
     expect((await validateRoot(root)).problems).toEqual([]);
   });

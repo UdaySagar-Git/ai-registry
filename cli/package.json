@@ -76,7 +76,7 @@
     "test:contract": "vitest run --project contract",
     "test:conformance": "vitest run --project conformance",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --project unit --project integration --project contract",
     "schema": "node --experimental-strip-types scripts/schema/generate.ts",
     "notices": "node --experimental-strip-types scripts/notices/generate.ts",
     "check:package": "publint --strict",

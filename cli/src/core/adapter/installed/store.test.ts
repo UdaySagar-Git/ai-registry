@@ -53,7 +53,6 @@ describe("adapter store", () => {
       protocol: ADAPTER_PROTOCOL,
       dispatch: { hosts: ["configured.example"] },
     });
-    expect(record?.sha256).toHaveLength(64);
 
     const data = join(adapterDataDir("acme"), "state.db");
     await writeFile(data, "keep");

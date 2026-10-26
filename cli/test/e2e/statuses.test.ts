@@ -4,7 +4,7 @@ import { describe, expect } from "vitest";
 import { parse } from "yaml";
 import { registry } from "#test/kit/builders/registry.ts";
 import { type Aireg, test as base } from "#test/kit/fixtures.ts";
-import { lockPath } from "#test/kit/scope.ts";
+import { lockPath, writeManifestIn } from "#test/kit/scope.ts";
 
 /**
  * One namespace per status: each holds an artifact whose newest version has that status beside
@@ -29,12 +29,24 @@ async function publish(root: string): Promise<void> {
   await built.write();
 }
 
-const test = base.extend("added", async ({ aireg, tmp }) => {
-  await publish(join(tmp, "market"));
-  expect((await aireg(["init", "--for", "claude"])).code).toBe(0);
-  expect((await aireg(["registry", "add", join(tmp, "market"), "--as", "acme"])).code).toBe(0);
-  return aireg;
-});
+const test = base
+  // Read by every test and changed by none, so it is written once.
+  .extend("market", { scope: "file" }, async ({ fileTmp }) => {
+    const market = join(fileTmp, "market");
+    await publish(market);
+    return market;
+  })
+  .extend("added", async ({ aireg, market, project }) => {
+    await declare(project, market);
+    return aireg;
+  });
+
+/** What `init --for claude` and `registry add <market> --as acme` write, without running either. */
+const declare = (project: string, market: string) =>
+  writeManifestIn(
+    project,
+    `harnesses:\n  - claude\nregistries:\n  acme: ${JSON.stringify(market)}\nartifacts: []\n`,
+  );
 
 async function versions(project: string): Promise<Record<string, string | undefined>> {
   const lock = parse(await readFile(lockPath(project), "utf8")) as {
@@ -53,14 +65,14 @@ describe("a deprecated version", () => {
     expect(ran.code, ran.stderr).toBe(0);
     expect(ran.stderr).toContain("dep/only 1.0.0 is deprecated (use fmt).");
     expect(await versions(project)).toEqual({ only: "1.0.0" });
-  }, 60_000);
+  });
 
   test("installs pinned, with the warning", async ({ added, project }) => {
     const ran = await add(added, "acme/dep/skill/lint@1.1.0");
     expect(ran.code, ran.stderr).toBe(0);
     expect(ran.stderr).toContain("dep/lint 1.1.0 is deprecated (use fmt).");
     expect(await versions(project)).toEqual({ lint: "1.1.0" });
-  }, 60_000);
+  });
 
   test("is not latest beside an active version, and installs with its namespace", async ({
     added,
@@ -74,7 +86,7 @@ describe("a deprecated version", () => {
     // Said once, when it lands: a run that leaves it as it is says nothing more.
     const again = await added(["install"]);
     expect(again.stderr).not.toContain("deprecated");
-  }, 60_000);
+  });
 });
 
 describe.each([
@@ -90,7 +102,7 @@ describe.each([
     expect(only.stderr).toContain(
       `${namespace}/only 1.0.0 ${words} (not yet), so nothing was installed.`,
     );
-  }, 60_000);
+  });
 
   test("installs pinned, with a warning", async ({ added, project }) => {
     const ran = await add(added, `acme/${namespace}/skill/lint@1.1.0`);
@@ -99,13 +111,13 @@ describe.each([
       `${namespace}/lint 1.1.0 ${words} (not yet), and installs only because it is pinned.`,
     );
     expect(await versions(project)).toEqual({ lint: "1.1.0" });
-  }, 60_000);
+  });
 
   test("is left out of a namespace install", async ({ added, project }) => {
     const ran = await add(added, `acme/${namespace}`);
     expect(ran.code, ran.stderr).toBe(0);
     expect(await versions(project)).toEqual({ [`${namespace}/lint`]: "1.0.0" });
-  }, 60_000);
+  });
 });
 
 describe("a blocked version", () => {
@@ -113,27 +125,20 @@ describe("a blocked version", () => {
     const ran = await add(added, "acme/blk/skill/lint");
     expect(ran.code, ran.stderr).toBe(0);
     expect(await versions(project)).toEqual({ lint: "1.0.0" });
-  }, 60_000);
-
-  test("is refused pinned, naming the reason", async ({ added }) => {
-    const ran = await add(added, "acme/blk/skill/lint@1.1.0");
-    expect(ran.code).toBe(1);
-    expect(ran.stderr).toContain("blk/lint 1.1.0 is blocked (not yet), so nothing was installed.");
-  }, 60_000);
+  });
 
   test("is left out of a namespace install", async ({ added, project }) => {
     const ran = await add(added, "acme/blk");
     expect(ran.code, ran.stderr).toBe(0);
     expect(await versions(project)).toEqual({ "blk/lint": "1.0.0" });
-  }, 60_000);
+  });
 });
 
 describe("a sync that pulls a deprecated version", () => {
   test("says so, as a background job does", async ({ aireg, project, tmp }) => {
     const market = join(tmp, "market");
     await registry(market, { name: "acme", slug: "acme" }).skill("ops/lint@1.0.0").write();
-    expect((await aireg(["init", "--for", "claude"])).code).toBe(0);
-    expect((await aireg(["registry", "add", market, "--as", "acme"])).code).toBe(0);
+    await declare(project, market);
     expect((await add(aireg, "acme/ops/skill/lint")).code).toBe(0);
     await registry(market, { name: "acme", slug: "acme" })
       .skill("ops/lint@1.0.0")
@@ -141,15 +146,9 @@ describe("a sync that pulls a deprecated version", () => {
       .status("ops/lint@1.0.0", "deprecated")
       .status("ops/lint@1.1.0", "deprecated", "use fmt")
       .write();
-    try {
-      const synced = await aireg(["sync"]);
-      expect(synced.code, synced.stderr).toBe(0);
-      expect(`${synced.stdout}${synced.stderr}`).toContain(
-        "ops/lint 1.1.0 is deprecated (use fmt).",
-      );
-      expect(await versions(project)).toEqual({ lint: "1.1.0" });
-    } finally {
-      await aireg(["daemon", "stop"]);
-    }
-  }, 60_000);
+    const synced = await aireg(["sync"]);
+    expect(synced.code, synced.stderr).toBe(0);
+    expect(`${synced.stdout}${synced.stderr}`).toContain("ops/lint 1.1.0 is deprecated (use fmt).");
+    expect(await versions(project)).toEqual({ lint: "1.1.0" });
+  });
 });

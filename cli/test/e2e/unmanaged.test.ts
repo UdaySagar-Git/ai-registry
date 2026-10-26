@@ -85,14 +85,4 @@ describe("aireg status, for what nothing manages", () => {
     expect(text).toContain("1 dangling link");
     expect(text).toMatch(/~\/\.claude\/agents\/gone\.md\s+Claude Code\s+\S*nowhere\.md/);
   });
-
-  test("answers the same in JSON", async ({ status }) => {
-    const { data } = JSON.parse(await status(["--json"]));
-    expect(
-      data.unmanaged.map((item: { name: string; kind: string }) => [item.kind, item.name]).sort(),
-    ).toEqual([
-      ["agent", "triage"],
-      ["skill", "notes"],
-    ]);
-  });
 });

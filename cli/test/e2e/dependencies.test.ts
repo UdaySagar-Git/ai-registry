@@ -7,9 +7,6 @@ import { registry } from "#test/kit/builders/registry.ts";
 import { type Aireg, fileTest as test } from "#test/kit/fixtures.ts";
 import { declared, lockPath, manifestPath } from "#test/kit/scope.ts";
 
-// An agent's `depends_on` edges install with it, at the versions they name, and
-// leave with it once nothing else needs them.
-
 let aireg: Aireg;
 let market: string;
 let project: string;
@@ -56,7 +53,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir }) => {
   await publish();
   expect((await aireg(["init", "-y"])).code).toBe(0);
   expect((await aireg(["registry", "add", market, "--as", "acme"])).code).toBe(0);
-}, 60_000);
+});
 
 describe("what an artifact depends on", () => {
   test("installs the versions its edges name, transitively, and records them in the lock only", async () => {
@@ -74,7 +71,7 @@ describe("what an artifact depends on", () => {
     const synced = await aireg(["sync", "--dry-run"]);
     expect(synced.stdout, synced.stderr).toContain("In sync with every registry (3 artifacts).");
     expect(synced.code).toBe(0);
-  }, 60_000);
+  });
 
   test("refuses two versions of one dependency, naming both, and changes nothing", async () => {
     const before = await manifest();
@@ -85,7 +82,7 @@ describe("what an artifact depends on", () => {
     expect(added.stderr).toContain("1.1.0 by eng/agent/triage");
     expect(await manifest()).toBe(before);
     expect(existsSync(join(project, ".claude", "agents", "triage.md"))).toBe(false);
-  }, 60_000);
+  });
 
   test("prunes on remove only what nothing else needs", async () => {
     expect((await aireg(["add", "acme/eng/agent/helper", "-y"])).code).toBe(0);
@@ -98,7 +95,7 @@ describe("what an artifact depends on", () => {
     expect((await aireg(["remove", "helper", "-y"])).code).toBe(0);
     expect(Object.keys(await lock())).toEqual([]);
     expect(existsSync(join(project, ".claude", "skills", "lint"))).toBe(false);
-  }, 60_000);
+  });
 
   test("installs a cycle once, and removes it whole", async () => {
     expect((await aireg(["add", "acme/eng/skill/ping", "-y"])).code).toBe(0);
@@ -107,7 +104,7 @@ describe("what an artifact depends on", () => {
     expect(rows.ping?.needed_by).toEqual(["pong"]);
     expect((await aireg(["remove", "ping", "-y"])).code).toBe(0);
     expect(Object.keys(await lock())).toEqual([]);
-  }, 60_000);
+  });
 
   test("keeps a dependency named for removal, says so, and moves a folder of yours aside", async () => {
     expect((await aireg(["add", "acme/eng/agent/reviewer", "-y"])).code).toBe(0);
@@ -127,7 +124,7 @@ describe("what an artifact depends on", () => {
 
     expect((await aireg(["remove", "reviewer", "-y"])).code).toBe(0);
     expect(Object.keys(await lock())).toEqual([]);
-  }, 60_000);
+  });
 
   test("installs dependencies from the lock, and moves them only on update", async () => {
     expect((await aireg(["add", "acme/eng/agent/reviewer", "-y"])).code).toBe(0);
@@ -145,7 +142,7 @@ describe("what an artifact depends on", () => {
     expect(rows.reviewer?.version).toBe("0.4.0");
     expect(rows["pr-review"]?.version).toBe("1.3.0");
     expect(rows.lint).toBeUndefined();
-  }, 60_000);
+  });
 
   test("installs a namespace's skill at the version its agent needs, unless you named another", async () => {
     expect((await aireg(["add", "acme/ops", "-y"])).code).toBe(0);
@@ -156,7 +153,7 @@ describe("what an artifact depends on", () => {
     const pinned = await aireg(["add", "acme/ops/skill/fmt@2.0.0", "-y"]);
     expect(pinned.code).toBe(1);
     expect(pinned.stderr).toContain("ops/agent/formatter needs ops/skill/fmt 1.0.0");
-  }, 60_000);
+  });
 
   test("refuses under --frozen a removal that only edits the manifest, and syncs one once", async () => {
     const before = await manifest();
@@ -170,5 +167,5 @@ describe("what an artifact depends on", () => {
     const synced = await aireg(["sync", "--dry-run"]);
     expect(synced.code, synced.stdout).toBe(0);
     expect(synced.stdout).toContain("In sync with every registry");
-  }, 60_000);
+  });
 });

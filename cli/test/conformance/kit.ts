@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import { promisify } from "node:util";
@@ -180,7 +180,7 @@ export function conformance(spec: Conformance): void {
     test.beforeAll(async () => {
       box = await sandbox(spec);
       before = tree(box.home);
-    }, 60_000);
+    });
 
     test.afterAll(() => dispose(box));
 
@@ -201,18 +201,18 @@ export function conformance(spec: Conformance): void {
     test("L1: places each kind in this project", async () => {
       await installProject(box, spec.id);
       await expect(tree(box.home)).toMatchFileSnapshot(golden("project"));
-    }, 60_000);
+    });
 
     test("L1: places each kind in your user scope", async () => {
       await installUser(box, spec.id);
       await expect(tree(box.home)).toMatchFileSnapshot(golden("user"));
-    }, 60_000);
+    });
 
     // A harness's own root stays, emptied, as it does for a folder the harness made itself.
     test("L1: remove takes back every file and link it placed", async () => {
       await removeAll(box);
       expect(placed(tree(box.home))).toEqual(placed(before));
-    }, 60_000);
+    });
 
     // A sandbox of its own: the harness may write its own state as it runs.
     test.skipIf(!live)(
@@ -243,10 +243,7 @@ export function conformance(spec: Conformance): void {
 
 const run = promisify(execFile);
 
-/**
- * A probe never signs in, so no credential this machine holds reaches the harness, and it
- * runs as a person would, without the test runner's own variables, which a harness may read.
- */
+/** A probe never signs in, and runs without this machine's credentials or the runner's variables. */
 function harnessEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const kept = (name: string) =>
     !/token|key|secret|password|auth|askpass|cred/i.test(name) && !name.startsWith("VITEST");
@@ -261,6 +258,9 @@ async function removeAll(box: Sandbox): Promise<void> {
 
 async function dispose(box: Sandbox | undefined): Promise<void> {
   if (box === undefined) return;
-  await box.aireg(["daemon", "stop"]);
+  // As the e2e fixtures do: only a daemon that started has a log.
+  if (existsSync(join(box.env.AIREG_HOME as string, "logs", "daemon.log"))) {
+    await box.aireg(["daemon", "stop"]);
+  }
   await rm(box.home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }

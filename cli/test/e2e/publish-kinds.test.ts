@@ -101,7 +101,7 @@ publish:
     expect(data.skipped).toEqual([SKIPPED]);
     const lines = (await readFile(sent, "utf8")).trim().split("\n");
     expect(lines.map((line) => JSON.parse(line))).toEqual([{ name: "review", kind: "skill" }]);
-  }, 60_000);
+  });
 
   test("says nothing is left to publish when it takes none of them, and succeeds", async ({
     aireg,
@@ -125,5 +125,5 @@ publish:
       skipped: [SKIPPED],
     });
     expect(existsSync(sent)).toBe(false);
-  }, 60_000);
+  });
 });

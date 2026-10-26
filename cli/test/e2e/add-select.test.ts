@@ -5,9 +5,7 @@ import { describe, expect } from "vitest";
 import { registry } from "#test/kit/builders/registry.ts";
 import { test as base } from "#test/kit/fixtures.ts";
 import { lockPath, manifestPath } from "#test/kit/scope.ts";
-
-// `-s` reads inside the address it follows, never past it into another
-// namespace; `--registry` names the registry apart from the address.
+import { type CopyProject, projectTemplate } from "#test/kit/template.ts";
 
 const test = base
   .extend("market", { scope: "file" }, ({ fileTmp }) =>
@@ -30,13 +28,25 @@ const test = base
       .agent("engineering/dup@1.0.0", { description: "engineering" })
       .write(),
   )
-  /** Each case starts from an empty project, so one install cannot satisfy the next. */
-  .extend("newProject", ({ aireg, tmp }) => {
+  .extend("initialised", { scope: "file" }, ({ fileTmp }) =>
+    projectTemplate(join(fileTmp, "initialised"), [["init", "-y"]], [".claude"]),
+  )
+  .extend("declared", { scope: "file" }, ({ fileTmp, market }) =>
+    projectTemplate(
+      join(fileTmp, "declared"),
+      [
+        ["init", "-y"],
+        ["registry", "add", market],
+      ],
+      [".claude"],
+    ),
+  )
+  /** Each case starts from a project of its own, so one install cannot satisfy the next. */
+  .extend("newProject", ({ initialised, tmp }) => {
     let projects = 0;
-    return async () => {
+    return async (from: CopyProject = initialised) => {
       const dir = join(tmp, `project-${++projects}`);
-      await mkdir(join(dir, ".claude"), { recursive: true });
-      expect((await aireg(["init", "-y"], { cwd: dir })).code).toBe(0);
+      await from(dir);
       return dir;
     };
   });
@@ -46,17 +56,16 @@ const manifest = (dir: string) => readFile(manifestPath(dir), "utf8");
 describe("aireg add -s", () => {
   test("picks inside the namespace the address names", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     const added = await aireg(["add", "kit/engineering", "-s", "pr-review", "-y"], { cwd: dir });
     expect(added.code, added.stderr).toBe(0);
     const text = await manifest(dir);
     expect(text).toContain("kit/engineering/skill/pr-review");
     expect(text).not.toContain("design");
-  }, 60_000);
+  });
 
   test("takes a namespace and name inside a source", async ({
     aireg,
@@ -70,7 +79,7 @@ describe("aireg add -s", () => {
     expect(text).toContain(`kit: ${market}`);
     expect(text).toContain("kit/design/skill/pr-review");
     expect(text).not.toContain("engineering");
-  }, 60_000);
+  });
 
   test("refuses a name two namespaces share, and names both", async ({
     aireg,
@@ -85,7 +94,7 @@ describe("aireg add -s", () => {
     expect(failed.stderr).toContain("kit/design/skill/pr-review");
     expect(failed.stderr).toContain("kit/engineering/skill/pr-review");
     expect(await manifest(dir)).toBe(before);
-  }, 60_000);
+  });
 });
 
 describe("aireg add --registry", () => {
@@ -103,34 +112,29 @@ describe("aireg add --registry", () => {
     expect(text).toContain(`kit: ${market}`);
     expect(text).toContain("kit/engineering/skill/pr-review");
     expect(text).not.toContain("design");
-  }, 60_000);
+  });
 
   test("writes the same manifest as the full address through a declared registry", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const full = await project();
-    const short = await project();
-    for (const dir of [full, short]) {
-      expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
-    }
+    const [full, short] = [await project(declared), await project(declared)];
     expect((await aireg(["add", "kit/design/pr-review", "-y"], { cwd: full })).code).toBe(0);
     expect((await aireg(["add", "design/pr-review", "-r", "kit", "-y"], { cwd: short })).code).toBe(
       0,
     );
     expect(await manifest(short)).toBe(await manifest(full));
-  }, 60_000);
+  });
 });
 
 describe("an address", () => {
   test("refuses a name a skill and an agent share, whatever version it gives", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     for (const argv of [
       ["show", "kit/engineering/dup@1.1.0"],
       ["show", "kit/engineering/dup@9.9.9"],
@@ -143,25 +147,23 @@ describe("an address", () => {
       );
     }
     expect((await aireg(["show", "kit/engineering/skill/dup@1.1.0"], { cwd: dir })).code).toBe(0);
-  }, 60_000);
+  });
 
-  test("pins only the artifact it names", async ({ aireg, market, newProject: project }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+  test("pins only the artifact it names", async ({ aireg, declared, newProject: project }) => {
+    const dir = await project(declared);
     const added = await aireg(["add", "kit/engineering/pr-review@1.1.0", "-y"], { cwd: dir });
     expect(added.code, added.stderr).toBe(0);
     expect(await manifest(dir)).toContain("kit/engineering/skill/pr-review@1.1.0");
     const copy = join(dir, ".claude", "skills", "pr-review", "SKILL.md");
     expect(await readFile(copy, "utf8")).toContain("engineering 1.1.0");
-  }, 60_000);
+  });
 
   test("refuses an artifact whose name another installed one already has", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     expect((await aireg(["add", "kit/engineering/pr-review", "-y"], { cwd: dir })).code).toBe(0);
     const before = await manifest(dir);
     const failed = await aireg(["add", "kit/design/pr-review", "-y"], { cwd: dir });
@@ -170,7 +172,7 @@ describe("an address", () => {
       'kit/design/skill/pr-review and kit/engineering/skill/pr-review would both install as "pr-review".',
     );
     expect(await manifest(dir)).toBe(before);
-  }, 60_000);
+  });
 
   test("installs a member whose name is taken under its namespace and name, across releases", async ({
     aireg,
@@ -208,15 +210,14 @@ describe("an address", () => {
     expect(await readFile(copy, "utf8")).toContain("ops 1.1.0");
     expect(await readFile(copy, "utf8")).toMatch(/^name: ops-review$/m);
     expect((await aireg(["status"], { cwd: dir })).code).toBe(0);
-  }, 60_000);
+  });
 
   test("leaves a member whose name is taken out, or installs nothing, as the setting says", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     expect((await aireg(["add", "kit/engineering/pr-review", "-y"], { cwd: dir })).code).toBe(0);
     const before = await manifest(dir);
 
@@ -239,15 +240,14 @@ describe("an address", () => {
     expect(existsSync(join(dir, ".claude", "skills", "deploy", "SKILL.md"))).toBe(true);
     // A teammate's install says so too, rather than reporting success.
     expect((await aireg(["install"], { cwd: dir })).code).toBe(3);
-  }, 60_000);
+  });
 
   test("keeps what each of several parallel adds wrote", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     const addresses = ["kit/engineering/pr-review", "kit/engineering/lint", "kit/design/deploy"];
     const runs = await Promise.all(
       addresses.map((address) => aireg(["add", address, "-y"], { cwd: dir })),
@@ -260,7 +260,7 @@ describe("an address", () => {
     }
     const lock = await readFile(lockPath(dir), "utf8");
     for (const name of ["pr-review", "lint", "deploy"]) expect(lock).toContain(`  ${name}:`);
-  }, 60_000);
+  });
 });
 
 describe("a namespace in your user scope", () => {
@@ -270,7 +270,7 @@ describe("a namespace in your user scope", () => {
     const added = await aireg(["add", "kit/design", "-g", "-y", "--json"], { cwd: home.dir });
     expect(added.code, added.stderr).toBe(0);
     expect(JSON.parse(added.stdout).data.installed).toEqual(["design/deploy", "design/pr-review"]);
-  }, 60_000);
+  });
 });
 
 describe("a folder registry", () => {
@@ -289,5 +289,5 @@ describe("a folder registry", () => {
     const added = await aireg(["add", "kit/design/deploy", "-y"], { cwd: sub });
     expect(added.code, added.stderr).toBe(0);
     expect(existsSync(join(dir, ".claude", "skills", "deploy", "SKILL.md"))).toBe(true);
-  }, 60_000);
+  });
 });

@@ -198,7 +198,12 @@ describe("exports and publish", () => {
   });
 
   test("refuses a path that is not below the project, written with /", () => {
-    expect(refused("exports: [/etc/skills]\n")).toThrow('Export "/etc/skills" is absolute.');
+    expect(refused("exports: [/etc/skills]\n")).toThrow(
+      expect.objectContaining({
+        message: 'manifest.yml: Export "/etc/skills" is absolute.',
+        hint: "Write it relative to the project, such as .claude/skills/review.",
+      }),
+    );
     expect(refused("exports: ['C:/skills']\n")).toThrow('Export "C:/skills" is absolute.');
     expect(refused("exports: [skills/../../etc]\n")).toThrow(
       'Export "skills/../../etc" leaves the project.',
@@ -213,11 +218,6 @@ describe("exports and publish", () => {
     expect(refused("exports: [skills//lint]\n")).toThrow("has an empty or . part.");
     expect(refused("exports: ['skills\\\\lint']\n")).toThrow(
       "uses a backslash, where a path uses /.",
-    );
-    expect(refused("exports: [/etc/skills]\n")).toThrow(
-      expect.objectContaining({
-        hint: "Write it relative to the project, such as .claude/skills/review.",
-      }),
     );
   });
 
@@ -426,12 +426,6 @@ describe("writeManifest", () => {
   test.beforeEach(async ({ tmp }) => {
     project = roots("project", tmp);
     path = project.manifest;
-  });
-  test("creates the scope folder and reads back what it wrote", async () => {
-    const manifest = parseManifest("harnesses: [claude]\nregistries:\n  kit: acme/kit\n");
-    await writeManifest(project, manifest);
-    expect(await readManifest(path)).toEqual(manifest);
-    expect(await readFile(path, "utf8")).toContain("registries:\n  kit: acme/kit\n");
   });
 
   const commented = [

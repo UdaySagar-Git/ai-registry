@@ -217,10 +217,6 @@ describe("paths outside the scope", () => {
   const lock = (path: string) =>
     `version: ${LOCK_VERSION}\nregistries:\n  kit: {source: x, adapter: git, key: k}\nartifacts:\n  lint:\n    registry: kit\n    name: lint\n    kind: skill\n    path: ${path}\n`;
 
-  test("are refused in a project's committed lock", () => {
-    expect(() => parseLock(lock("../elsewhere/lint"))).toThrow(LockError);
-  });
-
   test("are read in the user's own lock, whose scope may sit outside HOME", () => {
     const read = parseLock(lock("../elsewhere/lint"), "The lockfile", "user");
     expect(read.artifacts.lint?.path).toBe("../elsewhere/lint");

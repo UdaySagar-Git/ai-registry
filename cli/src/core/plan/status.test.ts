@@ -70,12 +70,6 @@ describe("status", () => {
     expect(status(lock, survey({ digest: "sha256:other" }), base)[0]?.state).toBe("edited");
   });
 
-  it("reports missing when nothing is staged", () => {
-    expect(status(lock, survey({ staged: false, digest: undefined }), base)[0]?.state).toBe(
-      "missing",
-    );
-  });
-
   it("reports dangling when a link points outside this scope's own trees", () => {
     const off = survey({
       links: {
@@ -103,9 +97,12 @@ describe("status", () => {
     });
   });
 
-  it("says which scope has no content", () => {
+  it("reports missing when nothing is staged, naming the scope", () => {
     const empty = survey({ staged: false, digest: undefined });
-    expect(status(lock, empty, base)[0]?.detail).toBe("no content in this project");
+    expect(status(lock, empty, base)[0]).toMatchObject({
+      state: "missing",
+      detail: "no content in this project",
+    });
     expect(status(lock, empty, roots("user", "/work"))[0]?.detail).toBe(
       "no content in your user scope",
     );

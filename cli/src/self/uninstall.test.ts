@@ -9,6 +9,12 @@ const machine = vi.hoisted(() => ({ entry: undefined as string | undefined }));
 
 vi.mock("#core/release/launch.ts", () => ({ runningEntry: () => machine.entry }));
 
+// Nor this machine's Windows user PATH, which PowerShell takes a second or two to read.
+vi.mock("./windows-path.ts", async (actual) => ({
+  ...(await actual<typeof import("./windows-path.ts")>()),
+  userPathHas: async () => false,
+}));
+
 beforeEach(() => {
   machine.entry = undefined;
 });

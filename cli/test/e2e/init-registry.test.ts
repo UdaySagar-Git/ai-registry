@@ -14,19 +14,15 @@ const test = base.extend("acme", ({ tmp }) =>
 );
 
 describe("aireg init --registry", () => {
-  test("names the registry as registry add does", async ({ acme, aireg }) => {
-    const app = join(dirname(acme), "app");
-    await mkdir(app);
-    const init = await aireg(["init", "--registry", "../acme-registry", "-y"], { cwd: app });
-    expect(init.code).toBe(0);
-    expect(await readFile(manifestPath(app), "utf8")).toContain("  acme: ../acme-registry\n");
-  });
-
-  test("prints one JSON document, and claims no step it did not take", async ({ acme, aireg }) => {
+  test("names the registry as registry add does, in one JSON document of the steps it took", async ({
+    acme,
+    aireg,
+  }) => {
     const app = join(dirname(acme), "app");
     await mkdir(app);
     const json = await aireg(["init", "--registry", "../acme-registry", "--json"], { cwd: app });
     expect(json.code, json.stderr).toBe(0);
+    expect(await readFile(manifestPath(app), "utf8")).toContain("  acme: ../acme-registry\n");
     const lines = json.stdout.trim().split("\n");
     expect(lines).toHaveLength(1);
     const { data } = JSON.parse(lines[0] as string);
@@ -92,11 +88,46 @@ describe("aireg registry init through a linked artifacts folder", () => {
     expect(added.stderr).toContain(refused);
     expect(await readdir(outside)).toEqual([]);
   });
+});
 
-  test("still adds a namespace to a registry with a real folder", async ({ acme, aireg }) => {
-    const added = await aireg(["registry", "init", "--namespace", "eng", "-y"], { cwd: acme });
-    expect(added.code, added.stderr).toBe(0);
-    expect(existsSync(join(acme, "artifacts", "eng"))).toBe(true);
+describe("registry init in a folder that is already a registry", () => {
+  test("answers in the same JSON shape, with the slug and only the namespaces it added", async ({
+    aireg,
+    tmp,
+  }) => {
+    const reg = join(tmp, "again");
+    const first = [
+      "registry",
+      "init",
+      reg,
+      "--name",
+      "again",
+      "--namespace",
+      "one",
+      "-y",
+      "--json",
+    ];
+    expect(JSON.parse((await aireg(first)).stdout).data).toMatchObject({
+      created: true,
+      slug: "again",
+    });
+    const more = [
+      "registry",
+      "init",
+      reg,
+      "--namespace",
+      "one",
+      "--namespace",
+      "two",
+      "-y",
+      "--json",
+    ];
+    expect(JSON.parse((await aireg(more)).stdout).data).toEqual({
+      root: reg,
+      created: false,
+      slug: "again",
+      namespaces: ["two"],
+    });
   });
 });
 

@@ -52,19 +52,15 @@ describe("createLogger", () => {
     expect(JSON.stringify(sink.records[0])).not.toContain(TOKEN);
   });
 
-  it("redacts a credential embedded in an error message", () => {
+  it("redacts a credential quoted in an error message", () => {
     const { sink, logger } = setup();
     logger.error("clone failed", {
       error: new Error(`fatal: unable to access 'https://x:${TOKEN}@github.com/a/b'`),
     });
-    expect(JSON.stringify(sink.records[0])).not.toContain(TOKEN);
-  });
-
-  it("redacts an Authorization header quoted in an error message", () => {
-    const { sink, logger } = setup();
     logger.error("request failed", {
       error: new Error(`rejected: Authorization: Bearer ${TOKEN}`),
     });
-    expect(JSON.stringify(sink.records[0])).not.toContain(TOKEN);
+    expect(sink.records).toHaveLength(2);
+    expect(JSON.stringify(sink.records)).not.toContain(TOKEN);
   });
 });

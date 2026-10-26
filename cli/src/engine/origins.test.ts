@@ -74,19 +74,7 @@ describe("an origins step", () => {
     expect(row?.links).toEqual([]);
   });
 
-  test("re-reads the origin every run, so a later edit still flows", async () => {
-    await write("One.");
-    const lock = emptyLock();
-    await runOnce(lock);
-    const first = lock.artifacts["mine/my-helper"]?.digest;
-
-    await write("Two.");
-    await runOnce(lock);
-    expect(await readFile(copy(), "utf8")).toContain("Two.");
-    expect(lock.artifacts["mine/my-helper"]?.digest).not.toBe(first);
-  });
-
-  test("keeps what the registry assigned when the folder moves again", async () => {
+  test("re-reads the origin every run, keeping what the registry assigned", async () => {
     await write("One.");
     const lock = emptyLock();
     await runOnce(lock);
@@ -101,6 +89,7 @@ describe("an origins step", () => {
 
     await write("Two.");
     await runOnce(lock);
+    expect(await readFile(copy(), "utf8")).toContain("Two.");
     expect(lock.artifacts["mine/my-helper"]).toMatchObject(assigned);
     expect(lock.artifacts["mine/my-helper"]?.digest).not.toBe(first);
   });

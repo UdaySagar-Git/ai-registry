@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { registerBuiltinAdapter } from "#core/adapter/registry.ts";
 import { AiregError } from "#core/errors.ts";
-import { isTrusted, parseAdapterId, parseWant } from "./want.ts";
+import { parseAdapterId, parseWant } from "./want.ts";
 
 // The built-in ids are the ones the composition root registers.
 beforeAll(() => {
@@ -20,13 +20,6 @@ describe("parseWant", () => {
     expect(() => parseWant("git")).toThrow(/built into aireg/);
     expect(() => parseWant("local@1.0.0")).toThrow(/built into aireg/);
     expect(() => parseWant("acme@v1.4.0")).toThrow(/is not an exact version/);
-  });
-});
-
-describe("isTrusted", () => {
-  it("trusts only the listed adapters; any other id is asked about, not refused", () => {
-    expect(isTrusted("acme")).toBe(false);
-    expect(parseWant("acme").id).toBe("acme");
   });
 });
 

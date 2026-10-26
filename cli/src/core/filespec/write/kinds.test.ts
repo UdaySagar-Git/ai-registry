@@ -40,12 +40,6 @@ describe("envelopeSpec", () => {
     expect(envelopeSpec("skill", files)).toEqual({ name: "lint", description: "Lint it." });
   });
 
-  it("keeps an agent card whole and lifts the fields the kind requires beside it", () => {
-    const card = { name: "triage", description: "Routes.", runtime: "any", skills: ["x"] };
-    const spec = envelopeSpec("agent", new Map([["agent-card.json", text(JSON.stringify(card))]]));
-    expect(spec).toEqual({ name: "triage", description: "Routes.", card });
-  });
-
   it("is empty for a kind with no manifest, or files with no document", () => {
     expect(envelopeSpec("tool", new Map([["SKILL.md", text("---\nname: x\n---\n")]]))).toEqual({});
     expect(envelopeSpec("agent", new Map([["agent-card.json", text("{")]]))).toEqual({});

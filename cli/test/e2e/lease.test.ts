@@ -51,12 +51,10 @@ describe("a scope lease", () => {
       expect(await exited).toBe("SIGINT");
       expect(await leased.held()).toEqual([]);
     },
-    60_000,
   );
 
   test.for(["install", "registry add"])(
     "names its holder while %s waits for it",
-    { timeout: 60_000 },
     async (command, { home, project, leased }) => {
       const lease = join(leased.leases, `${leaseKey({ lock: lockPath(project) })}.lease`);
       await mkdir(lease, { recursive: true });

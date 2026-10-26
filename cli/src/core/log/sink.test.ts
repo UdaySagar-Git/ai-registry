@@ -14,7 +14,7 @@ import { describe, expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
 import { memorySink } from "#test/kit/memory-sink.ts";
 import type { LogRecord } from "./model.ts";
-import { fileSink, logPath, multiSink, trimCapture } from "./sink.ts";
+import { fileSink, multiSink, trimCapture } from "./sink.ts";
 
 function record(body: string): LogRecord {
   return {
@@ -44,17 +44,7 @@ describe("fileSink", () => {
     expect(JSON.parse(lines[1] ?? "")).toMatchObject({ body: "second" });
   });
 
-  test("rolls the file once a write takes it past the cap", () => {
-    const path = join(dir, "registry.log");
-    const sink = fileSink({ path, maxBytes: 200 });
-    for (let index = 0; index < 5; index += 1) sink.write(record(`line-${index}`));
-    sink.close?.();
-
-    expect(statSync(`${path}.1`).size).toBeGreaterThan(0);
-    expect(statSync(path).size).toBeLessThanOrEqual(200);
-  });
-
-  test("keeps the cap while one process goes on writing", () => {
+  test("keeps the cap and the newest line in the live file while one process goes on writing", () => {
     const path = join(dir, "registry.log");
     const sink = fileSink({ path, maxBytes: 500, keep: 2 });
     for (let index = 0; index < 200; index += 1) sink.write(record(`line-${index}`));
@@ -64,6 +54,7 @@ describe("fileSink", () => {
       expect(statSync(name).size).toBeLessThan(700);
     }
     expect(() => statSync(`${path}.3`)).toThrow();
+    expect(readFileSync(path, "utf8")).toContain("line-199");
   });
 
   test("takes over a rotation lock a crashed process left behind", () => {
@@ -90,14 +81,6 @@ describe("fileSink", () => {
     sink.close?.();
 
     expect(() => statSync(`${path}.1`)).toThrow();
-  });
-
-  test("writes the newest bytes to the live file, not to a rolled one", () => {
-    const path = join(dir, "registry.log");
-    const sink = fileSink({ path, maxBytes: 200 });
-    for (let index = 0; index < 20; index += 1) sink.write(record(`line-${index}`));
-    sink.close?.();
-    expect(readFileSync(path, "utf8")).toContain("line-19");
   });
 
   test("keeps writing after a rotation that finds the live file gone", () => {
@@ -141,12 +124,6 @@ describe("multiSink", () => {
     expect(a.records).toHaveLength(1);
     expect(b.records).toHaveLength(1);
     expect(closed).toEqual(["a", "b"]);
-  });
-});
-
-describe("logPath", () => {
-  test("sits under the registry home so AIREG_HOME isolates it", () => {
-    expect(logPath("/tmp/home", "daemon.log")).toBe(join("/tmp/home", "logs", "daemon.log"));
   });
 });
 

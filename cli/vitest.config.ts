@@ -45,7 +45,7 @@ export default defineConfig({
       exclude: ["**/*.test.ts"],
       reporter: ["text-summary", "lcov"],
       reportsDirectory: "coverage",
-      // Subprocess-based CLI tests are outside V8 instrumentation.
+      // `test:coverage` runs only the in-process projects: V8 cannot see the CLI the e2e suites spawn.
       thresholds: { lines: 45, functions: 45, branches: 42, statements: 44 },
     },
   },

@@ -6,8 +6,6 @@ import { parse } from "yaml";
 import { registry } from "#test/kit/builders/registry.ts";
 import type { Aireg } from "./fixtures.ts";
 
-/** Runs one Markdown scenario; the format is in test/scenarios/README.md. */
-
 export interface Sandbox {
   root: string;
   home: string;
@@ -168,6 +166,7 @@ async function runCommands(
   return changed ? body : undefined;
 }
 
+/** Runs one Markdown scenario; the format is in test/scenarios/README.md. */
 export async function runScenario(path: string, sandbox: Sandbox): Promise<void> {
   const { setup, lines, blocks } = parseScenario(await readFile(path, "utf8"));
   const places: [string, string][] = [

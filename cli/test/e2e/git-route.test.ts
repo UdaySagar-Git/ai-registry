@@ -27,14 +27,14 @@ describe("the git route, end to end", () => {
     const lock = await readFile(lockPath(project), "utf8");
     expect(lock).toContain("adapter: git");
     expect(lock).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
-  }, 60_000);
+  });
 
   test("is idempotent and byte-identical", async ({ aireg, project }) => {
     const before = await readFile(lockPath(project), "utf8");
     const resynced = await aireg(["install"]);
     expect(resynced.code, resynced.stderr).toBe(0);
     expect(await readFile(lockPath(project), "utf8")).toBe(before);
-  }, 60_000);
+  });
 
   test("reports an edit and exits 3, then repairs under --force", async ({ aireg, project }) => {
     // Edited where a person edits it: through the harness, which links into
@@ -50,7 +50,7 @@ describe("the git route, end to end", () => {
 
     await aireg(["install", "--force"]);
     expect((await aireg(["status"])).code).toBe(0);
-  }, 60_000);
+  });
 
   test("removes only what it recorded, and an edit only when forced", async ({
     aireg,
@@ -69,7 +69,7 @@ describe("the git route, end to end", () => {
     expect(await readFile(join(project, ".claude", "skills", "handwritten.md"), "utf8")).toBe(
       "mine",
     );
-  }, 60_000);
+  });
 
   test("leaves alone the repository of a git hook it runs in", async ({
     aireg,
@@ -96,7 +96,7 @@ describe("the git route, end to end", () => {
     expect(await git(hooked, "rev-parse", "HEAD")).toBe(head);
     expect(await git(hooked, "remote")).toBe("");
     expect(await git(hooked, "diff", "--cached", "--name-only")).toBe("");
-  }, 60_000);
+  });
 
   test("warns when the same artifact is installed at two scopes", async ({ aireg, tmp, repo }) => {
     const cwd = join(tmp, "two-scopes");
@@ -117,7 +117,7 @@ describe("the git route, end to end", () => {
     // From user scope there is no way to know which projects exist.
     const global = await aireg(["status", "-g"], { cwd });
     expect(global.stderr).not.toMatch(/user scope/);
-  }, 60_000);
+  });
 
   test("remove -g --all leaves nothing it installed behind", async ({
     aireg,
@@ -133,7 +133,7 @@ describe("the git route, end to end", () => {
         : [],
     );
     expect(left).toEqual([]);
-  }, 60_000);
+  });
 
   test("sync reports a conflict, and never merges it", async ({ aireg, git, tmp }) => {
     const scratch = join(tmp, "sync-flow");
@@ -182,7 +182,6 @@ describe("the git route, end to end", () => {
     expect(conflict.stdout).toMatch(/edited here and changed in the registry/);
     expect(conflict.stderr).toMatch(/sync resolve \S+ --theirs/);
 
-    // A real sync leaves a conflict alone: no side chosen, nothing merged, no marker written.
     const reconciled = await aireg(["sync", "--json"], { cwd: scratch });
     expect(reconciled.code).toBe(3);
     expect(JSON.parse(reconciled.stdout).data.runs).toEqual([
@@ -194,7 +193,7 @@ describe("the git route, end to end", () => {
     expect(await readFile(staged, "utf8")).toBe(before);
     expect(await readFile(lockPath(scratch), "utf8")).toBe(lockBefore);
     expect(before).not.toContain("<<<<<<<");
-  }, 60_000);
+  });
 
   test("sync sees content, status sees the link", async ({ aireg, tmp, repo }) => {
     const cwd = join(tmp, "sync-links");
@@ -223,7 +222,7 @@ describe("the git route, end to end", () => {
     expect((await aireg(["sync"], { cwd })).code).toBe(0);
     expect((await aireg(["install", "--for", "claude"], { cwd })).code).toBe(0);
     expect((await aireg(["status"], { cwd })).code).toBe(0);
-  }, 60_000);
+  });
 });
 
 describe("an address without transport security", () => {

@@ -4,19 +4,8 @@ import { describe, expect, vi } from "vitest";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { emptyRegistryConfig, type Job, type RegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
-import type { RunRecord } from "#core/run/model.ts";
-import type { RpcClient } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
-import {
-  ADAPTER,
-  ENDPOINT,
-  finished,
-  jobStatus,
-  NAMESPACE,
-  terminal,
-  testClient,
-  wait,
-} from "#test/kit/daemon.ts";
+import { ADAPTER, ENDPOINT, finished, jobStatus, NAMESPACE, testClient } from "#test/kit/daemon.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { projected } from "#test/kit/harness.ts";
 
@@ -42,14 +31,6 @@ async function declareUserRegistry(scope: string): Promise<void> {
     join(scope, "manifest.yml"),
     ["registries:", "  personal:", `    source: ${ENDPOINT}`, "    adapter: dev", ""].join("\n"),
   );
-}
-
-/** The scheduler syncs a new job on its own; a manual run has to wait its turn. */
-async function scheduled(client: RpcClient, jobId: string): Promise<RunRecord> {
-  return wait("Scheduled run", async () => {
-    const { runs } = await client.request("run.list", { jobId });
-    return runs.length > 0 && runs.every(terminal) ? runs[0] : undefined;
-  });
 }
 
 describe("job methods", () => {
@@ -79,7 +60,6 @@ describe("job methods", () => {
       name: "watch_dev",
       intervalSeconds: 3600,
     });
-    // A scope sync is these three steps.
     expect((created.job as Job).steps.map((step) => step.kind)).toEqual([
       "pull",
       "publish",
@@ -89,7 +69,7 @@ describe("job methods", () => {
     expect(manifest).toContain(`namespace: ${NAMESPACE}`);
     expect(manifest).toContain("- personal");
 
-    expect((await scheduled(client, "watch_dev")).state).toBe("succeeded");
+    // Not left to the scheduler's next tick: a run it already started is joined.
     const started = await client.request("run.start", {
       jobId: "watch_dev",
       mode: "sync",
@@ -115,7 +95,7 @@ describe("job methods", () => {
     // Reporting drift downloads bytes but must not place them.
     const staged = projected(project, "quality-check");
     expect(await readFile(staged, "utf8")).not.toContain("name the risk");
-  }, 60_000);
+  });
 
   test("pauses sync and answers a second pause against the same revision as stale", async ({
     daemon,

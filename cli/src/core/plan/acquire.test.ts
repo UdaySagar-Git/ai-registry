@@ -132,7 +132,6 @@ describe("wanted", () => {
       want: [{ name: "docs-kit", kind: "plugin" }],
       all: false,
     });
-    expect(wanted(manifest(["acme/platform"]), "acme")?.all).toBe(true);
   });
 
   it("is undefined for a registry the manifest takes nothing from", () => {

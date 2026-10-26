@@ -23,7 +23,7 @@ jobs:
   changes:
     name: CI change detection
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .
@@ -85,7 +85,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -115,7 +115,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck
       - run: pnpm run lint:ci
-      # A pull request leaves every file it adds or edits clean, warnings included; files it leaves alone keep theirs.
+      # Files a pull request touches must be free of warnings too.
       - if: github.event_name == 'pull_request'
         run: pnpm run lint:changed --since="$BASE_SHA"
         env:
@@ -150,80 +150,21 @@ jobs:
       actions: read
       security-events: write
 
-  # Fixed jobs preserve every required check name when path selection skips them.
-  # Runtime values use patched floors; fixed check names stay stable for branch protection.
-  compat-node-min:
-    name: CLI compatibility (Node 22.20.0, ubuntu-latest)
+  # A gate per suite keeps its required check name over the shards, and passes when path selection skips it.
+  compat-node-min-shard:
+    name: CLI tests (Node 22.20.0, ubuntu-latest, ${{ matrix.shard }})
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
     env:
+      # Runtime values use patched floors.
       CI_NODE_VERSION: "22.23.4"
     steps: &compat-steps
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ env.CI_NODE_VERSION }}
-          package-manager-cache: false
-
-      - run: npm install --global --force corepack@0.34.6 && corepack enable pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-
-      - name: Test
-        shell: bash
-        run: |
-          [ -z "${CI_UMASK:-}" ] || umask "$CI_UMASK"
-          pnpm run test
-        env:
-          GIT_AUTHOR_NAME: ci
-          GIT_AUTHOR_EMAIL: ci@example.com
-          GIT_COMMITTER_NAME: ci
-          GIT_COMMITTER_EMAIL: ci@example.com
-
-  compat-node-current:
-    name: CLI compatibility (Node 24, ubuntu-latest)
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      CI_NODE_VERSION: "24.22.1"
-      # The Ubuntu and Fedora login default, where new files are group-writable.
-      CI_UMASK: "002"
-    steps: *compat-steps
-
-  compat-node-26:
-    name: CLI compatibility (Node 26.12.1, ubuntu-latest)
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      CI_NODE_VERSION: "26.12.1"
-    steps: *compat-steps
-
-  compat-macos:
-    name: CLI compatibility (Node 24, macos-latest)
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
-    runs-on: macos-latest
-    timeout-minutes: 30
-    env:
-      CI_NODE_VERSION: "26.12.1"
-    steps: *compat-steps
-
-  compat-windows:
-    name: CLI compatibility (Node 24, windows-latest)
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
-    runs-on: windows-latest
-    timeout-minutes: 30
-    steps:
       # Git for Windows checks out CRLF by default, which fixtures compared byte for byte reject.
       - run: git config --global core.autocrlf false
         working-directory: .
@@ -234,20 +175,139 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "26.12.1"
+          node-version: ${{ env.CI_NODE_VERSION }}
           package-manager-cache: false
 
       - run: npm install --global --force corepack@0.34.6 && corepack enable pnpm
+
+      - id: store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('cli/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
 
+      # The suites mostly wait on the CLIs and git they spawn, so 1.5 workers a core keeps a runner busy.
       - name: Test
-        run: pnpm run test
+        shell: bash
+        run: |
+          [ -z "${CI_UMASK:-}" ] || umask "$CI_UMASK"
+          pnpm run test --shard="$SHARD" --maxWorkers="$(node -p 'Math.ceil(require("node:os").availableParallelism() * 1.5)')"
         env:
+          SHARD: ${{ matrix.shard }}
           GIT_AUTHOR_NAME: ci
           GIT_AUTHOR_EMAIL: ci@example.com
           GIT_COMMITTER_NAME: ci
           GIT_COMMITTER_EMAIL: ci@example.com
+
+  compat-node-min:
+    name: CLI compatibility (Node 22.20.0, ubuntu-latest)
+    needs: [changes, compat-node-min-shard]
+    if: always() && needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps: &gate-steps
+      - name: Every shard passed
+        working-directory: .
+        run: test "$PASSED" = true
+        env:
+          PASSED: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}
+
+  compat-node-current-shard:
+    name: CLI tests (Node 24, ubuntu-latest, ${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
+    env:
+      CI_NODE_VERSION: "24.22.1"
+      # The Ubuntu and Fedora login default, where new files are group-writable.
+      CI_UMASK: "002"
+    steps: *compat-steps
+
+  compat-node-current:
+    name: CLI compatibility (Node 24, ubuntu-latest)
+    needs: [changes, compat-node-current-shard]
+    if: always() && needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps: *gate-steps
+
+  compat-node-26-shard:
+    name: CLI tests (Node 26.12.1, ubuntu-latest, ${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
+    env:
+      CI_NODE_VERSION: "26.12.1"
+    steps: *compat-steps
+
+  compat-node-26:
+    name: CLI compatibility (Node 26.12.1, ubuntu-latest)
+    needs: [changes, compat-node-26-shard]
+    if: always() && needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps: *gate-steps
+
+  compat-macos-shard:
+    name: CLI tests (Node 24, macos-latest, ${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/3, 2/3, 3/3]
+    env:
+      CI_NODE_VERSION: "26.12.1"
+    steps: *compat-steps
+
+  compat-macos:
+    name: CLI compatibility (Node 24, macos-latest)
+    needs: [changes, compat-macos-shard]
+    if: always() && needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps: *gate-steps
+
+  compat-windows-shard:
+    name: CLI tests (Node 24, windows-latest, ${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/3, 2/3, 3/3]
+    env:
+      CI_NODE_VERSION: "26.12.1"
+    steps: *compat-steps
+
+  compat-windows:
+    name: CLI compatibility (Node 24, windows-latest)
+    needs: [changes, compat-windows-shard]
+    if: always() && needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps: *gate-steps
 
   # Each target is built and run on its own platform, so every binary is
   # proven to start where it ships.
@@ -256,7 +316,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: darwin
       CI_ARCH: arm64
@@ -278,7 +338,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: macos-26-intel
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: darwin
       CI_ARCH: amd64
@@ -289,7 +349,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: linux
       CI_ARCH: amd64
@@ -300,7 +360,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-26.04-arm
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: linux
       CI_ARCH: arm64
@@ -311,7 +371,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: windows
       CI_ARCH: amd64
@@ -322,7 +382,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: windows-11-arm
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: windows
       CI_ARCH: arm64
@@ -333,7 +393,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.spec == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .
@@ -358,7 +418,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .
@@ -378,7 +438,7 @@ jobs:
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .

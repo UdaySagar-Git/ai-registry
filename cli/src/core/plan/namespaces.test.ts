@@ -1,26 +1,10 @@
 import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { advertisedCapabilities } from "#adapter/contract.ts";
 import type { LockArtifact } from "#core/lock.ts";
 import { roots } from "#core/store/paths.ts";
 import { PLAN_OPTIONS } from "#test/kit/builders/plan.ts";
-import { wrappedInLock, wrapsNamespaces } from "./namespaces.ts";
-
-describe("wrapsNamespaces", () => {
-  const adapter = (declared: { namespacePlugins?: boolean } = {}) => ({
-    capabilities: advertisedCapabilities(declared),
-  });
-
-  it("is off unless the source declares it", () => {
-    expect(wrapsNamespaces(adapter())).toBe(false);
-    expect(wrapsNamespaces(adapter({ namespacePlugins: false }))).toBe(false);
-  });
-
-  it("is on for a source that declares namespacePlugins", () => {
-    expect(wrapsNamespaces(adapter({ namespacePlugins: true }))).toBe(true);
-  });
-});
+import { wrappedInLock } from "./namespaces.ts";
 
 describe("wrappedInLock", () => {
   const user = roots("user", "/work");

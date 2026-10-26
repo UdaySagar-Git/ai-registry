@@ -82,54 +82,50 @@ describe("credentials.json, end to end", () => {
     project: dir,
     signsIn,
   }) => {
-    try {
-      const login = await aireg(
-        ["auth", "login", "acme", "--address", `${ORIGIN}/team`, "--token-stdin"],
-        { input: `${TOKEN}\n` },
-      );
-      expect(login.code, login.stderr).toBe(0);
-      expect(login.stdout).toContain(
-        `Signed in to acme at ${ORIGIN}/team as jane@acme.example (Acme Platform).`,
-      );
+    const login = await aireg(
+      ["auth", "login", "acme", "--address", `${ORIGIN}/team`, "--token-stdin"],
+      { input: `${TOKEN}\n` },
+    );
+    expect(login.code, login.stderr).toBe(0);
+    expect(login.stdout).toContain(
+      `Signed in to acme at ${ORIGIN}/team as jane@acme.example (Acme Platform).`,
+    );
 
-      const file = join(home.aireg, "credentials.json");
-      await expectMode(file, 0o600);
-      const stored = JSON.parse(await readFile(file, "utf8"));
-      const [id] = Object.keys(stored.credentials);
-      expect(stored).toEqual({
-        version: 1,
-        credentials: { [id as string]: { origin: ORIGIN, type: "bearer", access_token: TOKEN } },
-      });
-      expect(await readFile(join(home.aireg, "config.yml"), "utf8")).not.toContain("credential");
-      const listed = (await aireg(["auth", "list", "--json"])).json<{
-        accounts: { registry: string; signedIn: boolean }[];
-      }>();
-      expect(listed.data?.accounts).toMatchObject([{ registry: "acme", signedIn: true }]);
+    const file = join(home.aireg, "credentials.json");
+    await expectMode(file, 0o600);
+    const stored = JSON.parse(await readFile(file, "utf8"));
+    const [id] = Object.keys(stored.credentials);
+    expect(stored).toEqual({
+      version: 1,
+      credentials: { [id as string]: { origin: ORIGIN, type: "bearer", access_token: TOKEN } },
+    });
+    expect(await readFile(join(home.aireg, "config.yml"), "utf8")).not.toContain("credential");
+    const listed = (await aireg(["auth", "list", "--json"])).json<{
+      accounts: { registry: string; signedIn: boolean }[];
+    }>();
+    expect(listed.data?.accounts).toMatchObject([{ registry: "acme", signedIn: true }]);
 
-      // A cloned project that points the name at another host gets no token, and a reason.
-      await writeManifestIn(dir, project("https://elsewhere.example/acme"));
-      const refused = await aireg(["install", "--json"]);
-      expect(refused.code).toBe(4);
-      expect(refused.json().error).toMatchObject({
-        code: "unauthorized",
-        message: `Your sign-in for acme is for ${ORIGIN}, so aireg does not send it to https://elsewhere.example.`,
-      });
-      expect(refused.stdout + refused.stderr).not.toContain(TOKEN);
-      expect(await signsIn.seen()).toBe("");
+    // A cloned project that points the name at another host gets no token, and a reason.
+    await writeManifestIn(dir, project("https://elsewhere.example/acme"));
+    const refused = await aireg(["install", "--json"]);
+    expect(refused.code).toBe(4);
+    expect(refused.json().error).toMatchObject({
+      code: "unauthorized",
+      message: `Your sign-in for acme is for ${ORIGIN}, so aireg does not send it to https://elsewhere.example.`,
+    });
+    expect(refused.stdout + refused.stderr).not.toContain(TOKEN);
+    expect(await signsIn.seen()).toBe("");
 
-      // The same origin at another path is the registry the token was issued for.
-      await writeManifestIn(dir, project(`${ORIGIN}/other-team`));
-      const installed = await aireg(["install"]);
-      expect(installed.code, installed.stderr).toBe(0);
-      expect(await signsIn.seen()).toContain(`token ${ORIGIN}/other-team`);
+    // The same origin at another path is the registry the token was issued for.
+    await writeManifestIn(dir, project(`${ORIGIN}/other-team`));
+    const installed = await aireg(["install"]);
+    expect(installed.code, installed.stderr).toBe(0);
+    expect(await signsIn.seen()).toContain(`token ${ORIGIN}/other-team`);
 
-      const out = await aireg(["auth", "logout", "acme"]);
-      expect(out.code, out.stderr).toBe(0);
-      expect(JSON.parse(await readFile(file, "utf8"))).toEqual({ version: 1, credentials: {} });
-    } finally {
-      await aireg(["daemon", "stop"]);
-    }
-  }, 60_000);
+    const out = await aireg(["auth", "logout", "acme"]);
+    expect(out.code, out.stderr).toBe(0);
+    expect(JSON.parse(await readFile(file, "utf8"))).toEqual({ version: 1, credentials: {} });
+  });
 
   test("says how to sign in when a registry refuses a read without one", async ({
     aireg,
@@ -162,7 +158,7 @@ describe("credentials.json, end to end", () => {
     await expect(stat(join(home.aireg, "credentials.json"))).rejects.toMatchObject({
       code: "ENOENT",
     });
-  }, 60_000);
+  });
 
   test("refuses a dry run of one registry whose token another declared registry reads", async ({
     aireg,
@@ -197,28 +193,24 @@ describe("credentials.json, end to end", () => {
     project: dir,
     signsIn,
   }) => {
-    try {
-      const env = { AIREG_TOKEN_ACME: TOKEN };
-      await writeManifestIn(dir, project(`${ORIGIN}/team`));
-      const synced = await aireg(["sync"], { env });
-      expect(synced.code, synced.stderr).toBe(0);
-      expect(synced.stdout + synced.stderr).not.toContain(TOKEN);
-      expect(await signsIn.seen()).toMatch(/^(token .*\n)+$/);
+    const env = { AIREG_TOKEN_ACME: TOKEN };
+    await writeManifestIn(dir, project(`${ORIGIN}/team`));
+    const synced = await aireg(["sync"], { env });
+    expect(synced.code, synced.stderr).toBe(0);
+    expect(synced.stdout + synced.stderr).not.toContain(TOKEN);
+    expect(await signsIn.seen()).toMatch(/^(token .*\n)+$/);
 
-      // The next run, without the variable, has no token: the daemon kept none.
-      const before = (await signsIn.seen()).length;
-      await aireg(["sync"]);
-      expect((await signsIn.seen()).slice(before)).not.toContain("token");
+    // The next run, without the variable, has no token: the daemon kept none.
+    const before = (await signsIn.seen()).length;
+    await aireg(["sync"]);
+    expect((await signsIn.seen()).slice(before)).not.toContain("token");
 
-      const logs = await aireg(["logs", "--tail", "500"]);
-      expect(logs.stdout + logs.stderr).not.toContain(TOKEN);
-      for (const entry of await readdir(home.aireg, { recursive: true, withFileTypes: true })) {
-        if (!entry.isFile()) continue;
-        const bytes = await readFile(join(entry.parentPath, entry.name));
-        expect(bytes.includes(TOKEN), entry.name).toBe(false);
-      }
-    } finally {
-      await aireg(["daemon", "stop"]);
+    const logs = await aireg(["logs", "--tail", "500"]);
+    expect(logs.stdout + logs.stderr).not.toContain(TOKEN);
+    for (const entry of await readdir(home.aireg, { recursive: true, withFileTypes: true })) {
+      if (!entry.isFile()) continue;
+      const bytes = await readFile(join(entry.parentPath, entry.name));
+      expect(bytes.includes(TOKEN), entry.name).toBe(false);
     }
-  }, 60_000);
+  });
 });

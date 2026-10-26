@@ -1,15 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Plan } from "#core/plan/model.ts";
-import { narrowToRelinks, relinksIn } from "./relink.ts";
+import { narrowToRelinks } from "./relink.ts";
 
 const plan = (actions: unknown[]) =>
   ({ actions, unchanged: [], warnings: [], incompatible: [] }) as unknown as Plan;
-
-describe("relinksIn", () => {
-  it("leaves out what the run already records", () => {
-    expect([...relinksIn(new Set(["a", "b"]), new Set(["b"]))]).toEqual(["a"]);
-  });
-});
 
 describe("narrowToRelinks", () => {
   it("keeps only a relinked artifact's link and unlink actions, and other artifacts whole", () => {

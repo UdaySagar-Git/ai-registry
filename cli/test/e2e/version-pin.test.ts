@@ -66,7 +66,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir }) => {
   await publish(["1.0.0", "1.1.0", "2.0.0"]);
   expect((await aireg(["init", "-y"])).code).toBe(0);
   expect((await aireg(["registry", "add", market, "--as", "acme"])).code).toBe(0);
-}, 60_000);
+});
 
 describe("a version a project asks for", () => {
   test("installs the one named, not the newest", async () => {
@@ -74,7 +74,7 @@ describe("a version a project asks for", () => {
     expect(await installed()).toContain("body 1.0.0");
     expect(await manifest()).toContain("acme/acme/skill/lint@1.0.0");
     expect(await lockedVersion()).toBe("1.0.0");
-  }, 60_000);
+  });
 
   test("holds that version when the registry publishes a newer one", async () => {
     await publish(["1.0.0", "1.1.0", "2.0.0", "3.0.0"]);
@@ -84,7 +84,7 @@ describe("a version a project asks for", () => {
     expect(update.stderr).toContain("stays at 1.0.0");
     expect(await installed()).toContain("body 1.0.0");
     expect(await lockedVersion()).toBe("1.0.0");
-  }, 60_000);
+  });
 
   test("reports the newer version without calling a holding pin drift", async () => {
     const outdated = await aireg(["outdated"]);
@@ -92,7 +92,7 @@ describe("a version a project asks for", () => {
     expect(outdated.stdout).toContain("1.0.0");
     expect(outdated.stdout).toContain("3.0.0");
     expect(outdated.stdout).toContain("pinned");
-  }, 60_000);
+  });
 
   test("re-pins in place rather than declaring the artifact twice", async () => {
     expect((await aireg(["add", "acme/skill/lint@2.0.0", "-y"])).code).toBe(0);
@@ -102,21 +102,21 @@ describe("a version a project asks for", () => {
     expect(text.match(/skill\/lint/g)).toHaveLength(1);
     expect(await installed()).toContain("body 2.0.0");
     expect(await lockedVersion()).toBe("2.0.0");
-  }, 60_000);
+  });
 
   test("tracks latest again once the pin is dropped", async () => {
     expect((await aireg(["add", "acme/skill/lint", "-y"])).code).toBe(0);
     expect(await manifest()).not.toContain("@");
     expect(await installed()).toContain("body 3.0.0");
     expect(await lockedVersion()).toBe("3.0.0");
-  }, 60_000);
+  });
 
   test("follows the registry forward when nothing is pinned", async () => {
     await publish(["1.0.0", "1.1.0", "2.0.0", "3.0.0", "4.0.0"]);
     expect((await aireg(["update", "-y"])).code).toBe(0);
     expect(await installed()).toContain("body 4.0.0");
     expect(await lockedVersion()).toBe("4.0.0");
-  }, 60_000);
+  });
 
   test("refuses a version the registry does not publish, and changes nothing", async () => {
     const before = await manifest();
@@ -125,7 +125,7 @@ describe("a version a project asks for", () => {
     expect(failed.stderr).toContain("no version 9.9.9");
     expect(await manifest()).toBe(before);
     expect(await installed()).toContain("body 4.0.0");
-  }, 60_000);
+  });
 
   test("refuses to pin anything broader than one artifact", async () => {
     for (const ref of ["acme@1.0.0", "acme/acme@1.0.0"]) {
@@ -133,7 +133,7 @@ describe("a version a project asks for", () => {
       expect(failed.code).toBe(2);
       expect(failed.stderr).toContain("only one artifact can be pinned to a version");
     }
-  }, 60_000);
+  });
 
   test("refuses a new pin to a yanked version, says why, and changes nothing", async () => {
     const versions = ["1.0.0", "1.1.0", "2.0.0", "3.0.0", "4.0.0"];
@@ -147,7 +147,7 @@ describe("a version a project asks for", () => {
     expect(await lockedVersion()).toBe("4.0.0");
     expect(await installed()).toContain("body 4.0.0");
     await publish(versions);
-  }, 60_000);
+  });
 });
 
 describe("installing from the lock", () => {
@@ -156,7 +156,7 @@ describe("installing from the lock", () => {
     expect((await aireg(["install", "-y"])).code).toBe(0);
     expect(await installed()).toContain("body 4.0.0");
     expect(await lockedVersion()).toBe("4.0.0");
-  }, 60_000);
+  });
 
   test("needs no registry when everything the lock holds is installed", async () => {
     await rename(market, `${market}.away`);
@@ -165,7 +165,7 @@ describe("installing from the lock", () => {
     } finally {
       await rename(`${market}.away`, market);
     }
-  }, 60_000);
+  });
 
   test("installs a checkout without copies under --frozen, and leaves the lock as it was", async () => {
     const before = await readFile(lockPath(project), "utf8");
@@ -173,7 +173,7 @@ describe("installing from the lock", () => {
     expect((await aireg(["install", "--frozen", "-y"])).code).toBe(0);
     expect(await installed()).toContain("body 4.0.0");
     expect(await readFile(lockPath(project), "utf8")).toBe(before);
-  }, 60_000);
+  });
 
   test("fails --frozen once the lock would change, and names what would", async () => {
     const before = await manifest();
@@ -188,7 +188,7 @@ describe("installing from the lock", () => {
     } finally {
       await writeFile(manifestPath(project), before);
     }
-  }, 60_000);
+  });
 
   test("moves only the artifact update names", async () => {
     expect((await aireg(["add", "acme/skill/format", "-y"])).code).toBe(0);
@@ -196,7 +196,7 @@ describe("installing from the lock", () => {
     expect((await aireg(["update", "lint", "-y"])).code).toBe(0);
     expect(await lockedVersion("lint")).toBe("6.0.0");
     expect(await lockedVersion("format")).toBe("5.0.0");
-  }, 60_000);
+  });
 
   test("refuses other bytes under a version the lock holds, and installs nothing", async () => {
     const versions = ["1.0.0", "1.1.0", "2.0.0", "3.0.0", "4.0.0", "5.0.0", "6.0.0"];
@@ -208,7 +208,7 @@ describe("installing from the lock", () => {
     expect(install.stderr).toContain("may be tampering");
     expect(await readFile(lockPath(project), "utf8")).toBe(before);
     await publish(versions);
-  }, 60_000);
+  });
 
   test("keeps a yanked version the lock holds, and says it is yanked", async () => {
     await publish(["1.0.0", "1.1.0", "2.0.0", "3.0.0", "4.0.0", "5.0.0", "6.0.0"], {
@@ -225,7 +225,7 @@ describe("installing from the lock", () => {
     expect(JSON.parse((await aireg(["outdated", "--json"])).stdout).data.artifacts).toContainEqual(
       expect.objectContaining({ name: "lint", current: "6.0.0", latest: "5.0.0", moved: false }),
     );
-  }, 60_000);
+  });
 
   test("installs only the files a version describes, and follows no link", async () => {
     const dir = join(market, "artifacts", "acme", "skill", "lint", "6.0.0");
@@ -240,7 +240,7 @@ describe("installing from the lock", () => {
       await rm(join(dir, "leak.txt"));
       await rm(join(dir, "added.sh"));
     }
-  }, 60_000);
+  });
 
   test("fails an install whose file does not match, and keeps the lock row", async () => {
     const versions = ["1.0.0", "1.1.0", "2.0.0", "3.0.0", "4.0.0", "5.0.0", "6.0.0"];
@@ -259,7 +259,7 @@ describe("installing from the lock", () => {
     expect(await readFile(lockPath(project), "utf8")).toBe(before);
     await publish(versions, { yank: "6.0.0" });
     expect((await aireg(["install", "-y"])).code).toBe(0);
-  }, 60_000);
+  });
 
   test("keeps the installed version when the one update takes does not match", async () => {
     const versions = ["1.0.0", "1.1.0", "2.0.0", "3.0.0", "4.0.0", "5.0.0", "6.0.0", "7.0.0"];
@@ -271,7 +271,7 @@ describe("installing from the lock", () => {
     expect(await lockedVersion()).toBe("6.0.0");
     expect(await installed()).toContain("body 6.0.0");
     await publish(versions);
-  }, 60_000);
+  });
 
   test("refuses a lockfile with merge conflict markers, and leaves it alone", async () => {
     const conflicted = `<<<<<<< HEAD\n${await readFile(lockPath(project), "utf8")}`;
@@ -282,7 +282,7 @@ describe("installing from the lock", () => {
       expect(result.stderr).toContain("merge conflict");
     }
     expect(await readFile(lockPath(project), "utf8")).toBe(conflicted);
-  }, 60_000);
+  });
 });
 
 describe("pinning back an artifact a whole namespace installed", () => {
@@ -299,5 +299,5 @@ describe("pinning back an artifact a whole namespace installed", () => {
     expect(pinned.stdout).toContain("Pinned acme/lint at 1.0.0.");
     expect(pinned.stdout).toMatch(/Rolled back acme\/lint \d+\.0\.0 → 1\.0\.0\./);
     expect(pinned.stdout).not.toMatch(/Updated lint/);
-  }, 60_000);
+  });
 });

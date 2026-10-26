@@ -159,7 +159,6 @@ describe("reclaiming a stale lease", () => {
     await heldBy(roots.lock, { pid: await exited() });
     const theirs = await acquire(roots, { env });
 
-    // The original holder must not delete the new owner's lease.
     await mine.release();
     expect((await readLease(roots, env))?.id).toBe(theirs.id);
     await theirs.release();
@@ -198,8 +197,9 @@ describe("waiting for a held lease", () => {
         await vi.waitFor(() => expect(vi.getTimerCount()).toBeGreaterThan(0));
         await vi.advanceTimersToNextTimerAsync();
       }
-      await held.release();
+      // Released only while it sleeps; a poll still in flight could take the lease and never sleep again.
       await vi.waitFor(() => expect(vi.getTimerCount()).toBeGreaterThan(0));
+      await held.release();
       await vi.advanceTimersToNextTimerAsync();
       await (await pending).release();
     } finally {
@@ -417,7 +417,6 @@ describe("fencing", () => {
     expect(error).toMatchObject({ reason: "lease_lost", hint: "Run the command again." });
     expect(await readFile(roots.lock, "utf8")).toBe("theirs\n");
     expect((await readdir(home)).filter((name) => name.endsWith(".tmp"))).toEqual([]);
-    // The new holder keeps the scope.
     expect((await readLease(roots, env))?.id).toBe(theirs[0]?.id);
     await theirs[0]?.release();
   });

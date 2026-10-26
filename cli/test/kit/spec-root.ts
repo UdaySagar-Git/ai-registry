@@ -3,11 +3,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join, posix } from "node:path";
 import { buildEnvelope, type Envelope } from "#adapter/index.ts";
 
-/**
- * Writes a file spec root, which is the only thing a registry is: tests build
- * one rather than a folder of loose skills, because that is what the client reads.
- */
-
 export interface SpecVersion {
   version: string;
   description?: string;
@@ -139,6 +134,7 @@ async function writeArtifact(root: string, artifact: SpecArtifact): Promise<unkn
   };
 }
 
+/** A file spec root, as the client reads a registry, rather than a folder of loose skills. */
 export async function writeSpecRoot(
   root: string,
   artifacts: readonly SpecArtifact[],

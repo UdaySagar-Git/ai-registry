@@ -5,10 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const LAYER = fileURLToPath(new URL("..", import.meta.url));
 
-/**
- * This layer is the one that writes escape sequences, so it is where a literal
- * control byte can hide in a template literal.
- */
+// This layer writes escape sequences, so a literal control byte can hide in a template literal.
 describe("source hygiene", () => {
   const files = readdirSync(LAYER, { recursive: true, encoding: "utf8" })
     .filter((name) => name.endsWith(".ts"))

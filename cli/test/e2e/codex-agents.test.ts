@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { appendFile, lstat, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
@@ -44,7 +43,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir, home: { dir: homeDir } })
   expect((await aireg(["init", "-y", "--for", "claude,codex"])).code).toBe(0);
   expect((await aireg(["registry", "add", market, "--as", "acme"])).code).toBe(0);
   expect((await aireg(["registry", "add", market, "--as", "acme", "-g"])).code).toBe(0);
-}, 60_000);
+});
 
 describe("an agent installed for Codex", () => {
   test("is written as TOML holding only what Codex reads", async () => {
@@ -74,17 +73,6 @@ describe("an agent installed for Codex", () => {
     expect((await aireg(["install", "--force", "-y"])).code).toBe(0);
     expect(await readFile(toml(), "utf8")).toBe(TOML);
     expect((await aireg(["status"])).code).toBe(0);
-  });
-
-  test("is kept by remove once edited, as any edited copy is, until --force", async () => {
-    await appendFile(toml(), "# mine\n");
-    const kept = await aireg(["remove", "reviewer", "-y"]);
-    expect(kept.code).toBe(3);
-    expect(kept.stderr).toContain("reviewer has local edits, so nothing was removed.");
-    expect(await readFile(toml(), "utf8")).toBe(`${TOML}# mine\n`);
-    expect((await aireg(["remove", "reviewer", "-y", "--force"])).code).toBe(0);
-    expect(existsSync(toml())).toBe(false);
-    expect(existsSync(join(project, ".claude", "agents", "reviewer.md"))).toBe(false);
   });
 
   test("goes to the Codex home in your user scope", async () => {

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import {
@@ -57,7 +57,6 @@ export default () => appendFileSync(${JSON.stringify(log)}, "missed\\n");`,
       },
     );
     await runPipelineHooks("preConnect", { alias: "kit" });
-    const { readFile } = await import("node:fs/promises");
     expect(await readFile(log, "utf8")).toBe("preConnect:kit\n");
   });
 
@@ -90,7 +89,6 @@ export default () => appendFileSync(${JSON.stringify(log)}, "missed\\n");`,
 export default (event) => appendFileSync(${JSON.stringify(log)}, event.stage + "\\n");`,
     });
     await runPipelineHooks("prePlan", { aliases: ["kit", "other"] });
-    const { readFile } = await import("node:fs/promises");
     expect(await readFile(log, "utf8")).toBe("prePlan\n");
   });
 
@@ -103,7 +101,6 @@ export default () => appendFileSync(${JSON.stringify(log)}, "ran\\n");`,
     await expect(
       runPipelineHooks("preConnect", { alias: "kit" }, AbortSignal.abort()),
     ).rejects.toThrow();
-    const { readFile } = await import("node:fs/promises");
     await expect(readFile(log, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
   });
 });
@@ -163,7 +160,6 @@ describe("bindAdapter", () => {
     const wrapped = await connect(handle());
     await wrapped.resolve([]);
     await wrapped.close();
-    const { readFile } = await import("node:fs/promises");
     expect(await readFile(log, "utf8")).toBe("preResolve\npostResolve\npreClose\n");
   });
 
@@ -175,7 +171,6 @@ describe("bindAdapter", () => {
     const wrapped = await connect(handle());
     await writeHome([], {});
     await wrapped.resolve([]);
-    const { readFile } = await import("node:fs/promises");
     expect(await readFile(log, "utf8")).toBe("preResolve\n");
   });
 
@@ -207,7 +202,6 @@ describe("bindAdapter", () => {
     const wrapped = await connect(handle({ publish: async () => ({}), unpublish: async () => {} }));
     await wrapped.publish?.([], {});
     await wrapped.unpublish?.([{ id: "a1", kind: "skill" }]);
-    const { readFile } = await import("node:fs/promises");
     expect(await readFile(log, "utf8")).toBe(
       "prePublish publish\npostPublish publish\nprePublish unpublish\npostPublish unpublish\n",
     );

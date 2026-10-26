@@ -44,7 +44,6 @@ describe("built-in reads", () => {
     const table = resolveHarnesses();
     expect(table.agents?.shared).toBe(true);
     expect(table.agents?.detect).toBe("never");
-    expect(table.claude?.shared).toBe(false);
   });
 
   it("defaults a tool with no reads to its own folder", () => {

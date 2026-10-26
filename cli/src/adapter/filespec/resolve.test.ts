@@ -83,30 +83,19 @@ describe("resolveFromRoot", () => {
     expect(artifacts.map((item) => item.envelope.metadata.name)).toEqual(["add"]);
   });
 
-  test("holds a pin to the one artifact it names where two namespaces share the name", async () => {
+  test("holds a pin to the namespace it names where two namespaces share the name", async () => {
     const read = await root([OPS_ADD]);
-    const { artifacts } = await resolveFromRoot(read, {
-      blobUrl: "blobs",
-      wanted: [{ name: "add", namespace: "ops", kind: "skill", version: "1.0.0" }],
-      all: true,
-    });
-    expect(artifacts.map((item) => item.id)).toEqual([
-      "artifacts/aireg/skill/add/0.1.0",
-      "artifacts/ops/skill/add/1.0.0",
-    ]);
-  });
-
-  test("holds a pin narrowed by namespace alone to that namespace", async () => {
-    const read = await root([OPS_ADD]);
-    const { artifacts } = await resolveFromRoot(read, {
-      blobUrl: "blobs",
-      wanted: [{ name: "add", namespace: "ops", version: "1.0.0" }],
-      all: true,
-    });
-    expect(artifacts.map((item) => item.id)).toEqual([
-      "artifacts/aireg/skill/add/0.1.0",
-      "artifacts/ops/skill/add/1.0.0",
-    ]);
+    for (const pin of [{ kind: "skill" as const }, {}]) {
+      const { artifacts } = await resolveFromRoot(read, {
+        blobUrl: "blobs",
+        wanted: [{ name: "add", namespace: "ops", version: "1.0.0", ...pin }],
+        all: true,
+      });
+      expect(artifacts.map((item) => item.id)).toEqual([
+        "artifacts/aireg/skill/add/0.1.0",
+        "artifacts/ops/skill/add/1.0.0",
+      ]);
+    }
   });
 
   test("says which status a version installs with, and why", async () => {

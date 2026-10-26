@@ -9,7 +9,6 @@ export interface Home {
   aireg: string;
   /** AIREG_USER_SCOPE: where `-g` installs. */
   scope: string;
-  /** Every variable the home sets. */
   env: Record<string, string>;
 }
 

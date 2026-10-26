@@ -307,11 +307,7 @@ describe("health", () => {
     };
   }
 
-  test("counts local work a job carries as settled, not as trouble", () => {
-    expect(health(group({ imported: 7 }))).toEqual({ settled: 7, trouble: [] });
-  });
-
-  test("still reports what is not settled beside it", () => {
+  test("counts local work a job carries as settled, and reports what is not beside it", () => {
     expect(health(group({ imported: 2, unpublished: 1, ok: 3 }))).toEqual({
       settled: 5,
       trouble: ["1 unpublished"],

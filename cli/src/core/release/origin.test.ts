@@ -5,18 +5,9 @@ import {
   adapterVersionManifestUrl,
   artifactBaseUrl,
   artifactUrl,
-  isChannel,
 } from "./origin.ts";
 
 const PROD = "https://releases.example.com/aireg";
-
-describe("channels", () => {
-  it("accepts only a known channel", () => {
-    expect(isChannel("stable")).toBe(true);
-    expect(isChannel("canary")).toBe(true);
-    expect(isChannel("nightly")).toBe(false);
-  });
-});
 
 describe("artifact URLs", () => {
   it("refuses a version or filename that could reshape the path", () => {

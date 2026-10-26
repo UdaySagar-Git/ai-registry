@@ -5,9 +5,28 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { parse } from "yaml";
 import { marketplace, skillsFolder } from "#test/kit/builders/layouts.ts";
-import { type Aireg, test } from "#test/kit/fixtures.ts";
+import { type Aireg, test as base, fileTest } from "#test/kit/fixtures.ts";
 import { BIN } from "#test/kit/run.ts";
 import { lockPath, manifestPath } from "#test/kit/scope.ts";
+import { projectTemplate } from "#test/kit/template.ts";
+
+const test = base
+  .extend("initialised", { scope: "file" }, ({ fileTmp }) =>
+    projectTemplate(join(fileTmp, "initialised"), [["init", "--for", "claude"]]),
+  )
+  .extend("mkt", { scope: "file" }, ({ fileTmp }) => marketplace(join(fileTmp, "mkt")).write())
+  /** A project for Claude Code that declares the stock marketplace, which no test changes. */
+  .extend("declared", { scope: "file" }, ({ fileTmp, mkt }) =>
+    projectTemplate(join(fileTmp, "declared"), [
+      ["init", "--for", "claude"],
+      ["registry", "add", mkt],
+    ]),
+  );
+
+/** One project for the file, whose tests build on the install before them. */
+const trusted = fileTest.extend("mkt", { scope: "file" }, ({ tmp }) =>
+  marketplace(join(tmp, "mkt")).write(),
+);
 
 const init = async (aireg: Aireg, harnesses = "claude,codex,cursor,agents") =>
   expect((await aireg(["init", "--for", harnesses])).code).toBe(0);
@@ -65,7 +84,7 @@ describe("a plugin marketplace", () => {
     );
     expect(await locked(project)).toEqual(["deploy-kit", "docs-kit"]);
     expect(await read(manifestPath(project))).toContain("layout: marketplace");
-  }, 60_000);
+  });
 
   test("leaves a command out for a harness that would run it on its own, and says so", async ({
     aireg,
@@ -97,7 +116,7 @@ describe("a plugin marketplace", () => {
     expect(added.stderr).toContain(
       "Did not install docs-kit-summarize for Tool: it sets disable-model-invocation, which Tool cannot read.",
     );
-  }, 60_000);
+  });
 
   test("prints the trust step for the agents a plugin brings into a project", async ({
     aireg,
@@ -116,7 +135,7 @@ describe("a plugin marketplace", () => {
     expect(added.stdout + added.stderr).toContain(
       "hint: Codex loads agents here only once you trust them: run `codex`.",
     );
-  }, 60_000);
+  });
 
   test("names the shared folder it left a command out of by its path", async ({
     aireg,
@@ -146,16 +165,16 @@ describe("a plugin marketplace", () => {
     expect(added.stderr).toContain(
       "Did not install docs-kit-summarize for .agents: it sets disable-model-invocation, which Tool cannot read.",
     );
-  }, 60_000);
+  });
 
   test("asks for trust before a plugin that runs things as you, and records it", async ({
     aireg,
+    initialised,
+    mkt,
     project,
-    tmp,
   }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "claude");
-    const refused = await aireg(["add", root, "--all"], { input: "" });
+    await initialised(project);
+    const refused = await aireg(["add", mkt, "--all"], { input: "" });
     expect(refused.code).toBe(2);
     expect(refused.stderr).toContain(
       'Did not install "deploy-kit", which carries hooks and MCP servers that run as you.',
@@ -169,15 +188,13 @@ describe("a plugin marketplace", () => {
     expect(await locked(project)).toEqual(["deploy-kit", "docs-kit"]);
     expect(await read(manifestPath(project))).toContain("trust:\n      - deploy-kit");
     expect((await aireg(["install"])).code).toBe(0);
-  }, 60_000);
+  });
 
   // util-linux's `script` runs aireg on a terminal of its own; other systems' `script` differs.
   test.runIf(process.platform === "linux")(
     "asks on a terminal before a plugin the address names exactly",
-    async ({ aireg, home, project, tmp }) => {
-      const root = await marketplace(join(tmp, "mkt")).write();
-      await init(aireg, "claude");
-      expect((await aireg(["registry", "add", root])).code).toBe(0);
+    async ({ declared, home, project }) => {
+      await declared(project);
       const command = `${process.execPath} ${BIN} add acme-tools/deploy-kit`;
       // Under CI aireg asks nothing, as it should, and its prompts draw no frames; this run
       // stands in for a person's terminal, so neither variable is passed on at all.
@@ -198,23 +215,20 @@ describe("a plugin marketplace", () => {
       expect(await locked(project)).toEqual(["deploy-kit"]);
       expect(await read(manifestPath(project))).toContain("trust:\n      - deploy-kit");
     },
-    60_000,
   );
 
   test("leaves the manifest as it was when the one plugin an add names is refused", async ({
     aireg,
+    declared,
     project,
-    tmp,
   }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "claude");
-    expect((await aireg(["registry", "add", root])).code).toBe(0);
+    await declared(project);
     const before = await read(manifestPath(project));
     const refused = await aireg(["add", "acme-tools/deploy-kit"], { input: "" });
     expect(refused.code).toBe(2);
     expect(await read(manifestPath(project))).toBe(before);
     expect((await aireg(["install"])).code).toBe(0);
-  }, 60_000);
+  });
 
   test("does not take a plugin's own parts for skills written here", async ({ aireg, tmp }) => {
     const root = await marketplace(join(tmp, "mkt")).write();
@@ -224,57 +238,12 @@ describe("a plugin marketplace", () => {
     const synced = await aireg(["sync"]);
     expect(`${synced.stdout}${synced.stderr}`).not.toContain("published nowhere");
     expect(synced.code, synced.stdout).toBe(0);
-  }, 60_000);
-
-  test("does not call a plugin's own parts new to a whole marketplace", async ({ aireg, tmp }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "claude");
-    expect((await aireg(["add", root, "--all", "--trust", "deploy-kit"])).code).toBe(0);
-    const outdated = await aireg(["outdated"]);
-    expect(outdated.stdout).not.toContain("new");
-    expect(outdated.code, outdated.stdout).toBe(0);
-  }, 60_000);
-
-  test("keeps what a trusted plugin runs on record through an install that reads nothing", async ({
-    aireg,
-    tmp,
-  }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "claude");
-    expect((await aireg(["add", root, "--all", "--trust", "deploy-kit"])).code).toBe(0);
-    expect((await aireg(["install"])).code).toBe(0);
-    const synced = await aireg(["sync"]);
-    expect(synced.stdout).not.toContain("adds or changes");
-    expect(synced.code, synced.stdout).toBe(0);
-  }, 60_000);
-
-  test("lets a sync take no change to what a plugin runs, trusted or not", async ({
-    aireg,
-    project,
-    tmp,
-  }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "claude");
-    expect((await aireg(["add", root, "--all", "--trust", "deploy-kit"])).code).toBe(0);
-    const before = await read(lockPath(project));
-    await skillsFolder(root)
-      .json("plugins/deploy-kit/.mcp.json", { mcpServers: { other: { command: "other-mcp" } } })
-      .json("plugins/docs-kit/hooks/hooks.json", { hooks: {} })
-      .write();
-    try {
-      const synced = await aireg(["sync"]);
-      expect(synced.code).toBe(3);
-      const said = `${synced.stdout}${synced.stderr}`;
-      expect(said).toContain("its new version adds or changes the hooks and MCP servers it runs");
-      expect(said).toContain("it now carries hooks, which no entry trusts");
-      expect(await read(lockPath(project))).toBe(before);
-    } finally {
-      await aireg(["daemon", "stop"]);
-    }
-  }, 60_000);
+  });
 
   test("reads the Claude Code marketplace when the Codex one lists other plugins, and says so", async ({
     aireg,
+    initialised,
+    project,
     tmp,
   }) => {
     const root = await marketplace(join(tmp, "mkt"))
@@ -283,15 +252,21 @@ describe("a plugin marketplace", () => {
         plugins: [{ name: "docs-kit", source: { source: "local", path: "./plugins/docs-kit" } }],
       })
       .write();
-    await init(aireg, "claude");
+    await initialised(project);
     const shown = await aireg(["registry", "show", root]);
     expect(shown.code, shown.stderr).toBe(0);
     expect(shown.stderr).toContain(
       'The two marketplace files list different plugins, so aireg reads .claude-plugin/marketplace.json alone: "deploy-kit" is in only one.',
     );
-  }, 60_000);
+  });
 
-  test("skips what it cannot install, and says why", async ({ aireg, tmp }) => {
+  test("skips what it cannot install, never runs a command, and says why", async ({
+    aireg,
+    initialised,
+    project,
+    tmp,
+  }) => {
+    const marker = join(tmp, "ran");
     const root = await marketplace(join(tmp, "mkt"))
       .json(".claude-plugin/marketplace.json", {
         name: "acme-tools",
@@ -299,12 +274,14 @@ describe("a plugin marketplace", () => {
         plugins: [
           { name: "docs-kit", source: "./plugins/docs-kit", strict: false, skills: ["./extra"] },
           { name: "far", source: { source: "github", repo: "example/far" } },
-          { name: "made", source: { source: "command", command: "make-plugin" } },
+          { name: "made", source: { source: "command", command: `touch ${marker}` } },
+          { name: "pkg", source: { source: "npm", package: "@example/pkg" } },
+          { name: "zip", source: { source: "archive", url: "https://example.test/zip.zip" } },
           { name: "deploy-kit", source: "./plugins/deploy-kit" },
         ],
       })
       .write();
-    await init(aireg, "claude");
+    await initialised(project);
     const shown = await aireg(["registry", "show", root]);
     expect(shown.code, shown.stderr).toBe(0);
     expect(shown.stderr).toContain(
@@ -313,152 +290,75 @@ describe("a plugin marketplace", () => {
     expect(shown.stderr).toContain(
       'Skipped "far": aireg fetches its github source only for a marketplace it reads with git.',
     );
-    expect(shown.stderr).toContain('Skipped "made": its command source is not one aireg reads.');
-  }, 60_000);
+    for (const [name, type] of [
+      ["made", "command"],
+      ["pkg", "npm"],
+      ["zip", "archive"],
+    ]) {
+      expect(shown.stderr).toContain(
+        `Skipped "${name}": its ${type} source is not one aireg reads.`,
+      );
+    }
+    expect(existsSync(marker)).toBe(false);
+  });
 
   test("refuses a broken marketplace rather than reading the skills beside it", async ({
     aireg,
+    initialised,
+    project,
     tmp,
   }) => {
     const root = await skillsFolder(join(tmp, "broken"))
       .file(".claude-plugin/marketplace.json", "{ not json")
       .skill("skills/x")
       .write();
-    await init(aireg, "claude");
+    await initialised(project);
     const added = await aireg(["add", root, "--all"]);
     expect(added.code).toBe(1);
     expect(added.stderr).toContain(".claude-plugin/marketplace.json is not valid JSON.");
-  }, 60_000);
+  });
 });
 
-describe("-s on a plugin", () => {
-  test("installs that one skill on its own, outside the plugin", async ({
-    aireg,
-    project,
-    tmp,
-  }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
+describe("a whole marketplace installed with its plugin trusted", () => {
+  trusted.beforeAll(async ({ aireg, mkt }) => {
     await init(aireg, "claude");
-    expect((await aireg(["registry", "add", root])).code).toBe(0);
-    const added = await aireg(["add", "acme-tools/docs-kit", "-s", "pdf"]);
-    expect(added.code, added.stderr).toBe(0);
-    const lock = parse(await read(lockPath(project))) as {
-      artifacts: Record<string, { kind: string; namespace?: string }>;
-    };
-    expect(lock.artifacts).toEqual({
-      pdf: expect.objectContaining({ kind: "skill", namespace: "docs-kit" }),
-    });
-    expect(existsSync(join(project, ".claude", "skills", "pdf", "SKILL.md"))).toBe(true);
-    expect(existsSync(join(project, ".claude", "skills", "docs-kit"))).toBe(false);
-  }, 60_000);
+    expect((await aireg(["add", mkt, "--all", "--trust", "deploy-kit"])).code).toBe(0);
+  });
 
-  test("lists the plugin's skills for a name it does not hold", async ({ aireg, tmp }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "claude");
-    expect((await aireg(["registry", "add", root])).code).toBe(0);
-    const added = await aireg(["add", "acme-tools/docs-kit", "-s", "nope"]);
-    expect(added.code).toBe(1);
-    expect(added.stderr).toContain('acme-tools publishes nothing named "nope".');
-    expect(added.stderr).toContain("Use docs-kit, pdf or xlsx.");
-  }, 60_000);
+  trusted("does not call a plugin's own parts new to a whole marketplace", async ({ aireg }) => {
+    const outdated = await aireg(["outdated"]);
+    expect(outdated.stdout).not.toContain("new");
+    expect(outdated.code, outdated.stdout).toBe(0);
+  });
 
-  test("adds a plugin of many skills by its name without asking, as one artifact", async ({
-    aireg,
-    project,
-    tmp,
-  }) => {
-    const kit = marketplace(join(tmp, "mkt"));
-    for (let at = 0; at < 11; at += 1) kit.skill(`plugins/docs-kit/skills/tip-${at}`);
-    const root = await kit.write();
-    await init(aireg, "claude");
-    expect((await aireg(["registry", "add", root])).code).toBe(0);
-    const added = await aireg(["add", "acme-tools/docs-kit", "-y"]);
-    expect(added.code, added.stderr).toBe(0);
-    expect(await locked(project)).toEqual(["docs-kit"]);
-  }, 60_000);
+  trusted(
+    "keeps what a trusted plugin runs on record through an install that reads nothing",
+    async ({ aireg }) => {
+      expect((await aireg(["install"])).code).toBe(0);
+      const synced = await aireg(["sync"]);
+      expect(synced.stdout).not.toContain("adds or changes");
+      expect(synced.code, synced.stdout).toBe(0);
+    },
+  );
 
-  test("names the part of a plugin whose name another skill already holds, and keeps it there", async ({
-    aireg,
-    project,
-    tmp,
-  }) => {
-    const mine = await skillsFolder(join(tmp, "mine")).skill("skills/pdf").write();
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "agents");
-    expect((await aireg(["add", mine, "--all"])).code).toBe(0);
-    expect((await aireg(["registry", "add", root])).code).toBe(0);
-    const added = await aireg(["add", "acme-tools/docs-kit", "-y"]);
-    expect(added.stdout).toContain("docs-kit, because pdf is taken by mine/pdf");
-    // The skill installed first keeps its name run after run.
-    const again = await aireg(["install"]);
-    expect(again.stdout).not.toContain("renamed");
-    expect(again.stdout).toContain("docs-kit, because pdf is taken by mine/pdf");
-    expect(await locked(project)).toEqual(["docs-kit", "pdf"]);
-  }, 60_000);
-
-  test("refuses a name that is both a plugin and a skill, naming how to take each", async ({
-    aireg,
-    project,
-    tmp,
-  }) => {
-    const root = await marketplace(join(tmp, "mkt"))
-      .skill("plugins/docs-kit/skills/docs-kit")
-      .write();
-    await init(aireg, "claude");
-    expect((await aireg(["registry", "add", root])).code).toBe(0);
-    const refused = await aireg(["add", "acme-tools", "-s", "docs-kit"]);
-    expect(refused.code).toBe(2);
-    expect(refused.stderr).toContain(
-      '"docs-kit" names both the plugin docs-kit and the skill docs-kit/skill/docs-kit.',
-    );
-    expect(refused.stderr).toContain(
-      "Add the whole plugin with `aireg add acme-tools/docs-kit`, or only the skill with `-s docs-kit/skill/docs-kit`.",
-    );
-    const skill = await aireg(["add", "acme-tools", "-s", "docs-kit/skill/docs-kit"]);
-    expect(skill.code, skill.stderr).toBe(0);
-    expect(await locked(project)).toEqual(["docs-kit"]);
-    expect(existsSync(join(project, ".claude", "skills", "docs-kit", "SKILL.md"))).toBe(true);
-  }, 60_000);
-
-  test("leaves a whole-plugin install as it was", async ({ aireg, project, tmp }) => {
-    const root = await marketplace(join(tmp, "mkt")).write();
-    await init(aireg, "claude");
-    expect((await aireg(["registry", "add", root])).code).toBe(0);
-    expect((await aireg(["add", "acme-tools/docs-kit"])).code).toBe(0);
-    expect(await locked(project)).toEqual(["docs-kit"]);
-  }, 60_000);
-});
-
-describe("a folder that is one plugin", () => {
-  for (const [manifest, body] of [
-    [".claude-plugin/plugin.json", { name: "hello" }],
-    [".codex-plugin/plugin.json", { name: "hello" }],
-    [
-      "plugin.json",
-      { $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json", name: "hello" },
-    ],
-  ] as const) {
-    test(`installs by its ${manifest}, and registers it with Codex in your user scope`, async ({
-      aireg,
-      home,
-      tmp,
-    }) => {
-      const root = await skillsFolder(join(tmp, "single"))
-        .json(manifest, body)
-        .skill("skills/greet")
+  trusted(
+    "lets a sync take no change to what a plugin runs, trusted or not",
+    async ({ aireg, mkt, project }) => {
+      const before = await read(lockPath(project));
+      await skillsFolder(mkt)
+        .json("plugins/deploy-kit/.mcp.json", { mcpServers: { other: { command: "other-mcp" } } })
+        .json("plugins/docs-kit/hooks/hooks.json", { hooks: {} })
         .write();
-      const added = await aireg(
-        ["add", root, "--all", "-g", "--for", "codex", "--no-auto-update"],
-        {
-          cwd: tmp,
-        },
-      );
-      expect(added.code, added.stderr).toBe(0);
-      const config = await read(join(home.dir, ".codex", "config.toml"));
-      expect(config).toContain('[plugins."hello@single"]');
-      expect(
-        existsSync(join(home.dir, ".codex", "plugins", "cache", "single", "hello", "local")),
-      ).toBe(true);
-    }, 60_000);
-  }
+      try {
+        const synced = await aireg(["sync"]);
+        expect(synced.code).toBe(3);
+        const said = `${synced.stdout}${synced.stderr}`;
+        expect(said).toContain("its new version adds or changes the hooks and MCP servers it runs");
+        expect(said).toContain("it now carries hooks, which no entry trusts");
+        expect(await read(lockPath(project))).toBe(before);
+      } finally {
+        await aireg(["daemon", "stop"]);
+      }
+    },
+  );
 });

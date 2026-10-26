@@ -23,6 +23,12 @@ vi.mock("#daemon/autostart/index.ts", () => ({
     machine.changed === undefined ? undefined : { changed: machine.changed },
 }));
 
+// Nor its Windows user PATH, which PowerShell takes a second or two to read.
+vi.mock("#self/windows-path.ts", async (actual) => ({
+  ...(await actual<typeof import("#self/windows-path.ts")>()),
+  userPathHas: async () => false,
+}));
+
 beforeEach(() => {
   Object.assign(machine, { running: false, registered: false, changed: false, stopped: 0 });
 });

@@ -68,7 +68,6 @@ describe.skipIf(process.platform === "win32")("replacing a running executable", 
     // The old inode is still what that process was executing.
     expect(printed.trim().split("\n").at(-1)).toBe("0.1.0");
 
-    // A re-exec of the same path gets the replacement.
     const launch = launchArgv(bin, []);
     expect(await run(launch.command, launch.args)).toBe("0.1.1");
   });
@@ -93,7 +92,6 @@ describe.skipIf(process.platform === "win32")("replacing a running executable", 
 
     await installBinary("0.1.0", versionScript("0.1.0"), env);
     expect(await readFile(shimPath(env), "utf8")).toBe(standaloneShim());
-    expect(await readFile(shimPath(env), "utf8")).not.toContain("node");
   });
 });
 

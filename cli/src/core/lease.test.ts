@@ -198,8 +198,9 @@ describe("waiting for a held lease", () => {
         await vi.waitFor(() => expect(vi.getTimerCount()).toBeGreaterThan(0));
         await vi.advanceTimersToNextTimerAsync();
       }
-      await held.release();
+      // Released only while it sleeps; a poll still in flight could take the lease and never sleep again.
       await vi.waitFor(() => expect(vi.getTimerCount()).toBeGreaterThan(0));
+      await held.release();
       await vi.advanceTimersToNextTimerAsync();
       await (await pending).release();
     } finally {

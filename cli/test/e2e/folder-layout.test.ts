@@ -76,7 +76,7 @@ describe("a folder of skills on this machine", () => {
       release: undefined,
       reviewer: undefined,
     });
-  }, 60_000);
+  });
 
   test("copies a skill a person must run for Codex, with the policy file Codex reads", async ({
     aireg,
@@ -100,7 +100,7 @@ describe("a folder of skills on this machine", () => {
     );
     // The file it added is part of the copy, so the copy still matches the lockfile.
     expect((await aireg(["status"])).code).toBe(0);
-  }, 60_000);
+  });
 
   test("installs a folder that is one skill, named after the folder", async ({
     aireg,
@@ -118,7 +118,7 @@ describe("a folder of skills on this machine", () => {
     expect(existsSync(join(project, ".claude", "skills", "pdf-tools", "scripts", "fill.sh"))).toBe(
       true,
     );
-  }, 60_000);
+  });
 
   test("refuses a version, and a publish, naming what to do instead", async ({
     aireg,
@@ -144,7 +144,7 @@ describe("a folder of skills on this machine", () => {
       "skills-repo is a folder of skills, not a registry, so aireg reads it but does not publish to it.",
     );
     expect(published.stderr).toContain("`aireg registry init <folder>`");
-  }, 60_000);
+  });
 
   test("reads what a broken registry.json sits beside only when told to", async ({
     aireg,
@@ -161,7 +161,7 @@ describe("a folder of skills on this machine", () => {
     const forced = await aireg(["add", root, "--all", "--layout", "folder", "--as", "half"]);
     expect(forced.code, forced.stderr).toBe(0);
     expect(await readFile(manifestPath(project), "utf8")).toContain("layout: folder");
-  }, 60_000);
+  });
 });
 
 describe("a git repository of skills", () => {
@@ -196,7 +196,7 @@ describe("a git repository of skills", () => {
     expect(updated.code, updated.stderr).toBe(0);
     expect((await lockOf(project)).registries["skills-repo"]?.revision).toBe(second);
     expect(await versions(project)).toMatchObject({ "pr-review": "1.1.0", reviewer: "1.1.0" });
-  }, 60_000);
+  });
 
   test("reads a branch at a pseudo-version, which pins its commit", async ({
     aireg,
@@ -229,7 +229,7 @@ describe("a git repository of skills", () => {
     await git.commit(repo, "three");
     expect((await aireg(["update", "-y"])).code).toBe(0);
     expect((await versions(project))["pr-review"]).toBe(pseudo);
-  }, 60_000);
+  });
 
   test("installs exactly what the lockfile holds in a fresh home, with --frozen", async ({
     aireg,
@@ -262,5 +262,5 @@ describe("a git repository of skills", () => {
     expect(
       await readFile(join(clone, ".claude", "skills", "pr-review", "SKILL.md"), "utf8"),
     ).toContain("Review it.");
-  }, 60_000);
+  });
 });

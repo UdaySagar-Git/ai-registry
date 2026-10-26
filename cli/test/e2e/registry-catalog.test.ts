@@ -29,7 +29,7 @@ describe("keeping the catalog honest", () => {
     await writeFile(demo("0.1.0", "SKILL.md"), "---\nname: demo\ndescription: Demo.\n---\n");
     expect((await aireg(["skill", "bump", "demo", "minor"], { cwd: eng })).code).toBe(0);
     expect((await aireg(["registry", "index"], { cwd: catalog() })).code).toBe(0);
-  }, 60_000);
+  });
 
   test("writes the kind's own document as the envelope's spec", async () => {
     const envelope = await json(demo("0.1.0", "artifact.json"));

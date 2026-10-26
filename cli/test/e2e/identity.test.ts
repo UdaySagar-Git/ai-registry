@@ -91,5 +91,5 @@ describe("adapter identity, end to end", () => {
     const removed = await aireg(["remove", "team-lint", "--yes"]);
     expect(removed.code, removed.stderr).toBe(0);
     expect(existsSync(join(project, ".claude", "skills", "team-lint"))).toBe(false);
-  }, 60_000);
+  });
 });

@@ -90,7 +90,6 @@ describe("materialize", () => {
         into: keyed(join(home, "mirror", "kept")),
       });
 
-      // The withdrawn member leaves nothing half-written behind.
       expect((await readdir(join(path, "skills"))).sort()).toEqual(["kept"]);
       expect(await readdir(join(path, ".claude-plugin"))).toEqual(["plugin.json"]);
     });

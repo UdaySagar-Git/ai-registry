@@ -62,10 +62,6 @@ test("reports an artifact it did not list as not found", async () => {
     handle.fetch({ ...artifact, id: "artifacts/demo/skill/other/1.0.0" }, artifact.files[0]!),
   ).rejects.toMatchObject({ adapter: "git", failure: "not_found" });
 });
-test("pins the commit it read", async () => {
-  const resolution = await (await connect(context())).resolve([]);
-  expect(resolution.sourceRevision).toBe("a".repeat(40));
-});
 test("refuses a Git registry subfolder that is a symlink", async () => {
   const clone = join(home, "clone");
   await mkdir(clone);

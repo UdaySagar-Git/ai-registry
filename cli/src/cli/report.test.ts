@@ -86,22 +86,20 @@ describe("reportError", () => {
     expect(err.join("")).toContain("trace: trc_1");
   });
 
-  it("keeps the hint of an AdapterError carried as a AiregError cause", () => {
+  it("keeps the code and hint of an AdapterError carried as a AiregError cause", () => {
     const { printer, out } = capture("json");
-    const cause = new AdapterError("git", "unavailable", "git timed out after 300s.", {
-      hint: "Raise the limit with AIREG_GIT_TIMEOUT_MS.",
+    const cause = new AdapterError("git", "not_found", "repository not found", {
+      hint: "Check the address.",
     });
-    reportError(printer, new AiregError(cause.message, { cause }));
-    expect(JSON.parse(out.join("")).error.hint).toBe("Raise the limit with AIREG_GIT_TIMEOUT_MS.");
-  });
-
-  it("keeps the code of an AdapterError carried as a AiregError cause", () => {
-    const { printer, out } = capture("json");
-    const cause = new AdapterError("git", "not_found", "repository not found");
     reportError(printer, new AiregError(cause.message, { cause }));
     expect(JSON.parse(out.join(""))).toEqual({
       ok: false,
-      error: { code: "not_found", message: "repository not found", adapter: "git" },
+      error: {
+        code: "not_found",
+        message: "repository not found",
+        hint: "Check the address.",
+        adapter: "git",
+      },
     });
   });
 

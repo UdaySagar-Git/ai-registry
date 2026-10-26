@@ -180,7 +180,7 @@ export function conformance(spec: Conformance): void {
     test.beforeAll(async () => {
       box = await sandbox(spec);
       before = tree(box.home);
-    }, 60_000);
+    });
 
     test.afterAll(() => dispose(box));
 
@@ -201,18 +201,18 @@ export function conformance(spec: Conformance): void {
     test("L1: places each kind in this project", async () => {
       await installProject(box, spec.id);
       await expect(tree(box.home)).toMatchFileSnapshot(golden("project"));
-    }, 60_000);
+    });
 
     test("L1: places each kind in your user scope", async () => {
       await installUser(box, spec.id);
       await expect(tree(box.home)).toMatchFileSnapshot(golden("user"));
-    }, 60_000);
+    });
 
     // A harness's own root stays, emptied, as it does for a folder the harness made itself.
     test("L1: remove takes back every file and link it placed", async () => {
       await removeAll(box);
       expect(placed(tree(box.home))).toEqual(placed(before));
-    }, 60_000);
+    });
 
     // A sandbox of its own: the harness may write its own state as it runs.
     test.skipIf(!live)(
@@ -243,10 +243,7 @@ export function conformance(spec: Conformance): void {
 
 const run = promisify(execFile);
 
-/**
- * A probe never signs in, so no credential this machine holds reaches the harness, and it
- * runs as a person would, without the test runner's own variables, which a harness may read.
- */
+/** A probe never signs in, and runs without this machine's credentials or the runner's variables. */
 function harnessEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const kept = (name: string) =>
     !/token|key|secret|password|auth|askpass|cred/i.test(name) && !name.startsWith("VITEST");

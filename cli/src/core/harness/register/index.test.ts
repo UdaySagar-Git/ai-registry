@@ -293,7 +293,6 @@ describe("applyRegister", () => {
   );
 });
 
-/** SETTINGS, kept in a folder below the harness root. */
 const settingsIn = (folder: string): RegisterEntry => ({
   ...SETTINGS,
   file: `${folder}/settings.json`,

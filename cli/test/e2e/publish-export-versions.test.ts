@@ -55,7 +55,7 @@ describe("an export's own version", () => {
     const first = await send();
     expect(first.code, first.stderr).toBe(0);
     expect(await written()).toEqual(["0.2.0"]);
-  }, 60_000);
+  });
 
   test("is the same when a draft holds it with these files, every run", async () => {
     await mark("0.2.0", "draft");
@@ -164,7 +164,7 @@ publish:
     expect(made.code, made.stderr).toBe(0);
     const first = await send();
     expect(first.code, first.stderr).toBe(0);
-  }, 60_000);
+  });
 
   test("refuses a dependency's changed label until the dependent gets its own new version", async () => {
     await appendFile(join(repo, ".claude", "skills", "review", "SKILL.md"), "Check tests.\n");

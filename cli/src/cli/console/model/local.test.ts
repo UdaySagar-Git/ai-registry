@@ -122,6 +122,7 @@ describe("localWork", () => {
     await skill("mine");
     const [row] = await localWork(scope(), harnesses(), emptyLock(), new Set(), carried("mine"));
     expect(row?.state).toBe("imported");
+    expect(row?.carriedBy).toBe("job_import");
     expect(row?.detail).toBe("carried by job import-local");
   });
 
@@ -141,13 +142,6 @@ describe("localWork", () => {
     expect(row?.state).toBe("edited");
     expect(row?.carriedBy).toBe("job_import");
     expect(row?.detail).toBe("edited since job import-local last ran; [p] runs it now");
-  });
-
-  test("keeps a carried folder nothing edited since the run as imported", async () => {
-    await skill("mine");
-    const [row] = await localWork(scope(), harnesses(), emptyLock(), new Set(), carried("mine"));
-    expect(row?.state).toBe("imported");
-    expect(row?.carriedBy).toBe("job_import");
   });
 
   test("says why a carried folder needs attention", async () => {

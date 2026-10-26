@@ -118,7 +118,7 @@ describe("conflict methods", () => {
     expect(settled.artifacts).toEqual([
       expect.objectContaining({ name: SKILL, disposition: "synced", operation: "none" }),
     ]);
-  }, 60_000);
+  });
 
   test("publishes this project's copy as a new version for `mine`", async ({ setup }) => {
     await diverge(setup.project, setup.remote);
@@ -140,7 +140,7 @@ describe("conflict methods", () => {
     expect(settled.artifacts).toEqual([
       expect.objectContaining({ name: SKILL, disposition: "synced", operation: "none" }),
     ]);
-  }, 60_000);
+  });
 
   test("publishes only the kind waiting on `mine`, not an agent of the same name", async ({
     setup,
@@ -164,7 +164,7 @@ describe("conflict methods", () => {
     expect(await readFile(join(upstreamDir(setup.remote), "SKILL.md"), "utf8")).toContain(
       LOCAL_BODY,
     );
-  }, 60_000);
+  });
 
   test("refuses to resolve an artifact that is not waiting on a decision", async ({ setup }) => {
     const refused = await setup.client
@@ -175,7 +175,7 @@ describe("conflict methods", () => {
       })
       .catch((error: unknown) => error);
     expect(refused).toMatchObject({ code: RpcErrorCode.InvalidParams });
-  }, 60_000);
+  });
 });
 
 describe("resolvable", () => {

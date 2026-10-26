@@ -89,7 +89,7 @@ describe("aireg add --from a skills lock file", () => {
     expect(again.stderr).not.toContain("Took over");
     expect(await readFile(lockPath(project), "utf8")).toBe(before);
     expect((await aireg(["install"])).stdout).toContain("Already up to date.");
-  }, 60_000);
+  });
 
   test("refuses a file that is not a skills lock, and an address beside it", async ({
     aireg,
@@ -107,5 +107,5 @@ describe("aireg add --from a skills lock file", () => {
     const both = await aireg(["add", pathToFileURL(repo).href, "--from", join(tmp, "copy.json")]);
     expect(both.code).toBe(2);
     expect(both.stderr).toContain("`aireg add --from` takes no address and no -s.");
-  }, 60_000);
+  });
 });

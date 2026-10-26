@@ -19,5 +19,5 @@ describe("the tools a result names", () => {
     const added = await aireg(["add", kit, "--all", "--for", "claude,codex,cursor", "--yes"]);
     expect(added.code, added.stderr).toBe(0);
     expect(added.stdout).toContain("for Claude Code, Codex and Cursor.");
-  }, 60_000);
+  });
 });

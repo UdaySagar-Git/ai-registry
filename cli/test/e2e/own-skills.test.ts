@@ -58,5 +58,5 @@ describe("aireg doctor, for the aireg skills", () => {
     expect((await skills())?.detail).toBe(`pinned to aireg-v0.0.1, but aireg is ${version}`);
     expect((await aireg((added ?? []).slice(1))).code).toBe(0);
     expect(await skills()).toEqual({ name: "aireg skills", ok: true, detail: "installed" });
-  }, 60_000);
+  });
 });

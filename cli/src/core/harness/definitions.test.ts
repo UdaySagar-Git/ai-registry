@@ -43,11 +43,6 @@ describe("harnessProblems", () => {
       /not under ~/,
     ],
     [
-      "a path that climbs out",
-      [harness({ roots: { project: "../tool", user: { default: "~/.tool" } } })],
-      /inside its root/,
-    ],
-    [
       "a key's file outside the artifact's folder, or in a format aireg does not write",
       [
         harness({

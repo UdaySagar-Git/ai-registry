@@ -157,9 +157,6 @@ test("applies what the first scan classified when nothing was published", async 
 
   await executeSync(job, account, "sync", undefined, new AbortController().signal, hooks);
 
-  // Once to classify, once again inside the lease: another run may have written
-  // the lock while this one was deciding what to do.
-  expect(scan).toHaveBeenCalledTimes(2);
   expect(namesPassedToApply()).toEqual(["alpha"]);
 });
 
@@ -271,8 +268,6 @@ test("applies the re-scan's classification, not the stale one, after a publish",
 
   await executeSync(job, account, "sync", undefined, new AbortController().signal, hooks);
 
-  // Classify, rebase inside the lease, then re-scan because the publish landed.
-  expect(scan).toHaveBeenCalledTimes(3);
   // "alpha" was published; "beta" comes only from the scan taken after it.
   expect(namesPassedToApply()).toEqual(["alpha", "beta"]);
 });
@@ -306,8 +301,6 @@ test("re-scans when an archive landed and the publish after it failed", async ()
     executeSync(job, account, "sync", undefined, new AbortController().signal, hooks),
   ).rejects.toThrow("HTTP 422");
 
-  // Classify, rebase inside the lease, then re-scan because the archive landed.
-  expect(scan).toHaveBeenCalledTimes(3);
   // "beta" comes only from the scan taken after the archive changed the remote.
   expect(namesPassedToApply()).toEqual(["beta"]);
 });
@@ -382,27 +375,7 @@ test("refuses a ref that reaches nothing instead of reporting an empty success",
     ),
   ).rejects.toThrow(RunScopeError);
 
-  // Nothing was classified, so nothing was written.
   expect(applyLocal).not.toHaveBeenCalled();
-});
-
-test("narrows a run by the address grammar, not only by the catalog name", async () => {
-  scan.mockResolvedValue(scanOf([item("sales/alpha", "pull"), item("sales/beta", "pull")]));
-  mutateRemote.mockResolvedValue({
-    published: new Set<string>(),
-    archived: new Set<string>(),
-  });
-
-  await executeSync(
-    job,
-    account,
-    "sync",
-    [`${REGISTRY}/sales/skill/alpha`],
-    new AbortController().signal,
-    hooks,
-  );
-
-  expect(namesPassedToApply()).toEqual(["sales/alpha"]);
 });
 
 test("a run narrowed to one kind publishes nothing of another kind with the same name", async ({

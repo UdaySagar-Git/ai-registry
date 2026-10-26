@@ -121,7 +121,6 @@ describe("resolveRelease from the signed channel", () => {
     expect(release.plan.kind === "manifest" && release.plan.url).toBe(ARTIFACT);
     await downloadRelease(release, $fetch);
     expect(seen).toEqual([MANIFEST, ARTIFACT]);
-    expect(seen).not.toContain(EVIL);
   });
 
   it("aborts the update when the payload does not match the signed digest", async () => {

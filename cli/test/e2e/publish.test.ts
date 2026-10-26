@@ -31,7 +31,7 @@ test.beforeAll(async ({ tmp }) => {
     join(work, "agents", "triage.md"),
     "---\nname: triage\ndescription: Label and route.\n---\nLabel and route.\n",
   );
-}, 60_000);
+});
 
 describe("creating a registry and publishing into it", () => {
   test("creates an empty registry, and declares it only when added", async ({ aireg }) => {
@@ -158,7 +158,7 @@ describe("creating a registry and publishing into it", () => {
     );
     expect([...listed].sort()).toEqual([...reported].sort());
     expect((await aireg(["registry", "validate"], { cwd: registryRoot })).code).toBe(0);
-  }, 60_000);
+  });
 
   test("publishes an agent from one file, and says what it sent under --json", async ({
     aireg,

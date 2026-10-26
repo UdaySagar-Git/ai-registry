@@ -83,7 +83,6 @@ describe("JobScheduler", () => {
 
     await tickOnce(new JobScheduler(storeReturning({}), runner));
 
-    // watch_a throwing must not abort the tick before watch_b runs.
     expect(started).toEqual(["watch_b"]);
   });
 

@@ -20,7 +20,7 @@ test.beforeAll(async ({ aireg, tmp }) => {
   await registry(registryRoot, { name: "team", slug: "team" }).write();
   const declared = await aireg(["registry", "add", registryRoot], { cwd: work });
   expect(declared.code, declared.stderr).toBe(0);
-}, 60_000);
+});
 
 describe("a refused publish", () => {
   test("refuses a file that may hold credentials, and sends none of it", async ({ aireg }) => {

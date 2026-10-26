@@ -60,7 +60,6 @@ describe("job methods", () => {
       name: "watch_dev",
       intervalSeconds: 3600,
     });
-    // A scope sync is these three steps.
     expect((created.job as Job).steps.map((step) => step.kind)).toEqual([
       "pull",
       "publish",
@@ -96,7 +95,7 @@ describe("job methods", () => {
     // Reporting drift downloads bytes but must not place them.
     const staged = projected(project, "quality-check");
     expect(await readFile(staged, "utf8")).not.toContain("name the risk");
-  }, 60_000);
+  });
 
   test("pauses sync and answers a second pause against the same revision as stale", async ({
     daemon,

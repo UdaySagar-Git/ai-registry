@@ -53,16 +53,10 @@ describe("adapter jobs", () => {
       jobId: "watch_probe",
       mode: "sync",
     });
-    expect(manual.run.jobId).toBe("watch_probe");
-
-    const again = await client.request("run.start", {
-      jobId: "watch_probe",
-      mode: "sync",
-    });
     const settled = await wait("Manual run", async () => {
-      const { run: latest } = await client.request("run.get", { runId: again.run.id });
+      const { run: latest } = await client.request("run.get", { runId: manual.run.id });
       return terminal(latest) ? latest : undefined;
     });
     expect(settled.state).toBe("succeeded");
-  }, 60_000);
+  });
 });

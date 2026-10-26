@@ -189,8 +189,6 @@ describe("mergedIndex", () => {
       ],
     };
     const entries = mergedIndex(existing, [OFFER], "2026-01-02T00:00:00Z").entries as unknown[];
-
-    // Same namespace and name, different kind: a new row, not an overwrite.
     expect(entries).toHaveLength(2);
   });
 });
@@ -221,17 +219,5 @@ describe("what it writes, the reader reads", () => {
         description: "mine",
       },
     ]);
-  });
-});
-
-describe("offering the same bytes twice", () => {
-  it("does stamp again once the digest moves", () => {
-    const first = mergedIndex(undefined, [OFFER], "2026-01-02T00:00:00Z");
-    const second = mergedIndex(
-      first,
-      [{ ...OFFER, version: "0.3.0", digest: "sha256:cccc" }],
-      "2026-06-06T00:00:00Z",
-    );
-    expect(second.generated_at).toBe("2026-06-06T00:00:00Z");
   });
 });

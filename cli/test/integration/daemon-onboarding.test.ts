@@ -101,5 +101,5 @@ describe("onboarding through the daemon", () => {
     await client.request("account.logout", { accountId: account.id });
     const credentials = JSON.parse(await readFile(join(aireg, "credentials.json"), "utf8"));
     expect(credentials).toEqual({ version: 1, credentials: {} });
-  }, 60_000);
+  });
 });

@@ -58,7 +58,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir, git }) => {
     cwd: maker,
   });
   expect(made.code, made.stderr).toBe(0);
-}, 60_000);
+});
 
 describe("publishing a repository's exports", () => {
   test("plans each tracked export, after what it depends on, under --dry-run", async () => {
@@ -133,7 +133,7 @@ describe("publishing a repository's exports", () => {
     ).artifacts;
     expect(rows.reviewer).toMatchObject({ version: "0.1.1" });
     expect(rows.review).toMatchObject({ version: "0.1.1", needed_by: ["reviewer"] });
-  }, 60_000);
+  });
 });
 
 describe("the publish target", () => {
@@ -223,7 +223,7 @@ describe("removing an artifact an export depends on", () => {
       manifestPath(repo),
       `exports:\n  - path: .claude/agents/reviewer.md\n${DEPENDS}`,
     );
-  }, 60_000);
+  });
 
   test("is refused before anything is written, naming the export", async () => {
     const before = await manifest();

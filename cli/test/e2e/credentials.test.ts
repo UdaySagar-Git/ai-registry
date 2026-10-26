@@ -125,7 +125,7 @@ describe("credentials.json, end to end", () => {
     const out = await aireg(["auth", "logout", "acme"]);
     expect(out.code, out.stderr).toBe(0);
     expect(JSON.parse(await readFile(file, "utf8"))).toEqual({ version: 1, credentials: {} });
-  }, 60_000);
+  });
 
   test("says how to sign in when a registry refuses a read without one", async ({
     aireg,
@@ -158,7 +158,7 @@ describe("credentials.json, end to end", () => {
     await expect(stat(join(home.aireg, "credentials.json"))).rejects.toMatchObject({
       code: "ENOENT",
     });
-  }, 60_000);
+  });
 
   test("refuses a dry run of one registry whose token another declared registry reads", async ({
     aireg,
@@ -212,5 +212,5 @@ describe("credentials.json, end to end", () => {
       const bytes = await readFile(join(entry.parentPath, entry.name));
       expect(bytes.includes(TOKEN), entry.name).toBe(false);
     }
-  }, 60_000);
+  });
 });

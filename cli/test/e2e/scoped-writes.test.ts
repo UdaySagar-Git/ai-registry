@@ -23,7 +23,7 @@ describe("an add or remove opens only the registry it changes", () => {
   const skillFile = (home: string, name: string) =>
     join(home, ".claude", "skills", name, "SKILL.md");
 
-  test("installs from two registries", async ({ aireg, tmp, market }) => {
+  test.beforeAll(async ({ aireg, tmp, market }) => {
     const at = outside(tmp);
     expect((await aireg(["registry", "add", market.near, "--as", "near"], at)).code).toBe(0);
     expect((await aireg(["registry", "add", market.far, "--as", "far"], at)).code).toBe(0);

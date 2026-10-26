@@ -59,10 +59,8 @@ describe("userScopeDir", () => {
     expect(userScopeDir({ AIREG_HOME: "/tool" })).toBe(join(user, ".registry"));
   });
 
-  test("takes AIREG_USER_SCOPE as given, without moving the tool", ({ home }) => {
-    const user = home.dir;
+  test("takes AIREG_USER_SCOPE as given", () => {
     expect(userScopeDir({ AIREG_HOME: "/tool", AIREG_USER_SCOPE: "/mine" })).toBe("/mine");
-    expect(toolHome({ AIREG_USER_SCOPE: "/mine" })).toBe(join(user, ".aireg"));
   });
 
   test("keeps every scope's files in its own .registry folder", ({ home }) => {

@@ -83,7 +83,7 @@ describe("an artifact deleted from a registry installed whole", () => {
       artifacts: Record<string, unknown>;
     };
     expect(Object.keys(lock.artifacts)).toEqual(["team/lint"]);
-  }, 60_000);
+  });
 
   test("is kept as a conflict when edited here", async ({ aireg, project, deleted }) => {
     expect((await aireg(["init", "-y", "--for", "claude"])).code).toBe(0);
@@ -101,5 +101,5 @@ describe("an artifact deleted from a registry installed whole", () => {
     expect(output).toContain("edited here and deleted from the registry");
     // The adapter cannot publish and names nowhere else, so the hint offers a registry of your own.
     expect(output).toContain("keep yours by publishing it to a registry of your own");
-  }, 60_000);
+  });
 });

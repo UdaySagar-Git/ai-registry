@@ -189,7 +189,7 @@ describe("SQLite run store", () => {
     expect(store.get("run_new")).toBeDefined();
     expect(store.get("run_mid")).toBeUndefined();
     expect(store.get("run_old")).toBeUndefined();
-  }, 60_000);
+  });
 
   it("forgets a job's run history once it is no longer live", async () => {
     const store = await SqliteRunStore.open(":memory:");

@@ -7,9 +7,6 @@ import { test as base } from "#test/kit/fixtures.ts";
 import { lockPath, manifestPath } from "#test/kit/scope.ts";
 import { type CopyProject, projectTemplate } from "#test/kit/template.ts";
 
-// `-s` reads inside the address it follows, never past it into another
-// namespace; `--registry` names the registry apart from the address.
-
 const test = base
   .extend("market", { scope: "file" }, ({ fileTmp }) =>
     // Two namespaces publish `pr-review`, which only a namespace tells apart.
@@ -68,7 +65,7 @@ describe("aireg add -s", () => {
     const text = await manifest(dir);
     expect(text).toContain("kit/engineering/skill/pr-review");
     expect(text).not.toContain("design");
-  }, 60_000);
+  });
 
   test("takes a namespace and name inside a source", async ({
     aireg,
@@ -82,7 +79,7 @@ describe("aireg add -s", () => {
     expect(text).toContain(`kit: ${market}`);
     expect(text).toContain("kit/design/skill/pr-review");
     expect(text).not.toContain("engineering");
-  }, 60_000);
+  });
 
   test("refuses a name two namespaces share, and names both", async ({
     aireg,
@@ -97,7 +94,7 @@ describe("aireg add -s", () => {
     expect(failed.stderr).toContain("kit/design/skill/pr-review");
     expect(failed.stderr).toContain("kit/engineering/skill/pr-review");
     expect(await manifest(dir)).toBe(before);
-  }, 60_000);
+  });
 });
 
 describe("aireg add --registry", () => {
@@ -115,7 +112,7 @@ describe("aireg add --registry", () => {
     expect(text).toContain(`kit: ${market}`);
     expect(text).toContain("kit/engineering/skill/pr-review");
     expect(text).not.toContain("design");
-  }, 60_000);
+  });
 
   test("writes the same manifest as the full address through a declared registry", async ({
     aireg,
@@ -128,7 +125,7 @@ describe("aireg add --registry", () => {
       0,
     );
     expect(await manifest(short)).toBe(await manifest(full));
-  }, 60_000);
+  });
 });
 
 describe("an address", () => {
@@ -150,7 +147,7 @@ describe("an address", () => {
       );
     }
     expect((await aireg(["show", "kit/engineering/skill/dup@1.1.0"], { cwd: dir })).code).toBe(0);
-  }, 60_000);
+  });
 
   test("pins only the artifact it names", async ({ aireg, declared, newProject: project }) => {
     const dir = await project(declared);
@@ -159,7 +156,7 @@ describe("an address", () => {
     expect(await manifest(dir)).toContain("kit/engineering/skill/pr-review@1.1.0");
     const copy = join(dir, ".claude", "skills", "pr-review", "SKILL.md");
     expect(await readFile(copy, "utf8")).toContain("engineering 1.1.0");
-  }, 60_000);
+  });
 
   test("refuses an artifact whose name another installed one already has", async ({
     aireg,
@@ -175,7 +172,7 @@ describe("an address", () => {
       'kit/design/skill/pr-review and kit/engineering/skill/pr-review would both install as "pr-review".',
     );
     expect(await manifest(dir)).toBe(before);
-  }, 60_000);
+  });
 
   test("installs a member whose name is taken under its namespace and name, across releases", async ({
     aireg,
@@ -213,7 +210,7 @@ describe("an address", () => {
     expect(await readFile(copy, "utf8")).toContain("ops 1.1.0");
     expect(await readFile(copy, "utf8")).toMatch(/^name: ops-review$/m);
     expect((await aireg(["status"], { cwd: dir })).code).toBe(0);
-  }, 60_000);
+  });
 
   test("leaves a member whose name is taken out, or installs nothing, as the setting says", async ({
     aireg,
@@ -243,7 +240,7 @@ describe("an address", () => {
     expect(existsSync(join(dir, ".claude", "skills", "deploy", "SKILL.md"))).toBe(true);
     // A teammate's install says so too, rather than reporting success.
     expect((await aireg(["install"], { cwd: dir })).code).toBe(3);
-  }, 60_000);
+  });
 
   test("keeps what each of several parallel adds wrote", async ({
     aireg,
@@ -263,7 +260,7 @@ describe("an address", () => {
     }
     const lock = await readFile(lockPath(dir), "utf8");
     for (const name of ["pr-review", "lint", "deploy"]) expect(lock).toContain(`  ${name}:`);
-  }, 60_000);
+  });
 });
 
 describe("a namespace in your user scope", () => {
@@ -273,7 +270,7 @@ describe("a namespace in your user scope", () => {
     const added = await aireg(["add", "kit/design", "-g", "-y", "--json"], { cwd: home.dir });
     expect(added.code, added.stderr).toBe(0);
     expect(JSON.parse(added.stdout).data.installed).toEqual(["design/deploy", "design/pr-review"]);
-  }, 60_000);
+  });
 });
 
 describe("a folder registry", () => {
@@ -292,5 +289,5 @@ describe("a folder registry", () => {
     const added = await aireg(["add", "kit/design/deploy", "-y"], { cwd: sub });
     expect(added.code, added.stderr).toBe(0);
     expect(existsSync(join(dir, ".claude", "skills", "deploy", "SKILL.md"))).toBe(true);
-  }, 60_000);
+  });
 });

@@ -92,7 +92,7 @@ describe("a source that declares its namespaces plugins", () => {
     expect(lock).toMatch(/kind: skill/);
     expect(lock).toMatch(/namespace: team/);
     expect(lock).not.toMatch(/kind: plugin/);
-  }, 60_000);
+  });
 });
 
 describe("a source that does not", () => {
@@ -109,7 +109,7 @@ describe("a source that does not", () => {
     expect(existsSync(join(home, ".claude", "skills", "team"))).toBe(false);
     expect(existsSync(join(home, ".codex", "plugins"))).toBe(false);
     expect(existsSync(join(home, ".registry", "artifacts", ".projections"))).toBe(false);
-  }, 60_000);
+  });
 });
 
 describe("a Codex home kept in a dotfiles folder", () => {
@@ -128,7 +128,7 @@ describe("a Codex home kept in a dotfiles folder", () => {
     const removed = await aireg(remove, { cwd: tmp, env: { CODEX_HOME: real } });
     expect(removed.code, removed.stderr).toBe(0);
     expect(existsSync(join(real, "config.toml"))).toBe(false);
-  }, 60_000);
+  });
 
   test("says which file it left when a folder in it is a link, on remove too", async ({
     aireg,
@@ -146,5 +146,5 @@ describe("a Codex home kept in a dotfiles folder", () => {
       "as it is for team: plugins/cache/wraps/.agents is a symlink.",
     );
     expect(removed.stderr).not.toContain("Did not install");
-  }, 60_000);
+  });
 });

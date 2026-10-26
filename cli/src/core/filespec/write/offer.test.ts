@@ -120,6 +120,7 @@ describe("offerFrom", () => {
       'lint has a depends_on edge to "style@1.2.0", which is not a namespace/kind/name@version.',
     );
   });
+
   test("reads a large tree a bounded number of files at a time", async () => {
     const skill = join(root, "lint");
     await mkdir(join(skill, "assets"), { recursive: true });

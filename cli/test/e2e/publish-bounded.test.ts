@@ -98,7 +98,7 @@ describe("publishing to a registry that bounds its whole listing", () => {
     expect(JSON.parse(shown.stdout).data.artifacts).toEqual([
       expect.objectContaining({ name: "style", from: "2.0.0", version: "2.0.1" }),
     ]);
-  }, 60_000);
+  });
 
   test("names a dependency it holds, and finds one already published the same", async ({
     aireg,
@@ -123,5 +123,5 @@ describe("publishing to a registry that bounds its whole listing", () => {
     const same = await aireg(["publish", ".claude/skills/review", "--dry-run"]);
     expect(same.code, same.stderr).toBe(0);
     expect(same.stdout).toMatch(/same {4}eng\/skill\/review {2}1\.2\.0, already published/);
-  }, 60_000);
+  });
 });

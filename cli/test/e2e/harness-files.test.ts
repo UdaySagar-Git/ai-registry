@@ -5,8 +5,6 @@ import { describe, expect } from "vitest";
 import { registry } from "#test/kit/builders/registry.ts";
 import { type Aireg, fileTest as test } from "#test/kit/fixtures.ts";
 
-// A harness defined by a file in your user scope installs like a built-in one.
-
 let aireg: Aireg;
 let project: string;
 
@@ -57,7 +55,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir, home }) => {
     .write();
   expect((await aireg(["init", "-y", "--for", "tool"])).code).toBe(0);
   expect((await aireg(["registry", "add", market, "--as", "fx"])).code).toBe(0);
-}, 60_000);
+});
 
 describe("a harness a file of yours defines", () => {
   test("takes each kind where it says, and says what it asks of you", async () => {

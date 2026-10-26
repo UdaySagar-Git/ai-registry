@@ -6,6 +6,9 @@ import { homeEnv } from "./home.ts";
 export const exec = promisify(execFile);
 export const BIN = fileURLToPath(new URL("../../bin/aireg.mjs", import.meta.url));
 
+// Below vitest's 60s test timeout, so a hung CLI fails with its own output rather than none.
+const CLI_TIMEOUT_MS = 45_000;
+
 /** What every `--json` command prints: data on success, a coded error otherwise. */
 interface Envelope<T = unknown> {
   ok: boolean;
@@ -61,12 +64,16 @@ export async function runCli(args: readonly string[], options: RunOptions): Prom
     const running = exec(process.execPath, [...node, BIN, ...args], {
       cwd,
       env: { ...process.env, ...homeEnv(home), ...env },
+      timeout: CLI_TIMEOUT_MS,
+      killSignal: "SIGKILL",
     });
     if (input !== undefined) running.child.stdin?.end(input);
     const { stdout, stderr } = await running;
     return ran(0, stdout, stderr);
   } catch (error) {
-    const e = error as { code?: number; stdout?: string; stderr?: string };
-    return ran(e.code ?? 1, e.stdout ?? "", e.stderr ?? "");
+    const e = error as { code?: number; killed?: boolean; stdout?: string; stderr?: string };
+    const stderr = e.stderr ?? "";
+    const killed = e.killed === true ? `\naireg killed after ${CLI_TIMEOUT_MS} ms.\n` : "";
+    return ran(e.code ?? 1, e.stdout ?? "", `${stderr}${killed}`);
   }
 }

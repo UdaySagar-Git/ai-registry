@@ -39,7 +39,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir }) => {
   for (const address of ["acme/skill/lint", "acme/skill/format", "acme/agent/reviewer"]) {
     expect((await aireg(["add", address, "-y"])).code).toBe(0);
   }
-}, 60_000);
+});
 
 describe("an installed artifact whose registry blocks it", () => {
   test("is kept by update, as its dependent's need, which names it and updates the rest", async () => {
@@ -53,7 +53,7 @@ describe("an installed artifact whose registry blocks it", () => {
     expect(await installed("lint")).toContain("lint 1.0.0");
     expect(await lockedVersion("lint")).toBe("1.0.0");
     expect(await lockedVersion("format")).toBe("1.1.0");
-  }, 60_000);
+  });
 
   test("is kept by sync, which leaves it for you", async () => {
     const synced = await aireg(["sync"]);
@@ -62,7 +62,7 @@ describe("an installed artifact whose registry blocks it", () => {
     expect(output).toContain("acme/lint 1.0.0 is blocked (leaks tokens)");
     expect(await installed("lint")).toContain("lint 1.0.0");
     expect(await lockedVersion("lint")).toBe("1.0.0");
-  }, 60_000);
+  });
 });
 
 describe("adding an artifact its registry withholds", () => {
@@ -72,7 +72,7 @@ describe("adding an artifact its registry withholds", () => {
     expect(added.stderr).toContain(
       "acme/gate 0.1.0 is blocked (leaks tokens), so nothing was installed.",
     );
-  }, 60_000);
+  });
 
   test("takes a draft only when pinned", async () => {
     const unpinned = await aireg(["add", "acme/skill/sketch", "-y"]);
@@ -81,7 +81,7 @@ describe("adding an artifact its registry withholds", () => {
     const pinned = await aireg(["add", "acme/skill/sketch@0.1.0", "-y"]);
     expect(pinned.code, pinned.stderr).toBe(0);
     expect(await lockedVersion("sketch")).toBe("0.1.0");
-  }, 60_000);
+  });
 });
 
 describe("a clone whose lockfile holds a blocked version", () => {
@@ -97,5 +97,5 @@ describe("a clone whose lockfile holds a blocked version", () => {
     expect(installedNow.stderr).toContain("Run `aireg remove lint` to take it out.");
     expect(await installed("format")).toContain("1.1.0");
     expect(await lockedVersion("lint")).toBe("1.0.0");
-  }, 60_000);
+  });
 });

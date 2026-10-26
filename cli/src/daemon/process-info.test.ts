@@ -28,7 +28,7 @@ describe("isDaemonProcess", () => {
     } finally {
       child.kill();
     }
-  }, 60_000);
+  });
 
   test("never asks about a pid that is not a plain positive integer", async () => {
     expect(await isDaemonProcess(-1)).toBe(false);

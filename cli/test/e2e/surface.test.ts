@@ -197,7 +197,7 @@ describe("the command surface", () => {
       const ran = await aireg(["sync"]);
       expect(ran.code).toBe(0);
       expect(await readFile(join(copy, "SKILL.md"), "utf8")).toContain("Upstream moved.");
-    }, 60_000);
+    });
 
     // A foreground run goes through the run store, so it leaves history and `sync resolve`
     // can name what it found.
@@ -208,6 +208,6 @@ describe("the command surface", () => {
       // A sync started by hand belongs to no job; its trigger says who started it.
       expect(listed.stdout).toMatch(/run_[0-9a-f-]{36}\s+\w+\s+sync\s+-\s+manual/);
       await aireg(["daemon", "stop"]);
-    }, 60_000);
+    });
   });
 });

@@ -39,7 +39,7 @@ describe("<registry>/<name>", () => {
     const ran = await added(["add", "acme/lint", "-y"]);
     expect(ran.code, ran.stderr).toBe(0);
     expect(await declared(project)).toBe("artifacts:\n  - acme/tools/skill/lint\n");
-  }, 60_000);
+  });
 
   test("is refused when two namespaces have the name, listing both", async ({ added }) => {
     const ran = await added(["add", "acme/deploy", "-y"]);
@@ -48,11 +48,11 @@ describe("<registry>/<name>", () => {
     expect(ran.stderr).toContain(
       "Name one of them: acme/infra/skill/deploy or acme/ops/skill/deploy.",
     );
-  }, 60_000);
+  });
 
   test("takes a namespace of that name over an artifact of it", async ({ added, project }) => {
     const ran = await added(["add", "acme/tools", "-y"]);
     expect(ran.code, ran.stderr).toBe(0);
     expect(await declared(project)).toBe("artifacts:\n  - acme/tools\n");
-  }, 60_000);
+  });
 });

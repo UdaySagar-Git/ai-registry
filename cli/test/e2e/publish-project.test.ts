@@ -98,7 +98,7 @@ describe("publishing from a project", () => {
       expect(planned.code, planned.stderr).toBe(0);
       expect(JSON.parse(planned.stdout).data.artifacts[0].registry).toBe(named);
     }
-  }, 60_000);
+  });
 
   test("keeps a copy sent with --force into a clone, and warns before update replaces it", async ({
     aireg,
@@ -131,7 +131,7 @@ describe("publishing from a project", () => {
     expect(sent.code, sent.stderr).toBe(0);
     expect(await readFile(copy, "utf8")).toContain("Mine.");
     expect(sent.stderr).toMatch(/serves seed 1\.0\.1, not the 1\.0\.2 you published/);
-  }, 60_000);
+  });
 
   // Last, because the namespace default it sets is your own and every publish after reads it.
   test("refuses new work with no destination or an undeclared one, and takes your default namespace", async ({
@@ -204,5 +204,5 @@ describe("publishing from a project", () => {
     const homeless = await aireg(["publish", join(".claude", "skills", "third"), "--yes"], at);
     expect(homeless.code).toBe(2);
     expect(homeless.stderr).toMatch(/--to <registry>\/<namespace>/);
-  }, 60_000);
+  });
 });

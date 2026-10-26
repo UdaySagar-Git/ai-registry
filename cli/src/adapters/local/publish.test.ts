@@ -103,7 +103,6 @@ describe("writeOffer", () => {
     const versions = await readVersions(read(root), "house", "skill", "lint");
     expect(versions.versions.map((v) => v.version)).toEqual(["1.1.0", "1.0.0"]);
     expect(versions.latest).toBe("1.1.0");
-    // The first version directory is untouched by the second offer.
     expect(
       await readFile(join(root, "artifacts/house/skill/lint/1.0.0/SKILL.md"), "utf8"),
     ).toContain("One.");

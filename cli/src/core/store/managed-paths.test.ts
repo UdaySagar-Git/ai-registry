@@ -127,7 +127,6 @@ test("rejects a dangling relative link instead of creating its destination", asy
 });
 
 test("refuses redirected staging before starting a fetch", async () => {
-  vi.stubEnv("AIREG_HOME", join(home, "aireg"));
   const parent = join(stagingDir(), "acme");
   await mkdir(dirname(parent), { recursive: true });
   await symlink(outside, parent);

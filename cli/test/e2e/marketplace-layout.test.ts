@@ -84,7 +84,7 @@ describe("a plugin marketplace", () => {
     );
     expect(await locked(project)).toEqual(["deploy-kit", "docs-kit"]);
     expect(await read(manifestPath(project))).toContain("layout: marketplace");
-  }, 60_000);
+  });
 
   test("leaves a command out for a harness that would run it on its own, and says so", async ({
     aireg,
@@ -116,7 +116,7 @@ describe("a plugin marketplace", () => {
     expect(added.stderr).toContain(
       "Did not install docs-kit-summarize for Tool: it sets disable-model-invocation, which Tool cannot read.",
     );
-  }, 60_000);
+  });
 
   test("prints the trust step for the agents a plugin brings into a project", async ({
     aireg,
@@ -135,7 +135,7 @@ describe("a plugin marketplace", () => {
     expect(added.stdout + added.stderr).toContain(
       "hint: Codex loads agents here only once you trust them: run `codex`.",
     );
-  }, 60_000);
+  });
 
   test("names the shared folder it left a command out of by its path", async ({
     aireg,
@@ -165,7 +165,7 @@ describe("a plugin marketplace", () => {
     expect(added.stderr).toContain(
       "Did not install docs-kit-summarize for .agents: it sets disable-model-invocation, which Tool cannot read.",
     );
-  }, 60_000);
+  });
 
   test("asks for trust before a plugin that runs things as you, and records it", async ({
     aireg,
@@ -188,7 +188,7 @@ describe("a plugin marketplace", () => {
     expect(await locked(project)).toEqual(["deploy-kit", "docs-kit"]);
     expect(await read(manifestPath(project))).toContain("trust:\n      - deploy-kit");
     expect((await aireg(["install"])).code).toBe(0);
-  }, 60_000);
+  });
 
   // util-linux's `script` runs aireg on a terminal of its own; other systems' `script` differs.
   test.runIf(process.platform === "linux")(
@@ -215,7 +215,6 @@ describe("a plugin marketplace", () => {
       expect(await locked(project)).toEqual(["deploy-kit"]);
       expect(await read(manifestPath(project))).toContain("trust:\n      - deploy-kit");
     },
-    60_000,
   );
 
   test("leaves the manifest as it was when the one plugin an add names is refused", async ({
@@ -229,7 +228,7 @@ describe("a plugin marketplace", () => {
     expect(refused.code).toBe(2);
     expect(await read(manifestPath(project))).toBe(before);
     expect((await aireg(["install"])).code).toBe(0);
-  }, 60_000);
+  });
 
   test("does not take a plugin's own parts for skills written here", async ({ aireg, tmp }) => {
     const root = await marketplace(join(tmp, "mkt")).write();
@@ -239,7 +238,7 @@ describe("a plugin marketplace", () => {
     const synced = await aireg(["sync"]);
     expect(`${synced.stdout}${synced.stderr}`).not.toContain("published nowhere");
     expect(synced.code, synced.stdout).toBe(0);
-  }, 60_000);
+  });
 
   test("reads the Claude Code marketplace when the Codex one lists other plugins, and says so", async ({
     aireg,
@@ -259,7 +258,7 @@ describe("a plugin marketplace", () => {
     expect(shown.stderr).toContain(
       'The two marketplace files list different plugins, so aireg reads .claude-plugin/marketplace.json alone: "deploy-kit" is in only one.',
     );
-  }, 60_000);
+  });
 
   test("skips what it cannot install, never runs a command, and says why", async ({
     aireg,
@@ -301,7 +300,7 @@ describe("a plugin marketplace", () => {
       );
     }
     expect(existsSync(marker)).toBe(false);
-  }, 60_000);
+  });
 
   test("refuses a broken marketplace rather than reading the skills beside it", async ({
     aireg,
@@ -317,24 +316,20 @@ describe("a plugin marketplace", () => {
     const added = await aireg(["add", root, "--all"]);
     expect(added.code).toBe(1);
     expect(added.stderr).toContain(".claude-plugin/marketplace.json is not valid JSON.");
-  }, 60_000);
+  });
 });
 
 describe("a whole marketplace installed with its plugin trusted", () => {
   trusted.beforeAll(async ({ aireg, mkt }) => {
     await init(aireg, "claude");
     expect((await aireg(["add", mkt, "--all", "--trust", "deploy-kit"])).code).toBe(0);
-  }, 60_000);
+  });
 
-  trusted(
-    "does not call a plugin's own parts new to a whole marketplace",
-    async ({ aireg }) => {
-      const outdated = await aireg(["outdated"]);
-      expect(outdated.stdout).not.toContain("new");
-      expect(outdated.code, outdated.stdout).toBe(0);
-    },
-    60_000,
-  );
+  trusted("does not call a plugin's own parts new to a whole marketplace", async ({ aireg }) => {
+    const outdated = await aireg(["outdated"]);
+    expect(outdated.stdout).not.toContain("new");
+    expect(outdated.code, outdated.stdout).toBe(0);
+  });
 
   trusted(
     "keeps what a trusted plugin runs on record through an install that reads nothing",
@@ -344,7 +339,6 @@ describe("a whole marketplace installed with its plugin trusted", () => {
       expect(synced.stdout).not.toContain("adds or changes");
       expect(synced.code, synced.stdout).toBe(0);
     },
-    60_000,
   );
 
   trusted(
@@ -366,6 +360,5 @@ describe("a whole marketplace installed with its plugin trusted", () => {
         await aireg(["daemon", "stop"]);
       }
     },
-    60_000,
   );
 });

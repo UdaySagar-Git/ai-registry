@@ -33,7 +33,6 @@ describe("stopping the daemon", () => {
       const stopped = await aireg(["daemon", "stop"], { cwd: project });
       expect(stopped.code, stopped.stderr).toBe(0);
     },
-    60_000,
   );
 });
 
@@ -84,7 +83,7 @@ describe("background sync jobs", () => {
       data: { jobs: { id: string }[] };
     };
     expect(listed.data.jobs.map((job) => job.id)).toEqual(["job_skills_kit"]);
-  }, 60_000);
+  });
 });
 
 describe("removing a registry", () => {
@@ -154,7 +153,7 @@ describe("removing a registry", () => {
     expect(refused.stderr).toContain("aireg watch remove ~/mine -g");
     expect(await jobIds(aireg, tmp)).toEqual(["job_skills_demo"]);
     expect(await readFile(join(home.scope, "manifest.yml"), "utf8")).toContain("demo:");
-  }, 60_000);
+  });
 });
 
 describe("a job for a registry the project declares by a relative folder", () => {
@@ -176,7 +175,7 @@ describe("a job for a registry the project declares by a relative folder", () =>
     const found = await aireg(["search", "pr-review"], { cwd: tmp });
     expect(found.code, found.stderr).toBe(0);
     expect(found.stdout).toContain("pr-review");
-  }, 60_000);
+  });
 });
 
 describe("a job that also declares artifacts with -s", () => {
@@ -219,5 +218,5 @@ describe("a job that also declares artifacts with -s", () => {
 
     const listed = await aireg(["list"], { cwd: project });
     expect(listed.code, listed.stderr).toBe(0);
-  }, 60_000);
+  });
 });

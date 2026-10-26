@@ -38,7 +38,7 @@ test.beforeAll(async ({ aireg: run, git: gitIn, tmp, project: dir, home: { dir: 
     // More than the cap of 10, so a namespace address has to count only its own.
     ...Object.fromEntries(Array.from({ length: 11 }, (_, at) => [`data/report-${at}`, ["0.1.0"]])),
   });
-}, 60_000);
+});
 
 describe("consuming a registry like a package manager", () => {
   test("declares a registry for the user from outside any project", async () => {
@@ -158,7 +158,7 @@ describe("consuming a registry like a package manager", () => {
     const sent = await aireg(["sync", "--publish", "on"]);
     expect(sent.code, sent.stderr).toBe(0);
     expect(await versions()).toContain("0.1.1");
-  }, 60_000);
+  });
 
   test("removes by the address it was added with", async () => {
     const removed = await aireg(["remove", "acme/platform/skill/lint", "-y"]);

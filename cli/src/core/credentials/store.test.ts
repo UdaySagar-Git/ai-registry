@@ -252,7 +252,7 @@ describe("credentials.json across processes", () => {
       Array.from({ length: 25 }, (_, index) => `acc_${prefix}${index}`),
     );
     await expect(signedInAccounts({ AIREG_HOME: home })).resolves.toEqual(new Set(ids));
-  }, 60_000);
+  });
 
   test("waits while another writer holds the file's lease", async ({ tmp }) => {
     const home = join(tmp, ".aireg");

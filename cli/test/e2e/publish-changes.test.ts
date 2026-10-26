@@ -62,7 +62,7 @@ test.beforeAll(async ({ aireg: run, tmp, git }) => {
   );
   await git(maker, "add", ".");
   await git(maker, "commit", "-qm", "change");
-}, 60_000);
+});
 
 describe("a dry run of an update", () => {
   test("lists the files and dependencies each update changes", async () => {

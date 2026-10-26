@@ -36,5 +36,4 @@ test.skipIf(process.platform === "win32")(
     expect(existsSync(home.scope)).toBe(false);
     expect(await readFile(join(home.dir, ".profile"), "utf8")).toBe("export EDITOR=vi\n");
   },
-  60_000,
 );

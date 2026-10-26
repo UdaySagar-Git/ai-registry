@@ -5,8 +5,6 @@ import { beforeAll, describe, expect } from "vitest";
 import { registry } from "#test/kit/builders/registry.ts";
 import { type Aireg, type Git, fileTest as test } from "#test/kit/fixtures.ts";
 
-// A harness folder holds what a person edits or keeps there, and aireg works around it.
-
 let aireg: Aireg;
 let git: Git;
 let root: string;
@@ -19,7 +17,7 @@ test.beforeAll(async ({ aireg: run, git: gitIn, tmp }) => {
     built.skill(`platform/lint@${version}`, { body: `lint ${version}\n` });
   }
   await built.write();
-}, 60_000);
+});
 
 describe("a copy the harness owns", () => {
   const copied = () => join(root, "copied");
@@ -41,7 +39,7 @@ describe("a copy the harness owns", () => {
     const added = await run(["add", "acme/platform/skill/lint@1.0.0", "--copy", "-y"]);
     expect(added.code, added.stderr).toBe(0);
     expect((await lstat(await harnessCopy())).isSymbolicLink()).toBe(false);
-  }, 60_000);
+  });
 
   test("sees an edit to the copy, and keeps it through an update", async () => {
     await appendFile(await harnessCopy(), "My own note.\n");
@@ -76,7 +74,7 @@ describe("a folder of yours where a link would go", () => {
     await git.init(blocked());
     expect((await run(["init", "-y", "--for", "claude"])).code).toBe(0);
     expect((await run(["registry", "add", market, "--as", "acme"])).code).toBe(0);
-  }, 60_000);
+  });
 
   test("is named by a dry run as a path it will skip", async () => {
     const planned = await run(["add", "acme/platform/skill/lint", "-y", "--dry-run"]);

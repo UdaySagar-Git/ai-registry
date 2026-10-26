@@ -68,7 +68,7 @@ describe("a marketplace plugin fetched from another repository", () => {
     expect(added.code, added.stderr).toBe(0);
     expect(await installed(project)).toContain("First.");
     expect((await row(project))?.revision).toBe(plugin.first);
-  }, 60_000);
+  });
 
   test("follows its ref, holds the commit the lockfile records, and moves on update", async ({
     aireg,
@@ -110,7 +110,7 @@ describe("a marketplace plugin fetched from another repository", () => {
     expect((await aireg(["update", "-y"])).code).toBe(0);
     expect((await row(project))?.revision).toBe(third);
     expect(await installed(project)).toContain("Third.");
-  }, 60_000);
+  });
 
   test("refuses a sha that is not a full commit", async ({ aireg, git, tmp }) => {
     // Refused as the marketplace is read, so no plugin repository is fetched or needed.
@@ -125,5 +125,5 @@ describe("a marketplace plugin fetched from another repository", () => {
     expect(added.stderr).toContain(
       "which is not a full commit: it takes 40 lowercase hex characters.",
     );
-  }, 60_000);
+  });
 });

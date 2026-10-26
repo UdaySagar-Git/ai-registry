@@ -39,7 +39,7 @@ describe("a folder agent whose files move", () => {
 
   test.beforeAll(async ({ aireg, git, tmp }) => {
     made = await fixture(aireg, git, join(tmp, "maker"));
-  }, 60_000);
+  });
 
   test("publishes renamed files and shows the removed and added paths", async ({ git }) => {
     const { maker, agent, run, stored } = made;

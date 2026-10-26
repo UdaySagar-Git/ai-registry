@@ -18,7 +18,7 @@ test.beforeAll(async ({ aireg, tmp, project, git }) => {
   const declared = await aireg(["registry", "add", team], { cwd: work });
   expect(declared.code, declared.stderr).toBe(0);
   await git.init(project);
-}, 60_000);
+});
 
 describe("publishing an installed copy", () => {
   test("sends an edit to an installed copy home, and the lock follows it", async ({
@@ -40,7 +40,7 @@ describe("publishing an installed copy", () => {
     expect(sent.code, sent.stderr).toBe(0);
     expect(sent.stdout).toMatch(/update\s+platform\/skill\/deploy\s+0\.1\.0 → 0\.1\.1/);
     expect((await aireg(["status"], { cwd: project })).code).toBe(0);
-  }, 60_000);
+  });
 
   test("publishes an installed copy named by its harness link", async ({ aireg, project }) => {
     await appendFile(join(project, ".claude", "skills", "deploy", "SKILL.md"), "Roll back.\n");
@@ -48,7 +48,7 @@ describe("publishing an installed copy", () => {
     const sent = await aireg(["publish", ".claude/skills/deploy", "--yes"], { cwd: project });
     expect(sent.code, sent.stderr).toBe(0);
     expect(sent.stdout).toMatch(/update\s+platform\/skill\/deploy\s+0\.1\.1 → 0\.1\.2/);
-  }, 60_000);
+  });
 
   test("refuses an edit made on a version something newer has replaced", async ({
     aireg,
@@ -65,5 +65,5 @@ describe("publishing an installed copy", () => {
     expect(behind.stderr).toMatch(/would drop the changes in/);
 
     expect((await aireg(["publish", "lint", "--yes", "--force"], { cwd: project })).code).toBe(0);
-  }, 60_000);
+  });
 });

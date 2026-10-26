@@ -159,17 +159,11 @@ describe("candidates", () => {
     expect(found.local.map((item) => item.name)).toEqual(["b"]);
   });
 
-  test("reports one artifact once, however many harnesses hold it", async () => {
+  test("reports one artifact once, however many harnesses hold it, and where else it sits", async () => {
     await write(join(root, ".claude", "skills", "dup", "SKILL.md"), skill("dup"));
     await write(join(root, ".cursor", "skills", "dup", "SKILL.md"), skill("dup"));
     const found = await candidates(roots, harnesses, ["claude", "cursor"], emptyLock());
     expect(found.local.map((item) => item.name)).toEqual(["dup"]);
-  });
-
-  test("keeps where else the same artifact sits", async () => {
-    await write(join(root, ".claude", "skills", "dup", "SKILL.md"), skill("dup"));
-    await write(join(root, ".cursor", "skills", "dup", "SKILL.md"), skill("dup"));
-    const found = await candidates(roots, harnesses, ["claude", "cursor"], emptyLock());
     expect(found.local[0]?.elsewhere).toEqual([
       { from: join(root, ".cursor", "skills", "dup"), target: "cursor" },
     ]);

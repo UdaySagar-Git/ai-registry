@@ -53,7 +53,7 @@ describe("a site's Agent Skills index", () => {
     );
     expect(await readFile(manifestPath(project), "utf8")).toContain("layout: well-known");
     expect(await readFile(lockPath(project), "utf8")).toContain("adapter: well-known");
-  }, 60_000);
+  });
 
   test("installs nothing from a site whose bytes do not match its digest", async ({
     aireg,
@@ -74,7 +74,7 @@ describe("a site's Agent Skills index", () => {
       );
     });
     expect(existsSync(join(project, ".claude", "skills", "greet"))).toBe(false);
-  }, 60_000);
+  });
 
   test("refuses an index in another format, and the older one without digests", async ({
     aireg,
@@ -103,7 +103,7 @@ describe("a site's Agent Skills index", () => {
       expect(added.code).toBe(1);
       expect(added.stderr).toContain("index, which gives no digests, so aireg does not read it.");
     });
-  }, 60_000);
+  });
 
   test("refuses an archive that reaches outside itself, and another host without https", async ({
     aireg,
@@ -130,7 +130,7 @@ describe("a site's Agent Skills index", () => {
       expect(added.code).toBe(1);
       expect(added.stderr).toContain("which is another host without https.");
     });
-  }, 60_000);
+  });
 
   test("leaves a declared registry on another git server to git", async ({
     aireg,
@@ -161,7 +161,7 @@ describe("a site's Agent Skills index", () => {
       expect(found.code, found.stderr).toBe(0);
       expect(found.stdout).toContain("acme/lint");
     });
-  }, 60_000);
+  });
 
   test("points a site with no index at the git adapter, and refuses a version", async ({
     aireg,
@@ -185,5 +185,5 @@ describe("a site's Agent Skills index", () => {
       expect(pinned.code).toBe(1);
       expect(pinned.stderr).toContain("site is a site's skills index, which has no versions");
     });
-  }, 60_000);
+  });
 });

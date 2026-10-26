@@ -54,7 +54,7 @@ describe("a registry that stops listing an installed artifact", () => {
     await installed(aireg, project, market);
     await listOnly(market, (name) => name !== "notes");
 
-    // Adding another artifact reads the registry again, which used to take this one out.
+    // Adding another artifact reads the registry again, which must not take this one out.
     const add = await aireg(["add", "acme/skill/extra", "-y"]);
     expect(add.code, add.stderr).toBe(0);
     expect(add.stderr).toContain('acme no longer lists "tools/notes", so it was kept.');
@@ -76,7 +76,7 @@ describe("a registry that stops listing an installed artifact", () => {
     const again = await aireg(["update", "-y"]);
     expect(again.code, again.stderr).toBe(0);
     expect(again.stderr).not.toContain("no longer lists");
-  }, 60_000);
+  });
 
   test("keeps everything when the listing is empty", async ({ aireg, project, tmp }) => {
     const market = join(tmp, "market");
@@ -93,7 +93,7 @@ describe("a registry that stops listing an installed artifact", () => {
       expect(existsSync(skill(project, name))).toBe(true);
     }
     expect(await lockedNames(project)).toEqual(["lint", "tools/format", "tools/notes"]);
-  }, 60_000);
+  });
 
   test("is left for you by sync and by a background job", async ({ aireg, project, tmp }) => {
     const market = join(tmp, "market");
@@ -115,5 +115,5 @@ describe("a registry that stops listing an installed artifact", () => {
     await expect.poll(state, { interval: 200, timeout: 20_000 }).toBe("attention");
     expect(existsSync(skill(project, "notes"))).toBe(true);
     expect(await lockedNames(project)).toEqual(["lint", "tools/format", "tools/notes"]);
-  }, 60_000);
+  });
 });

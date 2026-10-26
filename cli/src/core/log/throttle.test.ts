@@ -21,7 +21,8 @@ describe("throttleSink", () => {
     expect(inner.records).toHaveLength(1);
   });
 
-  it("passes info through, since each line is its own event", () => {
+  // Each info line is its own event; debug and trace are only written when asked for.
+  it("passes info, debug and trace through", () => {
     const inner = memorySink();
     const sink = throttleSink(inner, { windowMs: 60_000 });
     for (let i = 0; i < 3; i += 1) {
@@ -30,19 +31,6 @@ describe("throttleSink", () => {
         severity_text: "info",
         severity_number: 9,
       });
-    }
-    sink.close?.();
-    expect(inner.records.map((item) => item.attributes.repeated)).toEqual([
-      undefined,
-      undefined,
-      undefined,
-    ]);
-  });
-
-  it("passes debug and trace through, since they are only written when asked for", () => {
-    const inner = memorySink();
-    const sink = throttleSink(inner, { windowMs: 60_000 });
-    for (let i = 0; i < 5; i += 1) {
       sink.write({
         ...record("sync event", 1_000 + i),
         severity_text: "debug",
@@ -50,7 +38,9 @@ describe("throttleSink", () => {
       });
       sink.write({ ...record("frame", 1_000 + i), severity_text: "trace", severity_number: 1 });
     }
-    expect(inner.records).toHaveLength(10);
+    sink.close?.();
+    expect(inner.records).toHaveLength(9);
+    expect(inner.records.every((item) => item.attributes.repeated === undefined)).toBe(true);
   });
 
   it("reports how many it swallowed on the next one through", () => {

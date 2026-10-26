@@ -45,7 +45,7 @@ describe("-s on a plugin", () => {
     });
     expect(existsSync(join(project, ".claude", "skills", "pdf", "SKILL.md"))).toBe(true);
     expect(existsSync(join(project, ".claude", "skills", "docs-kit"))).toBe(false);
-  }, 60_000);
+  });
 
   test("lists the plugin's skills for a name it does not hold", async ({
     aireg,
@@ -57,7 +57,7 @@ describe("-s on a plugin", () => {
     expect(added.code).toBe(1);
     expect(added.stderr).toContain('acme-tools publishes nothing named "nope".');
     expect(added.stderr).toContain("Use docs-kit, pdf or xlsx.");
-  }, 60_000);
+  });
 
   test("adds a plugin of many skills by its name without asking, as one artifact", async ({
     aireg,
@@ -73,7 +73,7 @@ describe("-s on a plugin", () => {
     const added = await aireg(["add", "acme-tools/docs-kit", "-y"]);
     expect(added.code, added.stderr).toBe(0);
     expect(await locked(project)).toEqual(["docs-kit"]);
-  }, 60_000);
+  });
 
   test("names the part of a plugin whose name another skill already holds, and keeps it there", async ({
     aireg,
@@ -92,7 +92,7 @@ describe("-s on a plugin", () => {
     expect(again.stdout).not.toContain("renamed");
     expect(again.stdout).toContain("docs-kit, because pdf is taken by mine/pdf");
     expect(await locked(project)).toEqual(["docs-kit", "pdf"]);
-  }, 60_000);
+  });
 
   test("refuses a name that is both a plugin and a skill, naming how to take each", async ({
     aireg,
@@ -117,7 +117,7 @@ describe("-s on a plugin", () => {
     expect(skill.code, skill.stderr).toBe(0);
     expect(await locked(project)).toEqual(["docs-kit"]);
     expect(existsSync(join(project, ".claude", "skills", "docs-kit", "SKILL.md"))).toBe(true);
-  }, 60_000);
+  });
 });
 
 describe("a folder that is one plugin", () => {
@@ -150,6 +150,6 @@ describe("a folder that is one plugin", () => {
       expect(
         existsSync(join(home.dir, ".codex", "plugins", "cache", "single", "hello", "local")),
       ).toBe(true);
-    }, 60_000);
+    });
   }
 });

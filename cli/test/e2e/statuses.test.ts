@@ -65,14 +65,14 @@ describe("a deprecated version", () => {
     expect(ran.code, ran.stderr).toBe(0);
     expect(ran.stderr).toContain("dep/only 1.0.0 is deprecated (use fmt).");
     expect(await versions(project)).toEqual({ only: "1.0.0" });
-  }, 60_000);
+  });
 
   test("installs pinned, with the warning", async ({ added, project }) => {
     const ran = await add(added, "acme/dep/skill/lint@1.1.0");
     expect(ran.code, ran.stderr).toBe(0);
     expect(ran.stderr).toContain("dep/lint 1.1.0 is deprecated (use fmt).");
     expect(await versions(project)).toEqual({ lint: "1.1.0" });
-  }, 60_000);
+  });
 
   test("is not latest beside an active version, and installs with its namespace", async ({
     added,
@@ -86,7 +86,7 @@ describe("a deprecated version", () => {
     // Said once, when it lands: a run that leaves it as it is says nothing more.
     const again = await added(["install"]);
     expect(again.stderr).not.toContain("deprecated");
-  }, 60_000);
+  });
 });
 
 describe.each([
@@ -102,7 +102,7 @@ describe.each([
     expect(only.stderr).toContain(
       `${namespace}/only 1.0.0 ${words} (not yet), so nothing was installed.`,
     );
-  }, 60_000);
+  });
 
   test("installs pinned, with a warning", async ({ added, project }) => {
     const ran = await add(added, `acme/${namespace}/skill/lint@1.1.0`);
@@ -111,13 +111,13 @@ describe.each([
       `${namespace}/lint 1.1.0 ${words} (not yet), and installs only because it is pinned.`,
     );
     expect(await versions(project)).toEqual({ lint: "1.1.0" });
-  }, 60_000);
+  });
 
   test("is left out of a namespace install", async ({ added, project }) => {
     const ran = await add(added, `acme/${namespace}`);
     expect(ran.code, ran.stderr).toBe(0);
     expect(await versions(project)).toEqual({ [`${namespace}/lint`]: "1.0.0" });
-  }, 60_000);
+  });
 });
 
 describe("a blocked version", () => {
@@ -125,13 +125,13 @@ describe("a blocked version", () => {
     const ran = await add(added, "acme/blk/skill/lint");
     expect(ran.code, ran.stderr).toBe(0);
     expect(await versions(project)).toEqual({ lint: "1.0.0" });
-  }, 60_000);
+  });
 
   test("is left out of a namespace install", async ({ added, project }) => {
     const ran = await add(added, "acme/blk");
     expect(ran.code, ran.stderr).toBe(0);
     expect(await versions(project)).toEqual({ "blk/lint": "1.0.0" });
-  }, 60_000);
+  });
 });
 
 describe("a sync that pulls a deprecated version", () => {
@@ -150,5 +150,5 @@ describe("a sync that pulls a deprecated version", () => {
     expect(synced.code, synced.stderr).toBe(0);
     expect(`${synced.stdout}${synced.stderr}`).toContain("ops/lint 1.1.0 is deprecated (use fmt).");
     expect(await versions(project)).toEqual({ lint: "1.1.0" });
-  }, 60_000);
+  });
 });

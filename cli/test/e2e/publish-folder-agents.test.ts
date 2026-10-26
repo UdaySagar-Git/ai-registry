@@ -71,7 +71,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir, git }) => {
     cwd: maker,
   });
   expect(made.code, made.stderr).toBe(0);
-}, 60_000);
+});
 
 describe("publishing a folder agent", () => {
   test("lists its files, AGENT.md first, under --dry-run --json", async () => {
@@ -115,7 +115,6 @@ describe("publishing a folder agent", () => {
       { rel_type: "depends_on", to: "marketing/skill/pr-approval@0.1.0" },
       { rel_type: "depends_on", to: "marketing/skill/site-health@0.1.0" },
     ]);
-    // The skill inside its folder is published on its own.
     expect(await filesIn(versionDir("skill", "site-health", "0.1.0"))).toEqual([
       "SKILL.md",
       "artifact.json",
@@ -163,5 +162,5 @@ describe("publishing a folder agent", () => {
     const again = await aireg(["install"]);
     expect(again.code, again.stderr).toBe(0);
     expect(again.stderr).not.toContain("left out");
-  }, 60_000);
+  });
 });

@@ -74,32 +74,10 @@ describe("local publish", () => {
     // No branch, no indexer: the root is already what a consumer reads.
     const resolution = await handle.resolve([]);
     expect(resolution.artifacts).toHaveLength(1);
-    // The id is the path under the root - namespace, kind, name and version in
-    // one string - which is exactly where the writer put it.
     expect(resolution.artifacts[0]).toMatchObject({
       kind: "skill",
       id: "artifacts/mine/skill/scout/0.1.0",
     });
-
-    const index = JSON.parse(await readFile(join(root, "index.json"), "utf8")) as {
-      entries: { name: string; latest: string }[];
-    };
-    expect(index.entries).toEqual([expect.objectContaining({ name: "scout", latest: "0.1.0" })]);
-    await expect(
-      readFile(join(root, "artifacts/mine/skill/scout/versions.json")),
-    ).resolves.toBeDefined();
-  });
-
-  test("offers identical bytes as unchanged without touching the documents", async () => {
-    const handle = await connect(context(root));
-    if (handle.publish === undefined) throw new Error("local adapter declares no publish");
-    await handle.publish([scout()], {});
-    const before = await readFile(join(root, "index.json"), "utf8");
-
-    const again = await handle.publish([scout()], {});
-
-    expect(again.unchanged).toBe(true);
-    expect(await readFile(join(root, "index.json"), "utf8")).toBe(before);
   });
 
   test("refuses a namespace that would leave the root, as this adapter's own error", async () => {

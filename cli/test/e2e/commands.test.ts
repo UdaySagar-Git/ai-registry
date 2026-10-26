@@ -31,7 +31,7 @@ describe("a first-run mistake", () => {
     );
     const fixed = await aireg(["init", "--registry", `file://${repo}`, "--as", "kit"]);
     expect(fixed.code, fixed.stderr).toBe(0);
-  }, 60_000);
+  });
 
   test("refuses a harness it does not know, and installs into the ones it does", async ({
     aireg,
@@ -64,7 +64,7 @@ describe("a first-run mistake", () => {
     expect(installed.code, installed.stderr).toBe(0);
     expect(projected(project, "lint").startsWith(join(project, ".claude"))).toBe(true);
     expect(existsSync(join(project, ".myagent"))).toBe(false);
-  }, 60_000);
+  });
 
   test("keeps its ignore file inside .registry/ and leaves the project's own alone", async ({
     aireg,
@@ -86,7 +86,7 @@ describe("a first-run mistake", () => {
     const warned = await aireg(["init", "--force"]);
     expect(warned.code, warned.stderr).toBe(0);
     expect(warned.stderr).toMatch(/git ignores \.registry\/manifest\.yml/);
-  }, 60_000);
+  });
 
   test("refuses an import with no registry to go into, and writes nothing", async ({
     aireg,
@@ -97,7 +97,7 @@ describe("a first-run mistake", () => {
     expect(refused.code).toBe(2);
     expect(refused.stderr).toContain("Importing needs a registry to import into.");
     expect(existsSync(join(project, ".registry"))).toBe(false);
-  }, 60_000);
+  });
 
   test("refuses a project that needs a newer CLI", async ({ aireg, project }) => {
     await writeManifestIn(project, "engines:\n  aireg: 99.0.0\nregistries: {}\nartifacts: []\n");

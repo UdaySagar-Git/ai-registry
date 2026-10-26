@@ -50,7 +50,7 @@ test.beforeAll(async ({ aireg: run, tmp, project: dir, git }) => {
     cwd: maker,
   });
   expect(made.code, made.stderr).toBe(0);
-}, 60_000);
+});
 
 describe("an export depending on a folder", () => {
   test("publishes every skill in it, the one with no entry too, and an edge to each", async () => {
@@ -98,5 +98,5 @@ describe("an export depending on a folder", () => {
     expect(await readFile(join(project, ".claude", "agents", "helper.md"), "utf8")).toContain(
       "Help.",
     );
-  }, 60_000);
+  });
 });

@@ -36,16 +36,13 @@ describe("callingAgent", () => {
     expect(callingAgent({ COPILOT_MODEL: "auto", COPILOT_ALLOW_ALL: "true" })).toBeUndefined();
   });
 
-  it("takes Gemini CLI's variable from its harness definition alone", () => {
-    expect(CALLER_SIGNALS).toContainEqual({ agent: "gemini", env: ["GEMINI_CLI"] });
-    expect(SIGNALS.filter((signal) => signal.agent === "gemini")).toHaveLength(1);
-    expect(callingAgent({ GEMINI_CLI: "1" })).toBe("gemini");
-  });
-
-  it("takes OpenCode's variable from its harness definition alone", () => {
-    expect(CALLER_SIGNALS).toContainEqual({ agent: "opencode", env: ["OPENCODE"] });
-    expect(SIGNALS.filter((signal) => signal.agent === "opencode")).toHaveLength(1);
-    expect(callingAgent({ OPENCODE: "1" })).toBe("opencode");
+  it.each([
+    ["gemini", "GEMINI_CLI"],
+    ["opencode", "OPENCODE"],
+  ])("takes %s's variable from its harness definition alone", (agent, variable) => {
+    expect(CALLER_SIGNALS).toContainEqual({ agent, env: [variable] });
+    expect(SIGNALS.filter((signal) => signal.agent === agent)).toHaveLength(1);
+    expect(callingAgent({ [variable]: "1" })).toBe(agent);
   });
 
   it("ignores a variable that is set but empty", () => {

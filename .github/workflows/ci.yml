@@ -115,7 +115,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck
       - run: pnpm run lint:ci
-      # A pull request leaves every file it adds or edits clean, warnings included; files it leaves alone keep theirs.
+      # Files a pull request touches must be free of warnings too.
       - if: github.event_name == 'pull_request'
         run: pnpm run lint:changed --since="$BASE_SHA"
         env:
@@ -150,8 +150,7 @@ jobs:
       actions: read
       security-events: write
 
-  # Each suite runs in shards, so no one runner holds the whole run, and a gate per
-  # suite keeps the required check names whole; skipped by path selection, it passes.
+  # A gate per suite keeps its required check name over the shards, and passes when path selection skips it.
   compat-node-min-shard:
     name: CLI tests (Node 22.20.0, ubuntu-latest, ${{ matrix.shard }})
     needs: changes
@@ -179,7 +178,6 @@ jobs:
           node-version: ${{ env.CI_NODE_VERSION }}
           package-manager-cache: false
 
-      # Hosted Windows runners preinstall Yarn shims; replace them with Corepack.
       - run: npm install --global --force corepack@0.34.6 && corepack enable pnpm
 
       - id: store
@@ -195,8 +193,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
 
-      # The suites mostly wait on the CLIs and git they spawn, so 1.5 workers a core keeps a runner
-      # busy; more slows the longest files by more than the run gains.
+      # The suites mostly wait on the CLIs and git they spawn, so 1.5 workers a core keeps a runner busy.
       - name: Test
         shell: bash
         run: |

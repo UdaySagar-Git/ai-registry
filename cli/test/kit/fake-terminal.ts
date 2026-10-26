@@ -8,8 +8,7 @@ import { CSI_BODY, ESC } from "#core/term/format.ts";
 // the flag once, on first import, so it is cleared before then.
 Reflect.deleteProperty(process.env, "CI");
 Reflect.deleteProperty(process.env, "CONTINUOUS_INTEGRATION");
-// Ink sizes the prompt stream, which has no height, from the process's terminal; with
-// none attached that spawns `tput` on every frame. 80x24 is what it finds on CI.
+// Without a size, Ink runs `tput` for every frame it draws.
 process.env.COLUMNS = "80";
 process.env.LINES = "24";
 
@@ -96,10 +95,7 @@ function screen(output: string): string[] {
 
 const tick = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
-/**
- * Resolves as soon as the prompt reads keys, rather than polling for it. The first
- * prompt in a file loads Ink, which takes over a second on a loaded machine.
- */
+/** Resolves once the prompt reads keys; the first prompt in a file waits for Ink to load. */
 async function reading(input: FakeInput): Promise<void> {
   if (input.listenerCount("readable") > 0) return;
   // Not a faked timer: the frozen clock would never end the wait.

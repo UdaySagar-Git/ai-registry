@@ -1,10 +1,18 @@
 import { list, plural } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/index.ts";
 import { publishInstead } from "#cli/publish/target.ts";
-import { itemLine } from "#cli/render/run.ts";
+import { failureWords, itemLine } from "#cli/render/run.ts";
 import { loadAdapter } from "#core/adapter/registry.ts";
 import { readOnlyLayout } from "#core/adapter/writable.ts";
-import { ITEM_EVENT, isFailed, type RunRecord, WARNING_EVENT } from "#core/run/model.ts";
+import { AiregError, ErrorCode } from "#core/errors.ts";
+import {
+  ITEM_EVENT,
+  isFailed,
+  isInterrupted,
+  RunErrorCode,
+  type RunRecord,
+  WARNING_EVENT,
+} from "#core/run/model.ts";
 import { followRun, type RpcClient } from "#daemon/rpc/client.ts";
 import type { load } from "#engine/pipeline.ts";
 
@@ -44,6 +52,8 @@ export const PUBLISH_HINT = "Run `aireg publish` to publish what was edited here
 export interface Followed {
   attention: boolean;
   failed: boolean;
+  /** Why the run stopped before its work was done, in words, when it did. */
+  stopped: string | undefined;
   run: RunRecord;
   /** Each item that changed, needs you, or failed, as the text lists them. */
   artifacts: {
@@ -117,12 +127,41 @@ export async function follow(
 
   const { run } = await client.request("run.get", { runId });
   const prefix = label === undefined ? "" : `${label}: `;
-  context.printer.info(context.printer.style.dim(runSummary(run.counts, prefix, label ?? named)));
+  // It checked only part of the scope, so its counts must not read as being in sync.
+  const stopped = isInterrupted(run.state)
+    ? failureWords(run.errorCode ?? RunErrorCode.Canceled)
+    : undefined;
+  if (stopped === undefined) {
+    context.printer.info(context.printer.style.dim(runSummary(run.counts, prefix, label ?? named)));
+  }
   if (isFailed(run.state)) failed = true;
   if (run.counts.attention > 0 || run.state === "attention" || run.state === "partial") {
     attention = true;
   }
-  return { attention, failed, run, artifacts, warnings };
+  return { attention, failed, stopped, run, artifacts, warnings };
+}
+
+/** A run that stopped before its work was done, under the name its command gave it. */
+export interface StoppedRun {
+  name: string;
+  reason: string;
+}
+
+/** What a command ends with when its runs stopped before their work was done. */
+export function stoppedError(
+  what: string,
+  stopped: readonly StoppedRun[],
+  again: string,
+): AiregError {
+  const [only] = stopped;
+  const why =
+    stopped.length === 1 && only !== undefined
+      ? `${only.name}: ${only.reason}`
+      : list(stopped.map(({ name, reason }) => `${name} (${reason})`));
+  return new AiregError(`${what} ${why}.`, {
+    code: ErrorCode.Unavailable,
+    hint: `Run \`${again}\` again.`,
+  });
 }
 
 /** What to run for what a sync left for you, as `--dry-run` would say it. */

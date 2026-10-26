@@ -3,10 +3,10 @@ import { LeaseBusyError, LeaseError } from "#core/lease.ts";
 import {
   failureCode,
   isActive,
+  isInterrupted,
   type RunCounts,
   RunErrorCode,
   type RunRecord,
-  type RunState,
   type TerminalRunState,
 } from "#core/run/model.ts";
 import { RunScopeError } from "#engine/scope.ts";
@@ -90,9 +90,6 @@ export function retryBackoff(failures: number): number {
   return Math.min(RETRY_CEILING_MS, RETRY_FLOOR_MS * 2 ** (failures - 1));
 }
 
-/** An interrupted run is not a failure: a busy afternoon must not read as an outage. */
-const INTERRUPTED: readonly RunState[] = ["canceled", "abandoned"];
-
 function outcomeKey(state: TerminalRunState, counts: RunCounts): string {
   const { examined, changed, skipped, attention, failed } = counts;
   return [state, examined, changed, skipped, attention, failed].join(":");
@@ -103,7 +100,8 @@ function failureStreak(recent: readonly RunRecord[]): number {
   let streak = 0;
   for (const run of recent) {
     if (run.finishedAtMs === undefined) continue;
-    if (INTERRUPTED.includes(run.state)) continue;
+    // An interrupted run is not a failure: a busy afternoon must not read as an outage.
+    if (isInterrupted(run.state)) continue;
     if (run.state === "succeeded" || run.state === "attention") break;
     streak += 1;
   }

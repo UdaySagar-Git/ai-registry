@@ -23,7 +23,7 @@ jobs:
   changes:
     name: CI change detection
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .
@@ -85,7 +85,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -156,7 +156,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -224,7 +224,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -248,7 +248,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -270,7 +270,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -292,7 +292,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -316,7 +316,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: darwin
       CI_ARCH: arm64
@@ -338,7 +338,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: macos-26-intel
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: darwin
       CI_ARCH: amd64
@@ -349,7 +349,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: linux
       CI_ARCH: amd64
@@ -360,7 +360,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-26.04-arm
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: linux
       CI_ARCH: arm64
@@ -371,7 +371,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: windows
       CI_ARCH: amd64
@@ -382,7 +382,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: windows-11-arm
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       CI_OS: windows
       CI_ARCH: arm64
@@ -393,7 +393,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.spec == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .
@@ -418,7 +418,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .
@@ -438,7 +438,7 @@ jobs:
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .

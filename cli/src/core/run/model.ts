@@ -48,6 +48,11 @@ export function isFailed(state: RunState): boolean {
   return (FAILED_RUN_STATES as readonly RunState[]).includes(state);
 }
 
+/** Stopped before its work was done: canceled, or cut off by the daemon stopping. */
+export function isInterrupted(state: RunState): boolean {
+  return state === "canceled" || state === "abandoned";
+}
+
 /** Why a run, or one item in it, failed; an adapter's refusal is `adapter_<failure>`. */
 export const RunErrorCode = {
   Canceled: "run_canceled",

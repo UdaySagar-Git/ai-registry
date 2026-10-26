@@ -1,5 +1,5 @@
 import { actionOf, builtin, type CommandContext } from "#cli/commands/index.ts";
-import { attentionHints, type Followed, follow } from "#cli/commands/sync/follow.ts";
+import { attentionHints, type Followed, follow, stoppedError } from "#cli/commands/sync/follow.ts";
 import { matchInstalled, rowsNamed } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import { cannotPublish } from "#cli/publish/target.ts";
@@ -111,6 +111,10 @@ async function settled(
   registry: string | undefined,
 ): Promise<Followed> {
   const outcome = await follow(context, client, runId, undefined, registry);
+  if (outcome.stopped !== undefined) {
+    const stopped = [{ name, reason: outcome.stopped }];
+    throw stoppedError("Could not resolve", stopped, `aireg sync resolve ${name}`);
+  }
   if (outcome.failed) {
     throw new AiregError(`Could not resolve ${name}.`, {
       code: ErrorCode.Unavailable,

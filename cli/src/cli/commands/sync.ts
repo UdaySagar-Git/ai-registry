@@ -7,6 +7,8 @@ import {
   follow,
   PUBLISH_HINT,
   PUBLISHED_BY_YOU,
+  type StoppedRun,
+  stoppedError,
 } from "#cli/commands/sync/follow.ts";
 import { parse } from "#cli/options.ts";
 import { renderSync } from "#cli/render/sync.ts";
@@ -216,6 +218,7 @@ async function reconcile(
 
   let attention = false;
   const failed: string[] = [];
+  const stopped: StoppedRun[] = [];
   const runs: (Pick<RunRecord, "id" | "state" | "counts"> & {
     registry: string;
     artifacts: Followed["artifacts"];
@@ -244,6 +247,9 @@ async function reconcile(
       );
       attention = attention || outcome.attention;
       if (outcome.failed) failed.push(registry);
+      if (outcome.stopped !== undefined) {
+        stopped.push({ name: registry, reason: outcome.stopped });
+      }
       const { id, state, counts } = outcome.run;
       runs.push({
         registry,
@@ -256,6 +262,7 @@ async function reconcile(
     }
   });
 
+  if (stopped.length > 0) throw stoppedError("Could not finish syncing", stopped, "aireg sync");
   if (failed.length > 0) {
     // The run store keeps only the code; the reason is in the daemon's log.
     throw new AiregError(`Could not sync ${list(failed)}.`, {

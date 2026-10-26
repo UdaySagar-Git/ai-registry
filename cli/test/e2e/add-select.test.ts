@@ -5,6 +5,7 @@ import { describe, expect } from "vitest";
 import { registry } from "#test/kit/builders/registry.ts";
 import { test as base } from "#test/kit/fixtures.ts";
 import { lockPath, manifestPath } from "#test/kit/scope.ts";
+import { type CopyProject, projectTemplate } from "#test/kit/template.ts";
 
 // `-s` reads inside the address it follows, never past it into another
 // namespace; `--registry` names the registry apart from the address.
@@ -30,13 +31,25 @@ const test = base
       .agent("engineering/dup@1.0.0", { description: "engineering" })
       .write(),
   )
-  /** Each case starts from an empty project, so one install cannot satisfy the next. */
-  .extend("newProject", ({ aireg, tmp }) => {
+  .extend("initialised", { scope: "file" }, ({ fileTmp }) =>
+    projectTemplate(join(fileTmp, "initialised"), [["init", "-y"]], [".claude"]),
+  )
+  .extend("declared", { scope: "file" }, ({ fileTmp, market }) =>
+    projectTemplate(
+      join(fileTmp, "declared"),
+      [
+        ["init", "-y"],
+        ["registry", "add", market],
+      ],
+      [".claude"],
+    ),
+  )
+  /** Each case starts from a project of its own, so one install cannot satisfy the next. */
+  .extend("newProject", ({ initialised, tmp }) => {
     let projects = 0;
-    return async () => {
+    return async (from: CopyProject = initialised) => {
       const dir = join(tmp, `project-${++projects}`);
-      await mkdir(join(dir, ".claude"), { recursive: true });
-      expect((await aireg(["init", "-y"], { cwd: dir })).code).toBe(0);
+      await from(dir);
       return dir;
     };
   });
@@ -46,11 +59,10 @@ const manifest = (dir: string) => readFile(manifestPath(dir), "utf8");
 describe("aireg add -s", () => {
   test("picks inside the namespace the address names", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     const added = await aireg(["add", "kit/engineering", "-s", "pr-review", "-y"], { cwd: dir });
     expect(added.code, added.stderr).toBe(0);
     const text = await manifest(dir);
@@ -107,14 +119,10 @@ describe("aireg add --registry", () => {
 
   test("writes the same manifest as the full address through a declared registry", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const full = await project();
-    const short = await project();
-    for (const dir of [full, short]) {
-      expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
-    }
+    const [full, short] = [await project(declared), await project(declared)];
     expect((await aireg(["add", "kit/design/pr-review", "-y"], { cwd: full })).code).toBe(0);
     expect((await aireg(["add", "design/pr-review", "-r", "kit", "-y"], { cwd: short })).code).toBe(
       0,
@@ -126,11 +134,10 @@ describe("aireg add --registry", () => {
 describe("an address", () => {
   test("refuses a name a skill and an agent share, whatever version it gives", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     for (const argv of [
       ["show", "kit/engineering/dup@1.1.0"],
       ["show", "kit/engineering/dup@9.9.9"],
@@ -145,9 +152,8 @@ describe("an address", () => {
     expect((await aireg(["show", "kit/engineering/skill/dup@1.1.0"], { cwd: dir })).code).toBe(0);
   }, 60_000);
 
-  test("pins only the artifact it names", async ({ aireg, market, newProject: project }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+  test("pins only the artifact it names", async ({ aireg, declared, newProject: project }) => {
+    const dir = await project(declared);
     const added = await aireg(["add", "kit/engineering/pr-review@1.1.0", "-y"], { cwd: dir });
     expect(added.code, added.stderr).toBe(0);
     expect(await manifest(dir)).toContain("kit/engineering/skill/pr-review@1.1.0");
@@ -157,11 +163,10 @@ describe("an address", () => {
 
   test("refuses an artifact whose name another installed one already has", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     expect((await aireg(["add", "kit/engineering/pr-review", "-y"], { cwd: dir })).code).toBe(0);
     const before = await manifest(dir);
     const failed = await aireg(["add", "kit/design/pr-review", "-y"], { cwd: dir });
@@ -212,11 +217,10 @@ describe("an address", () => {
 
   test("leaves a member whose name is taken out, or installs nothing, as the setting says", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     expect((await aireg(["add", "kit/engineering/pr-review", "-y"], { cwd: dir })).code).toBe(0);
     const before = await manifest(dir);
 
@@ -243,11 +247,10 @@ describe("an address", () => {
 
   test("keeps what each of several parallel adds wrote", async ({
     aireg,
-    market,
+    declared,
     newProject: project,
   }) => {
-    const dir = await project();
-    expect((await aireg(["registry", "add", market], { cwd: dir })).code).toBe(0);
+    const dir = await project(declared);
     const addresses = ["kit/engineering/pr-review", "kit/engineering/lint", "kit/design/deploy"];
     const runs = await Promise.all(
       addresses.map((address) => aireg(["add", address, "-y"], { cwd: dir })),

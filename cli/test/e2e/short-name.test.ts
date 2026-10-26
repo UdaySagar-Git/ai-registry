@@ -4,20 +4,27 @@ import { describe, expect } from "vitest";
 import { registry } from "#test/kit/builders/registry.ts";
 import { test as base } from "#test/kit/fixtures.ts";
 import { manifestPath } from "#test/kit/scope.ts";
+import { projectTemplate } from "#test/kit/template.ts";
 
-/** `lint` in one namespace, `deploy` in two, and a skill named `tools` beside the `tools` namespace. */
-const test = base.extend("added", async ({ aireg, tmp }) => {
-  await registry(join(tmp, "market"), { name: "acme", slug: "acme" })
-    .skill("tools/lint@1.0.0")
-    .skill("tools/fmt@1.0.0")
-    .skill("ops/deploy@1.0.0")
-    .skill("infra/deploy@1.0.0")
-    .skill("misc/tools@1.0.0")
-    .write();
-  expect((await aireg(["init", "--for", "claude"])).code).toBe(0);
-  expect((await aireg(["registry", "add", join(tmp, "market"), "--as", "acme"])).code).toBe(0);
-  return aireg;
-});
+const test = base
+  /** `lint` in one namespace, `deploy` in two, and a skill named `tools` beside the `tools` namespace. */
+  .extend("declared", { scope: "file" }, async ({ fileTmp }) => {
+    const market = await registry(join(fileTmp, "market"), { name: "acme", slug: "acme" })
+      .skill("tools/lint@1.0.0")
+      .skill("tools/fmt@1.0.0")
+      .skill("ops/deploy@1.0.0")
+      .skill("infra/deploy@1.0.0")
+      .skill("misc/tools@1.0.0")
+      .write();
+    return projectTemplate(join(fileTmp, "declared"), [
+      ["init", "--for", "claude"],
+      ["registry", "add", market, "--as", "acme"],
+    ]);
+  })
+  .extend("added", async ({ aireg, declared, project }) => {
+    await declared(project);
+    return aireg;
+  });
 
 const declared = async (project: string) => {
   const text = await readFile(manifestPath(project), "utf8");

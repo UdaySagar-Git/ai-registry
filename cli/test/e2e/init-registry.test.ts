@@ -100,6 +100,47 @@ describe("aireg registry init through a linked artifacts folder", () => {
   });
 });
 
+describe("registry init in a folder that is already a registry", () => {
+  test("answers in the same JSON shape, with the slug and only the namespaces it added", async ({
+    aireg,
+    tmp,
+  }) => {
+    const reg = join(tmp, "again");
+    const first = [
+      "registry",
+      "init",
+      reg,
+      "--name",
+      "again",
+      "--namespace",
+      "one",
+      "-y",
+      "--json",
+    ];
+    expect(JSON.parse((await aireg(first)).stdout).data).toMatchObject({
+      created: true,
+      slug: "again",
+    });
+    const more = [
+      "registry",
+      "init",
+      reg,
+      "--namespace",
+      "one",
+      "--namespace",
+      "two",
+      "-y",
+      "--json",
+    ];
+    expect(JSON.parse((await aireg(more)).stdout).data).toEqual({
+      root: reg,
+      created: false,
+      slug: "again",
+      namespaces: ["two"],
+    });
+  });
+});
+
 describe("outside a project", () => {
   test("reads your user scope, and a command that writes there says so", async ({
     acme,

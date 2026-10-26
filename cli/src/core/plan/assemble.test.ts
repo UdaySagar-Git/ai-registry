@@ -78,6 +78,8 @@ describe("assembling a projection", () => {
     const manifest = JSON.parse(
       await readFile(join(projection(), ".claude-plugin", "plugin.json"), "utf8"),
     ) as { name: string };
+    // Named after the projection, not the content: two registries' `engineering` namespaces
+    // assemble into differently named projections, and a harness keys plugins by name.
     expect(manifest.name).toBe("projection");
     const codex = join(projection(), ".codex-plugin", "plugin.json");
     expect(JSON.parse(await readFile(codex, "utf8"))).toEqual({
@@ -89,19 +91,6 @@ describe("assembling a projection", () => {
       },
       skills: "./skills/",
     });
-  });
-
-  // Two registries' `engineering` namespaces assemble into differently named
-  // projections, and a harness that keys plugins by name must see two names.
-  test("names the plugin after its projection, not the namespace it holds", async () => {
-    await publish("skills", "lint");
-    const renamed = join(root, "kit-engineering");
-    await assemble(renamed, content(), ["claude"]);
-
-    const manifest = JSON.parse(
-      await readFile(join(renamed, ".claude-plugin", "plugin.json"), "utf8"),
-    ) as { name: string };
-    expect(manifest.name).toBe("kit-engineering");
   });
 
   test("names a plugin's own Claude Code manifest after its projection, keeping the rest", async () => {

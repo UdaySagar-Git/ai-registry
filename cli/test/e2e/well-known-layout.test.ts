@@ -3,9 +3,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { gitRegistry } from "#test/kit/builders/registry.ts";
-import { type Aireg, test } from "#test/kit/fixtures.ts";
+import { test as base } from "#test/kit/fixtures.ts";
 import { lockPath, manifestPath, writeManifestIn } from "#test/kit/scope.ts";
 import { serveFolder, tarGz, wellKnownSite } from "#test/kit/site.ts";
+import { projectTemplate } from "#test/kit/template.ts";
+
+const test = base.extend("initialised", { scope: "file" }, ({ fileTmp }) =>
+  projectTemplate(join(fileTmp, "initialised"), [["init", "--for", "claude"]]),
+);
 
 const fill = tarGz([
   {
@@ -25,12 +30,10 @@ async function serving<T>(root: string, body: (url: string) => Promise<T>): Prom
   }
 }
 
-const init = async (aireg: Aireg) =>
-  expect((await aireg(["init", "--for", "claude"])).code).toBe(0);
-
 describe("a site's Agent Skills index", () => {
   test("installs each skill it lists, a SKILL.md or an archive, once its digest checks out", async ({
     aireg,
+    initialised,
     project,
     tmp,
   }) => {
@@ -38,7 +41,7 @@ describe("a site's Agent Skills index", () => {
       { name: "greet" },
       { name: "fill", type: "archive", archive: fill },
     ]);
-    await init(aireg);
+    await initialised(project);
     await serving(root, async (url) => {
       const added = await aireg(["add", url, "--all"]);
       expect(added.code, added.stderr).toBe(0);
@@ -54,6 +57,7 @@ describe("a site's Agent Skills index", () => {
 
   test("installs nothing from a site whose bytes do not match its digest", async ({
     aireg,
+    initialised,
     project,
     tmp,
   }) => {
@@ -61,7 +65,7 @@ describe("a site's Agent Skills index", () => {
       { name: "greet" },
       { name: "fill", type: "archive", archive: fill, digest: `sha256:${"0".repeat(64)}` },
     ]);
-    await init(aireg);
+    await initialised(project);
     await serving(root, async (url) => {
       const added = await aireg(["add", url, "--all"]);
       expect(added.code).toBe(1);
@@ -74,6 +78,8 @@ describe("a site's Agent Skills index", () => {
 
   test("refuses an index in another format, and the older one without digests", async ({
     aireg,
+    initialised,
+    project,
     tmp,
   }) => {
     const other = await wellKnownSite(
@@ -84,7 +90,7 @@ describe("a site's Agent Skills index", () => {
     const legacy = join(tmp, "legacy");
     await mkdir(join(legacy, ".well-known", "skills"), { recursive: true });
     await writeFile(join(legacy, ".well-known", "skills", "index.json"), '{"skills":[]}');
-    await init(aireg);
+    await initialised(project);
     await serving(other, async (url) => {
       const added = await aireg(["add", url, "--all"]);
       expect(added.code).toBe(1);
@@ -101,6 +107,8 @@ describe("a site's Agent Skills index", () => {
 
   test("refuses an archive that reaches outside itself, and another host without https", async ({
     aireg,
+    initialised,
+    project,
     tmp,
   }) => {
     const escaping = await wellKnownSite(join(tmp, "escaping"), [
@@ -109,7 +117,7 @@ describe("a site's Agent Skills index", () => {
     const elsewhere = await wellKnownSite(join(tmp, "elsewhere"), [
       { name: "greet", url: "http://127.0.0.1:9/greet/SKILL.md" },
     ]);
-    await init(aireg);
+    await initialised(project);
     await serving(escaping, async (url) => {
       const added = await aireg(["add", url, "--all"]);
       expect(added.code).toBe(1);
@@ -157,12 +165,14 @@ describe("a site's Agent Skills index", () => {
 
   test("points a site with no index at the git adapter, and refuses a version", async ({
     aireg,
+    initialised,
+    project,
     tmp,
   }) => {
     const empty = join(tmp, "empty");
     await mkdir(empty, { recursive: true });
     const root = await wellKnownSite(join(tmp, "site"), [{ name: "greet" }]);
-    await init(aireg);
+    await initialised(project);
     await serving(empty, async (url) => {
       const added = await aireg(["add", url, "--all"]);
       expect(added.code).toBe(1);

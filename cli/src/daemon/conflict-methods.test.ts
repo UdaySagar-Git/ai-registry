@@ -7,16 +7,7 @@ import { writeConfig } from "#core/config/repository.ts";
 import { ITEM_EVENT } from "#core/run/model.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
-import {
-  ADAPTER,
-  ENDPOINT,
-  finished,
-  jobStatus,
-  NAMESPACE,
-  terminal,
-  testClient,
-  wait,
-} from "#test/kit/daemon.ts";
+import { ADAPTER, ENDPOINT, finished, jobStatus, NAMESPACE, testClient } from "#test/kit/daemon.ts";
 import { test as base } from "#test/kit/fixtures.ts";
 import { projected } from "#test/kit/harness.ts";
 import { resolvable } from "./conflict-methods.ts";
@@ -89,11 +80,10 @@ const test = base.extend("setup", async ({ tmp, home, project, daemon }): Promis
     name: WATCH,
     intervalSeconds: 3600,
   });
-  // The scheduler syncs a new job on its own; everything after waits for that.
-  await wait("Scheduled run", async () => {
-    const { runs } = await client.request("run.list", { jobId: WATCH });
-    return runs.length > 0 && runs.every(terminal) ? runs[0] : undefined;
-  });
+  // Synced now, not on the scheduler's next tick: a run it already started is joined,
+  // and with a run on record the job is not due again for an hour.
+  const { run } = await client.request("run.start", { jobId: WATCH, mode: "sync" });
+  await finished(client, run.id);
   return { project, remote, client };
 });
 

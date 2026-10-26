@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import { promisify } from "node:util";
@@ -261,6 +261,9 @@ async function removeAll(box: Sandbox): Promise<void> {
 
 async function dispose(box: Sandbox | undefined): Promise<void> {
   if (box === undefined) return;
-  await box.aireg(["daemon", "stop"]);
+  // As the e2e fixtures do: only a daemon that started has a log.
+  if (existsSync(join(box.env.AIREG_HOME as string, "logs", "daemon.log"))) {
+    await box.aireg(["daemon", "stop"]);
+  }
   await rm(box.home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }

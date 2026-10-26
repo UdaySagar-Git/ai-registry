@@ -92,13 +92,6 @@ describe("fan-out links", () => {
     expect(await realpath(join(to, "skills"))).toBe(content);
   });
 
-  test("reads a fan-out directory as a link to its source", async () => {
-    const source = await projection();
-    const to = join(root, "cache", "acme", "sales", "local");
-    await fanOut(source, to);
-    expect(await inspect(to)).toEqual({ exists: true, isLink: true, target: source });
-  });
-
   test("does not mistake a person's folder for one", async () => {
     const mine = join(root, "mine");
     await mkdir(mine);

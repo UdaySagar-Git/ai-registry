@@ -14,6 +14,13 @@ import {
 } from "./run-schema.ts";
 import { SqliteRunStore } from "./run-store.ts";
 
+// The real budget takes 75,000 writes to cross; the pruning is the same at any size, as
+// long as a full run history of a few events each still fits inside it.
+vi.mock("./run-schema.ts", async (actual) => ({
+  ...(await actual<typeof import("./run-schema.ts")>()),
+  RUN_EVENTS_PER_JOB: 1_000,
+}));
+
 describe("SQLite run store", () => {
   it("commits run state and its ordered event stream together", async () => {
     const store = await SqliteRunStore.open(":memory:");

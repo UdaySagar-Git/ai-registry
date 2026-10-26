@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { afterAll, describe, expect, vi } from "vitest";
+import { describe, expect } from "vitest";
 import { type Aireg, type Git, fileTest as test } from "#test/kit/fixtures.ts";
 
 let aireg: Aireg;
@@ -11,10 +11,6 @@ let home: string;
 
 test.beforeAll(({ aireg: run, git: gitIn, tmp, home: { dir } }) => {
   [aireg, git, root, home] = [run, gitIn, tmp, dir];
-});
-
-afterAll(async () => {
-  await aireg(["daemon", "stop"], { cwd: home });
 });
 
 describe("setting up a project in one command", () => {
@@ -69,20 +65,8 @@ describe("setting up a project in one command", () => {
     const id = /run_[0-9a-f-]+/.exec(
       (await aireg(["job", "start", job], { cwd: project })).stdout,
     )?.[0];
-    let state: string | undefined;
-    await vi.waitFor(
-      async () => {
-        const runs = JSON.parse(
-          (await aireg(["job", "runs", "--json"], { cwd: project })).stdout,
-        ) as {
-          data: { runs: { id: string; state: string }[] };
-        };
-        state = runs.data.runs.find((run) => run.id === id)?.state;
-        if (state !== "succeeded") throw new Error(`the run is ${state ?? "not listed"}`);
-      },
-      { interval: 1000, timeout: 60_000 },
-    );
-    expect(state).toBe("succeeded");
+    const followed = await aireg(["job", "runs", id ?? "", "--follow"], { cwd: project });
+    expect(followed.stdout).toMatch(/^ {2}finished\s+succeeded$/m);
 
     // Each event in words, one line per artifact, and no progress noise.
     const events = await aireg(["job", "runs", id ?? ""], { cwd: project });

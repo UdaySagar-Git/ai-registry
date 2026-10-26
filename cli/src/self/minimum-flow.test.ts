@@ -151,6 +151,17 @@ describe("minimum update from the signed channel", () => {
     });
   });
 
+  test("answers nothing when the channel is unreachable", async () => {
+    stub.stamp = stamped().stamp;
+    let asked = false;
+    const offline: typeof fetch = async () => {
+      asked = true;
+      throw new Error("offline");
+    };
+    expect(await probeRelease({}, offline)).toBe(undefined);
+    expect(asked).toBe(true);
+  });
+
   test("probes nothing when the build names no channel", async () => {
     expect(await probeRelease({}, async () => new Response("", { status: 500 }))).toBe(undefined);
   });

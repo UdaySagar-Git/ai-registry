@@ -5,10 +5,15 @@ import { pathToFileURL } from "node:url";
 import { describe, expect } from "vitest";
 import { parse } from "yaml";
 import { skillsFolder } from "#test/kit/builders/layouts.ts";
-import { type Aireg, test } from "#test/kit/fixtures.ts";
+import { test as base } from "#test/kit/fixtures.ts";
 import { makeHome } from "#test/kit/home.ts";
 import { runCli } from "#test/kit/run.ts";
 import { lockPath, manifestPath } from "#test/kit/scope.ts";
+import { projectTemplate } from "#test/kit/template.ts";
+
+const test = base.extend("initialised", { scope: "file" }, ({ fileTmp }) =>
+  projectTemplate(join(fileTmp, "initialised"), [["init", "--for", "claude,codex,cursor,agents"]]),
+);
 
 interface Locked {
   registries: Record<string, { revision?: string; config?: Record<string, string> }>;
@@ -34,19 +39,21 @@ function kit(root: string) {
     .link("skills/evil", "/etc");
 }
 
-const init = async (aireg: Aireg) =>
-  expect((await aireg(["init", "--for", "claude,codex,cursor,agents"])).code).toBe(0);
-
 describe("a folder of skills on this machine", () => {
-  test("installs into every harness, under plain names, and records its layout", async ({
+  test("installs into every harness, under plain names, and records and names its layout", async ({
     aireg,
+    initialised,
     project,
     tmp,
   }) => {
     const root = await kit(join(tmp, "skills-repo")).write();
-    await init(aireg);
-    const added = await aireg(["add", root, "--all"]);
+    await initialised(project);
+    const added = await aireg(["add", root, "--all", "--json"]);
     expect(added.code, added.stderr).toBe(0);
+    expect(JSON.parse(added.stdout).data).toMatchObject({
+      registry: "skills-repo",
+      layout: "folder",
+    });
     expect(added.stderr).toContain("Skipped skills/evil, which is a symlink.");
     for (const path of [
       ".claude/skills/pr-review/SKILL.md",
@@ -97,6 +104,7 @@ describe("a folder of skills on this machine", () => {
 
   test("installs a folder that is one skill, named after the folder", async ({
     aireg,
+    initialised,
     project,
     tmp,
   }) => {
@@ -104,7 +112,7 @@ describe("a folder of skills on this machine", () => {
       .file("SKILL.md", "---\nname: pdf-tools\ndescription: Fill PDFs.\n---\nFill them.\n")
       .file("scripts/fill.sh", "#!/bin/sh\n", true)
       .write();
-    await init(aireg);
+    await initialised(project);
     const added = await aireg(["add", root, "--all"]);
     expect(added.code, added.stderr).toBe(0);
     expect(existsSync(join(project, ".claude", "skills", "pdf-tools", "scripts", "fill.sh"))).toBe(
@@ -112,24 +120,14 @@ describe("a folder of skills on this machine", () => {
     );
   }, 60_000);
 
-  test("names the layout it read in --json", async ({ aireg, tmp }) => {
-    const root = await kit(join(tmp, "skills-repo")).write();
-    await init(aireg);
-    const added = await aireg(["add", root, "--all", "--json"]);
-    expect(added.code, added.stderr).toBe(0);
-    expect(JSON.parse(added.stdout).data).toMatchObject({
-      registry: "skills-repo",
-      layout: "folder",
-    });
-  }, 60_000);
-
   test("refuses a version, and a publish, naming what to do instead", async ({
     aireg,
+    initialised,
     project,
     tmp,
   }) => {
     const root = await kit(join(tmp, "skills-repo")).write();
-    await init(aireg);
+    await initialised(project);
     expect((await aireg(["add", root, "--all"])).code).toBe(0);
     const pinned = await aireg(["add", "skills-repo/skills-repo/skill/pr-review@1.0.0", "-y"]);
     expect(pinned.code).toBe(1);
@@ -150,12 +148,13 @@ describe("a folder of skills on this machine", () => {
 
   test("reads what a broken registry.json sits beside only when told to", async ({
     aireg,
+    initialised,
     project,
     tmp,
   }) => {
     const root = await kit(join(tmp, "half")).write();
     await writeFile(join(root, "registry.json"), "{ not json");
-    await init(aireg);
+    await initialised(project);
     const detected = await aireg(["add", root, "--all"]);
     expect(detected.code).toBe(1);
     expect(detected.stderr).toContain("registry.json is not valid JSON.");
@@ -168,6 +167,7 @@ describe("a folder of skills on this machine", () => {
 describe("a git repository of skills", () => {
   test("follows its newest release tag, and moves when a newer one is tagged", async ({
     aireg,
+    initialised,
     git,
     project,
     tmp,
@@ -179,7 +179,7 @@ describe("a git repository of skills", () => {
     await skillsFolder(repo).skill("skills/pr-review", { body: "Review it twice.\n" }).write();
     const second = await git.commit(repo, "two");
     const url = pathToFileURL(repo).href;
-    await init(aireg);
+    await initialised(project);
 
     const added = await aireg(["add", url, "--all"]);
     expect(added.code, added.stderr).toBe(0);
@@ -200,6 +200,7 @@ describe("a git repository of skills", () => {
 
   test("reads a branch at a pseudo-version, which pins its commit", async ({
     aireg,
+    initialised,
     git,
     project,
     tmp,
@@ -211,7 +212,7 @@ describe("a git repository of skills", () => {
     await skillsFolder(repo).skill("skills/pr-review", { body: "Review it twice.\n" }).write();
     const second = await git.commit(repo, "two");
     const url = pathToFileURL(repo).href;
-    await init(aireg);
+    await initialised(project);
 
     const added = await aireg(["add", url, "-s", "pr-review", "--ref", "main"]);
     expect(added.code, added.stderr).toBe(0);
@@ -232,6 +233,7 @@ describe("a git repository of skills", () => {
 
   test("installs exactly what the lockfile holds in a fresh home, with --frozen", async ({
     aireg,
+    initialised,
     git,
     project,
     tmp,
@@ -240,7 +242,7 @@ describe("a git repository of skills", () => {
     await git.init(repo);
     await git.commit(repo, "one");
     await git.tag(repo, "v1.0.0");
-    await init(aireg);
+    await initialised(project);
     expect((await aireg(["add", pathToFileURL(repo).href, "--all", "--ref", "main"])).code).toBe(0);
     // The branch moves on; the lockfile does not.
     await skillsFolder(repo).skill("skills/pr-review", { body: "Changed.\n" }).write();

@@ -57,10 +57,9 @@ describe("an installed artifact whose registry blocks it", () => {
 
   test("is kept by sync, which leaves it for you", async () => {
     const synced = await aireg(["sync"]);
-    expect(synced.code).toBe(3);
-    expect(`${synced.stdout}${synced.stderr}`).toContain(
-      "acme/lint 1.0.0 is blocked (leaks tokens)",
-    );
+    const output = `${synced.stdout}${synced.stderr}`;
+    expect(synced.code, output).toBe(3);
+    expect(output).toContain("acme/lint 1.0.0 is blocked (leaks tokens)");
     expect(await installed("lint")).toContain("lint 1.0.0");
     expect(await lockedVersion("lint")).toBe("1.0.0");
   }, 60_000);

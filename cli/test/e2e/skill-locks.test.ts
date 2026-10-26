@@ -93,10 +93,10 @@ describe("aireg add --from a skills lock file", () => {
 
   test("refuses a file that is not a skills lock, and an address beside it", async ({
     aireg,
-    git,
     tmp,
   }) => {
-    const repo = await skillsRepo(git, join(tmp, "skills-repo"));
+    // Both are refused before anything is fetched, so the repository need not exist.
+    const repo = join(tmp, "skills-repo");
     const broken = join(tmp, "broken.json");
     await writeFile(broken, '{"skills": []}');
     await init(aireg);

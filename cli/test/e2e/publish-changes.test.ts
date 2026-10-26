@@ -80,7 +80,7 @@ describe("a dry run of an update", () => {
 `);
   });
 
-  test("gives them as filesChanged and dependsOnChanged under --json", async () => {
+  test("gives them as filesChanged and dependsOnChanged under --json, with digests an edit moved", async () => {
     const shown = await publish("--dry-run", "--json");
     expect(shown.code, shown.stderr).toBe(0);
     const { artifacts } = JSON.parse(shown.stdout).data as {
@@ -111,11 +111,6 @@ describe("a dry run of an update", () => {
         },
       },
     ]);
-  });
-
-  test("gives each artifact a digest of its content, which an edit moves", async () => {
-    const shown = await publish("--dry-run", "--json");
-    expect(shown.code, shown.stderr).toBe(0);
     const digests = digestsOf(shown.stdout);
     expect(digests.map(([, digest]) => digest)).toEqual([
       expect.stringMatching(/^sha256:[a-f0-9]{64}$/),

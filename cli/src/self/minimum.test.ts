@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { runningEntry } from "#core/release/launch.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { isInstalledCli, probeRelease, skipMinimumUpdate } from "./minimum.ts";
+import { isInstalledCli, skipMinimumUpdate } from "./minimum.ts";
 
 const home = { AIREG_HOME: "/tmp/aireg-home" };
 const installed = join("/tmp/aireg-home/cli/0.1.0/aireg");
@@ -39,15 +39,6 @@ describe("skipMinimumUpdate", () => {
     expect(skipMinimumUpdate({ ...home, AIREG_DISABLE_UPDATE_CHECK: "1" }, installed)).toBe(true);
     expect(skipMinimumUpdate({ ...home, AIREG_SKIP_MIN_UPDATE: "1" }, installed)).toBe(true);
     expect(skipMinimumUpdate(home, installed)).toBe(true);
-  });
-});
-
-describe("probeRelease", () => {
-  test("returns undefined when GitHub is unreachable", async () => {
-    const $fetch: typeof fetch = async () => {
-      throw new Error("offline");
-    };
-    expect(await probeRelease({}, $fetch)).toBeUndefined();
   });
 });
 

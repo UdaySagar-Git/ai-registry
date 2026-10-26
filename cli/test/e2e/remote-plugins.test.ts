@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { cp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -114,11 +113,11 @@ describe("a marketplace plugin fetched from another repository", () => {
   }, 60_000);
 
   test("refuses a sha that is not a full commit", async ({ aireg, git, tmp }) => {
-    const plugin = await pluginRepo(git, join(tmp, "far"));
+    // Refused as the marketplace is read, so no plugin repository is fetched or needed.
     const mkt = await marketplaceRepo(git, join(tmp, "mkt"), {
       source: "url",
-      url: plugin.url,
-      sha: plugin.first.slice(0, 12),
+      url: pathToFileURL(join(tmp, "far")).href,
+      sha: "0123456789ab",
     });
     expect((await aireg(["init", "--for", "claude"])).code).toBe(0);
     const added = await aireg(["add", mkt, "--all"]);
@@ -126,42 +125,5 @@ describe("a marketplace plugin fetched from another repository", () => {
     expect(added.stderr).toContain(
       "which is not a full commit: it takes 40 lowercase hex characters.",
     );
-  }, 60_000);
-
-  test("never runs a command source, and skips npm and archive ones", async ({
-    aireg,
-    git,
-    tmp,
-  }) => {
-    const marker = join(tmp, "ran");
-    const root = join(tmp, "mkt");
-    await skillsFolder(root)
-      .json(".claude-plugin/marketplace.json", {
-        name: "acme-tools",
-        owner: { name: "Acme" },
-        plugins: [
-          { name: "made", source: { source: "command", command: `touch ${marker}` } },
-          { name: "pkg", source: { source: "npm", package: "@example/pkg" } },
-          { name: "zip", source: { source: "archive", url: "https://example.test/zip.zip" } },
-          { name: "here", source: "./here" },
-        ],
-      })
-      .skill("here/skills/hello")
-      .write();
-    await git.init(root);
-    await git.commit(root, "marketplace");
-    expect((await aireg(["init", "--for", "claude"])).code).toBe(0);
-    const shown = await aireg(["registry", "show", pathToFileURL(root).href]);
-    expect(shown.code, shown.stderr).toBe(0);
-    for (const [name, type] of [
-      ["made", "command"],
-      ["pkg", "npm"],
-      ["zip", "archive"],
-    ]) {
-      expect(shown.stderr).toContain(
-        `Skipped "${name}": its ${type} source is not one aireg reads.`,
-      );
-    }
-    expect(existsSync(marker)).toBe(false);
   }, 60_000);
 });

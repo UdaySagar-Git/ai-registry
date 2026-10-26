@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
@@ -30,16 +29,14 @@ function dumbHttp(root: string): Promise<{ url: string; server: Server }> {
   });
 }
 
-test("falls back to a full clone when the server cannot clone shallow", async ({ tmp }) => {
-  const git = (cwd: string, ...args: string[]) =>
-    execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd });
+test("falls back to a full clone when the server cannot clone shallow", async ({ tmp, git }) => {
   const work = join(tmp, "work");
-  git(tmp, "init", "--quiet", "--initial-branch=main", work);
+  await git.init(work);
   await writeFile(join(work, "README.md"), "acme\n");
-  git(work, "add", "README.md");
-  git(work, "commit", "--quiet", "-m", "one");
-  git(tmp, "clone", "--quiet", "--bare", work, join(tmp, "served", "acme.git"));
-  git(join(tmp, "served", "acme.git"), "update-server-info");
+  await git.commit(work, "one");
+  const served = join(tmp, "served", "acme.git");
+  await git(tmp, "clone", "--quiet", "--bare", work, served);
+  await git(served, "update-server-info");
   const { url, server } = await dumbHttp(join(tmp, "served"));
   try {
     const dest = join(tmp, "dest");

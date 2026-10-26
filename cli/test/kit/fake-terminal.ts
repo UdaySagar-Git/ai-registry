@@ -8,6 +8,10 @@ import { CSI_BODY, ESC } from "#core/term/format.ts";
 // the flag once, on first import, so it is cleared before then.
 Reflect.deleteProperty(process.env, "CI");
 Reflect.deleteProperty(process.env, "CONTINUOUS_INTEGRATION");
+// Ink sizes the prompt stream, which has no height, from the process's terminal; with
+// none attached that spawns `tput` on every frame. 80x24 is what it finds on CI.
+process.env.COLUMNS = "80";
+process.env.LINES = "24";
 
 export const KEY = {
   up: "\u001B[A",
@@ -92,6 +96,31 @@ function screen(output: string): string[] {
 
 const tick = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
+/**
+ * Resolves as soon as the prompt reads keys, rather than polling for it. The first
+ * prompt in a file loads Ink, which takes over a second on a loaded machine.
+ */
+async function reading(input: FakeInput): Promise<void> {
+  if (input.listenerCount("readable") > 0) return;
+  // Not a faked timer: the frozen clock would never end the wait.
+  const signal = AbortSignal.timeout(10_000);
+  let added: ((event: string | symbol) => void) | undefined;
+  let late: (() => void) | undefined;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      added = (event) => {
+        if (event === "readable") resolve();
+      };
+      late = () => reject(new Error("The prompt is not reading keys."));
+      input.on("newListener", added);
+      signal.addEventListener("abort", late);
+    });
+  } finally {
+    if (added !== undefined) input.off("newListener", added);
+    if (late !== undefined) signal.removeEventListener("abort", late);
+  }
+}
+
 export interface Terminal {
   io: PromptIo;
   input: FakeInput;
@@ -125,14 +154,7 @@ export function terminal(rows = 40, columns = 80): Terminal {
     io,
     input,
     async press(...keys) {
-      // The first prompt in a file loads Ink, which takes over a second on a loaded machine.
-      await vi.waitFor(
-        () => {
-          if (input.listenerCount("readable") === 0)
-            throw new Error("The prompt is not reading keys.");
-        },
-        { timeout: 10_000 },
-      );
+      await reading(input);
       for (const key of keys) {
         input.write(key);
         await tick();

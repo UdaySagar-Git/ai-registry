@@ -63,8 +63,9 @@ runs:
           codesign --verify --strict "./$BINARY"
         fi
         # Bun writes these properties only when it compiles on Windows; packaging/compile.ts sets them.
+        # PowerShell 7: Windows PowerShell on windows-11-arm takes about 45 seconds to read a binary's version info.
         if [[ "$BINARY" == *.exe ]]; then
-          company=$(powershell -NoProfile -Command "(Get-Item -LiteralPath './$BINARY').VersionInfo.CompanyName" | tr -d '\r')
+          company=$(pwsh -NoProfile -Command "(Get-Item -LiteralPath './$BINARY').VersionInfo.CompanyName" | tr -d '\r')
           [ -n "$company" ] || { echo "::error::$BINARY has no publisher in its properties"; exit 1; }
         fi
         test "$("./$BINARY" --version | tr -d '\r')" = "$VERSION"
@@ -95,7 +96,7 @@ runs:
         installed="$HOME/.aireg/bin/aireg$exe"
         on_path() {
           if [ -n "$exe" ]; then
-            powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('Path', 'User')" \
+            pwsh -NoProfile -Command "[Environment]::GetEnvironmentVariable('Path', 'User')" \
               | tr ';' '\n' | tr -d '\r' | grep -qixF "$(cygpath -w "$HOME/.aireg/bin")"
           else
             grep -qF '.aireg/env' "$HOME/.profile"

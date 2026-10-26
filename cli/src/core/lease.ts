@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import { readFileSync, realpathSync, rmSync } from "node:fs";
-import { mkdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
+import { mkdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { hostname } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { redirection } from "#adapter/files.ts";
@@ -171,6 +171,14 @@ async function prepare(
 
 function metaPath(dir: string): string {
   return join(dir, "meta.json");
+}
+
+/**
+ * Where a release moves its lease before removing it: half removed in place, the folder reads
+ * as stale, and the metadata a claimant writes into it would be removed with the rest.
+ */
+function asideOf(dir: string, id: string): string {
+  return `${dir}.${id}.released`;
 }
 
 async function readHolder(dir: string): Promise<LeaseHolder | undefined> {
@@ -348,7 +356,10 @@ export function releaseLeasesOnInterrupt(alsoStop: () => void): void {
         // No metadata yet: the directory is the one this process just made.
       }
       try {
-        if (holder === undefined || holder.id === id) rmSync(dir, { recursive: true, force: true });
+        if (holder === undefined || holder.id === id) {
+          renameSync(dir, asideOf(dir, id));
+          rmSync(asideOf(dir, id), { recursive: true, force: true });
+        }
       } catch {
         // Already gone: nothing of ours to remove.
       }
@@ -404,7 +415,8 @@ async function releaseOwned(
   // Without a heartbeat a leftover goes stale and is reclaimed, so it must not fail finished work.
   if (holder?.id === id) {
     await guard(dir)
-      .then(() => removeDir(dir))
+      .then(() => rename(dir, asideOf(dir, id)))
+      .then(() => removeDir(asideOf(dir, id)))
       .catch(() => false);
   }
   // Held until it is gone, so an interrupt mid-release still removes it.

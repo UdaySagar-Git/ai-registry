@@ -22,7 +22,12 @@ export async function loginAccount(
           ? {}
           : { defaultNamespace: inputs.text(params, "defaultNamespace") }),
       },
-      params.token === undefined ? undefined : inputs.text(params, "token"),
+      {
+        ...(params.token === undefined ? {} : { token: inputs.text(params, "token") }),
+        ...(params.browser === undefined
+          ? {}
+          : { browser: inputs.browserTokens(params, "browser") }),
+      },
       context.signal,
     ),
   );

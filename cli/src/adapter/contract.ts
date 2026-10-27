@@ -353,10 +353,24 @@ export interface Identity {
 export interface LoginContext {
   /** The registry's address. */
   endpoint: string;
+  /** The adapter's own settings for this registry, as declared. */
+  config: Readonly<Record<string, string>>;
   /** Aborted when the person gives up. */
   signal: AbortSignal;
   /** The CLI owns where a token comes from; an adapter given none should stop. */
   token: string | undefined;
+  /** What a browser sign-in at `browser()`'s server returned, in place of a token. */
+  browser?: Credential | undefined;
+}
+
+/** An OAuth 2.0 server a person signs in to through the browser, for a registry that has one. */
+export interface BrowserSignIn {
+  /** Its address. The endpoints come from its RFC 8414 metadata and must share its origin. */
+  issuer: string;
+  /** A public client registered there for a native app, with a loopback redirect. */
+  clientId: string;
+  /** Sent as written; absent asks for the client's default. */
+  scope?: string | undefined;
 }
 
 /** How an adapter signs in. aireg stores the credential and hands it back on connect. */
@@ -372,6 +386,8 @@ export interface SourceAuth {
   refresh?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<Credential>;
   /** Tells the registry a credential is no longer used, on sign-out. */
   revoke?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<void>;
+  /** Where `auth login` sends the browser when no token is given; undefined when nowhere. */
+  browser?(endpoint: string, config: Readonly<Record<string, string>>): BrowserSignIn | undefined;
 }
 
 /** One open connection to a registry. aireg closes it when it is done. */

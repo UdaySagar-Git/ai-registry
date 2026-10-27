@@ -1,4 +1,5 @@
 import { isAbsolute } from "node:path";
+import type { Credential } from "#adapter/index.ts";
 import { quoted } from "#adapter/text.ts";
 import { MINIMUM_INTERVAL_SECONDS, parseJob } from "#core/config/job.ts";
 import { type Job, STEP_POLICIES } from "#core/config/model.ts";
@@ -53,6 +54,19 @@ export function scope(entry: Fields, key: string, fallback: Scope): Scope {
 export function sourceConfig(entry: Fields, key: string): Record<string, string> {
   const raw = object(entry[key] ?? {}, key);
   return Object.fromEntries(Object.keys(raw).map((field) => [field, text(raw, field, key)]));
+}
+
+/** A browser sign-in's tokens, as `auth login` hands them over; never echoed back. */
+export function browserTokens(entry: Fields, key: string): Credential {
+  const raw = object(entry[key], key);
+  const refreshToken = optionalText(raw, "refreshToken", key);
+  const expiresAtMs = raw.expiresAtMs === undefined ? undefined : integer(raw, "expiresAtMs", key);
+  return {
+    type: "bearer",
+    accessToken: text(raw, "accessToken", key),
+    ...(refreshToken === undefined ? {} : { refreshToken }),
+    ...(expiresAtMs === undefined ? {} : { expiresAtMs }),
+  };
 }
 
 const MAXIMUM_INTERVAL_SECONDS = 24 * 60 * 60;

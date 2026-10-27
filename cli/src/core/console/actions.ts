@@ -117,6 +117,7 @@ export function start(command: Command, root: string, onLine: (line: string) => 
 export function browserCommand(
   link: string,
   platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
 ): [string, string[]] | undefined {
   let url: URL;
   try {
@@ -125,6 +126,9 @@ export function browserCommand(
     return undefined;
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return undefined;
+  // $BROWSER, as xdg-open and gh read it: the first program of the list, run without a shell.
+  const chosen = env.BROWSER?.split(platform === "win32" ? ";" : ":")[0]?.trim();
+  if (chosen !== undefined && chosen !== "") return [chosen, [url.href]];
   // url.dll's handler takes the URL as one argument and runs no shell.
   if (platform === "win32") return ["rundll32", ["url.dll,FileProtocolHandler", url.href]];
   return [platform === "darwin" ? "open" : "xdg-open", [url.href]];

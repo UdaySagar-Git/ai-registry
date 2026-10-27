@@ -4,6 +4,7 @@ export {
   ADAPTER_ID,
   ADAPTER_PROTOCOL,
   type Artifact,
+  type BrowserSignIn,
   type Capabilities,
   type Dispatch,
   type FileRef,

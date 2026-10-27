@@ -1,6 +1,6 @@
 import { AccountService, noSignIn } from "#accounts/service.ts";
 import { failureOf, isAuthFailure } from "#adapter/errors.ts";
-import { readProblem } from "#adapter/index.ts";
+import { type Credential, readProblem } from "#adapter/index.ts";
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
@@ -10,8 +10,10 @@ import { expandLocation } from "#core/adapter/location.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
 import type { Account } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
+import { open } from "#core/console/actions.ts";
+import { type BrowserPrompt, signInWithBrowser } from "#core/credentials/browser.ts";
 import { signedInAccounts } from "#core/credentials/store.ts";
-import { registryToken, tokenVariable } from "#core/env.ts";
+import { isCI, registryToken, tokenVariable } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { type RegistrySource, readManifest } from "#core/manifest.ts";
 import { roots } from "#core/store/paths.ts";
@@ -140,6 +142,29 @@ async function resolveToken(registry: string, flags: LoginFlags): Promise<string
   return undefined;
 }
 
+/** On stderr even with --json: the sign-in cannot finish without the link. */
+const prompt: BrowserPrompt = {
+  open,
+  waiting(url) {
+    process.stderr.write(`Opening ${url} in your browser.\nWaiting for you to sign in there…\n`);
+  },
+};
+
+/** The browser's tokens as the daemon takes them. */
+function tokensOf(credential: Credential): {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAtMs?: number;
+} {
+  if (credential.type !== "bearer") throw new AiregError("The sign-in returned no bearer token.");
+  const { accessToken, refreshToken, expiresAtMs } = credential;
+  return {
+    accessToken,
+    ...(refreshToken === undefined ? {} : { refreshToken }),
+    ...(expiresAtMs === undefined ? {} : { expiresAtMs }),
+  };
+}
+
 interface Declared {
   source: RegistrySource;
   location: string;
@@ -245,18 +270,15 @@ async function login(
   }
 
   const found = flags.address === undefined ? await declared(registry, context.cwd) : undefined;
-  if (found !== undefined) {
-    const adapter = await adapterFor(
-      found.location,
-      found.source.adapter,
-      declaredLayout(found.source.config),
-    );
-    if (adapter.auth?.login === undefined) {
-      throw new AiregError(noSignIn(registry, adapter.credentialsHint !== undefined), {
-        code: ErrorCode.Usage,
-        hint: adapter.credentialsHint,
-      });
-    }
+  const signsIn =
+    found === undefined
+      ? undefined
+      : await adapterFor(found.location, found.source.adapter, declaredLayout(found.source.config));
+  if (signsIn !== undefined && signsIn.auth?.login === undefined) {
+    throw new AiregError(noSignIn(registry, signsIn.credentialsHint !== undefined), {
+      code: ErrorCode.Usage,
+      hint: signsIn.credentialsHint,
+    });
   }
   const declaring = found?.projectOnly === true ? found : undefined;
   if (declaring !== undefined && !(await signsInThere(context, registry, declaring, yes))) return;
@@ -266,10 +288,19 @@ async function login(
 
   const where = flags.address ?? found?.location;
   const token = await resolveToken(registry, flags);
-  await withDaemon(async (client) => {
-    const { account, identity } = await client.request("account.login", {
+  const client =
+    token === undefined && found !== undefined && !isCI()
+      ? signsIn?.auth?.browser?.(found.location, found.source.config ?? {})
+      : undefined;
+  const browser =
+    client === undefined
+      ? undefined
+      : await signInWithBrowser(client, prompt, new AbortController().signal);
+  await withDaemon(async (daemon) => {
+    const { account, identity } = await daemon.request("account.login", {
       registry,
       ...(token === undefined ? {} : { token }),
+      ...(browser === undefined ? {} : { browser: tokensOf(browser) }),
       ...(address === undefined ? {} : { address }),
       ...(adapter === undefined ? {} : { adapter }),
       ...(Object.keys(config).length === 0 ? {} : { config }),

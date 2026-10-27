@@ -21,7 +21,8 @@ import {
   saveCredential,
 } from "#core/credentials/store.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import type { Scope } from "#core/store/paths.ts";
+import { withLease } from "#core/lease.ts";
+import { credentialsPath, type Scope } from "#core/store/paths.ts";
 import {
   declareRegistryFor,
   type ResolvedRegistry,
@@ -116,7 +117,7 @@ export class AccountService {
    */
   async login(
     input: LoginAccount,
-    token: string | undefined,
+    given: { token?: string | undefined; browser?: Credential | undefined },
     signal: AbortSignal,
   ): Promise<LoginResult> {
     const alias = input.registry;
@@ -147,7 +148,13 @@ export class AccountService {
 
     const before = await readConfig();
     const session = await resolved.adapter.auth
-      .login({ endpoint: resolved.location, signal, token })
+      .login({
+        endpoint: resolved.location,
+        config: resolved.source.config ?? {},
+        signal,
+        token: given.token,
+        ...(given.browser === undefined ? {} : { browser: given.browser }),
+      })
       .catch((error: unknown) => {
         if (isAdapterError(error)) throw error;
         // A sign-in that failed is one still needed, whatever the adapter threw.
@@ -261,9 +268,18 @@ export class AccountService {
       });
     }
     assertBound(account, stored, resolved.location);
-    const next = await resolved.adapter.auth.refresh(resolved.location, stored.credential, signal);
-    await saveCredential(account.id, { origin: stored.origin, credential: next });
-    return next;
+    const refresh = resolved.adapter.auth.refresh;
+    // One refresh per account at a time: a rotating refresh token spent twice ends the session.
+    const lock = `${credentialsPath()}.${account.id}`;
+    return withLease({ scope: "user", lock }, { wait: true }, async () => {
+      const current = await readCredential(account.id);
+      if (current === undefined) return undefined;
+      assertBound(account, current, resolved.location);
+      if (!expiring(current.credential)) return current.credential;
+      const next = await refresh(resolved.location, current.credential, signal);
+      await saveCredential(account.id, { origin: current.origin, credential: next });
+      return next;
+    });
   }
 
   async open(

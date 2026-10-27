@@ -3,6 +3,7 @@ import type { Lock, LockArtifact } from "#core/lock.ts";
 import { asksFor, type Manifest, pinOf } from "#core/manifest.ts";
 import { abbreviate, type Printer } from "#core/output.ts";
 import { type Scope, scopeName } from "#core/store/paths.ts";
+import { earlierId, type Targets } from "#core/target/index.ts";
 import type { Column } from "#core/term/table.ts";
 
 export interface Installed {
@@ -20,19 +21,24 @@ export interface Installed {
   neededBy?: string[] | undefined;
 }
 
-/** The folder a watched row is published from, where its harness reads it; nothing is linked. */
+/** The folder a watched row is published from, where its target reads it; nothing is linked. */
 export interface Watched {
+  target: string;
+  /** `target` by its aireg 0.1 id, under the key that version printed. */
   harness: string;
   path: string;
 }
 
-export function watchedFrom(entry: LockArtifact | undefined): Watched | undefined {
-  return entry?.origin === undefined
-    ? undefined
-    : { harness: entry.origin.harness, path: entry.origin.path };
+export function watchedFrom(
+  entry: LockArtifact | undefined,
+  targetTable: Targets,
+): Watched | undefined {
+  if (entry?.origin === undefined) return undefined;
+  const { target, path } = entry.origin;
+  return { target, harness: earlierId(targetTable, target), path };
 }
 
-export function installed(lock: Lock, manifest: Manifest): Installed[] {
+export function installed(lock: Lock, manifest: Manifest, targetTable: Targets): Installed[] {
   const shown = shownNames(lock);
   return Object.keys(lock.artifacts)
     .sort()
@@ -53,10 +59,10 @@ export function installed(lock: Lock, manifest: Manifest): Installed[] {
             ? ""
             : abbreviate(source.revision)),
         pinned: entry !== undefined && pinOf(manifest, entry) !== undefined,
-        // One harness, however many links it took to reach it: a plugin harness
+        // One target, however many links it took to reach it: a target that loads plugins
         // gets a link inside the projection as well as the one pointing at it.
-        targets: [...new Set((entry?.links ?? []).map((link) => link.harness))].sort(),
-        watched: watchedFrom(entry),
+        targets: [...new Set((entry?.links ?? []).map((link) => link.target))].sort(),
+        watched: watchedFrom(entry, targetTable),
         neededBy:
           entry === undefined || asksFor(manifest, entry)
             ? undefined

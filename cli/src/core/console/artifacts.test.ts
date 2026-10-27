@@ -43,7 +43,7 @@ function lockWith(): Lock {
       content: "sha256:c",
       version,
       digest: "sha256:lock",
-      links: [{ harness: "claude", path: `.claude/skills/${namespace}`, mode: "symlink" }],
+      links: [{ target: "claude-code", path: `.claude/skills/${namespace}`, mode: "symlink" }],
     };
   }
   return lock;
@@ -69,9 +69,9 @@ function surveyWith(digests: Record<string, string>): Survey {
 }
 
 const STATUSES: ArtifactStatus[] = [
-  { name: "eng/lint", state: "ok", detail: undefined, harnesses: {} },
-  { name: "eng/format", state: "ok", detail: undefined, harnesses: {} },
-  { name: "mine/audit", state: "edited", detail: "edited after installation", harnesses: {} },
+  { name: "eng/lint", state: "ok", detail: undefined, targets: {} },
+  { name: "eng/format", state: "ok", detail: undefined, targets: {} },
+  { name: "mine/audit", state: "edited", detail: "edited after installation", targets: {} },
 ];
 
 async function build(
@@ -149,7 +149,7 @@ describe("groupArtifacts", () => {
         diskDigest: undefined,
         state: "duplicate",
         detail: "a registry already publishes this name",
-        targets: ["claude"],
+        targets: ["claude-code"],
         copy: "/home/.claude/skills/lint",
         changedAtMs: undefined,
         links: [],
@@ -175,7 +175,7 @@ describe("groupArtifacts", () => {
         diskDigest: undefined,
         state: "unpublished",
         detail: undefined,
-        targets: ["claude"],
+        targets: ["claude-code"],
         copy: "/home/.claude/skills/notes",
         changedAtMs: undefined,
         links: [],
@@ -189,10 +189,10 @@ describe("groupArtifacts", () => {
     expect(summarize(groups, 4).unpublished).toBe(1);
   });
 
-  test("names the harness each link feeds, not the folder it lives in", async () => {
+  test("names the target each link feeds, not the folder it lives in", async () => {
     const lock = lockWith();
     for (const entry of Object.values(lock.artifacts)) {
-      entry.links = [{ harness: "codex", path: ".agents/skills/eng", mode: "symlink" }];
+      entry.links = [{ target: "codex", path: ".agents/skills/eng", mode: "symlink" }];
     }
     const groups = await groupArtifacts({
       lock,

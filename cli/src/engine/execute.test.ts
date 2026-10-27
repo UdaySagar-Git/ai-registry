@@ -28,7 +28,7 @@ const loaded = {
     registries: { [REGISTRY]: { location: ENDPOINT, adapter: "acme", config: {} } },
   },
   lock: { registries: {}, artifacts: {} },
-  harnesses: {},
+  targetTable: {},
 } as unknown as Loaded;
 
 const job: ScopeWork = {
@@ -451,7 +451,7 @@ describe("a folder the registry already publishes", () => {
       name: "hello",
       kind: "skill",
       from: copy,
-      target: "claude",
+      target: "claude-code",
       suggestedPath: "skills/hello",
       description: undefined,
       elsewhere: [],
@@ -491,7 +491,7 @@ describe("a folder the registry already publishes", () => {
     const stamps = await readdir(join(root, ".registry", "backups"));
     expect(stamps).toHaveLength(1);
     await expect(
-      stat(join(root, ".registry", "backups", stamps[0] ?? "", "claude", "skills", "hello")),
+      stat(join(root, ".registry", "backups", stamps[0] ?? "", "claude-code", "skills", "hello")),
     ).resolves.toBeDefined();
     expect(namesPassedToApply()).toEqual(["ws/hello"]);
   });

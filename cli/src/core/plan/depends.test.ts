@@ -138,7 +138,7 @@ describe("closure", () => {
     expect(result.neededBy.get(id("skill", "ping"))).toEqual(new Set([id("skill", "pong")]));
   });
 
-  it("puts a dependency in the harnesses its dependents were narrowed to", () => {
+  it("puts a dependency in the targets its dependents were narrowed to", () => {
     const published = registry(
       ["agent", "reviewer", "0.3.0", "eng/skill/lint@1.0.0"],
       ["agent", "helper", "1.0.0", "eng/skill/lint@1.0.0"],
@@ -147,13 +147,13 @@ describe("closure", () => {
     const narrowed = closure(
       [
         selected("agent", "reviewer", "0.3.0", { targets: ["codex"] }),
-        selected("agent", "helper", "1.0.0", { targets: ["claude"] }),
+        selected("agent", "helper", "1.0.0", { targets: ["claude-code"] }),
       ],
       published,
     );
-    expect(narrowed.refs[0]?.targets).toEqual(["claude", "codex"]);
+    expect(narrowed.refs[0]?.targets).toEqual(["claude-code", "codex"]);
 
-    // One dependent the scope's own harnesses reach, so the dependency goes there too.
+    // One dependent the scope's own targets reach, so the dependency goes there too.
     const scoped = closure(
       [
         selected("agent", "reviewer", "0.3.0", { targets: ["codex"] }),

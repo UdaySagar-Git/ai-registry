@@ -11,23 +11,29 @@ import {
 import { chosenFor, loadedBy, scopeTargets, toolName } from "#cli/render/tools.ts";
 import type { LockArtifact, readLock } from "#core/lock.ts";
 import { artifactPath, copyLeaf, scopeName } from "#core/store/paths.ts";
+import { earlierId, type Targets } from "#core/target/index.ts";
 import { fields, table } from "#core/term/table.ts";
 import { load } from "#engine/pipeline.ts";
 import { builtin, type CommandContext } from "./index.ts";
 
 export async function run(context: CommandContext): Promise<void> {
   const { common, positionals } = parse(context.argv, builtin("list"));
-  const { roots, manifest, harnesses, lock } = await load(common, context.cwd, "user");
+  const { roots, manifest, targetTable, lock } = await load(common, context.cwd, "user");
 
   // Naming one asks where it came from, which is the only question left once
   // you can already see it in the list.
   const wanted = positionals[0];
-  if (wanted !== undefined) return detail(context, lock, roots, wanted);
+  if (wanted !== undefined) return detail(context, lock, roots, targetTable, wanted);
 
-  const rows = installed(lock, manifest);
+  const rows = installed(lock, manifest, targetTable);
 
   if (context.printer.format === "json") {
-    context.printer.json({ ok: true, data: { scope: roots.scope, artifacts: rows } });
+    // `targets` is a key aireg 0.1 printed, so it keeps that version's ids for its readers.
+    const artifacts = rows.map((row) => ({
+      ...row,
+      targets: row.targets.map((id) => earlierId(targetTable, id)).sort(),
+    }));
+    context.printer.json({ ok: true, data: { scope: roots.scope, artifacts } });
     return;
   }
 
@@ -37,12 +43,12 @@ export async function run(context: CommandContext): Promise<void> {
   }
 
   // Named as they were chosen, not by the folders that serve them: JSON keeps the folders.
-  const scope = scopeTargets(manifest, harnesses);
+  const scope = scopeTargets(manifest, targetTable);
   const tools = (row: Installed): string => {
     const entry = lock.artifacts[row.name];
     if (entry === undefined) return row.targets.join(", ");
-    return loadedBy(harnesses, chosenFor(manifest, scope, entry), entry.kind, row.targets)
-      .map((name) => toolName(harnesses, name))
+    return loadedBy(targetTable, chosenFor(manifest, scope, entry), entry.kind, row.targets)
+      .map((name) => toolName(targetTable, name))
       .join(", ");
   };
 
@@ -52,14 +58,14 @@ export async function run(context: CommandContext): Promise<void> {
     [
       ...identity(context.printer, (row: Installed) => row),
       {
-        header: "harnesses",
+        header: "targets",
         value: (row: Installed) =>
           context.printer.style.dim(
             row.targets.length > 0
               ? tools(row)
               : row.watched !== undefined
-                ? `${toolName(harnesses, row.watched.harness)} (watched)`
-                : "in no harness",
+                ? `${toolName(targetTable, row.watched.target)} (watched)`
+                : "in no target",
           ),
       },
     ],
@@ -72,6 +78,7 @@ async function detail(
   context: CommandContext,
   lock: Awaited<ReturnType<typeof readLock>>,
   roots: Awaited<ReturnType<typeof load>>["roots"],
+  targetTable: Targets,
   name: string,
 ): Promise<void> {
   const [key] = rowsNamed(name, lock);
@@ -108,8 +115,11 @@ async function detail(
         version: entry.version,
         path: entry.path,
         copy,
-        watched: watchedFrom(entry),
-        links: entry.links,
+        watched: watchedFrom(entry, targetTable),
+        links: entry.links.map((link) => ({
+          ...link,
+          harness: earlierId(targetTable, link.target),
+        })),
         neededBy: entry.neededBy,
       },
     });
@@ -139,9 +149,9 @@ async function detail(
   // an edit changes.
   rows.push(["copy", copy]);
   if (entry.origin !== undefined)
-    rows.push(["watched", `${entry.origin.path} (${entry.origin.harness})`]);
+    rows.push(["watched", `${entry.origin.path} (${entry.origin.target})`]);
   add("needed by", entry.neededBy?.join(", "));
-  for (const link of entry.links) rows.push([link.harness, `${link.path} (${link.mode})`]);
+  for (const link of entry.links) rows.push([link.target, `${link.path} (${link.mode})`]);
 
   context.printer.info(
     `${context.printer.style.bold(name)}  ${context.printer.style.dim(entry.kind)}`,

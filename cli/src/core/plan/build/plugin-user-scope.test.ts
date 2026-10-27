@@ -34,7 +34,7 @@ describe("a plugin, projected at user scope", () => {
   it("goes into Claude Code whole, as one link in the directory Claude scans", () => {
     // Not `plugins/`: that is Claude's managed registry, and a directory left
     // there is never read.
-    expect(linksTo(run(["claude"]).actions, "claude")).toEqual([
+    expect(linksTo(run(["claude-code"]).actions, "claude-code")).toEqual([
       join(home, ".claude", "skills", "toolkit"),
     ]);
   });
@@ -44,9 +44,7 @@ describe("a plugin, projected at user scope", () => {
     expect(linksTo(plan.actions, "codex")).toEqual([
       join(home, ".codex", "plugins", "cache", "kit", "toolkit", "local"),
     ]);
-    const link = plan.actions.find(
-      (action) => action.kind === "link" && action.harness === "codex",
-    );
+    const link = plan.actions.find((action) => action.kind === "link" && action.target === "codex");
     expect(link?.kind === "link" ? link.fan : undefined).toBe(true);
   });
 
@@ -59,7 +57,7 @@ describe("a plugin, projected at user scope", () => {
         .filter((action): action is Extract<Action, { kind: "clone" }> => action.kind === "clone")
         .map((action) => [action.from, action.to]),
     ).toEqual([[staged, copy]]);
-    // The harness is pointed at the projection, which links back to `copy`:
+    // The target is pointed at the projection, which links back to `copy`:
     // the content tree carries no manifests, so it is never linked directly.
     const froms = plan.actions
       .filter((action): action is Extract<Action, { kind: "link" }> => action.kind === "link")
@@ -69,14 +67,14 @@ describe("a plugin, projected at user scope", () => {
   });
 
   it("reaches the universal layout as parts, because it has no plugin directory", () => {
-    const links = linksTo(run(["agents"]).actions, "agents");
+    const links = linksTo(run(["universal"]).actions, "universal");
     expect(links.length).toBeGreaterThan(0);
     expect(links.every((path) => !path.includes(".projections"))).toBe(true);
   });
 
   it("gives Claude and Codex each one plugin link from one address", () => {
-    const plan = run(["claude", "codex"]);
-    expect(linksTo(plan.actions, "claude")).toHaveLength(1);
+    const plan = run(["claude-code", "codex"]);
+    expect(linksTo(plan.actions, "claude-code")).toHaveLength(1);
     expect(linksTo(plan.actions, "codex")).toHaveLength(1);
   });
 });

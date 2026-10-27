@@ -8,7 +8,7 @@ import { test as base } from "#test/kit/fixtures.ts";
 const ORIGIN = "https://registry.acme.example";
 
 /** A sign-in server that signs anyone in, and an adapter that sends `auth login` to it. */
-const test = base.extend("browserSignIn", async ({ home: { dir: home, aireg } }, { onCleanup }) => {
+const test = base.extend("signInServer", async ({ home: { dir: home, aireg } }, { onCleanup }) => {
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     if (url.pathname === "/.well-known/oauth-authorization-server") {
@@ -40,12 +40,12 @@ const test = base.extend("browserSignIn", async ({ home: { dir: home, aireg } },
   onCleanup(() => new Promise<void>((resolve) => server.close(() => resolve())));
   const issuer = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
-  const adapter = join(home, "browser.mjs");
+  const adapter = join(home, "acme.mjs");
   await mkdir(aireg, { recursive: true, mode: 0o700 });
   await writeFile(
     adapter,
     `export default {
-  id: "browser", displayName: "Browser", protocol: 1, artifactKinds: ["skill"],
+  id: "acme", displayName: "Acme", protocol: 1, artifactKinds: ["skill"],
   dispatch: { hosts: ["registry.acme.example"] },
   capabilities: { pinsSource: false, auth: true },
   auth: {
@@ -65,7 +65,7 @@ const test = base.extend("browserSignIn", async ({ home: { dir: home, aireg } },
   );
   await writeFile(
     join(aireg, "config.yml"),
-    `schemaVersion: 1\nrevision: 0\nadapters:\n  browser: ${adapter}\naccounts: []\njobs: []\n`,
+    `schemaVersion: 1\nrevision: 0\nadapters:\n  acme: ${adapter}\naccounts: []\njobs: []\n`,
   );
   // Stands in for the person: follows the sign-in page's redirect back to aireg.
   const browser = join(home, "browser-open.mjs");
@@ -74,10 +74,10 @@ const test = base.extend("browserSignIn", async ({ home: { dir: home, aireg } },
   return { browser };
 });
 
-describe("auth login through the browser", () => {
+describe("auth login through OAuth", () => {
   test.skipIf(process.platform === "win32")(
-    "stores the adapter's credential from a browser sign-in, refresh token included",
-    async ({ aireg, home, browserSignIn }) => {
+    "stores the adapter's credential from an OAuth sign-in, refresh token included",
+    async ({ aireg, home, signInServer }) => {
       const added = await aireg([
         "registry",
         "add",
@@ -85,14 +85,14 @@ describe("auth login through the browser", () => {
         "--as",
         "acme",
         "--adapter",
-        "browser",
+        "acme",
         "--config",
         "org=acme",
         "-g",
       ]);
       expect(added.code, added.stderr).toBe(0);
 
-      const env = { CI: "", BROWSER: browserSignIn.browser };
+      const env = { CI: "", BROWSER: signInServer.browser };
       const login = await aireg(["auth", "login", "acme"], { env });
       expect(login.code, login.stderr).toBe(0);
       expect(login.stderr).toMatch(/Opening http:\/\/127\.0\.0\.1:\d+\/oauth\/authorize\?/);

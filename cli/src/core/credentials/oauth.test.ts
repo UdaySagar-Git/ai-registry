@@ -3,7 +3,7 @@ import { createServer, get, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Credential } from "#adapter/index.ts";
-import { type BrowserPrompt, signInWithBrowser } from "./browser.ts";
+import { type SignInPrompt, signInWithOAuth } from "./oauth.ts";
 
 interface Stub {
   issuer: string;
@@ -90,7 +90,7 @@ interface Page {
 }
 
 /** Follows the redirects back to aireg, as the person's browser would. */
-function browser(): BrowserPrompt & { shown: string[]; page: Promise<Page> } {
+function browser(): SignInPrompt & { shown: string[]; page: Promise<Page> } {
   const shown: string[] = [];
   let show: (page: Page) => void = () => {};
   const page = new Promise<Page>((resolve) => {
@@ -142,12 +142,12 @@ afterEach(async () => {
   server = undefined;
 });
 
-describe("signInWithBrowser", () => {
+describe("signInWithOAuth", () => {
   it("signs in with PKCE, and tells the tab only once the sign-in is stored", async () => {
     server = await stub();
     const prompt = browser();
     let stored = false;
-    const credential = await signInWithBrowser(
+    const credential = await signInWithOAuth(
       { issuer: server.issuer, clientId: "client-1", scopes: ["openid"] },
       prompt,
       never,
@@ -173,7 +173,7 @@ describe("signInWithBrowser", () => {
 
   it("finishes though the tab is closed while the sign-in is stored", async () => {
     server = await stub();
-    const credential = await signInWithBrowser(
+    const credential = await signInWithOAuth(
       { issuer: server.issuer, clientId: "client-1" },
       {
         waiting: () => {},
@@ -201,7 +201,7 @@ describe("signInWithBrowser", () => {
   it("says the person declined, and never the server's own words", async () => {
     server = await stub({ refuse: "access_denied" });
     await expect(
-      signInWithBrowser({ issuer: server.issuer, clientId: "client-1" }, browser(), never, keep),
+      signInWithOAuth({ issuer: server.issuer, clientId: "client-1" }, browser(), never, keep),
     ).rejects.toThrow(/^The sign-in was declined in the browser\.$/);
   });
 
@@ -215,7 +215,7 @@ describe("signInWithBrowser", () => {
     async (options, message) => {
       server = await stub(options);
       await expect(
-        signInWithBrowser({ issuer: server.issuer, clientId: "client-1" }, browser(), never, keep),
+        signInWithOAuth({ issuer: server.issuer, clientId: "client-1" }, browser(), never, keep),
       ).rejects.toThrow(message);
       expect(server.exchanged).toEqual([]);
     },
@@ -225,7 +225,7 @@ describe("signInWithBrowser", () => {
     server = await stub();
     const prompt = browser();
     const statuses: number[] = [];
-    const pending = signInWithBrowser(
+    const pending = signInWithOAuth(
       { issuer: server.issuer, clientId: "client-1" },
       {
         waiting: prompt.waiting,
@@ -253,7 +253,7 @@ describe("signInWithBrowser", () => {
     const controller = new AbortController();
     let port = 0;
     await expect(
-      signInWithBrowser(
+      signInWithOAuth(
         { issuer: server.issuer, clientId: "client-1" },
         {
           waiting: (_, bound) => {
@@ -277,7 +277,7 @@ describe("signInWithBrowser", () => {
     const busy = (taken.address() as AddressInfo).port;
     try {
       await expect(
-        signInWithBrowser(
+        signInWithOAuth(
           { issuer: server.issuer, clientId: "client-1", ports: [busy] },
           browser(),
           never,

@@ -56,7 +56,7 @@ export function sourceConfig(entry: Fields, key: string): Record<string, string>
   return Object.fromEntries(Object.keys(raw).map((field) => [field, text(raw, field, key)]));
 }
 
-/** A browser sign-in's tokens, as `auth login` hands them over; never echoed back. */
+/** An OAuth sign-in's tokens, as `auth login` hands them over; never echoed back. */
 export function oauthTokens(entry: Fields, key: string): Credential {
   const raw = object(entry[key], key);
   const refreshToken = optionalText(raw, "refreshToken", key);

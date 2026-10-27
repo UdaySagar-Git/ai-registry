@@ -17,7 +17,7 @@ import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
 import type { Account } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { open } from "#core/console/actions.ts";
-import { type BrowserPrompt, signInWithBrowser } from "#core/credentials/browser.ts";
+import { type SignInPrompt, signInWithOAuth } from "#core/credentials/oauth.ts";
 import { signedInAccounts } from "#core/credentials/store.ts";
 import { isCI, registryToken, tokenVariable } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -154,7 +154,7 @@ function remote(): boolean {
 }
 
 /** On stderr even with --json: the sign-in cannot finish without the link. */
-const prompt: BrowserPrompt = {
+const prompt: SignInPrompt = {
   open(url) {
     // A $BROWSER over SSH, such as an editor's remote helper, reaches the person's own browser.
     if (!remote() || process.env.BROWSER !== undefined) open(url);
@@ -222,11 +222,11 @@ async function declared(alias: string, cwd: string): Promise<Declared | undefine
 
 function failureHint(
   registry: string,
-  given: { token: string | undefined; browser: boolean },
+  given: { token: string | undefined; oauth: boolean },
   own: unknown,
 ): string | undefined {
-  // After a browser sign-in the adapter knows what went wrong; a missing token is not it.
-  if (given.browser) return typeof own === "string" ? own : undefined;
+  // After an OAuth sign-in the adapter knows what went wrong; a missing token is not it.
+  if (given.oauth) return typeof own === "string" ? own : undefined;
   if (given.token !== undefined) return undefined;
   return (
     `Pipe one in with \`… | aireg auth login ${registry} --token-stdin\`, ` +
@@ -238,7 +238,7 @@ function failureHint(
 function loginFailure(
   error: unknown,
   registry: string,
-  given: { token: string | undefined; browser: boolean },
+  given: { token: string | undefined; oauth: boolean },
 ): unknown {
   const data = (error as { data?: unknown } | undefined)?.data;
   const problem = readProblem(undefined, data);
@@ -377,14 +377,14 @@ async function login(
   try {
     const signedIn = await (client === undefined
       ? signIn()
-      : signInWithBrowser(client, prompt, controller.signal, signIn));
+      : signInWithOAuth(client, prompt, controller.signal, signIn));
     report(context, signedIn, where);
   } catch (error) {
     if (controller.signal.aborted) {
       context.printer.info("Canceled. Nothing was changed.");
       return;
     }
-    throw loginFailure(error, registry, { token, browser: client !== undefined });
+    throw loginFailure(error, registry, { token, oauth: client !== undefined });
   } finally {
     process.off("SIGINT", stop);
   }

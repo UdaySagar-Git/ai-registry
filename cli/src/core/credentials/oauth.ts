@@ -14,7 +14,7 @@ interface Server {
 }
 
 /** `waiting` shows the URL too, so a browser that `open` failed to start is not a dead end. */
-export interface BrowserPrompt {
+export interface SignInPrompt {
   open(url: string): void;
   waiting(url: string, port: number): void;
 }
@@ -157,9 +157,9 @@ function authorizeUrl(
  * Signs in through the system browser as RFC 8252 has a native app do: a PKCE code returned
  * to a loopback port. `finish` stores the sign-in; the tab says it worked only once it has.
  */
-export async function signInWithBrowser<T>(
+export async function signInWithOAuth<T>(
   client: OAuthClient,
-  prompt: BrowserPrompt,
+  prompt: SignInPrompt,
   signal: AbortSignal,
   finish: (credential: Credential) => Promise<T>,
 ): Promise<T> {

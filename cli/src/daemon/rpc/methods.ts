@@ -105,7 +105,7 @@ export interface DaemonMethods {
       defaultNamespace?: string;
       /** Handed to the adapter's sign-in and stored; never logged or sent back. */
       token?: string;
-      /** What `auth login` got from a browser sign-in, in place of a token; never logged or sent back. */
+      /** What `auth login` got from an OAuth sign-in, in place of a token; never logged or sent back. */
       oauth?: { accessToken: string; refreshToken?: string; expiresAtMs?: number };
     },
     /** `identity` is who the registry says signed in, when it says. */

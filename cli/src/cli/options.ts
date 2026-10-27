@@ -6,6 +6,7 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { OptionSpec } from "#core/host/extend.ts";
 import { COLOR_WHEN } from "#core/output.ts";
 import type { Scope } from "#core/store/paths.ts";
+import { canonicalIds, resolveTargets } from "#core/target/index.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { closest, didYouMean } from "./suggest.ts";
 
@@ -17,9 +18,9 @@ export const USER: OptionSpec = {
 };
 export const FOR: OptionSpec = {
   flag: "--for",
-  value: "<harness>",
+  value: "<target>",
   multiple: true,
-  describe: "The harnesses to install into, comma-separated, or * for all of them",
+  describe: "The targets to install into, comma-separated, or * for all of them",
 };
 export const SELECT: OptionSpec = {
   flag: "--select",
@@ -36,7 +37,7 @@ const YES: OptionSpec = {
 export const ALL: OptionSpec = { flag: "--all", describe: "Act on everything, without asking" };
 export const COPY: OptionSpec = {
   flag: "--copy",
-  describe: "Copy into each harness folder instead of linking",
+  describe: "Copy into each target folder instead of linking",
 };
 export const DRY_RUN: OptionSpec = {
   flag: "--dry-run",
@@ -151,7 +152,7 @@ function toParseArgs(options: readonly OptionSpec[]): ParseOptions {
   return config;
 }
 
-/** `--for claude,cursor` and `--for claude --for cursor` both mean the same thing. */
+/** `--for claude-code,cursor` and `--for claude-code --for cursor` both mean the same thing. */
 function split(values: string[] | undefined): string[] | undefined {
   if (values === undefined) return undefined;
   const flat = values
@@ -265,6 +266,11 @@ function refuseAlias(alias: string): void {
   });
 }
 
+/** `--for` takes a target's aliases too; everything after it sees the canonical id. */
+function canonicalFor(ids: string[] | undefined): string[] | undefined {
+  return ids === undefined ? undefined : canonicalIds(resolveTargets(), ids);
+}
+
 function actionNamed(accepts: Accepts, word: string | undefined): AcceptedAction | undefined {
   if (word === undefined) return undefined;
   return accepts.actions?.find(
@@ -347,7 +353,7 @@ export function parse<T extends Record<string, unknown>>(
     positionals,
     common: {
       scope,
-      targets: split(values.for as string[] | undefined),
+      targets: canonicalFor(split(values.for as string[] | undefined)),
       select: all ? ["*"] : split(values.select as string[] | undefined),
       yes: values.yes === true || all,
       all,

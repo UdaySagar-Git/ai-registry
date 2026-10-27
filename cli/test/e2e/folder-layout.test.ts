@@ -12,7 +12,9 @@ import { lockPath, manifestPath } from "#test/kit/scope.ts";
 import { projectTemplate } from "#test/kit/template.ts";
 
 const test = base.extend("initialised", { scope: "file" }, ({ fileTmp }) =>
-  projectTemplate(join(fileTmp, "initialised"), [["init", "--for", "claude,codex,cursor,agents"]]),
+  projectTemplate(join(fileTmp, "initialised"), [
+    ["init", "--for", "claude-code,codex,cursor,universal"],
+  ]),
 );
 
 interface Locked {
@@ -40,7 +42,7 @@ function kit(root: string) {
 }
 
 describe("a folder of skills on this machine", () => {
-  test("installs into every harness, under plain names, and records and names its layout", async ({
+  test("installs into every target, under plain names, and records and names its layout", async ({
     aireg,
     initialised,
     project,

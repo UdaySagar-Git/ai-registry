@@ -6,7 +6,7 @@ import { test } from "#test/kit/fixtures.ts";
 import { writeManifestIn } from "#test/kit/scope.ts";
 
 // A cloned project brings its own `.claude/skills` link and `.registry` folder.
-test("removes nothing outside a cloned project that ships a harness link and a journal", async ({
+test("removes nothing outside a cloned project that ships a target link and a journal", async ({
   aireg,
   tmp,
 }) => {
@@ -69,7 +69,7 @@ test("installs, lists and removes artifacts named constructor and prototype", as
     .skill("eng/constructor@1.0.0")
     .skill("eng/prototype@1.0.0")
     .write();
-  await aireg(["init", "--for", "claude"]);
+  await aireg(["init", "--for", "claude-code"]);
   expect((await aireg(["registry", "add", market, "--as", "acme"])).code).toBe(0);
   const added = await aireg(["add", "acme/eng", "-y"]);
   expect(added.code, added.stderr).toBe(0);

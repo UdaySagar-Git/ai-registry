@@ -9,7 +9,7 @@ import { serveFolder, tarGz, wellKnownSite } from "#test/kit/site.ts";
 import { projectTemplate } from "#test/kit/template.ts";
 
 const test = base.extend("initialised", { scope: "file" }, ({ fileTmp }) =>
-  projectTemplate(join(fileTmp, "initialised"), [["init", "--for", "claude"]]),
+  projectTemplate(join(fileTmp, "initialised"), [["init", "--for", "claude-code"]]),
 );
 
 const fill = tarGz([
@@ -152,7 +152,7 @@ describe("a site's Agent Skills index", () => {
     await serving(served, async (url) => {
       await writeManifestIn(
         project,
-        `harnesses: [claude]\nregistries:\n  kit: ${url}/kit\nartifacts: []\n`,
+        `targets: [claude]\nregistries:\n  kit: ${url}/kit\nartifacts: []\n`,
       );
       const shown = await aireg(["registry", "show", "kit"]);
       expect(shown.code, shown.stderr).toBe(0);

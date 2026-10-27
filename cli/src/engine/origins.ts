@@ -14,6 +14,7 @@ import { listedAt } from "#core/plan/model.ts";
 import { removeContained } from "#core/plan/removable.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { artifactPath, type Roots } from "#core/store/paths.ts";
+import { canonicalId, resolveTargets } from "#core/target/index.ts";
 import { moveAside } from "./claim.ts";
 import type { Scan } from "./scan.ts";
 
@@ -28,8 +29,8 @@ interface Origin {
   registry: string;
   /** Absolute path of the file or directory a person wrote. */
   from: string;
-  /** Which harness's folder conventions it was found under. */
-  harness: string;
+  /** Which target's folder conventions it was found under. */
+  target: string;
   /** The step that claimed it. */
   step: string;
 }
@@ -62,8 +63,8 @@ function kindOfDir(dir: string): ArtifactKind | undefined {
   return undefined;
 }
 
-/** The harness whose tree a path sits in, for the record rather than for behavior. */
-function harnessOf(from: string): string {
+/** The target whose tree a path sits in, for the record rather than for behavior. */
+function targetOf(from: string): string {
   const marker = /[\\/]\.([a-z0-9-]+)[\\/]/.exec(from);
   return marker?.[1] ?? "local";
 }
@@ -101,6 +102,8 @@ async function found(step: Step, selector: Selector): Promise<Origin[]> {
   }
 
   const shape = KIND_SPECS[kind].shape;
+  // A selector's id, or a folder's name such as `claude` from `.claude`, may be an alias.
+  const target = canonicalId(resolveTargets(), selector.target?.[0] ?? targetOf(selector.from));
   const origins: Origin[] = [];
   for (const entry of entries) {
     if (entry.startsWith(".")) continue;
@@ -115,7 +118,7 @@ async function found(step: Step, selector: Selector): Promise<Origin[]> {
       namespace,
       registry,
       from: join(selector.from, entry),
-      harness: selector.harness?.[0] ?? harnessOf(selector.from),
+      target,
       step: step.name,
     });
   }
@@ -214,11 +217,11 @@ async function rowFor(
     path: portable(roots, copy),
     digest,
     origin: {
-      harness: origin.harness,
+      target: origin.target,
       path: portable(roots, origin.from),
       step: origin.step,
     },
-    // The folder a person wrote is already where the harness reads it, so
+    // The folder a person wrote is already where the target reads it, so
     // nothing is linked and nothing of theirs is ever pointed over.
     links: [],
   };
@@ -314,7 +317,7 @@ export async function forgetOrigins(
     if (row.origin === undefined || row.registry !== registry) continue;
     const from = canonical(resolve(roots.base, row.origin.path));
     if (!watched.some((folder) => isWithin(folder, from))) continue;
-    // A pull of the same namespace links the copy into other harnesses, and they would dangle.
+    // A pull of the same namespace links the copy into other targets, and they would dangle.
     for (const link of row.links) {
       const at = resolve(roots.base, link.path);
       if (canonical(at) !== from) await removeContained(at, roots);
@@ -354,7 +357,7 @@ export async function takeIntoOrigins(
     if (!(await exists(copy))) continue;
     let backup: string | undefined;
     if (await exists(folder)) {
-      const copies = [{ from: folder, target: row.origin.harness }];
+      const copies = [{ from: folder, target: row.origin.target }];
       [backup] = (await moveAside(row.kind, basename(folder), copies, roots, stamp)).map(
         (moved) => moved.to,
       );

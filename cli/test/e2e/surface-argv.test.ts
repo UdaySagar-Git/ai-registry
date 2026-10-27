@@ -18,21 +18,21 @@ describe("the command line", () => {
   // taken as the subcommand.
   test("takes the global flags anywhere, and refuses bad combinations", async ({ aireg }) => {
     const taken = [
-      ["harnesses", "--log-level", "debug"],
-      ["--log-level", "debug", "harnesses"],
-      ["harnesses", "--log-level=debug"],
-      ["harnesses", "-q"],
-      ["--quiet", "harnesses"],
-      ["harnesses", "--no-color"],
-      ["--color", "never", "harnesses"],
-      ["harnesses", "--color=always"],
+      ["targets", "--log-level", "debug"],
+      ["--log-level", "debug", "targets"],
+      ["targets", "--log-level=debug"],
+      ["targets", "-q"],
+      ["--quiet", "targets"],
+      ["targets", "--no-color"],
+      ["--color", "never", "targets"],
+      ["targets", "--color=always"],
     ];
     const refused = [
-      [["harnesses", "-q", "--verbose"], "--quiet and --verbose cannot be used together"],
-      [["--no-color", "harnesses", "--color", "always"], "--color and --no-color cannot be"],
-      [["harnesses", "--color", "blue"], '--color takes auto, always or never, not "blue"'],
+      [["targets", "-q", "--verbose"], "--quiet and --verbose cannot be used together"],
+      [["--no-color", "targets", "--color", "always"], "--color and --no-color cannot be"],
+      [["targets", "--color", "blue"], '--color takes auto, always or never, not "blue"'],
       [["config", "path", "--log-level"], "--log-level needs a value."],
-      [["harnesses", "--log-level", "loud"], "--log-level takes trace, debug, info, warn, error"],
+      [["targets", "--log-level", "loud"], "--log-level takes trace, debug, info, warn, error"],
     ] as const;
     const [ran, refusals] = await Promise.all([
       Promise.all(taken.map((argv) => aireg(argv))),
@@ -40,7 +40,7 @@ describe("the command line", () => {
     ]);
     for (const [at, argv] of taken.entries()) {
       expect(ran[at]?.code, argv.join(" ")).toBe(0);
-      expect(ran[at]?.stdout, argv.join(" ")).toContain("claude");
+      expect(ran[at]?.stdout, argv.join(" ")).toContain("claude-code");
     }
     for (const [at, [argv, refusal]] of refused.entries()) {
       expect(refusals[at]?.code, argv.join(" ")).toBe(2);
@@ -87,7 +87,7 @@ describe("the command line", () => {
   test("refuses an option the command or action does not take", async ({ aireg }) => {
     const unknown = [
       ["list", "--frozen"],
-      ["doctor", "--for", "claude"],
+      ["doctor", "--for", "claude-code"],
       ["logs", "--dry-run"],
       ["daemon", "status", "--frozen"],
     ];

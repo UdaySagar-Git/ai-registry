@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { describe, expect } from "vitest";
 import { digest } from "#core/fs/digest.ts";
+import { roots } from "#core/store/paths.ts";
 import { test } from "#test/kit/fixtures.ts";
 import {
   emptyLock,
@@ -13,6 +14,7 @@ import {
   LockError,
   parseLock,
   readLock,
+  writeLock,
 } from "./lock.ts";
 
 function lock(): Lock {
@@ -40,7 +42,7 @@ function lock(): Lock {
         content: "sha256:r",
         version: undefined,
         digest: "sha256:1",
-        links: [{ harness: "claude", path: ".claude/skills/review", mode: "symlink" }],
+        links: [{ target: "claude-code", path: ".claude/skills/review", mode: "symlink" }],
       },
       lint: {
         registry: "kit",
@@ -99,7 +101,7 @@ describe("formatLock", () => {
     const review = value.artifacts.review as LockArtifact;
     review.digest = framed;
     review.links = [
-      { harness: "claude", path: ".claude/skills/review", mode: "copy", digest: framed },
+      { target: "claude-code", path: ".claude/skills/review", mode: "copy", digest: framed },
     ];
 
     const text = formatLock(value);
@@ -160,7 +162,7 @@ describe("parseLock", () => {
     expect(() => parseLock(row(""))).toThrow(/artifact "lint" it cannot read/);
     const linked = (mode: string) =>
       row(
-        `    kind: skill\n    links:\n      - {harness: claude, path: .claude/skills/lint, mode: ${mode}}\n`,
+        `    kind: skill\n    links:\n      - {target: claude, path: .claude/skills/lint, mode: ${mode}}\n`,
       );
     expect(parseLock(linked("copy")).artifacts.lint?.links[0]?.mode).toBe("copy");
     expect(() => parseLock(linked("hardlink"))).toThrow(/artifact "lint" it cannot read/);
@@ -183,12 +185,84 @@ describe("parseLock", () => {
       row("..", "    name: lint\n"),
       at("    path: ../outside\n"),
       at("    path: /etc\n"),
-      at("    links:\n      - {harness: claude, path: ../../.claude/skills/x, mode: symlink}\n"),
-      at("    links:\n      - {harness: claude, path: /abs/x, mode: symlink}\n"),
-      at("    origin: {harness: claude, path: .claude\\skills\\x, step: s}\n"),
+      at("    links:\n      - {target: claude, path: ../../.claude/skills/x, mode: symlink}\n"),
+      at("    links:\n      - {target: claude, path: /abs/x, mode: symlink}\n"),
+      at("    origin: {target: claude, path: .claude\\skills\\x, step: s}\n"),
     ]) {
       expect(() => parseLock(text), text).toThrow(/it cannot read/);
     }
+  });
+});
+
+describe("a lock an earlier aireg wrote", () => {
+  const text = [
+    "version: 1",
+    "registries:",
+    "  kit: { source: acme/kit, adapter: git, key: sha256:kit }",
+    "artifacts:",
+    "  lint:",
+    "    registry: kit",
+    "    name: lint",
+    "    kind: skill",
+    "    path: artifacts/lint",
+    "    digest: sha256:1",
+    "    origin: { harness: claude, path: .claude/skills/lint }",
+    "    links:",
+    "      - { harness: claude, path: .claude/skills/lint, mode: symlink }",
+    "    blocked:",
+    "      - { harness: agents, path: .agents/skills/lint }",
+    "",
+  ].join("\n");
+
+  test("reads each `harness:` as `target:`", () => {
+    const row = parseLock(text).artifacts.lint;
+    expect(row?.origin).toEqual({ target: "claude", path: ".claude/skills/lint", step: "" });
+    expect(row?.links).toEqual([
+      { target: "claude", path: ".claude/skills/lint", mode: "symlink" },
+    ]);
+    expect(row?.blocked).toEqual([{ target: "agents", path: ".agents/skills/lint" }]);
+  });
+
+  test("prefers `target:` when a row has both", () => {
+    const both = text.replace(
+      "{ harness: claude, path: .claude/skills/lint, mode",
+      "{ target: claude-code, harness: claude, path: .claude/skills/lint, mode",
+    );
+    expect(parseLock(both).artifacts.lint?.links[0]?.target).toBe("claude-code");
+  });
+
+  test("is left as it is by a write that changes nothing, and rewritten by one that does", async ({
+    tmp,
+  }) => {
+    const scope = roots("project", tmp);
+    const path = scope.lock;
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, text);
+    const same = await readLock(scope);
+    await writeLock(scope, same);
+    expect(await readFile(path, "utf8")).toBe(text);
+    const lint = same.artifacts.lint as LockArtifact;
+    same.artifacts.lint = { ...lint, version: "0.2.0" };
+    await writeLock(scope, same);
+    const written = await readFile(path, "utf8");
+    // `harness:` and the earlier ids beside `target:`, so aireg 0.1 still reads it.
+    expect(written).toContain("origin:\n      target: claude-code\n      harness: claude\n");
+    expect(written).toContain(
+      "- target: claude-code\n        harness: claude\n        path: .claude/skills/lint\n",
+    );
+    expect(written).toContain(
+      "- target: universal\n        harness: agents\n        path: .agents/skills/lint\n",
+    );
+    expect(written).toContain("version: 1\n");
+  });
+
+  test("reads each target's earlier id as the id it has now", async ({ tmp }) => {
+    const path = join(tmp, "manifest.lock.yml");
+    await writeFile(path, text);
+    const row = (await readLock({ scope: "project", lock: path })).artifacts.lint;
+    expect(row?.origin?.target).toBe("claude-code");
+    expect(row?.links.map((link) => link.target)).toEqual(["claude-code"]);
+    expect(row?.blocked?.map((held) => held.target)).toEqual(["universal"]);
   });
 });
 
@@ -231,7 +305,7 @@ describe("reading a lock", () => {
     '    content: "sha256:2222222222222222222222222222222222222222222222222222222222222222"',
     '    digest: "sha256:3333333333333333333333333333333333333333333333333333333333333333"',
     "    links:",
-    "      - harness: claude",
+    "      - target: claude",
     "        path: .claude/skills/lint",
     "        mode: symlink",
     "",

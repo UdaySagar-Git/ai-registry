@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CALLER_SIGNALS } from "#core/harness/index.ts";
+import { CALLER_SIGNALS } from "#core/target/index.ts";
 import { blocker, callingAgent, explain, SIGNALS } from "./caller.ts";
 
 const DOCS = readFileSync(
@@ -20,10 +20,10 @@ describe("callingAgent", () => {
   });
 
   it("recognizes the signals the agents actually set", () => {
-    expect(callingAgent({ CLAUDECODE: "1" })).toBe("claude");
+    expect(callingAgent({ CLAUDECODE: "1" })).toBe("claude-code");
     expect(callingAgent({ CURSOR_AGENT: "1" })).toBe("cursor");
     expect(callingAgent({ CODEX_THREAD_ID: "abc" })).toBe("codex");
-    expect(callingAgent({ COPILOT_CLI: "1" })).toBe("copilot");
+    expect(callingAgent({ COPILOT_CLI: "1" })).toBe("github-copilot");
     expect(callingAgent({ REPL_ID: "abc" })).toBe("replit");
   });
 
@@ -37,9 +37,9 @@ describe("callingAgent", () => {
   });
 
   it.each([
-    ["gemini", "GEMINI_CLI"],
+    ["gemini-cli", "GEMINI_CLI"],
     ["opencode", "OPENCODE"],
-  ])("takes %s's variable from its harness definition alone", (agent, variable) => {
+  ])("takes %s's variable from its target definition alone", (agent, variable) => {
     expect(CALLER_SIGNALS).toContainEqual({ agent, env: [variable] });
     expect(SIGNALS.filter((signal) => signal.agent === agent)).toHaveLength(1);
     expect(callingAgent({ [variable]: "1" })).toBe(agent);
@@ -67,7 +67,7 @@ describe("blocker", () => {
   it("refuses to prompt an agent that cannot answer", () => {
     expect(blocker({ ...human, env: { CLAUDECODE: "1" } })).toEqual({
       kind: "agent",
-      agent: "claude",
+      agent: "claude-code",
     });
   });
 

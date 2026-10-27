@@ -26,7 +26,7 @@ function candidate(name: string, from: string, elsewhere: Candidate["elsewhere"]
     name,
     kind: "skill",
     from,
-    target: "claude",
+    target: "claude-code",
     suggestedPath: `skills/${name}`,
     description: undefined,
     elsewhere,
@@ -68,7 +68,7 @@ describe("surveyClaims", () => {
     const claims = await surveyClaims(
       [
         candidate("hello", claude, [
-          { from: agents, target: "agents" },
+          { from: agents, target: "universal" },
           { from: codex, target: "codex" },
         ]),
       ],
@@ -81,8 +81,8 @@ describe("surveyClaims", () => {
         kind: "skill",
         entries: ["ws/skills/hello"],
         identical: [
-          { from: claude, target: "claude" },
-          { from: agents, target: "agents" },
+          { from: claude, target: "claude-code" },
+          { from: agents, target: "universal" },
         ],
         different: [{ from: codex, target: "codex" }],
       },
@@ -102,7 +102,7 @@ describe("surveyClaims", () => {
 });
 
 describe("moveAside", () => {
-  test("moves each copy under the backups, by harness and kind, and a link as a link", async () => {
+  test("moves each copy under the backups, by target and kind, and a link as a link", async () => {
     const claude = await skill(join(root, ".claude/skills/hello"), "same\n");
     const target = await skill(join(root, "dev/hello"), "same\n");
     const linked = join(root, ".agents/skills/hello");
@@ -112,31 +112,31 @@ describe("moveAside", () => {
       "skill",
       "hello",
       [
-        { from: claude, target: "claude" },
-        { from: linked, target: "agents" },
+        { from: claude, target: "claude-code" },
+        { from: linked, target: "universal" },
       ],
       roots,
       "20260924T120000Z",
     );
     const at = join(root, ".registry", "backups", "20260924T120000Z");
     expect(moved).toEqual([
-      { from: claude, to: join(at, "claude/skills/hello") },
-      { from: linked, to: join(at, "agents/skills/hello") },
+      { from: claude, to: join(at, "claude-code/skills/hello") },
+      { from: linked, to: join(at, "universal/skills/hello") },
     ]);
     await expect(lstat(claude)).rejects.toThrow();
-    expect((await lstat(join(at, "claude/skills/hello/SKILL.md"))).isFile()).toBe(true);
-    expect(await readlink(join(at, "agents/skills/hello"))).toBe(target);
+    expect((await lstat(join(at, "claude-code/skills/hello/SKILL.md"))).isFile()).toBe(true);
+    expect(await readlink(join(at, "universal/skills/hello"))).toBe(target);
     expect((await lstat(join(target, "SKILL.md"))).isFile()).toBe(true);
   });
 
-  test("leaves a copy reached through a harness folder that is a link", async () => {
+  test("leaves a copy reached through a target folder that is a link", async () => {
     const outside = await skill(join(root, "outside/hello"), "same\n");
     await mkdir(join(root, ".claude"), { recursive: true });
     await symlink(join(root, "outside"), join(root, ".claude/skills"));
     const moved = await moveAside(
       "skill",
       "hello",
-      [{ from: join(root, ".claude/skills/hello"), target: "claude" }],
+      [{ from: join(root, ".claude/skills/hello"), target: "claude-code" }],
       roots,
       "20260924T120000Z",
     );

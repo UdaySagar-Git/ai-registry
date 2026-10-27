@@ -4,9 +4,27 @@ import { LOCK_VERSION } from "#core/lock.ts";
 
 /** The shape of `manifest.lock.yml`, as written. Reading is deliberately looser. */
 
+const EARLIER_ID = Type.Optional(
+  Type.String({
+    minLength: 1,
+    description:
+      "The same target by the id aireg 0.1 reads, so a teammate on it still reads this lock.",
+  }),
+);
+
+/** A row aireg 0.1 wrote names its target by `harness` alone. */
+const NAMES_TARGET = {
+  additionalProperties: false,
+  anyOf: [
+    { properties: { target: true }, required: ["target"] },
+    { properties: { harness: true }, required: ["harness"] },
+  ],
+};
+
 const Link = Type.Object(
   {
-    harness: Type.String({ minLength: 1, description: "Harness name." }),
+    target: Type.Optional(Type.String({ minLength: 1, description: "Target name." })),
+    harness: EARLIER_ID,
     path: Type.String({
       minLength: 1,
       description: "Relative to the scope base, so a committed lock is machine-independent.",
@@ -20,7 +38,7 @@ const Link = Type.Object(
     digest: Type.Optional(
       Type.String({
         pattern: "^sha256:[0-9a-f]{64}$",
-        description: "A copy's digest as written, so an edit to the harness's own copy is seen.",
+        description: "A copy's digest as written, so an edit to the target's own copy is seen.",
       }),
     ),
     framed: Type.Optional(
@@ -31,16 +49,17 @@ const Link = Type.Object(
       }),
     ),
   },
-  { additionalProperties: false },
+  NAMES_TARGET,
 );
 
 const Blocked = Type.Object(
   {
-    harness: Type.String({ minLength: 1, description: "Harness name." }),
+    target: Type.Optional(Type.String({ minLength: 1, description: "Target name." })),
+    harness: EARLIER_ID,
     path: Type.String({ minLength: 1, description: "Relative to the scope base." }),
     by: Type.Optional(Type.String({ minLength: 1, description: "What is at the path instead." })),
   },
-  { additionalProperties: false },
+  NAMES_TARGET,
 );
 
 const Registry = Type.Object(
@@ -71,11 +90,14 @@ const Registry = Type.Object(
 
 const Origin = Type.Object(
   {
-    harness: Type.String({ minLength: 1, description: "Whose folder conventions it follows." }),
+    target: Type.Optional(
+      Type.String({ minLength: 1, description: "Whose folder conventions it follows." }),
+    ),
+    harness: EARLIER_ID,
     path: Type.String({ minLength: 1, description: "Relative to the scope base." }),
     step: Type.Optional(Type.String({ minLength: 1, description: "The step that claimed it." })),
   },
-  { additionalProperties: false },
+  NAMES_TARGET,
 );
 
 const Artifact = Type.Object(
@@ -116,7 +138,7 @@ const Artifact = Type.Object(
       Type.String({
         pattern: "^sha256:[0-9a-f]{64}$",
         description:
-          "A digest of what a plugin has a harness start, so a background job sees it change.",
+          "A digest of what a plugin has a target start, so a background job sees it change.",
       }),
     ),
     path: Type.Optional(

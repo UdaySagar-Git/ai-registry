@@ -49,7 +49,10 @@ export async function isDaemonProcess(pid: number): Promise<boolean> {
 /** Pids that have this unix socket open. Empty when lsof is missing or the path is idle. */
 export async function socketPids(endpoint: string): Promise<number[]> {
   if (process.platform === "win32") return [];
-  const { code, stdout } = await exec("lsof", ["-t", "-U", "--", endpoint], { timeoutMs: EXEC_MS });
+  // lsof ORs its selections unless -a joins them: alone, -U names every process with any unix socket.
+  const { code, stdout } = await exec("lsof", ["-a", "-t", "-U", "--", endpoint], {
+    timeoutMs: EXEC_MS,
+  });
   if (code !== 0) return [];
   return stdout
     .split(/\s+/)

@@ -163,6 +163,37 @@ describe("signInWithBrowser", () => {
     ).rejects.toThrow("is not https");
   });
 
+  it("comes back on the first free port of those the client registered", async () => {
+    server = await stub();
+    const taken = createServer();
+    await new Promise<void>((resolve) => taken.listen(0, "127.0.0.1", resolve));
+    const busy = (taken.address() as AddressInfo).port;
+    const spare = createServer();
+    await new Promise<void>((resolve) => spare.listen(0, "127.0.0.1", resolve));
+    const free = (spare.address() as AddressInfo).port;
+    await new Promise((resolve) => spare.close(resolve));
+    try {
+      const prompt = browser();
+      await signInWithBrowser(
+        { issuer: server.issuer, clientId: "client-1", ports: [busy, free] },
+        prompt,
+        new AbortController().signal,
+      );
+      expect(new URL(prompt.shown[0] ?? "").searchParams.get("redirect_uri")).toBe(
+        `http://127.0.0.1:${free}/callback`,
+      );
+      await expect(
+        signInWithBrowser(
+          { issuer: server.issuer, clientId: "client-1", ports: [busy] },
+          browser(),
+          new AbortController().signal,
+        ),
+      ).rejects.toThrow(`Ports ${busy} are all in use`);
+    } finally {
+      await new Promise((resolve) => taken.close(resolve));
+    }
+  });
+
   it("ignores an answer for another sign-in", async () => {
     server = await stub();
     const prompt = browser();

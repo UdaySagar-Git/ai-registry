@@ -371,6 +371,8 @@ export interface BrowserSignIn {
   clientId: string;
   /** Sent as written; absent asks for the client's default. */
   scope?: string | undefined;
+  /** The loopback ports the client registered, tried in order, for a server that pins them; absent takes any free port. */
+  ports?: readonly number[] | undefined;
 }
 
 /** How an adapter signs in. aireg stores the credential and hands it back on connect. */

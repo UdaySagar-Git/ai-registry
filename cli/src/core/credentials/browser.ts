@@ -89,9 +89,28 @@ function page(message: string): string {
   return `<!doctype html><meta charset="utf-8"><title>aireg</title><p>${message}</p>`;
 }
 
+/** The first of `ports` free on 127.0.0.1; 0 is any. */
+async function bind(server: Server, ports: readonly number[]): Promise<void> {
+  for (const port of ports) {
+    const bound = await new Promise<boolean>((resolve) => {
+      const busy = () => resolve(false);
+      server.once("error", busy);
+      server.listen(port, "127.0.0.1", () => {
+        server.off("error", busy);
+        resolve(true);
+      });
+    });
+    if (bound) return;
+  }
+  throw failed(
+    `Ports ${ports.join(", ")} are all in use, and the sign-in can only come back to one of them.`,
+  );
+}
+
 /** The loopback redirect of RFC 8252: any free port, answered once, for this `state` only. */
 async function listen(
   state: string,
+  ports: readonly number[],
   signal: AbortSignal,
 ): Promise<{ redirectUri: string; code: Promise<string>; server: Server }> {
   let settle: { accept(code: string): void; reject(error: Error): void } | undefined;
@@ -122,10 +141,7 @@ async function listen(
     response.end(page("Signed in. You can close this tab and go back to the terminal."));
     settle?.accept(value);
   });
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
+  await bind(server, ports.length === 0 ? [0] : ports);
   signal.addEventListener(
     "abort",
     () => settle?.reject(failed("The sign-in did not finish in time.")),
@@ -193,7 +209,7 @@ export async function signInWithBrowser(
   const endpoints = await discover(trustedUrl(client.issuer, undefined, "address"), limited);
   const verifier = randomBytes(32).toString("base64url");
   const state = randomBytes(24).toString("base64url");
-  const { redirectUri, code, server } = await listen(state, limited);
+  const { redirectUri, code, server } = await listen(state, client.ports ?? [], limited);
   try {
     const authorize = new URL(endpoints.authorization);
     authorize.search = new URLSearchParams({

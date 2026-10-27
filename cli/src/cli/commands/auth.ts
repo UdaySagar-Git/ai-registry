@@ -221,6 +221,20 @@ async function declared(alias: string, cwd: string): Promise<Declared | undefine
   return { source: here, location, projectOnly: theirs === undefined };
 }
 
+function failureHint(
+  registry: string,
+  given: { token: string | undefined; browser: boolean },
+  own: unknown,
+): string | undefined {
+  // After a browser sign-in the adapter knows what went wrong; a missing token is not it.
+  if (given.browser) return typeof own === "string" ? own : undefined;
+  if (given.token !== undefined) return undefined;
+  return (
+    `Pipe one in with \`… | aireg auth login ${registry} --token-stdin\`, ` +
+    `or set ${tokenVariable(registry)}.`
+  );
+}
+
 /** The adapter's own refusal, with exit 4 when it is about the credential. */
 function loginFailure(
   error: unknown,
@@ -232,16 +246,7 @@ function loginFailure(
   if (problem === undefined || !(error instanceof Error)) return error;
   const failure = failureOf(problem);
   if (!isAuthFailure(failure)) return error;
-  // After a browser sign-in the adapter knows what went wrong; a missing token is not it.
-  const own = (data as { hint?: unknown }).hint;
-  const hint = given.browser
-    ? typeof own === "string"
-      ? own
-      : undefined
-    : given.token === undefined
-      ? `Pipe one in with \`… | aireg auth login ${registry} --token-stdin\`, ` +
-        `or set ${tokenVariable(registry)}.`
-      : undefined;
+  const hint = failureHint(registry, given, (data as { hint?: unknown }).hint);
   return new AiregError(error.message, {
     code: ErrorCode.Unauthorized,
     cause: error,

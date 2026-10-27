@@ -359,18 +359,18 @@ export interface LoginContext {
   signal: AbortSignal;
   /** The CLI owns where a token comes from; an adapter given none should stop. */
   token: string | undefined;
-  /** What a browser sign-in at `browser()`'s server returned, in place of a token. */
-  browser?: Credential | undefined;
+  /** What signing in at `oauth()`'s server returned, in place of a token. */
+  oauth?: Credential | undefined;
 }
 
-/** An OAuth 2.0 server a person signs in to through the browser, for a registry that has one. */
-export interface BrowserSignIn {
+/** The OAuth 2.0 server and public client a person signs in with through the browser. */
+export interface OAuthClient {
   /** Its address. The endpoints come from its RFC 8414 metadata and must share its origin. */
   issuer: string;
-  /** A public client registered there for a native app, with a loopback redirect. */
+  /** Registered there for a native app, with a loopback redirect. */
   clientId: string;
-  /** Sent as written; absent asks for the client's default. */
-  scope?: string | undefined;
+  /** Absent asks for the client's default. */
+  scopes?: readonly string[] | undefined;
   /** The loopback ports the client registered, tried in order, for a server that pins them; absent takes any free port. */
   ports?: readonly number[] | undefined;
 }
@@ -388,8 +388,8 @@ export interface SourceAuth {
   refresh?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<Credential>;
   /** Tells the registry a credential is no longer used: on sign-out, and for a session a new sign-in replaced. */
   revoke?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<void>;
-  /** Where `auth login` sends the browser when no token is given; undefined when nowhere. */
-  browser?(endpoint: string, config: Readonly<Record<string, string>>): BrowserSignIn | undefined;
+  /** Where `auth login` signs in through the browser when no token is given; undefined when nowhere. */
+  oauth?(endpoint: string, config: Readonly<Record<string, string>>): OAuthClient | undefined;
 }
 
 /** One open connection to a registry. aireg closes it when it is done. */

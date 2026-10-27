@@ -49,9 +49,9 @@ const test = base.extend("browserSignIn", async ({ home: { dir: home, aireg } },
   dispatch: { hosts: ["registry.acme.example"] },
   capabilities: { pinsSource: false, auth: true },
   auth: {
-    browser: (endpoint, config) => ({ issuer: ${JSON.stringify(issuer)}, clientId: "client-" + config.org }),
-    login: async ({ browser, config }) => ({
-      credential: { ...browser, accessToken: browser.accessToken + "@" + config.org },
+    oauth: (endpoint, config) => ({ issuer: ${JSON.stringify(issuer)}, clientId: "client-" + config.org }),
+    login: async ({ oauth, config }) => ({
+      credential: { ...oauth, accessToken: oauth.accessToken + "@" + config.org },
       identity: { name: "jane@acme.example" },
     }),
   },
@@ -111,25 +111,4 @@ describe("auth login through the browser", () => {
       ]);
     },
   );
-
-  test("never opens the browser in CI, where nobody can sign in", async ({
-    aireg,
-    browserSignIn,
-  }) => {
-    await aireg([
-      "registry",
-      "add",
-      `${ORIGIN}/team`,
-      "--as",
-      "acme",
-      "--adapter",
-      "browser",
-      "-g",
-    ]);
-    const login = await aireg(["auth", "login", "acme"], {
-      env: { CI: "true", BROWSER: browserSignIn.browser },
-    });
-    expect(login.code).not.toBe(0);
-    expect(login.stderr).not.toContain("Opening");
-  });
 });

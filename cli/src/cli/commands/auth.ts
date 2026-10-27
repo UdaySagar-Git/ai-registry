@@ -1,9 +1,9 @@
 import { AccountService, noSignIn } from "#accounts/service.ts";
 import { failureOf, isAuthFailure } from "#adapter/errors.ts";
 import {
-  type BrowserSignIn,
   type Credential,
   type Identity,
+  type OAuthClient,
   readProblem,
   type SourceAdapter,
 } from "#adapter/index.ts";
@@ -169,7 +169,6 @@ const prompt: BrowserPrompt = {
   },
 };
 
-/** The browser's tokens as the daemon takes them. */
 function tokensOf(credential: Credential): {
   accessToken: string;
   refreshToken?: string;
@@ -290,18 +289,16 @@ async function signsInThere(
 
 const LOGIN_TIMEOUT_MS = 2 * 60_000;
 
-/** The sign-in page of the registry being signed in to, declared or named by `--address`. */
-async function browserFor(
+async function oauthClientFor(
   found: Declared | undefined,
   signsIn: SourceAdapter | undefined,
   flags: LoginFlags,
-): Promise<BrowserSignIn | undefined> {
-  if (found !== undefined)
-    return signsIn?.auth?.browser?.(found.location, found.source.config ?? {});
+): Promise<OAuthClient | undefined> {
+  if (found !== undefined) return signsIn?.auth?.oauth?.(found.location, found.source.config ?? {});
   if (flags.address === undefined) return undefined;
   // Unresolvable here is not a failure: the daemon resolves it again and says why.
   const named = await adapterFor(flags.address, flags.adapter).catch(() => undefined);
-  return named?.auth?.browser?.(flags.address, {});
+  return named?.auth?.oauth?.(flags.address, {});
 }
 
 function report(
@@ -356,15 +353,15 @@ async function login(
   const token = await resolveToken(registry, flags);
   const client =
     // CI has nobody at a browser. A terminal is not required: an agent's shell has none.
-    token === undefined && !isCI() ? await browserFor(found, signsIn, flags) : undefined;
-  const signIn = (browser?: Credential) =>
+    token === undefined && !isCI() ? await oauthClientFor(found, signsIn, flags) : undefined;
+  const signIn = (oauth?: Credential) =>
     withDaemon((daemon) =>
       daemon.request(
         "account.login",
         {
           registry,
           ...(token === undefined ? {} : { token }),
-          ...(browser === undefined ? {} : { browser: tokensOf(browser) }),
+          ...(oauth === undefined ? {} : { oauth: tokensOf(oauth) }),
           ...(address === undefined ? {} : { address }),
           ...(adapter === undefined ? {} : { adapter }),
           ...(Object.keys(config).length === 0 ? {} : { config }),

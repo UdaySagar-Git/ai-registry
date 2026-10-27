@@ -23,7 +23,7 @@ export default {
   dispatch: { hosts: ["registry.acme.example"] },
   capabilities: { pinsSource: false, auth: true },
   auth: {
-    login: async ({ browser }) => ({ credential: browser ?? { type: "bearer", accessToken: "unused" } }),
+    login: async ({ oauth }) => ({ credential: oauth ?? { type: "bearer", accessToken: "unused" } }),
     revoke: async (endpoint, credential) => {
       if (credential.refreshToken === "unreachable") throw new Error("the registry is down");
       await appendFile(${JSON.stringify(revoked)}, credential.refreshToken + "\\n");
@@ -72,27 +72,18 @@ async function revoked(tmp: string): Promise<string[]> {
 describe("AccountService", () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  test("ends the session a second sign-in replaces", async ({ tmp }) => {
-    await signedIn(tmp, { type: "bearer", accessToken: "a1", refreshToken: "r1" });
-    await new AccountService().login(
-      { registry: "acme" },
-      { browser: { type: "bearer", accessToken: "a9", refreshToken: "r9" } },
-      signal,
-    );
-    expect(await revoked(tmp)).toEqual(["r1"]);
-    expect((await readCredential("acc_one"))?.credential).toMatchObject({ refreshToken: "r9" });
-  });
-
-  test("leaves a replaced operator token alone, which may still serve elsewhere", async ({
-    tmp,
-  }) => {
+  test("ends a session a new sign-in replaces, never an operator's token", async ({ tmp }) => {
     await signedIn(tmp, { type: "bearer", accessToken: "operator-1" });
-    await new AccountService().login(
-      { registry: "acme" },
-      { browser: { type: "bearer", accessToken: "a9", refreshToken: "r9" } },
-      signal,
-    );
+    const login = (refreshToken: string) =>
+      new AccountService().login(
+        { registry: "acme" },
+        { oauth: { type: "bearer", accessToken: `a-${refreshToken}`, refreshToken } },
+        signal,
+      );
+    await login("r1");
     expect(await revoked(tmp)).toEqual([]);
+    await login("r2");
+    expect(await revoked(tmp)).toEqual(["r1"]);
   });
 
   test("signs out on this machine though the registry cannot be told", async ({ tmp }) => {

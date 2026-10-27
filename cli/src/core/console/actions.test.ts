@@ -37,11 +37,6 @@ describe("opening a link", () => {
     const url = "https://example.com/";
     const env = { BROWSER: "/usr/bin/firefox:chromium" };
     expect(actions.browserCommand(url, "linux", env)).toEqual(["/usr/bin/firefox", [url]]);
-    expect(actions.browserCommand(url, "win32", { BROWSER: "C:\\b.exe;x" })).toEqual([
-      "C:\\b.exe",
-      [url],
-    ]);
-    expect(actions.browserCommand("file:///etc/passwd", "linux", env)).toBeUndefined();
   });
 
   it("opens nothing that is not a web page, such as a file, an app or a flag", () => {

@@ -146,7 +146,7 @@ export class AccountService {
    */
   async login(
     input: LoginAccount,
-    given: { token?: string | undefined; browser?: Credential | undefined },
+    given: { token?: string | undefined; oauth?: Credential | undefined },
     signal: AbortSignal,
   ): Promise<LoginResult> {
     const alias = input.registry;
@@ -182,7 +182,7 @@ export class AccountService {
         config: resolved.source.config ?? {},
         signal,
         token: given.token,
-        ...(given.browser === undefined ? {} : { browser: given.browser }),
+        ...(given.oauth === undefined ? {} : { oauth: given.oauth }),
       })
       .catch((error: unknown) => {
         if (isAdapterError(error)) throw error;
@@ -198,7 +198,6 @@ export class AccountService {
       await saveCredential(id, { origin, credential: session.credential });
       return previous;
     });
-    // Signing in again ends the session it replaces, rather than leaving it live and unused.
     if (
       replaced !== undefined &&
       replaced.origin === origin &&
@@ -315,7 +314,6 @@ export class AccountService {
     }
     assertBound(account, stored, resolved.location);
     const refresh = resolved.adapter.auth.refresh;
-    // One refresh per account at a time: a rotating refresh token spent twice ends the session.
     return changing(account.id, async () => {
       const current = await readCredential(account.id);
       if (current === undefined) return undefined;

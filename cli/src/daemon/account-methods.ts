@@ -24,9 +24,7 @@ export async function loginAccount(
       },
       {
         ...(params.token === undefined ? {} : { token: inputs.text(params, "token") }),
-        ...(params.browser === undefined
-          ? {}
-          : { browser: inputs.browserTokens(params, "browser") }),
+        ...(params.oauth === undefined ? {} : { oauth: inputs.oauthTokens(params, "oauth") }),
       },
       context.signal,
     ),

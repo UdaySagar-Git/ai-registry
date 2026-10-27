@@ -1,8 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { BrowserSignIn, Credential } from "#adapter/index.ts";
-import { ERROR_CODE, signInFailed as failed, listen } from "./loopback.ts";
+import type { Credential, OAuthClient } from "#adapter/index.ts";
+import { ERROR_CODE, signInFailed as failed, listenForCode } from "./loopback.ts";
 
-/** How long the browser has to come back before aireg gives up waiting. */
 const WAIT_MS = 5 * 60_000;
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -14,11 +13,9 @@ interface Server {
   namesIssuer: boolean;
 }
 
-/** What the person sees while aireg waits, so a browser that did not open is not a dead end. */
+/** `waiting` shows the URL too, so a browser that `open` failed to start is not a dead end. */
 export interface BrowserPrompt {
-  /** Asked to open `url`; it may fail silently, since the URL is shown either way. */
   open(url: string): void;
-  /** Shown before waiting, with the URL to open by hand and the port the browser comes back to. */
   waiting(url: string, port: number): void;
 }
 
@@ -136,7 +133,7 @@ async function exchange(
 
 function authorizeUrl(
   server: Server,
-  client: BrowserSignIn,
+  client: OAuthClient,
   redirectUri: string,
   verifier: string,
   state: string,
@@ -149,7 +146,7 @@ function authorizeUrl(
     code_challenge: createHash("sha256").update(verifier).digest("base64url"),
     code_challenge_method: "S256",
     state,
-    ...(client.scope === undefined ? {} : { scope: client.scope }),
+    ...(client.scopes === undefined ? {} : { scope: client.scopes.join(" ") }),
   })) {
     url.searchParams.set(key, value);
   }
@@ -161,7 +158,7 @@ function authorizeUrl(
  * to a loopback port. `finish` stores the sign-in; the tab says it worked only once it has.
  */
 export async function signInWithBrowser<T>(
-  client: BrowserSignIn,
+  client: OAuthClient,
   prompt: BrowserPrompt,
   signal: AbortSignal,
   finish: (credential: Credential) => Promise<T>,
@@ -170,7 +167,7 @@ export async function signInWithBrowser<T>(
   const server = await discover(trustedUrl(client.issuer, undefined, "address"), limited);
   const verifier = randomBytes(32).toString("base64url");
   const state = randomBytes(32).toString("base64url");
-  const callback = await listen(
+  const callback = await listenForCode(
     { state, issuer: server.issuer, namesIssuer: server.namesIssuer },
     client.ports ?? [],
   );

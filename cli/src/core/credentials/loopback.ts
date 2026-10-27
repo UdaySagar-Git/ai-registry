@@ -36,7 +36,6 @@ function tell(response: ServerResponse, signedIn: boolean): void {
     : answer(response, 500, "The sign-in did not finish. The terminal says why.");
 }
 
-/** Why the browser came back without a code, from its OAuth error code alone. */
 function refusal(error: string | null): AiregError {
   if (error === "access_denied") return signInFailed("The sign-in was declined in the browser.");
   const reason = ERROR_CODE.test(error ?? "") ? ` (${error})` : "";
@@ -51,14 +50,12 @@ function delay(ms: number): { done: Promise<void>; clear(): void } {
   return { done, clear: () => clearTimeout(timer) };
 }
 
-/** What the callback must carry: this sign-in's `state`, and its server's `iss` (RFC 9207). */
 export interface Expected {
   state: string;
   issuer: string;
   namesIssuer: boolean;
 }
 
-/** Where the browser comes back, the code it brings, and how to tell it the outcome. */
 export interface Callback {
   redirectUri: string;
   port: number;
@@ -70,7 +67,10 @@ export interface Callback {
  * The loopback redirect of RFC 8252: one answer for this `state`, then the tab moves to a
  * page without the code in its address, held until `close` says how the sign-in ended.
  */
-export async function listen(expected: Expected, ports: readonly number[]): Promise<Callback> {
+export async function listenForCode(
+  expected: Expected,
+  ports: readonly number[],
+): Promise<Callback> {
   let settle: { accept(code: string): void; reject(error: Error): void } | undefined;
   const code = new Promise<string>((accept, reject) => {
     settle = { accept, reject };

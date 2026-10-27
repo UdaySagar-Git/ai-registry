@@ -57,7 +57,7 @@ export function sourceConfig(entry: Fields, key: string): Record<string, string>
 }
 
 /** A browser sign-in's tokens, as `auth login` hands them over; never echoed back. */
-export function browserTokens(entry: Fields, key: string): Credential {
+export function oauthTokens(entry: Fields, key: string): Credential {
   const raw = object(entry[key], key);
   const refreshToken = optionalText(raw, "refreshToken", key);
   const expiresAtMs = raw.expiresAtMs === undefined ? undefined : integer(raw, "expiresAtMs", key);

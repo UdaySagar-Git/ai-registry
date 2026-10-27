@@ -15,8 +15,10 @@ const test = base.extend("browserSignIn", async ({ home: { dir: home, aireg } },
       response.writeHead(200, { "content-type": "application/json" });
       response.end(
         JSON.stringify({
+          issuer,
           authorization_endpoint: `${issuer}/oauth/authorize`,
           token_endpoint: `${issuer}/oauth/token`,
+          authorization_response_iss_parameter_supported: true,
         }),
       );
       return;
@@ -25,6 +27,7 @@ const test = base.extend("browserSignIn", async ({ home: { dir: home, aireg } },
       const back = new URL(url.searchParams.get("redirect_uri") ?? "");
       back.searchParams.set("state", url.searchParams.get("state") ?? "");
       back.searchParams.set("code", "code-1");
+      back.searchParams.set("iss", issuer);
       response.writeHead(302, { location: back.href }).end();
       return;
     }

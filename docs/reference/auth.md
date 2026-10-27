@@ -29,7 +29,9 @@ aireg names the address it signed in to and, when the registry says, who the sig
 
 A token never comes from an argument, since arguments show in `ps` and in your shell history. Pipe it in with `--token-stdin`, which refuses to read a terminal, where the token would echo.
 
-Without a token, a registry whose adapter has a sign-in page opens it in your browser. aireg prints the link too, in case the browser doesn't open, and waits up to five minutes for you to sign in there. The page sends aireg a one-time code on this machine, at `http://127.0.0.1` on a free port or one the registry names, and aireg saves the sign-in it gets for it. A sign-in that expires is renewed without asking you again. aireg never opens the browser in CI; use `--token-stdin` or `AIREG_TOKEN_<NAME>` there. Without a sign-in page, the registry's adapter runs its own sign-in, if it has one.
+Without a token, a registry whose adapter has a sign-in page opens it in your browser. aireg prints the link too, in case the browser doesn't open, and waits up to five minutes for you to sign in there. The page sends aireg a one-time code on this machine, at `http://127.0.0.1` on a free port or one the registry names, and aireg saves the sign-in it gets for it. The tab says whether it worked once aireg has saved the sign-in. A sign-in that expires is renewed without asking you again, and signing in again ends the session it replaces. Press Ctrl+C to stop waiting.
+
+Over SSH the browser runs on your own machine, so aireg prints the link instead of opening it, with the `ssh -L` command that forwards its port back. aireg never opens the browser in CI; use `--token-stdin` or `AIREG_TOKEN_<NAME>` there. Without a sign-in page, the registry's adapter runs its own sign-in, if it has one.
 
 | Option | Description |
 |---|---|
@@ -43,7 +45,7 @@ Lists the accounts on this machine, with each one's registry, whether it is sign
 
 ## aireg auth logout
 
-Signs out of a registry and keeps the account, so the jobs that run as it keep their reference. Sign in again with `aireg auth login`.
+Signs out of a registry and keeps the account, so the jobs that run as it keep their reference. The sign-in is deleted from this machine first, then the registry is told to end its session; a registry that can't be reached doesn't stop the sign-out. Sign in again with `aireg auth login`.
 
 ## aireg auth remove
 

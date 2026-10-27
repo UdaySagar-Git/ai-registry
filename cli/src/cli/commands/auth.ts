@@ -1,6 +1,6 @@
 import { AccountService, noSignIn } from "#accounts/service.ts";
 import { failureOf, isAuthFailure } from "#adapter/errors.ts";
-import { type Credential, readProblem } from "#adapter/index.ts";
+import { type Credential, type Identity, readProblem } from "#adapter/index.ts";
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
@@ -142,11 +142,23 @@ async function resolveToken(registry: string, flags: LoginFlags): Promise<string
   return undefined;
 }
 
+/** Over SSH the browser runs on another machine, and its redirect must be forwarded here. */
+function remote(): boolean {
+  return process.env.SSH_CONNECTION !== undefined || process.env.SSH_TTY !== undefined;
+}
+
 /** On stderr even with --json: the sign-in cannot finish without the link. */
 const prompt: BrowserPrompt = {
-  open,
-  waiting(url) {
-    process.stderr.write(`Opening ${url} in your browser.\nWaiting for you to sign in there…\n`);
+  open(url) {
+    if (!remote()) open(url);
+  },
+  waiting(url, port) {
+    process.stderr.write(
+      remote()
+        ? `Open ${url} in a browser, after forwarding its port: \`ssh -L ${port}:127.0.0.1:${port} <this host>\`.\n`
+        : `Opening ${url} in your browser.\n`,
+    );
+    process.stderr.write("Waiting for you to sign in there. Press Ctrl+C to cancel.\n");
   },
 };
 
@@ -256,6 +268,24 @@ async function signsInThere(
   return true;
 }
 
+function report(
+  context: CommandContext,
+  { account, identity }: { account: { registry: string }; identity?: Identity | undefined },
+  where: string | undefined,
+): void {
+  const at = where === undefined ? "" : ` at ${withoutCredentials(where)}`;
+  const who =
+    identity === undefined
+      ? ""
+      : ` as ${identity.name}${identity.account === undefined ? "" : ` (${identity.account})`}`;
+  context.printer.format === "json"
+    ? context.printer.json({
+        ok: true,
+        data: { account, ...(identity === undefined ? {} : { identity }) },
+      })
+    : context.printer.success(`Signed in to ${account.registry}${at}${who}.`);
+}
+
 async function login(
   context: CommandContext,
   registry: string | undefined,
@@ -289,36 +319,39 @@ async function login(
   const where = flags.address ?? found?.location;
   const token = await resolveToken(registry, flags);
   const client =
+    // CI has nobody at a browser. A terminal is not required: an agent's shell has none.
     token === undefined && found !== undefined && !isCI()
       ? signsIn?.auth?.browser?.(found.location, found.source.config ?? {})
       : undefined;
-  const browser =
-    client === undefined
-      ? undefined
-      : await signInWithBrowser(client, prompt, new AbortController().signal);
-  await withDaemon(async (daemon) => {
-    const { account, identity } = await daemon.request("account.login", {
-      registry,
-      ...(token === undefined ? {} : { token }),
-      ...(browser === undefined ? {} : { browser: tokensOf(browser) }),
-      ...(address === undefined ? {} : { address }),
-      ...(adapter === undefined ? {} : { adapter }),
-      ...(Object.keys(config).length === 0 ? {} : { config }),
-    });
-    const at = where === undefined ? "" : ` at ${withoutCredentials(where)}`;
-    const who =
-      identity === undefined
-        ? ""
-        : ` as ${identity.name}${identity.account === undefined ? "" : ` (${identity.account})`}`;
-    context.printer.format === "json"
-      ? context.printer.json({
-          ok: true,
-          data: { account, ...(identity === undefined ? {} : { identity }) },
-        })
-      : context.printer.success(`Signed in to ${account.registry}${at}${who}.`);
-  }).catch((error: unknown) => {
+  const signIn = (browser?: Credential) =>
+    withDaemon((daemon) =>
+      daemon.request("account.login", {
+        registry,
+        ...(token === undefined ? {} : { token }),
+        ...(browser === undefined ? {} : { browser: tokensOf(browser) }),
+        ...(address === undefined ? {} : { address }),
+        ...(adapter === undefined ? {} : { adapter }),
+        ...(Object.keys(config).length === 0 ? {} : { config }),
+      }),
+    );
+  // Ctrl+C while the browser is out ends the wait and closes the port, rather than the process.
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  if (client !== undefined) process.once("SIGINT", stop);
+  try {
+    const signedIn = await (client === undefined
+      ? signIn()
+      : signInWithBrowser(client, prompt, controller.signal, signIn));
+    report(context, signedIn, where);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      context.printer.info("Canceled. Nothing was changed.");
+      return;
+    }
     throw loginFailure(error, registry, token);
-  });
+  } finally {
+    process.off("SIGINT", stop);
+  }
 }
 
 const LOGOUT_OR_REMOVE =

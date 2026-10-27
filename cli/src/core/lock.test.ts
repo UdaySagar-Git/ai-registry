@@ -1,6 +1,8 @@
-import { writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
+import { digest } from "#core/fs/digest.ts";
 import { test } from "#test/kit/fixtures.ts";
 import {
   emptyLock,
@@ -85,6 +87,38 @@ describe("formatLock", () => {
     expect(back.registries).toEqual(value.registries);
     expect(back.artifacts.review).toEqual(value.artifacts.review);
     expect(back.artifacts.lint).toEqual(value.artifacts.lint);
+  });
+
+  test("writes the digest aireg 0.1 checks, with the framed one beside it", async ({ tmp }) => {
+    const copy = join(tmp, "copy");
+    await mkdir(copy);
+    await writeFile(join(copy, "SKILL.md"), "hello\n");
+    const framed = await digest(copy);
+    const earlier = `sha256:${createHash("sha256").update("SKILL.md 0 hello\n ").digest("hex")}`;
+    const value = lock();
+    const review = value.artifacts.review as LockArtifact;
+    review.digest = framed;
+    review.links = [
+      { harness: "claude", path: ".claude/skills/review", mode: "copy", digest: framed },
+    ];
+
+    const text = formatLock(value);
+    expect(text.match(new RegExp(`digest: ${earlier}`, "g"))).toHaveLength(2);
+    expect(text.match(new RegExp(`framed: ${framed}`, "g"))).toHaveLength(2);
+    expect(parseLock(text).artifacts.review?.digest).toBe(framed);
+    expect(formatLock(parseLock(text))).toBe(text);
+  });
+
+  test("keeps both digests of a row it read, without taking either", () => {
+    const value = lock();
+    (value.artifacts.lint as LockArtifact).digest = "sha256:framed";
+    const text = formatLock(value).replace(
+      "digest: sha256:framed",
+      "digest: sha256:earlier\n    framed: sha256:framed",
+    );
+
+    expect(parseLock(text).artifacts.lint?.digest).toBe("sha256:framed");
+    expect(formatLock(parseLock(text))).toBe(text);
   });
 
   test("records a revision once per source, not once per artifact", () => {

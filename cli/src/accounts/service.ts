@@ -77,6 +77,35 @@ function expiring(credential: Credential): boolean {
   );
 }
 
+/** One change to an account's sign-in at a time: a refresh racing a login or logout writes back the old one. */
+function changing<T>(accountId: string, change: () => Promise<T>): Promise<T> {
+  return withLease(
+    { scope: "user", lock: `${credentialsPath()}.${accountId}` },
+    { wait: true },
+    change,
+  );
+}
+
+function sameSession(a: Credential, b: Credential): boolean {
+  return (
+    a.type === "bearer" &&
+    b.type === "bearer" &&
+    (a.accessToken === b.accessToken ||
+      (a.refreshToken !== undefined && a.refreshToken === b.refreshToken))
+  );
+}
+
+/** Best effort: the registry may be unreachable, and the sign-out on this machine still stands. */
+async function revoke(
+  resolved: ResolvedRegistry,
+  credential: Credential,
+  signal: AbortSignal,
+): Promise<void> {
+  await Promise.resolve(
+    resolved.adapter.auth?.revoke?.(resolved.location, credential, signal),
+  ).catch(() => undefined);
+}
+
 function signedOut(account: Account): CredentialStoreError {
   return new CredentialStoreError(`You are signed out of ${account.registry}.`, {
     code: ErrorCode.Unauthorized,
@@ -164,7 +193,19 @@ export class AccountService {
       });
     const held = before.accounts.find(({ registry }) => registry === alias);
     const id = held?.id ?? newAccountId();
-    await saveCredential(id, { origin, credential: session.credential });
+    const replaced = await changing(id, async () => {
+      const previous = await readCredential(id);
+      await saveCredential(id, { origin, credential: session.credential });
+      return previous;
+    });
+    // Signing in again ends the session it replaces, rather than leaving it live and unused.
+    if (
+      replaced !== undefined &&
+      replaced.origin === origin &&
+      !sameSession(replaced.credential, session.credential)
+    ) {
+      await revoke(resolved, replaced.credential, signal);
+    }
     const defaultNamespace = input.defaultNamespace ?? held?.defaultNamespace;
     const account: Account = {
       id,
@@ -186,16 +227,17 @@ export class AccountService {
         hint: "Run `aireg auth list` to see the accounts.",
       });
     }
-    const stored = await readCredential(account.id);
-    if (stored !== undefined) {
+    const resolved = await this.resolve(account).catch(() => undefined);
+    await changing(account.id, async () => {
+      const stored = await readCredential(account.id);
+      if (stored === undefined) return;
+      await deleteCredential(account.id);
       // Revoked only at its own origin; one the registry moved away from, or no longer
       // declared, is just forgotten.
-      const resolved = await this.resolve(account).catch(() => undefined);
       if (resolved !== undefined && credentialOrigin(resolved.location) === stored.origin) {
-        await resolved.adapter.auth?.revoke?.(resolved.location, stored.credential, signal);
+        await revoke(resolved, stored.credential, signal);
       }
-      await deleteCredential(account.id);
-    }
+    });
     return config;
   }
 
@@ -270,8 +312,7 @@ export class AccountService {
     assertBound(account, stored, resolved.location);
     const refresh = resolved.adapter.auth.refresh;
     // One refresh per account at a time: a rotating refresh token spent twice ends the session.
-    const lock = `${credentialsPath()}.${account.id}`;
-    return withLease({ scope: "user", lock }, { wait: true }, async () => {
+    return changing(account.id, async () => {
       const current = await readCredential(account.id);
       if (current === undefined) return undefined;
       assertBound(account, current, resolved.location);

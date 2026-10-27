@@ -83,6 +83,18 @@ describe("AccountService", () => {
     expect((await readCredential("acc_one"))?.credential).toMatchObject({ refreshToken: "r9" });
   });
 
+  test("leaves a replaced operator token alone, which may still serve elsewhere", async ({
+    tmp,
+  }) => {
+    await signedIn(tmp, { type: "bearer", accessToken: "operator-1" });
+    await new AccountService().login(
+      { registry: "acme" },
+      { browser: { type: "bearer", accessToken: "a9", refreshToken: "r9" } },
+      signal,
+    );
+    expect(await revoked(tmp)).toEqual([]);
+  });
+
   test("signs out on this machine though the registry cannot be told", async ({ tmp }) => {
     const account = await signedIn(tmp, {
       type: "bearer",

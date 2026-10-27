@@ -386,7 +386,7 @@ export interface SourceAuth {
   ): Promise<{ credential: Credential; identity?: Identity | undefined }>;
   /** Only for a credential that expires. A token an operator issued does not. */
   refresh?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<Credential>;
-  /** Tells the registry a credential is no longer used, on sign-out. */
+  /** Tells the registry a credential is no longer used: on sign-out, and for a session a new sign-in replaced. */
   revoke?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<void>;
   /** Where `auth login` sends the browser when no token is given; undefined when nowhere. */
   browser?(endpoint: string, config: Readonly<Record<string, string>>): BrowserSignIn | undefined;

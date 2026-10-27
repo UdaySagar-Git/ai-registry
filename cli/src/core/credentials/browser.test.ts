@@ -220,6 +220,36 @@ describe("signInWithBrowser", () => {
     expect(page.text).toContain("The terminal says why.");
   });
 
+  it("finishes though the tab is closed while the sign-in is stored", async () => {
+    server = await stub();
+    const started = Date.now();
+    const credential = await signInWithBrowser(
+      { issuer: server.issuer, clientId: "client-1" },
+      {
+        waiting: () => {},
+        open: (url) => {
+          void fetch(url, { redirect: "manual" })
+            .then((authorize) =>
+              fetch(authorize.headers.get("location") ?? "", { redirect: "manual" }),
+            )
+            .then((callback) => {
+              const done = new URL(callback.headers.get("location") ?? "", callback.url);
+              const request = get(done);
+              request.on("error", () => {});
+              setTimeout(() => request.destroy(), 20);
+            });
+        },
+      },
+      never,
+      async (signedIn) => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return signedIn;
+      },
+    );
+    expect(credential).toMatchObject({ accessToken: "access-1" });
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+
   it("says the person declined, and never the server's own words", async () => {
     server = await stub({ refuse: "access_denied" });
     await expect(

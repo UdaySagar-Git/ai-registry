@@ -86,12 +86,12 @@ function changing<T>(accountId: string, change: () => Promise<T>): Promise<T> {
   );
 }
 
-function sameSession(a: Credential, b: Credential): boolean {
+/** A session this sign-in replaced; an operator's token may still serve elsewhere, as in CI. */
+function endedSession(replaced: Credential, current: Credential): boolean {
   return (
-    a.type === "bearer" &&
-    b.type === "bearer" &&
-    (a.accessToken === b.accessToken ||
-      (a.refreshToken !== undefined && a.refreshToken === b.refreshToken))
+    replaced.type === "bearer" &&
+    replaced.refreshToken !== undefined &&
+    !(current.type === "bearer" && current.refreshToken === replaced.refreshToken)
   );
 }
 
@@ -202,7 +202,7 @@ export class AccountService {
     if (
       replaced !== undefined &&
       replaced.origin === origin &&
-      !sameSession(replaced.credential, session.credential)
+      endedSession(replaced.credential, session.credential)
     ) {
       await revoke(resolved, replaced.credential, signal);
     }
@@ -228,16 +228,20 @@ export class AccountService {
       });
     }
     const resolved = await this.resolve(account).catch(() => undefined);
-    await changing(account.id, async () => {
-      const stored = await readCredential(account.id);
-      if (stored === undefined) return;
-      await deleteCredential(account.id);
-      // Revoked only at its own origin; one the registry moved away from, or no longer
-      // declared, is just forgotten.
-      if (resolved !== undefined && credentialOrigin(resolved.location) === stored.origin) {
-        await revoke(resolved, stored.credential, signal);
-      }
+    const stored = await changing(account.id, async () => {
+      const held = await readCredential(account.id);
+      if (held !== undefined) await deleteCredential(account.id);
+      return held;
     });
+    // Revoked only at its own origin; one the registry moved away from, or no longer
+    // declared, is just forgotten.
+    if (
+      stored !== undefined &&
+      resolved !== undefined &&
+      credentialOrigin(resolved.location) === stored.origin
+    ) {
+      await revoke(resolved, stored.credential, signal);
+    }
     return config;
   }
 

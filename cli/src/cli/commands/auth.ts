@@ -1,6 +1,12 @@
 import { AccountService, noSignIn } from "#accounts/service.ts";
 import { failureOf, isAuthFailure } from "#adapter/errors.ts";
-import { type Credential, type Identity, readProblem } from "#adapter/index.ts";
+import {
+  type BrowserSignIn,
+  type Credential,
+  type Identity,
+  readProblem,
+  type SourceAdapter,
+} from "#adapter/index.ts";
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
@@ -150,7 +156,8 @@ function remote(): boolean {
 /** On stderr even with --json: the sign-in cannot finish without the link. */
 const prompt: BrowserPrompt = {
   open(url) {
-    if (!remote()) open(url);
+    // A $BROWSER over SSH, such as an editor's remote helper, reaches the person's own browser.
+    if (!remote() || process.env.BROWSER !== undefined) open(url);
   },
   waiting(url, port) {
     process.stderr.write(
@@ -215,22 +222,30 @@ async function declared(alias: string, cwd: string): Promise<Declared | undefine
 }
 
 /** The adapter's own refusal, with exit 4 when it is about the credential. */
-function loginFailure(error: unknown, registry: string, token: string | undefined): unknown {
-  const problem = readProblem(undefined, (error as { data?: unknown } | undefined)?.data);
+function loginFailure(
+  error: unknown,
+  registry: string,
+  given: { token: string | undefined; browser: boolean },
+): unknown {
+  const data = (error as { data?: unknown } | undefined)?.data;
+  const problem = readProblem(undefined, data);
   if (problem === undefined || !(error instanceof Error)) return error;
   const failure = failureOf(problem);
   if (!isAuthFailure(failure)) return error;
+  // After a browser sign-in the adapter knows what went wrong; a missing token is not it.
+  const own = (data as { hint?: unknown }).hint;
+  const hint = given.browser
+    ? typeof own === "string"
+      ? own
+      : undefined
+    : given.token === undefined
+      ? `Pipe one in with \`… | aireg auth login ${registry} --token-stdin\`, ` +
+        `or set ${tokenVariable(registry)}.`
+      : undefined;
   return new AiregError(error.message, {
     code: ErrorCode.Unauthorized,
     cause: error,
-    // Nothing here can prompt, so a missing token is the one worth explaining.
-    ...(token === undefined
-      ? {
-          hint:
-            `Pipe one in with \`… | aireg auth login ${registry} --token-stdin\`, ` +
-            `or set ${tokenVariable(registry)}.`,
-        }
-      : {}),
+    ...(hint === undefined ? {} : { hint }),
   });
 }
 
@@ -266,6 +281,22 @@ async function signsInThere(
     return false;
   }
   return true;
+}
+
+const LOGIN_TIMEOUT_MS = 2 * 60_000;
+
+/** The sign-in page of the registry being signed in to, declared or named by `--address`. */
+async function browserFor(
+  found: Declared | undefined,
+  signsIn: SourceAdapter | undefined,
+  flags: LoginFlags,
+): Promise<BrowserSignIn | undefined> {
+  if (found !== undefined)
+    return signsIn?.auth?.browser?.(found.location, found.source.config ?? {});
+  if (flags.address === undefined) return undefined;
+  // Unresolvable here is not a failure: the daemon resolves it again and says why.
+  const named = await adapterFor(flags.address, flags.adapter).catch(() => undefined);
+  return named?.auth?.browser?.(flags.address, {});
 }
 
 function report(
@@ -320,19 +351,22 @@ async function login(
   const token = await resolveToken(registry, flags);
   const client =
     // CI has nobody at a browser. A terminal is not required: an agent's shell has none.
-    token === undefined && found !== undefined && !isCI()
-      ? signsIn?.auth?.browser?.(found.location, found.source.config ?? {})
-      : undefined;
+    token === undefined && !isCI() ? await browserFor(found, signsIn, flags) : undefined;
   const signIn = (browser?: Credential) =>
     withDaemon((daemon) =>
-      daemon.request("account.login", {
-        registry,
-        ...(token === undefined ? {} : { token }),
-        ...(browser === undefined ? {} : { browser: tokensOf(browser) }),
-        ...(address === undefined ? {} : { address }),
-        ...(adapter === undefined ? {} : { adapter }),
-        ...(Object.keys(config).length === 0 ? {} : { config }),
-      }),
+      daemon.request(
+        "account.login",
+        {
+          registry,
+          ...(token === undefined ? {} : { token }),
+          ...(browser === undefined ? {} : { browser: tokensOf(browser) }),
+          ...(address === undefined ? {} : { address }),
+          ...(adapter === undefined ? {} : { adapter }),
+          ...(Object.keys(config).length === 0 ? {} : { config }),
+        },
+        // Signing in may switch orgs and end a replaced session, each a round trip of its own.
+        { timeoutMs: LOGIN_TIMEOUT_MS },
+      ),
     );
   // Ctrl+C while the browser is out ends the wait and closes the port, rather than the process.
   const controller = new AbortController();
@@ -348,7 +382,7 @@ async function login(
       context.printer.info("Canceled. Nothing was changed.");
       return;
     }
-    throw loginFailure(error, registry, token);
+    throw loginFailure(error, registry, { token, browser: client !== undefined });
   } finally {
     process.off("SIGINT", stop);
   }

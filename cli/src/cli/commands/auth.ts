@@ -1,6 +1,13 @@
+import { heldAt } from "#accounts/registry.ts";
 import { AccountService, noSignIn } from "#accounts/service.ts";
 import { failureOf, isAuthFailure } from "#adapter/errors.ts";
-import { readProblem } from "#adapter/index.ts";
+import {
+  type Credential,
+  type Identity,
+  type OAuthClient,
+  readProblem,
+  type SourceAdapter,
+} from "#adapter/index.ts";
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
@@ -10,8 +17,10 @@ import { expandLocation } from "#core/adapter/location.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
 import type { Account } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
+import { open } from "#core/console/actions.ts";
+import { type SignInPrompt, signInWithOAuth } from "#core/credentials/oauth.ts";
 import { signedInAccounts } from "#core/credentials/store.ts";
-import { registryToken, tokenVariable } from "#core/env.ts";
+import { isCI, registryToken, tokenVariable } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { type RegistrySource, readManifest } from "#core/manifest.ts";
 import { roots } from "#core/store/paths.ts";
@@ -140,6 +149,41 @@ async function resolveToken(registry: string, flags: LoginFlags): Promise<string
   return undefined;
 }
 
+/** Over SSH the browser runs on another machine, and its redirect must be forwarded here. */
+function remote(): boolean {
+  return process.env.SSH_CONNECTION !== undefined || process.env.SSH_TTY !== undefined;
+}
+
+/** On stderr even with --json: the sign-in cannot finish without the link. */
+const prompt: SignInPrompt = {
+  open(url) {
+    // A $BROWSER over SSH, such as an editor's remote helper, reaches the person's own browser.
+    if (!remote() || process.env.BROWSER !== undefined) open(url);
+  },
+  waiting(url, port) {
+    process.stderr.write(
+      remote()
+        ? `Open ${url} in a browser, after forwarding its port: \`ssh -L ${port}:127.0.0.1:${port} <this host>\`.\n`
+        : `Opening ${url} in your browser.\n`,
+    );
+    process.stderr.write("Waiting for you to sign in there. Press Ctrl+C to cancel.\n");
+  },
+};
+
+function tokensOf(credential: Credential): {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAtMs?: number;
+} {
+  if (credential.type !== "bearer") throw new AiregError("The sign-in returned no bearer token.");
+  const { accessToken, refreshToken, expiresAtMs } = credential;
+  return {
+    accessToken,
+    ...(refreshToken === undefined ? {} : { refreshToken }),
+    ...(expiresAtMs === undefined ? {} : { expiresAtMs }),
+  };
+}
+
 interface Declared {
   source: RegistrySource;
   location: string;
@@ -174,26 +218,51 @@ async function declared(alias: string, cwd: string): Promise<Declared | undefine
       },
     );
   }
-  return { source: here, location, projectOnly: theirs === undefined };
+  // The daemon signs in with the user scope's declaration, so the browser goes where it will.
+  if (user !== undefined && theirs !== undefined) {
+    return { source: user, location: theirs, projectOnly: false };
+  }
+  return { source: here, location, projectOnly: true };
+}
+
+async function heldFor(alias: string, address: string, cwd: string): Promise<Declared | undefined> {
+  const { registries } = await readManifest(roots("user", cwd).manifest);
+  const held = heldAt(registries, alias, address, cwd);
+  return held === undefined
+    ? undefined
+    : { source: held, location: expandLocation(held.location, cwd), projectOnly: false };
+}
+
+function failureHint(
+  registry: string,
+  given: { token: string | undefined; oauth: boolean },
+  own: unknown,
+): string | undefined {
+  // After an OAuth sign-in the adapter knows what went wrong; a missing token is not it.
+  if (given.oauth) return typeof own === "string" ? own : undefined;
+  if (given.token !== undefined) return undefined;
+  return (
+    `Pipe one in with \`… | aireg auth login ${registry} --token-stdin\`, ` +
+    `or set ${tokenVariable(registry)}.`
+  );
 }
 
 /** The adapter's own refusal, with exit 4 when it is about the credential. */
-function loginFailure(error: unknown, registry: string, token: string | undefined): unknown {
-  const problem = readProblem(undefined, (error as { data?: unknown } | undefined)?.data);
+function loginFailure(
+  error: unknown,
+  registry: string,
+  given: { token: string | undefined; oauth: boolean },
+): unknown {
+  const data = (error as { data?: unknown } | undefined)?.data;
+  const problem = readProblem(undefined, data);
   if (problem === undefined || !(error instanceof Error)) return error;
   const failure = failureOf(problem);
   if (!isAuthFailure(failure)) return error;
+  const hint = failureHint(registry, given, (data as { hint?: unknown }).hint);
   return new AiregError(error.message, {
     code: ErrorCode.Unauthorized,
     cause: error,
-    // Nothing here can prompt, so a missing token is the one worth explaining.
-    ...(token === undefined
-      ? {
-          hint:
-            `Pipe one in with \`… | aireg auth login ${registry} --token-stdin\`, ` +
-            `or set ${tokenVariable(registry)}.`,
-        }
-      : {}),
+    ...(hint === undefined ? {} : { hint }),
   });
 }
 
@@ -231,6 +300,38 @@ async function signsInThere(
   return true;
 }
 
+const LOGIN_TIMEOUT_MS = 2 * 60_000;
+
+async function oauthClientFor(
+  found: Declared | undefined,
+  signsIn: SourceAdapter | undefined,
+  flags: LoginFlags,
+): Promise<OAuthClient | undefined> {
+  if (found !== undefined) return signsIn?.auth?.oauth?.(found.location, found.source.config ?? {});
+  if (flags.address === undefined) return undefined;
+  // Unresolvable here is not a failure: the daemon resolves it again and says why.
+  const named = await adapterFor(flags.address, flags.adapter).catch(() => undefined);
+  return named?.auth?.oauth?.(flags.address, {});
+}
+
+function report(
+  context: CommandContext,
+  { account, identity }: { account: { registry: string }; identity?: Identity | undefined },
+  where: string | undefined,
+): void {
+  const at = where === undefined ? "" : ` at ${withoutCredentials(where)}`;
+  const who =
+    identity === undefined
+      ? ""
+      : ` as ${identity.name}${identity.account === undefined ? "" : ` (${identity.account})`}`;
+  context.printer.format === "json"
+    ? context.printer.json({
+        ok: true,
+        data: { account, ...(identity === undefined ? {} : { identity }) },
+      })
+    : context.printer.success(`Signed in to ${account.registry}${at}${who}.`);
+}
+
 async function login(
   context: CommandContext,
   registry: string | undefined,
@@ -244,19 +345,19 @@ async function login(
     });
   }
 
-  const found = flags.address === undefined ? await declared(registry, context.cwd) : undefined;
-  if (found !== undefined) {
-    const adapter = await adapterFor(
-      found.location,
-      found.source.adapter,
-      declaredLayout(found.source.config),
-    );
-    if (adapter.auth?.login === undefined) {
-      throw new AiregError(noSignIn(registry, adapter.credentialsHint !== undefined), {
-        code: ErrorCode.Usage,
-        hint: adapter.credentialsHint,
-      });
-    }
+  const found =
+    flags.address === undefined
+      ? await declared(registry, context.cwd)
+      : await heldFor(registry, flags.address, context.cwd);
+  const signsIn =
+    found === undefined
+      ? undefined
+      : await adapterFor(found.location, found.source.adapter, declaredLayout(found.source.config));
+  if (signsIn !== undefined && signsIn.auth?.login === undefined) {
+    throw new AiregError(noSignIn(registry, signsIn.credentialsHint !== undefined), {
+      code: ErrorCode.Usage,
+      hint: signsIn.credentialsHint,
+    });
   }
   const declaring = found?.projectOnly === true ? found : undefined;
   if (declaring !== undefined && !(await signsInThere(context, registry, declaring, yes))) return;
@@ -266,28 +367,47 @@ async function login(
 
   const where = flags.address ?? found?.location;
   const token = await resolveToken(registry, flags);
-  await withDaemon(async (client) => {
-    const { account, identity } = await client.request("account.login", {
-      registry,
-      ...(token === undefined ? {} : { token }),
-      ...(address === undefined ? {} : { address }),
-      ...(adapter === undefined ? {} : { adapter }),
-      ...(Object.keys(config).length === 0 ? {} : { config }),
-    });
-    const at = where === undefined ? "" : ` at ${withoutCredentials(where)}`;
-    const who =
-      identity === undefined
-        ? ""
-        : ` as ${identity.name}${identity.account === undefined ? "" : ` (${identity.account})`}`;
-    context.printer.format === "json"
-      ? context.printer.json({
-          ok: true,
-          data: { account, ...(identity === undefined ? {} : { identity }) },
-        })
-      : context.printer.success(`Signed in to ${account.registry}${at}${who}.`);
-  }).catch((error: unknown) => {
-    throw loginFailure(error, registry, token);
-  });
+  const client =
+    // CI has nobody at a browser. A terminal is not required: an agent's shell has none.
+    token === undefined && !isCI() ? await oauthClientFor(found, signsIn, flags) : undefined;
+  let finishing = false;
+  const signIn = (oauth?: Credential) => {
+    finishing = true;
+    return withDaemon((daemon) =>
+      daemon.request(
+        "account.login",
+        {
+          registry,
+          ...(token === undefined ? {} : { token }),
+          ...(oauth === undefined ? {} : { oauth: tokensOf(oauth) }),
+          ...(address === undefined ? {} : { address }),
+          ...(adapter === undefined ? {} : { adapter }),
+          ...(Object.keys(config).length === 0 ? {} : { config }),
+        },
+        // Signing in may switch orgs and end a replaced session, each a round trip of its own.
+        { timeoutMs: LOGIN_TIMEOUT_MS },
+      ),
+    );
+  };
+  // Ctrl+C while the browser is out ends the wait and closes the port, rather than the process.
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  if (client !== undefined) process.once("SIGINT", stop);
+  try {
+    const signedIn = await (client === undefined
+      ? signIn()
+      : signInWithOAuth(client, prompt, controller.signal, signIn));
+    report(context, signedIn, where);
+  } catch (error) {
+    // Once the daemon has the sign-in, Ctrl+C no longer stops it, so its own outcome stands.
+    if (controller.signal.aborted && !finishing) {
+      context.printer.info("Canceled. Nothing was changed.");
+      return;
+    }
+    throw loginFailure(error, registry, { token, oauth: client !== undefined });
+  } finally {
+    process.off("SIGINT", stop);
+  }
 }
 
 const LOGOUT_OR_REMOVE =

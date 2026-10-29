@@ -25,12 +25,18 @@ describe("a console action", () => {
 describe("opening a link", () => {
   it("hands the browser an http(s) URL as one argument, on every platform", () => {
     const url = "https://example.com/a?b=1&calc";
-    expect(actions.browserCommand(url, "darwin")).toEqual(["open", [url]]);
-    expect(actions.browserCommand(url, "linux")).toEqual(["xdg-open", [url]]);
-    expect(actions.browserCommand(url, "win32")).toEqual([
+    expect(actions.browserCommand(url, "darwin", {})).toEqual(["open", [url]]);
+    expect(actions.browserCommand(url, "linux", {})).toEqual(["xdg-open", [url]]);
+    expect(actions.browserCommand(url, "win32", {})).toEqual([
       "rundll32",
       ["url.dll,FileProtocolHandler", url],
     ]);
+  });
+
+  it("uses the first browser $BROWSER lists", () => {
+    const url = "https://example.com/";
+    const env = { BROWSER: "/usr/bin/firefox:chromium" };
+    expect(actions.browserCommand(url, "linux", env)).toEqual(["/usr/bin/firefox", [url]]);
   });
 
   it("opens nothing that is not a web page, such as a file, an app or a flag", () => {
@@ -42,7 +48,7 @@ describe("opening a link", () => {
       "smb://example.com/share",
       "not a url",
     ]) {
-      expect(actions.browserCommand(link, "darwin"), link).toBeUndefined();
+      expect(actions.browserCommand(link, "darwin", {}), link).toBeUndefined();
     }
   });
 });

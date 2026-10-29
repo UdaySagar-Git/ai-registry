@@ -21,7 +21,8 @@ import {
   saveCredential,
 } from "#core/credentials/store.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import type { Scope } from "#core/store/paths.ts";
+import { withLease } from "#core/lease.ts";
+import { credentialsPath, type Scope } from "#core/store/paths.ts";
 import {
   declareRegistryFor,
   type ResolvedRegistry,
@@ -76,6 +77,39 @@ function expiring(credential: Credential): boolean {
   );
 }
 
+/** Ending an abandoned sign-in outlives a canceled request, but not by longer than this. */
+const REVOKE_MS = 30_000;
+
+/** One change to an account's sign-in at a time: a refresh racing a login or logout writes back the old one. */
+function changing<T>(accountId: string, change: () => Promise<T>): Promise<T> {
+  return withLease(
+    { scope: "user", lock: `${credentialsPath()}.${accountId}` },
+    { wait: true },
+    change,
+  );
+}
+
+/** A session the registry minted; an operator's token may still serve elsewhere, as in CI. */
+function isSession(credential: Credential): boolean {
+  return credential.type === "bearer" && credential.refreshToken !== undefined;
+}
+
+function endedSession(replaced: Credential, current: Credential): boolean {
+  if (replaced.type !== "bearer" || replaced.refreshToken === undefined) return false;
+  return !(current.type === "bearer" && current.refreshToken === replaced.refreshToken);
+}
+
+/** Best effort: the registry may be unreachable, and the sign-out on this machine still stands. */
+async function revoke(
+  resolved: ResolvedRegistry,
+  credential: Credential,
+  signal: AbortSignal,
+): Promise<void> {
+  await Promise.resolve(
+    resolved.adapter.auth?.revoke?.(resolved.location, credential, signal),
+  ).catch(() => undefined);
+}
+
 function signedOut(account: Account): CredentialStoreError {
   return new CredentialStoreError(`You are signed out of ${account.registry}.`, {
     code: ErrorCode.Unauthorized,
@@ -116,7 +150,7 @@ export class AccountService {
    */
   async login(
     input: LoginAccount,
-    token: string | undefined,
+    given: { token?: string | undefined; oauth?: Credential | undefined },
     signal: AbortSignal,
   ): Promise<LoginResult> {
     const alias = input.registry;
@@ -147,7 +181,13 @@ export class AccountService {
 
     const before = await readConfig();
     const session = await resolved.adapter.auth
-      .login({ endpoint: resolved.location, signal, token })
+      .login({
+        endpoint: resolved.location,
+        config: resolved.source.config ?? {},
+        signal,
+        token: given.token,
+        ...(given.oauth === undefined ? {} : { oauth: given.oauth }),
+      })
       .catch((error: unknown) => {
         if (isAdapterError(error)) throw error;
         // A sign-in that failed is one still needed, whatever the adapter threw.
@@ -157,16 +197,38 @@ export class AccountService {
       });
     const held = before.accounts.find(({ registry }) => registry === alias);
     const id = held?.id ?? newAccountId();
-    await saveCredential(id, { origin, credential: session.credential });
-    const defaultNamespace = input.defaultNamespace ?? held?.defaultNamespace;
-    const account: Account = {
-      id,
-      registry: alias,
-      ...(defaultNamespace === undefined ? {} : { defaultNamespace }),
-    };
-    const latest = await readConfig();
-    await writeConfig({ ...latest, accounts: upsert(latest.accounts, account) }, latest.revision);
-    return { account, created: held === undefined, identity: shownIdentity(session.identity) };
+    let saved = false;
+    try {
+      const replaced = await changing(id, async () => {
+        const previous = await readCredential(id);
+        await saveCredential(id, { origin, credential: session.credential });
+        saved = true;
+        return previous;
+      });
+      if (
+        replaced !== undefined &&
+        replaced.origin === origin &&
+        endedSession(replaced.credential, session.credential)
+      ) {
+        await revoke(resolved, replaced.credential, signal);
+      }
+      const defaultNamespace = input.defaultNamespace ?? held?.defaultNamespace;
+      const account: Account = {
+        id,
+        registry: alias,
+        ...(defaultNamespace === undefined ? {} : { defaultNamespace }),
+      };
+      const latest = await readConfig();
+      await writeConfig({ ...latest, accounts: upsert(latest.accounts, account) }, latest.revision);
+      return { account, created: held === undefined, identity: shownIdentity(session.identity) };
+    } catch (error) {
+      // No account row reaches a sign-in stored for a new one, so no sign-out would ever end it.
+      if (saved && held === undefined) await changing(id, () => deleteCredential(id));
+      if ((!saved || held === undefined) && isSession(session.credential)) {
+        await revoke(resolved, session.credential, AbortSignal.timeout(REVOKE_MS));
+      }
+      throw error;
+    }
   }
 
   /** Deletes the sign-in and keeps the row, so jobs keep their reference. */
@@ -179,15 +241,19 @@ export class AccountService {
         hint: "Run `aireg auth list` to see the accounts.",
       });
     }
-    const stored = await readCredential(account.id);
-    if (stored !== undefined) {
-      // Revoked only at its own origin; one the registry moved away from, or no longer
-      // declared, is just forgotten.
-      const resolved = await this.resolve(account).catch(() => undefined);
-      if (resolved !== undefined && credentialOrigin(resolved.location) === stored.origin) {
-        await resolved.adapter.auth?.revoke?.(resolved.location, stored.credential, signal);
-      }
-      await deleteCredential(account.id);
+    const resolved = await this.resolve(account).catch(() => undefined);
+    const stored = await changing(account.id, async () => {
+      const held = await readCredential(account.id);
+      if (held !== undefined) await deleteCredential(account.id);
+      return held;
+    });
+    // Never sent anywhere but the origin it was issued for.
+    if (
+      stored !== undefined &&
+      resolved !== undefined &&
+      credentialOrigin(resolved.location) === stored.origin
+    ) {
+      await revoke(resolved, stored.credential, signal);
     }
     return config;
   }
@@ -261,9 +327,16 @@ export class AccountService {
       });
     }
     assertBound(account, stored, resolved.location);
-    const next = await resolved.adapter.auth.refresh(resolved.location, stored.credential, signal);
-    await saveCredential(account.id, { origin: stored.origin, credential: next });
-    return next;
+    const refresh = resolved.adapter.auth.refresh;
+    return changing(account.id, async () => {
+      const current = await readCredential(account.id);
+      if (current === undefined) return undefined;
+      assertBound(account, current, resolved.location);
+      if (!expiring(current.credential)) return current.credential;
+      const next = await refresh(resolved.location, current.credential, signal);
+      await saveCredential(account.id, { origin: current.origin, credential: next });
+      return next;
+    });
   }
 
   async open(

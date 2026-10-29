@@ -23,6 +23,7 @@
 | `GEMINI_CLI_HOME` | The folder that holds Gemini CLI's `.gemini` user folder, if not your home folder. |
 | `AI_AGENT`, `CLAUDECODE`, `CODEX_SANDBOX`, `CODEX_CI`, `CODEX_THREAD_ID`, `CURSOR_AGENT`, `COPILOT_CLI`, `GEMINI_CLI`, `ANTIGRAVITY_AGENT`, `AUGMENT_AGENT`, `OPENCODE`, `REPL_ID` | Set by a coding agent that runs aireg, which then asks no questions. See [When aireg asks questions](options.md#when-aireg-asks-questions). |
 | `CI` | Any value means a CI service runs aireg. aireg then asks no questions, skips its update check, and the installer offers no skills. |
+| `BROWSER` | The browser `aireg auth login` and the console open a link in, instead of the system default. The first program of a `:`-separated list (`;` on Windows), run with the link as its only argument. |
 | `TERM` | `dumb` turns color and animation off. |
 | `HOME`, `USERPROFILE` | Your home folder, in that order, else the one your OS reports. `~` in a path you type means this folder. |
 | `XDG_CONFIG_HOME` | Where the fish startup file, the Linux daemon service and OpenCode's `opencode/` user folder go, if not `~/.config`. |

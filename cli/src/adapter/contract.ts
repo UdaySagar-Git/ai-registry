@@ -353,10 +353,26 @@ export interface Identity {
 export interface LoginContext {
   /** The registry's address. */
   endpoint: string;
+  /** The adapter's own settings for this registry, as declared. */
+  config: Readonly<Record<string, string>>;
   /** Aborted when the person gives up. */
   signal: AbortSignal;
   /** The CLI owns where a token comes from; an adapter given none should stop. */
   token: string | undefined;
+  /** What signing in at `oauth()`'s server returned, in place of a token. */
+  oauth?: Credential | undefined;
+}
+
+/** The OAuth 2.0 server and public client a person signs in with through the browser. */
+export interface OAuthClient {
+  /** Its address. The endpoints come from its RFC 8414 metadata and must share its origin. */
+  issuer: string;
+  /** Registered there for a native app, with a loopback redirect. */
+  clientId: string;
+  /** Absent asks for the client's default. */
+  scopes?: readonly string[] | undefined;
+  /** For a server that pins the loopback ports, the ones registered; absent takes any free port. */
+  ports?: readonly number[] | undefined;
 }
 
 /** How an adapter signs in. aireg stores the credential and hands it back on connect. */
@@ -370,8 +386,10 @@ export interface SourceAuth {
   ): Promise<{ credential: Credential; identity?: Identity | undefined }>;
   /** Only for a credential that expires. A token an operator issued does not. */
   refresh?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<Credential>;
-  /** Tells the registry a credential is no longer used, on sign-out. */
+  /** Tells the registry a credential is no longer used: on sign-out, and for a session a new sign-in replaced. */
   revoke?(endpoint: string, credential: Credential, signal: AbortSignal): Promise<void>;
+  /** Where `auth login` signs in through the browser when no token is given; undefined when nowhere. */
+  oauth?(endpoint: string, config: Readonly<Record<string, string>>): OAuthClient | undefined;
 }
 
 /** One open connection to a registry. aireg closes it when it is done. */

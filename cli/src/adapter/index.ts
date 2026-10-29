@@ -10,6 +10,7 @@ export {
   type Identity,
   type LoginContext,
   type Newest,
+  type OAuthClient,
   type PublishHold,
   type PublishInput,
   type PublishOptions,

@@ -28,10 +28,11 @@ export async function run(context: CommandContext): Promise<void> {
   const rows = installed(lock, manifest, targetTable);
 
   if (context.printer.format === "json") {
-    // `targets` is a key aireg 0.1 printed, so it keeps that version's ids for its readers.
+    // aireg 0.1 printed these ids under `targets`.
     const artifacts = rows.map((row) => ({
       ...row,
-      targets: row.targets.map((id) => earlierId(targetTable, id)).sort(),
+      targets: [...row.targets].sort(),
+      harnesses: row.targets.map((id) => earlierId(targetTable, id)).sort(),
     }));
     context.printer.json({ ok: true, data: { scope: roots.scope, artifacts } });
     return;

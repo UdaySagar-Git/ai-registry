@@ -29,6 +29,7 @@ export const antigravity = defineTarget({
       codec: { id: "frontmatter-strict", keep: ["name", "description"] },
     },
   },
+  verified: { command: ["agy", "--version"], range: "1.4.5" },
   reload:
     "Start a new conversation in Antigravity, or run `/skills reload` in its CLI, to load the change.",
 });

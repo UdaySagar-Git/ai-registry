@@ -1,4 +1,8 @@
 import { conformance } from "#test/conformance/kit.ts";
 
-// No command lists what Antigravity loaded without a signed-in session.
-conformance({ id: "antigravity" });
+// `agy agents` lists agents without a session; listing skills needs a signed-in one.
+conformance({
+  id: "antigravity",
+  env: () => ({ AGY_CLI_DISABLE_AUTO_UPDATE: "true" }),
+  probes: [{ scope: "user", argv: ["agy", "agents"], expect: [/^reviewer$/m, /^planner$/m] }],
+});

@@ -228,8 +228,8 @@ export function readsFor(
   const target = targetTable[name];
   if (target === undefined) return [];
   const reads = target.reads[kind] ?? (target.kinds[kind] === undefined ? [] : [name]);
-  const shared =
-    scope === undefined ? undefined : sharedOwnFolder(targetTable, target, kind, scope, env);
+  // A summary passes no scope; a project's shared folder still counts as the target's own there.
+  const shared = sharedOwnFolder(targetTable, target, kind, scope ?? "project", env);
   return shared === undefined
     ? reads
     : [...new Set(reads.map((read) => (read === name ? shared : read)))];

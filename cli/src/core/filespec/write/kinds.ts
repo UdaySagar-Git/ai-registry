@@ -8,8 +8,9 @@ import { quoted, sanitizeName } from "#adapter/text.ts";
 import { frontmatterRecord } from "#core/catalog/frontmatter.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { dict, isRecord } from "#core/fields.ts";
-import { AGENT_CARD_ENTRY, AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
+import { AGENT_CARD_ENTRY, AGENT_ENTRY, MCP_SERVER_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
 import agent from "#schema/kinds/agent.json" with { type: "json" };
+import mcpServer from "#schema/kinds/mcp_server.json" with { type: "json" };
 import skill from "#schema/kinds/skill.json" with { type: "json" };
 
 import { prepareManifest } from "./schema.ts";
@@ -49,6 +50,7 @@ export interface KindManifest extends SchemaNode {
 const BUNDLED: Readonly<Record<string, KindManifest>> = dict([
   ["skill", skill as KindManifest],
   ["agent", agent as KindManifest],
+  ["mcp_server", mcpServer as KindManifest],
 ]);
 
 /** A manifest a registry serves itself, or why it could not be used. */
@@ -218,6 +220,7 @@ export function specFile(
 ): string | undefined {
   if (manifest.title === "skill") return files.has(SKILL_ENTRY) ? SKILL_ENTRY : undefined;
   if (manifest.title === "agent") return files.has(AGENT_ENTRY) ? AGENT_ENTRY : undefined;
+  if (manifest.title === "mcp_server") return undefined;
   return [...primaryFiles(manifest), ...files.keys()].find(
     (path) => path.endsWith(".md") && files.has(path),
   );
@@ -250,6 +253,7 @@ export function specOf(
   const markdown = specFile(manifest, files);
   if (markdown !== undefined) return frontmatterRecord(files.get(markdown) ?? "");
   if (manifest.title === "skill") return undefined;
+  if (manifest.title === "mcp_server") return serverSpec(files, name);
   const json =
     manifest.title === "agent"
       ? files.has(AGENT_CARD_ENTRY)
@@ -276,4 +280,26 @@ export function specOf(
     else if (typeof lifted.name === "string") lifted.name = sanitizeName(lifted.name);
   }
   return { ...lifted, card };
+}
+
+/** An MCP server's server.json, verbatim, under the registry slug its reverse-DNS name cannot be. */
+function serverSpec(
+  files: ReadonlyMap<string, string>,
+  name: string | undefined,
+): Record<string, unknown> | undefined {
+  let server: unknown;
+  try {
+    server = JSON.parse(files.get(MCP_SERVER_ENTRY) ?? "") as unknown;
+  } catch {
+    return undefined;
+  }
+  if (!isRecord(server)) return undefined;
+  const own =
+    typeof server.name === "string" ? sanitizeName(server.name.split("/").at(-1) ?? "") : "";
+  const description = server.description;
+  return {
+    name: name ?? own,
+    ...(description === undefined ? {} : { description }),
+    server,
+  };
 }

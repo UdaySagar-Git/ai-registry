@@ -1,6 +1,6 @@
 # acme-registry
 
-A complete file-spec root in one directory. Two kinds, one namespace, one blob, and every digest real. Clone it as a repository and it is a registry; read it from disk and it is a registry. Served from a static file host it is a registry under the file spec too, though no client reads an HTTPS root yet: aireg reads folders and git repositories.
+A complete file-spec root in one directory. Three kinds, one namespace, one blob, and every digest real. Clone it as a repository and it is a registry; read it from disk and it is a registry. Served from a static file host it is a registry under the file spec too, though no client reads an HTTPS root yet: aireg reads folders and git repositories.
 
 ```
 registry.json                                        discovery: kind registry, slug acme
@@ -10,8 +10,9 @@ artifacts/engineering/skill/pr-review/1.1.0/         deprecated; SKILL.md only
 artifacts/engineering/skill/pr-review/1.2.0/         active; adds references/checklist.md inline and assets/rubric.json in the blob store
 artifacts/engineering/agent/reviewer/versions.json
 artifacts/engineering/agent/reviewer/0.3.0/          depends_on engineering/skill/pr-review@1.2.0
+artifacts/engineering/mcp_server/issue-tracker/1.0.0/  server.json, the MCP Registry's server document, unchanged
 blobs/sha256/28eb…fc0c                               the rubric bytes
-kinds/skill.json, kinds/agent.json                   the manifests registry.json advertises
+kinds/skill.json, agent.json, mcp_server.json        the manifests registry.json advertises
 ```
 
 Two identifiers are at work and they are not the same one. The root belongs to the `acme` organization, which is `slug` in `registry.json` and never appears in a path. `engineering` is a namespace inside that root: a team workspace, one of several the organization could hold. A registry with a single team is tempted to give both the same name; this example keeps them distinct so the layout still reads correctly when a second namespace arrives.

@@ -26,6 +26,13 @@ export const SKILL_ENTRY = "SKILL.md";
 /** The one file a registry's agent version folder holds. */
 export const AGENT_ENTRY = "AGENT.md";
 
+/** The MCP Registry's server document an MCP server version carries. */
+export const MCP_SERVER_ENTRY = "server.json";
+
+/** The MCP Registry schema a new server.json names. */
+export const MCP_SERVER_SCHEMA =
+  "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
+
 import { AGENT_CARD_ENTRY } from "./product.ts";
 
 export { AGENT_CARD_ENTRY };

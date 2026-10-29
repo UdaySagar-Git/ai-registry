@@ -1,7 +1,7 @@
 # MCP servers
 
 !!! note "Draft design"
-    This page describes a planned `mcp_server` kind. None of it is implemented behavior yet: aireg does not install MCP servers today. It records what the kind will do, why, and what it deliberately leaves out, so the work that follows can be reviewed against it.
+    This page describes a planned `mcp_server` kind. aireg indexes and validates the kind, and `aireg mcp_server new` writes a `server.json`; the rest, including publishing a server from a folder and installing it into an agent, is not implemented. It records what the kind will do, why, and what it deliberately leaves out, so the work that follows can be reviewed against it.
 
 ## The problem
 

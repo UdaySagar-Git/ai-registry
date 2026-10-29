@@ -34,7 +34,7 @@ import {
 } from "#core/filespec/write/kinds.ts";
 import { expandUserPath } from "#core/fs/path.ts";
 import { authored, type Irregular, present, refusal } from "#core/fs/tree.ts";
-import { SKILL_ENTRY } from "#core/kinds.ts";
+import { MCP_SERVER_ENTRY, MCP_SERVER_SCHEMA, SKILL_ENTRY } from "#core/kinds.ts";
 import { type CommandContext, type CommandSpec, runAction } from "./index.ts";
 
 interface Own extends Record<string, unknown> {
@@ -281,6 +281,17 @@ function render(path: string, fields: Record<string, unknown>): string {
   return `---\n${stringify(fields, { lineWidth: 0 })}---\n`;
 }
 
+/** The server.json fields an MCP server's spec description and first version fill. */
+const SERVER_FILLED = ["server.description", "server.version"];
+
+/** An MCP server's server.json is the MCP Registry's document, not the envelope spec. */
+function serverDocument(fields: Record<string, unknown>): Record<string, unknown> {
+  const server = isRecord(fields.server) ? { ...fields.server } : {};
+  if (server.description === PLACEHOLDER) server.description = fields.description;
+  if (server.version === PLACEHOLDER) server.version = "0.1.0";
+  return { $schema: MCP_SERVER_SCHEMA, ...server };
+}
+
 /** `artifacts/<namespace>/<kind>/<name>/0.1.0`, with the namespace and name asked for when missing. */
 async function registryPlace(
   kind: string,
@@ -355,14 +366,21 @@ async function init(
   const { name, at } = place;
   const shown = relative(context.cwd, at) || ".";
 
-  const { fields, todo } = scaffold(manifest, name, sets);
+  const mcp = manifest.title === "mcp_server";
+  const scaffolded = scaffold(manifest, name, sets);
+  const { fields } = scaffolded;
+  const todo = mcp
+    ? scaffolded.todo.filter((path) => !SERVER_FILLED.includes(path))
+    : scaffolded.todo;
   if (interactive(step) && !(await askFields(step, fields, todo))) return cancel(step);
+  const server = mcp ? serverDocument(fields) : undefined;
 
   const created = files.map((file) => (shown === "." ? file : `${shown}/${file}`));
   for (const file of files) refuseRedirect(inRegistry ? root : context.cwd, join(at, file));
   await mkdir(at, { recursive: true });
   for (const [index, file] of files.entries()) {
-    await writeFresh(join(at, file), render(file, fields), created[index] as string);
+    const content = server !== undefined && file === MCP_SERVER_ENTRY ? server : fields;
+    await writeFresh(join(at, file), render(file, content), created[index] as string);
   }
 
   if (context.printer.format === "json") {

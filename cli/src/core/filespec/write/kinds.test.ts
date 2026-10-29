@@ -120,6 +120,23 @@ describe("native kind contracts", async () => {
     expect(envelopeSpec("agent", new Map(extras.slice(0, 2)))).toEqual({});
   });
 
+  it("wraps an MCP server's server.json under the registry slug, ignoring other files", async () => {
+    const { mcp_server: mcpServer } = (await kindsOf(undefined)) as Record<string, KindManifest>;
+    const server = {
+      $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+      name: "io.github.example/issue-tracker",
+      description: "Reads issues.",
+      version: "1.4.2",
+    };
+    const readme = ["README.md", text("---\nname: wrong\ndescription: Wrong.\n---\n")] as const;
+    const files = new Map([readme, ["server.json", text(JSON.stringify(server))]]);
+    const spec = envelopeSpec("mcp_server", files, undefined, "issue-tracker");
+    expect(spec).toEqual({ name: "issue-tracker", description: "Reads issues.", server });
+    expect(check(mcpServer as KindManifest, spec)).toEqual([]);
+    expect(envelopeSpec("mcp_server", files)).toMatchObject({ name: "issue-tracker" });
+    expect(envelopeSpec("mcp_server", new Map([readme]))).toEqual({});
+  });
+
   it("rejects both agent entries and scaffolds shared files with the chosen alternative", () => {
     expect(fileProblems(agent, new Set(["AGENT.md", "agent-card.json"]))).toEqual([
       "must contain exactly one file alternative: AGENT.md or agent-card.json",

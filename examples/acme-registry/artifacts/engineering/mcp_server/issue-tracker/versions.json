@@ -1,0 +1,15 @@
+{
+  "namespace": "engineering",
+  "kind": "mcp_server",
+  "name": "issue-tracker",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "digest": "sha256:0e58a4342138838a48f16cded1a1576b876306116b9704730a6d3fe27bfe3fb1",
+      "published_at": "2026-10-29T16:26:36.249Z",
+      "status": "active",
+      "yanked": false
+    }
+  ]
+}

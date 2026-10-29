@@ -1,0 +1,81 @@
+{
+  "apiVersion": "aireg.sh/v1",
+  "kind": "mcp_server",
+  "metadata": {
+    "name": "issue-tracker",
+    "namespace": "engineering",
+    "version": "1.0.0",
+    "digest": "sha256:0e58a4342138838a48f16cded1a1576b876306116b9704730a6d3fe27bfe3fb1"
+  },
+  "files": [
+    {
+      "path": "server.json",
+      "digest": "sha256:e7c02dd907bce29b2932dba7d1da7ff0682c443658e28e7e92eb9b39f047e735",
+      "size": 1415,
+      "media_type": "application/json",
+      "urls": [
+        "server.json"
+      ]
+    }
+  ],
+  "spec": {
+    "name": "issue-tracker",
+    "description": "Reads, searches and comments on issues in the team's tracker.",
+    "server": {
+      "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+      "name": "io.github.acme/issue-tracker",
+      "title": "Issue tracker",
+      "description": "Reads, searches and comments on issues in the team's tracker.",
+      "version": "1.0.0",
+      "repository": {
+        "url": "https://github.com/acme/issue-tracker-mcp",
+        "source": "github"
+      },
+      "packages": [
+        {
+          "registryType": "npm",
+          "identifier": "@acme/issue-tracker-mcp",
+          "version": "1.0.0",
+          "transport": {
+            "type": "stdio"
+          },
+          "environmentVariables": [
+            {
+              "name": "ISSUE_TRACKER_TOKEN",
+              "description": "API token for the tracker.",
+              "isRequired": true,
+              "isSecret": true
+            },
+            {
+              "name": "ISSUE_TRACKER_URL",
+              "description": "The tracker's base URL.",
+              "default": "https://issues.example.com"
+            }
+          ]
+        }
+      ],
+      "remotes": [
+        {
+          "type": "streamable-http",
+          "url": "https://mcp.example.com/issues",
+          "headers": [
+            {
+              "name": "Authorization",
+              "description": "A bearer token for the tracker.",
+              "value": "Bearer {token}",
+              "isRequired": true,
+              "isSecret": true,
+              "variables": {
+                "token": {
+                  "description": "API token for the tracker.",
+                  "isRequired": true,
+                  "isSecret": true
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.acme/issue-tracker",
+  "title": "Issue tracker",
+  "description": "Reads, searches and comments on issues in the team's tracker.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/acme/issue-tracker-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@acme/issue-tracker-mcp",
+      "version": "1.0.0",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "ISSUE_TRACKER_TOKEN",
+          "description": "API token for the tracker.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "ISSUE_TRACKER_URL",
+          "description": "The tracker's base URL.",
+          "default": "https://issues.example.com"
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.example.com/issues",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "A bearer token for the tracker.",
+          "value": "Bearer {token}",
+          "isRequired": true,
+          "isSecret": true,
+          "variables": {
+            "token": { "description": "API token for the tracker.", "isRequired": true, "isSecret": true }
+          }
+        }
+      ]
+    }
+  ]
+}

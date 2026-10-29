@@ -54,6 +54,29 @@ describe("keeping the catalog honest", () => {
     expect(envelope.spec).not.toHaveProperty("runtime");
   });
 
+  test("scaffolds an MCP server's server.json as the MCP Registry's document", async ({
+    aireg,
+  }) => {
+    const eng = join(catalog(), "artifacts", "eng");
+    const scaffold = [
+      ...["mcp_server", "new", "tracker", "--set", "description=Tracks issues."],
+      ...["--set", "server.name=io.example/tracker", "-y"],
+    ];
+    expect((await aireg(scaffold, { cwd: eng })).code).toBe(0);
+    const server = {
+      $schema: "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+      name: "io.example/tracker",
+      description: "Tracks issues.",
+      version: "0.1.0",
+    };
+    const folder = join(eng, "mcp_server", "tracker", "0.1.0");
+    expect(await json(join(folder, "server.json"))).toEqual(server);
+    const indexed = await aireg(["registry", "index"], { cwd: catalog() });
+    expect(indexed.code, indexed.stderr).toBe(0);
+    const envelope = await json(join(folder, "artifact.json"));
+    expect(envelope.spec).toEqual({ name: "tracker", description: "Tracks issues.", server });
+  });
+
   test("refuses a base that git would read as an option", async ({ aireg }) => {
     const planted = join(root, "planted.txt");
     const ran = await aireg(["registry", "validate", `--base=--output=${planted}`], {

@@ -212,7 +212,10 @@ describe("indexRoot", () => {
     await indexRoot(root, "2026-10-08T00:00:00Z");
 
     const index = JSON.parse(await readFile(join(root, "index.json"), "utf8"));
-    expect(index.entries.map((entry: { name: string }) => entry.name)).toEqual(["pr-review"]);
+    expect(index.entries.map((entry: { name: string }) => entry.name)).toEqual([
+      "pr-review",
+      "issue-tracker",
+    ]);
     expect(index.generated_at).toBe("2026-10-08T00:00:00Z");
   });
 });

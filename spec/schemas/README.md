@@ -60,7 +60,7 @@ files must stay inside the registry and must be regular files, not symlinks. Ext
 are reported as unresolved; validation never downloads a schema. `format` is an annotation in
 the CLI. Validation does not coerce values, insert defaults or remove fields.
 
-For built-in kinds, extraction reads only `SKILL.md`, `AGENT.md` or `agent-card.json`. An agent
+For built-in kinds, extraction reads only `SKILL.md`, `AGENT.md`, `agent-card.json` or an MCP server's `server.json`. An agent
 must carry exactly one of its two entry files. Optional file patterns are non-exhaustive
 conventions; other supporting files are permitted and never replace the native entry.
 

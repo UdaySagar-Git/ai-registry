@@ -57,6 +57,8 @@ Pass the id to `--for`. The earlier ids `claude`, `copilot`, `gemini` and `agent
 
 A user folder moves with its target's own variable: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `COPILOT_HOME`, `GEMINI_CLI_HOME`, `GROK_HOME`, or `XDG_CONFIG_HOME` for OpenCode.
 
+With `GEMINI_CLI_HOME` set, Gemini CLI reads `.agents/skills` inside that folder, not the shared `~/.agents/skills`. aireg places Gemini CLI's own skills under the variable, but a skill you install for Gemini CLI together with a target that reads `~/.agents`, such as Codex, lands only in that shared folder, where Gemini CLI does not look. While the variable is set, install for Gemini CLI on its own: `aireg add -g <source> --for gemini-cli`.
+
 The shared `.agents` folder is one several coding agents read, not a coding agent, so aireg never detects it and never installs into it by default.
 
 ## Target files
@@ -83,8 +85,6 @@ This target reads skills from the shared `.agents` folder and agents from `.tool
 An alias is a lowercase name that isn't another target's id or alias. A file can't take a built-in alias as its id: to replace Claude Code, name the file `claude-code.json`, not `claude.json`, and set `"overrides": true`. A file that replaces a built-in target and sets no `aliases` keeps the built-in's.
 
 `category` groups targets: `coding-agent`, the default, `personal-agent`, or `shared-folder` for a folder several tools read, like the shared `.agents` folder. aireg never detects a shared folder and never installs into one by default.
-
-Set `roots.user.isolated` to `true` when the target stops reading shared folders, such as `~/.agents`, while its `env` variable is set: aireg then serves it from its own user folder alone. Gemini CLI is one, since `GEMINI_CLI_HOME` replaces the home folder it reads `.agents` from.
 
 `profiles` finds the profiles of one installation, such as `{ "root": "~/.tool/profiles/{profile}" }`, where `{profile}` in the last segment names each one. Each profile folder found is a target of its own, `<id>:<profile>`, in your user scope only.
 

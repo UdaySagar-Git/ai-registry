@@ -63,11 +63,10 @@ function keysAt(
   kind: ArtifactKind,
   selected: readonly string[],
   targetTable: Targets,
-  scope: Scope,
 ): { keys?: Record<string, KeyRule> } {
   const keys: Record<string, KeyRule> = {};
   for (const reader of new Set(selected)) {
-    if (!readsFor(targetTable, reader, kind, scope).includes(folder)) continue;
+    if (!readsFor(targetTable, reader, kind).includes(folder)) continue;
     const target = targetTable[reader];
     for (const [key, how] of Object.entries(target?.kinds[kind]?.keys ?? {})) {
       const rule = keys[key] ?? { files: [], refusedBy: [] };
@@ -327,7 +326,7 @@ function pluginLinks(
         const from = join(copy, ...leaf.within.split(posix.sep));
         const link = {
           ...plannedLink(name, path, from, options, leaf.kind),
-          ...keysAt(name, leaf.kind, selected, options.targetTable, scope),
+          ...keysAt(name, leaf.kind, selected, options.targetTable),
           part: leaf.kind,
         };
         links.push(
@@ -381,7 +380,7 @@ export function linksFor(
     if (own === undefined) continue;
     links.push({
       ...plannedLink(name, own, copy, options, item.kind),
-      ...keysAt(name, item.kind, selected, options.targetTable, scope),
+      ...keysAt(name, item.kind, selected, options.targetTable),
     });
   }
   return links;
@@ -434,7 +433,7 @@ export function loadsFrom(
     const links = linksFor(item, "", { ...options, targets }, wrapped);
     const own = links.find((link) => link.target === target);
     if (own !== undefined) return [own.shared === true ? own.absolute : dirname(own.absolute)];
-    const read = readsFor(options.targetTable, target, item.kind, options.roots.scope)
+    const read = readsFor(options.targetTable, target, item.kind)
       .map((folder) => links.find((link) => link.target === folder && link.shared !== true))
       .find((link) => link !== undefined);
     return read === undefined ? [] : [dirname(read.absolute)];

@@ -5,7 +5,7 @@
   "overrides": true,
   "roots": {
     "project": ".gemini",
-    "user": { "default": "~/.gemini", "env": "GEMINI_CLI_HOME", "within": ".gemini", "isolated": true }
+    "user": { "default": "~/.gemini", "env": "GEMINI_CLI_HOME", "within": ".gemini" }
   },
   "detect": { "env": ["GEMINI_CLI_HOME"], "binary": ["gemini"] },
   "reads": { "skill": ["gemini-cli", "universal"] },

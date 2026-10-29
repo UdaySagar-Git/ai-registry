@@ -30,24 +30,3 @@ test("reads its own lock back when the user scope and a target home are outside 
   expect(removed.code, removed.stderr).toBe(0);
   expect(existsSync(skill)).toBe(false);
 });
-
-// Gemini CLI reads `.agents` inside GEMINI_CLI_HOME, so the shared folder in HOME never reaches it.
-test("installs into Gemini CLI's own folder while GEMINI_CLI_HOME moves its home", async ({
-  aireg,
-  home,
-  tmp,
-}) => {
-  const market = await registry(join(tmp, "market"), { name: "acme", slug: "acme" })
-    .skill("eng/lint@1.0.0")
-    .write();
-  const gemini = join(tmp, "geminihome");
-  const at = { cwd: tmp, env: { GEMINI_CLI_HOME: gemini } };
-  const args = ["add", "-g", market, "--all", "--yes", "--for", "gemini-cli,codex"];
-
-  const added = await aireg(args, at);
-  expect(added.code, added.stderr).toBe(0);
-  expect(existsSync(join(gemini, ".gemini", "skills", "lint", "SKILL.md")), tree(gemini)).toBe(
-    true,
-  );
-  expect(existsSync(join(home.dir, ".agents", "skills", "lint", "SKILL.md"))).toBe(true);
-});

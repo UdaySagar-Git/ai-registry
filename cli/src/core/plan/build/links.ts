@@ -5,6 +5,7 @@ import { type Action, type ArtifactSurvey, copyEdited, type Selected } from "#co
 import { claim, linksFor, type PlannedLink } from "#core/plan/projection.ts";
 import { removal } from "#core/plan/removable.ts";
 import { addressOf } from "#core/plan/select.ts";
+import { scopeName } from "#core/store/paths.ts";
 import { renamedTo } from "./rename.ts";
 import type { BuildState } from "./state.ts";
 import { unlinkRecorded } from "./unlink.ts";
@@ -15,6 +16,8 @@ interface Claimed {
   links: PlannedLink[];
   /** Targets, by display name, that cannot load this kind. */
   skipped: Set<string>;
+  /** Targets, by display name, that load this kind only in the other scope. */
+  elsewhere: Set<string>;
   /** Paths another artifact already holds. */
   blocked: Blocked[];
 }
@@ -31,12 +34,14 @@ export function wantedLinks(item: Selected, build: BuildState): PlannedLink[] {
 /** The links this item may take, first come first served, recording what another holds. */
 function claimLinks(item: Selected, copy: string, build: BuildState): Claimed {
   const skipped = new Set<string>();
+  const elsewhere = new Set<string>();
   const blocked: Blocked[] = [];
   const address = addressOf({ ...item, name: item.upstreamName }, item.source);
   build.addresses.set(item.name, address);
   const wrapped = build.wrapping.has(item.source);
-  const planned = linksFor(item, copy, build.options, wrapped, build.crowded, (target) => {
-    skipped.add(build.options.targetTable[target]?.displayName ?? target);
+  const planned = linksFor(item, copy, build.options, wrapped, build.crowded, (target, kind) => {
+    const tool = build.options.targetTable[target];
+    (tool?.kinds[kind]?.scope === undefined ? skipped : elsewhere).add(tool?.displayName ?? target);
   });
   const collided = (owner: string, link: PlannedLink) => {
     const kept = build.addresses.get(owner) ?? owner;
@@ -58,7 +63,7 @@ function claimLinks(item: Selected, copy: string, build: BuildState): Claimed {
     return false;
   });
   const links = claim(open, item.name, build.claimed, build.plugins, collided);
-  return { links, skipped, blocked };
+  return { links, skipped, elsewhere, blocked };
 }
 
 /**
@@ -106,10 +111,19 @@ export function placeLinks(
   // Said only when it lands nowhere: a tool skipping a kind another tool reads is
   // expected, and a clash or a refusal has already said where it went instead.
   if (links.length === 0 && claimed.blocked.length === 0 && !refused && !yours) {
+    const other = build.options.roots.scope === "project" ? "user" : "project";
+    const reasons = [
+      ...(claimed.skipped.size === 0
+        ? []
+        : [`${list([...claimed.skipped])} cannot load ${item.kind}s`]),
+      ...(claimed.elsewhere.size === 0
+        ? []
+        : [
+            `${list([...claimed.elsewhere])} ${claimed.elsewhere.size === 1 ? "loads" : "load"} ${item.kind}s only in ${scopeName(other)}`,
+          ]),
+    ];
     const why =
-      claimed.skipped.size === 0
-        ? `no selected target accepts a ${item.kind}`
-        : `${list([...claimed.skipped])} cannot load ${item.kind}s`;
+      reasons.length === 0 ? `no selected target accepts a ${item.kind}` : reasons.join("; ");
     build.warnings.push({
       name: item.name,
       message: `${quoted(item.name)} was fetched but installed into no target: ${why}.`,

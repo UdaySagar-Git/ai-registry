@@ -1,3 +1,4 @@
+import { antigravity } from "./antigravity.ts";
 import { claudeCode } from "./claude-code.ts";
 import { codex } from "./codex.ts";
 import { cursor } from "./cursor.ts";
@@ -16,5 +17,6 @@ export const BUILTIN_TARGETS = [
   geminiCli,
   opencode,
   grok,
+  antigravity,
   universal,
 ] as const;

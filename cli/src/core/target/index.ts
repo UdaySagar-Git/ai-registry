@@ -228,11 +228,41 @@ export function readsFor(
 ): string[] {
   const target = targetTable[name];
   if (target === undefined) return [];
-  const reads = target.reads[kind] ?? (target.kinds[kind] === undefined ? [] : [name]);
+  let reads = target.reads[kind] ?? (target.kinds[kind] === undefined ? [] : [name]);
   if (scope === "user" && target.isolated && envOverride(target, env) !== undefined) {
-    return reads.filter((read) => read === name);
+    reads = reads.filter((read) => read === name);
   }
-  return reads;
+  const shared =
+    scope === undefined ? undefined : sharedOwnFolder(targetTable, target, kind, scope, env);
+  return shared === undefined
+    ? reads
+    : [...new Set(reads.map((read) => (read === name ? shared : read)))];
+}
+
+/** The shared folder that is this target's own folder for a kind in this scope, by its target. */
+function sharedOwnFolder(
+  targetTable: Targets,
+  target: Target,
+  kind: ArtifactKind,
+  scope: Scope,
+  env: NodeJS.ProcessEnv,
+): string | undefined {
+  const own = target.kinds[kind];
+  if (target.shared || own === undefined || !placeable(target, kind, scope)) return undefined;
+  const root = (each: Target) =>
+    scope === "project" ? each.projectRoot : targetRoot(each, "user", "", env);
+  return Object.values(targetTable).find((other) => {
+    const theirs = other.kinds[kind];
+    return (
+      other.shared &&
+      theirs !== undefined &&
+      placeable(other, kind, scope) &&
+      theirs.shape === own.shape &&
+      theirs.subdir === own.subdir &&
+      theirs.extension === own.extension &&
+      resolve(root(other)) === resolve(root(target))
+    );
+  })?.name;
 }
 
 function envOverride(target: Target, env: NodeJS.ProcessEnv): string | undefined {

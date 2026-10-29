@@ -79,6 +79,13 @@ describe("targets", () => {
     const builtIn = { shared: false, origin: "built-in" };
     expect(payload.data.targets).toEqual([
       {
+        name: "antigravity",
+        aliases: [],
+        displayName: "Google Antigravity",
+        ...builtIn,
+        detected: false,
+      },
+      {
         name: "claude-code",
         aliases: ["claude"],
         displayName: "Claude Code",
@@ -124,7 +131,7 @@ describe("targets", () => {
       "  Claude Code  claude-code  claude   found   from its environment variables",
     );
     expect(lines.some((line) => /^ +(Codex|Cursor|agents|Shared)/.test(line))).toBe(false);
-    expect(lines).toContain("Found 1 of 7 supported targets on this machine.");
+    expect(lines).toContain("Found 1 of 8 supported targets on this machine.");
     expect(lines).toContain("hint: Run `aireg targets --all` to see every one.");
     expect(lines).toContain(
       "hint: Use `--for universal`, or `agents`, for the shared .agents folder.",

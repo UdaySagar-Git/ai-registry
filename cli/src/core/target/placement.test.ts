@@ -44,6 +44,16 @@ describe("placementFor", () => {
     expect(at("project", moved)).toEqual(["universal"]);
   });
 
+  it("serves a target from a shared folder that is its own folder in this scope", () => {
+    expect(place("skill", ["antigravity"]).targets).toEqual(["universal"]);
+    expect(place("skill", ["antigravity", "codex"]).targets).toEqual(["universal"]);
+    expect(place("skill", ["antigravity"], "user").targets).toEqual(["antigravity"]);
+    expect(place("skill", ["antigravity", "codex"], "user").targets).toEqual([
+      "antigravity",
+      "universal",
+    ]);
+  });
+
   it("ignores names it does not know and repeats it was given", () => {
     expect(place("skill", ["claude-code", "claude-code", "missing"]).targets).toEqual([
       "claude-code",

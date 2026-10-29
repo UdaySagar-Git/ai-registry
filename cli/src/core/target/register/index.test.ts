@@ -24,6 +24,7 @@ function target(register: RegisterEntry[], place?: "copy", scope?: "user"): Targ
     userRoot: root,
     envHome: undefined,
     envWithin: undefined,
+    isolated: false,
     detect: { env: [], binary: [], paths: [] },
     kinds: {
       plugin: {

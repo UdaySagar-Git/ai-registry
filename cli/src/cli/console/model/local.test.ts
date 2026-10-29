@@ -21,6 +21,7 @@ function targetTable(): Targets {
       userRoot: root,
       envHome: undefined,
       envWithin: undefined,
+      isolated: false,
       detect: { env: [], binary: [], paths: [] },
       kinds: { skill: { subdir: "skills", shape: "directory" } },
       reads: {},

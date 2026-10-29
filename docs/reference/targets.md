@@ -84,6 +84,8 @@ An alias is a lowercase name that isn't another target's id or alias. A file can
 
 `category` groups targets: `coding-agent`, the default, `personal-agent`, or `shared-folder` for a folder several tools read, like the shared `.agents` folder. aireg never detects a shared folder and never installs into one by default.
 
+Set `roots.user.isolated` to `true` when the target stops reading shared folders, such as `~/.agents`, while its `env` variable is set: aireg then serves it from its own user folder alone. Gemini CLI is one, since `GEMINI_CLI_HOME` replaces the home folder it reads `.agents` from.
+
 `profiles` finds the profiles of one installation, such as `{ "root": "~/.tool/profiles/{profile}" }`, where `{profile}` in the last segment names each one. Each profile folder found is a target of its own, `<id>:<profile>`, in your user scope only.
 
 A kind placed with `place: "copy"` is written as real files, for a target that edits or refuses links; an edit then shows in `aireg status`. A `codec` rewrites an agent in the target's own format, and refuses to drop or change a key that limits the agent, such as `tools`.

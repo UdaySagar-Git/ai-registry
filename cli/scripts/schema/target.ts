@@ -228,6 +228,12 @@ export const Target = Type.Object(
                 description: "The root's path inside the folder `env` names, when not that folder.",
               }),
             ),
+            isolated: Type.Optional(
+              Type.Literal(true, {
+                description:
+                  "While `env` is set, the target reads its own user folder alone, not the shared ones.",
+              }),
+            ),
           },
           { additionalProperties: false },
         ),

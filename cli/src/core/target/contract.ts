@@ -197,7 +197,13 @@ export interface TargetDefinition {
      * `default` is under `~/`; `env` names the variable the target itself reads to move it,
      * and `within` the root's path inside the folder that variable names, when not the folder itself.
      */
-    user: { default: string; env?: string | undefined; within?: string | undefined };
+    user: {
+      default: string;
+      env?: string | undefined;
+      within?: string | undefined;
+      /** While `env` is set, the target reads its own user folder alone, not the shared ones. */
+      isolated?: true | undefined;
+    };
   };
   detect?: Detect | "never" | undefined;
   /**
@@ -233,6 +239,8 @@ export interface Target {
   envHome: string | undefined;
   /** The root's path inside the folder `envHome` names, when not that folder itself. */
   envWithin: string | undefined;
+  /** While `envHome` is set, it reads its own user folder alone. */
+  isolated: boolean;
   detect: Signals | "never";
   kinds: Partial<Record<ArtifactKind, KindMapping>>;
   /** Only the kinds whose reads differ from this target's own folder. */

@@ -507,6 +507,11 @@
               "minLength": 1,
               "description": "The root's path inside the folder `env` names, when not that folder.",
               "type": "string"
+            },
+            "isolated": {
+              "description": "While `env` is set, the target reads its own user folder alone, not the shared ones.",
+              "const": true,
+              "type": "boolean"
             }
           }
         }

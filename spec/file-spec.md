@@ -187,8 +187,12 @@ carrying `AGENT.md` preserves its parsed native front matter, including tool-spe
 An agent carrying `agent-card.json` instead wraps that unchanged object in `spec.card`, copies
 its description to `spec.description`, and uses the registry slug for `spec.name`. The card's
 own `name` remains its human-readable name and need not equal the slug. An agent MUST carry
-exactly one of these native entry files. Other supporting files are permitted; the optional
-file patterns in a kind manifest are non-exhaustive conventions.
+exactly one of these native entry files. An MCP server carries `server.json`, the MCP Registry's
+server document, and wraps that unchanged object in `spec.server`; it copies the server's
+description to `spec.description` and uses the registry slug for `spec.name`, since the server's
+own reverse-DNS `name` does not fit the path grammar. `spec.server.version` SHOULD equal
+`metadata.version`. Other supporting files are permitted; the optional file patterns in a kind
+manifest are non-exhaustive conventions.
 
 ### 3.5 Native files
 

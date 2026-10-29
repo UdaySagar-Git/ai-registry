@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kinds/mcp_server.json",
+  "title": "mcp_server",
+  "description": "An MCP server definition: the MCP Registry's server.json, unchanged in server. spec contains the registry slug as name, the server's description, and the unchanged server.json in server.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "MUST equal metadata.name in the envelope. Narrower than the name grammar, so every coding agent accepts it as a server key unchanged.",
+      "pattern": "^[a-z][a-z0-9-]{0,47}$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "server": {
+      "type": "object",
+      "description": "The server.json document, verbatim, as the MCP Registry's schema named by its $schema describes it. Opaque to this manifest beyond the fields that schema requires.",
+      "properties": {
+        "$schema": { "type": "string" },
+        "name": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "description": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 255 }
+      },
+      "required": ["name", "description", "version"]
+    }
+  },
+  "required": ["name", "description", "server"],
+  "additionalProperties": false,
+  "x-registry-schema-version": 1,
+  "x-registry-searchable": ["/name", "/description"],
+  "x-registry-embeddings": ["/description"],
+  "x-registry-edges": [
+    {
+      "rel_type": "supersedes",
+      "to_kinds": ["mcp_server"],
+      "cardinality": "one",
+      "direction": "outbound"
+    }
+  ],
+  "x-registry-files": {
+    "required": [{ "path": "server.json", "media_type": "application/json" }],
+    "optional": [{ "path": "README.md", "media_type": "text/markdown" }]
+  },
+  "x-registry-attachment": false,
+  "x-registry-gated": false
+}

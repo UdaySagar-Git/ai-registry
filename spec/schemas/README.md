@@ -16,7 +16,7 @@ themselves and [file-spec.md](../file-spec.md) are the contract.
 | [relationship.schema.json](relationship.schema.json) | one `relationships[]` edge | §3.4, §4.3, §6 |
 | [host.schema.json](host.schema.json) | the host document at `/.well-known/registry.json` | §8 |
 | [kind-manifest.schema.json](kind-manifest.schema.json) | what `kinds[].manifest_url` points at | §3.1 |
-| [kinds/skill.json](kinds/skill.json), [kinds/agent.json](kinds/agent.json) | the `spec` of those kinds | §3.4 |
+| [kinds/skill.json](kinds/skill.json), [kinds/agent.json](kinds/agent.json), [kinds/mcp_server.json](kinds/mcp_server.json) | the `spec` of those kinds | §3.4 |
 | [common.schema.json](common.schema.json) | shared `$defs`; never instantiated | §2.1, §4 |
 
 An envelope is validated against **both** artifact schemas on purpose. The plain one is the
@@ -28,8 +28,8 @@ kind manifest applies. A failure in each is a different bug.
 **No document schema closes its object.** File spec §5 rule 4 requires readers to ignore unknown
 envelope fields, unknown kinds, unknown `spec` content, and unknown root entries. A document schema
 with `additionalProperties: false` would contradict the specification it describes, so none has one.
-A kind manifest chooses its own policy for `spec`. The skill schema is closed; the agent schema
-preserves additional native front-matter fields. Writers validate against that policy at publish.
+A kind manifest chooses its own policy for `spec`. The skill and MCP server schemas are closed; the
+agent schema preserves additional native front-matter fields. Writers validate against that policy at publish.
 
 **`$id`s are relative, and are identifiers rather than locations.** A schema's `$id` is the path it
 sits at under this directory, and every `$ref` is a relative path resolved the same way. Nothing

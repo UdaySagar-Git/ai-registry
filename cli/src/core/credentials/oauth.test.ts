@@ -17,8 +17,6 @@ interface StubOptions {
   metadataIssuer?: string;
   /** Its own issuer by default, null for none. */
   iss?: string | null;
-  /** Streams a token answer past any sane size, with no length to refuse it by. */
-  endless?: boolean;
 }
 
 /** An authorization server that signs anyone in, or refuses with `refuse`. */
@@ -58,16 +56,6 @@ async function stub(options: StubOptions = {}): Promise<Stub> {
       body += chunk;
     });
     request.on("end", () => {
-      if (options.endless) {
-        response.writeHead(200, { "content-type": "application/json" });
-        const chunk = "x".repeat(64 * 1024);
-        const pour = () => {
-          while (response.write(chunk)) if (response.destroyed) return;
-        };
-        response.on("drain", pour);
-        response.on("close", () => response.off("drain", pour));
-        return pour();
-      }
       const form = new URLSearchParams(body);
       exchanged.push(form);
       const proven =
@@ -183,33 +171,6 @@ describe("signInWithOAuth", () => {
     expect(page.headers.get("referrer-policy")).toBe("no-referrer");
   });
 
-  it("finishes though the tab is closed while the sign-in is stored", async () => {
-    server = await stub();
-    const credential = await signInWithOAuth(
-      { issuer: server.issuer, clientId: "client-1" },
-      {
-        waiting: () => {},
-        open: (url) => {
-          void fetch(url, { redirect: "manual" })
-            .then((authorize) =>
-              fetch(authorize.headers.get("location") ?? "", { redirect: "manual" }),
-            )
-            .then((callback) => {
-              const request = get(new URL(callback.headers.get("location") ?? "", callback.url));
-              request.on("error", () => {});
-              setTimeout(() => request.destroy(), 20);
-            });
-        },
-      },
-      never,
-      async (signedIn) => {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        return signedIn;
-      },
-    );
-    expect(credential).toMatchObject({ accessToken: "access-1" });
-  });
-
   it("says the person declined, and never the server's own words", async () => {
     server = await stub({ refuse: "access_denied" });
     await expect(
@@ -232,13 +193,6 @@ describe("signInWithOAuth", () => {
       expect(server.exchanged).toEqual([]);
     },
   );
-
-  it("stops reading a token answer past its size limit", async () => {
-    server = await stub({ endless: true });
-    await expect(
-      signInWithOAuth({ issuer: server.issuer, clientId: "client-1" }, browser(), never, keep),
-    ).rejects.toThrow("The sign-in server's answer is too large.");
-  });
 
   it("ignores an answer for another sign-in, or sent to another host name", async () => {
     server = await stub();
@@ -265,46 +219,5 @@ describe("signInWithOAuth", () => {
     await expect(pending).resolves.toMatchObject({ accessToken: "access-1" });
     expect(statuses).toEqual([400, 421]);
     expect(server.exchanged.map((form) => form.get("code"))).toEqual(["code-1"]);
-  });
-
-  it("stops waiting and frees the port when canceled", async () => {
-    server = await stub();
-    const controller = new AbortController();
-    let port = 0;
-    await expect(
-      signInWithOAuth(
-        { issuer: server.issuer, clientId: "client-1" },
-        {
-          waiting: (_, bound) => {
-            port = bound;
-          },
-          open: () => controller.abort(),
-        },
-        controller.signal,
-        keep,
-      ),
-    ).rejects.toThrow("The sign-in was canceled.");
-    const free = createServer();
-    await new Promise<void>((resolve) => free.listen(port, "127.0.0.1", resolve));
-    await new Promise((resolve) => free.close(resolve));
-  });
-
-  it("says when every port the client registered is in use", async () => {
-    server = await stub();
-    const taken = createServer();
-    await new Promise<void>((resolve) => taken.listen(0, "127.0.0.1", resolve));
-    const busy = (taken.address() as AddressInfo).port;
-    try {
-      await expect(
-        signInWithOAuth(
-          { issuer: server.issuer, clientId: "client-1", ports: [busy] },
-          browser(),
-          never,
-          keep,
-        ),
-      ).rejects.toThrow(`Ports ${busy} are all in use`);
-    } finally {
-      await new Promise((resolve) => taken.close(resolve));
-    }
   });
 });

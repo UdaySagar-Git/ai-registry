@@ -371,7 +371,7 @@ export interface OAuthClient {
   clientId: string;
   /** Absent asks for the client's default. */
   scopes?: readonly string[] | undefined;
-  /** The loopback ports the client registered, tried in order, for a server that pins them; absent takes any free port. */
+  /** For a server that pins the loopback ports, the ones registered; absent takes any free port. */
   ports?: readonly number[] | undefined;
 }
 

@@ -5,7 +5,7 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 
 const CALLBACK_PATH = "/callback";
 const DONE_PATH = "/done";
-/** How long a tab sent on to the outcome page has to arrive, and to take it, before the port closes. */
+/** A tab closed before the outcome page loads must not hold the port open. */
 const ARRIVAL_MS = 2_000;
 /** An OAuth error code; anything else is the server's free text and may say anything. */
 export const ERROR_CODE = /^[a-z_]{1,64}$/;
@@ -148,7 +148,6 @@ export async function listenForCode(
   };
 }
 
-/** The first of `ports` free on 127.0.0.1; 0 is any. */
 async function bind(http: Server, ports: readonly number[]): Promise<void> {
   let failure: NodeJS.ErrnoException | undefined;
   for (const port of ports) {

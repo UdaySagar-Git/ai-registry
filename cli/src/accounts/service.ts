@@ -94,7 +94,6 @@ function isSession(credential: Credential): boolean {
   return credential.type === "bearer" && credential.refreshToken !== undefined;
 }
 
-/** A session this sign-in replaced. */
 function endedSession(replaced: Credential, current: Credential): boolean {
   if (replaced.type !== "bearer" || replaced.refreshToken === undefined) return false;
   return !(current.type === "bearer" && current.refreshToken === replaced.refreshToken);
@@ -248,8 +247,7 @@ export class AccountService {
       if (held !== undefined) await deleteCredential(account.id);
       return held;
     });
-    // Revoked only at its own origin; one the registry moved away from, or no longer
-    // declared, is just forgotten.
+    // Never sent anywhere but the origin it was issued for.
     if (
       stored !== undefined &&
       resolved !== undefined &&

@@ -225,7 +225,6 @@ async function declared(alias: string, cwd: string): Promise<Declared | undefine
   return { source: here, location, projectOnly: true };
 }
 
-/** With `--address`, the daemon keeps the user scope's declaration there, and refuses one elsewhere. */
 async function heldFor(alias: string, address: string, cwd: string): Promise<Declared | undefined> {
   const { registries } = await readManifest(roots("user", cwd).manifest);
   const held = heldAt(registries, alias, address, cwd);

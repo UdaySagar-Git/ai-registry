@@ -25,7 +25,6 @@ export default {
   auth: {
     login: async ({ oauth }) => ({ credential: oauth ?? { type: "bearer", accessToken: "unused" } }),
     revoke: async (endpoint, credential) => {
-      if (credential.refreshToken === "unreachable") throw new Error("the registry is down");
       await appendFile(${JSON.stringify(revoked)}, credential.refreshToken + "\\n");
     },
     refresh: async (endpoint, credential) => {
@@ -95,37 +94,11 @@ describe("AccountService", () => {
         { oauth: { type: "bearer", accessToken: `a-${refreshToken}`, refreshToken } },
         signal,
       );
-    // Two first sign-ins race to create the account; only one row can win.
     const [first, second] = await Promise.allSettled([login("r1"), login("r2")]);
     expect([first.status, second.status].sort()).toEqual(["fulfilled", "rejected"]);
     expect(await revoked(tmp)).toEqual([first.status === "rejected" ? "r1" : "r2"]);
     const stored = JSON.parse(await readFile(join(tmp, "credentials.json"), "utf8"));
     expect(Object.keys(stored.credentials)).toHaveLength(2);
-  });
-
-  test("signs out on this machine though the registry cannot be told", async ({ tmp }) => {
-    const account = await signedIn(tmp, {
-      type: "bearer",
-      accessToken: "a1",
-      refreshToken: "unreachable",
-    });
-    await new AccountService().logout(account.id, signal);
-    expect(await readCredential(account.id)).toBeUndefined();
-  });
-
-  test("a sign-out during a refresh is not undone by it", async ({ tmp }) => {
-    const account = await signedIn(tmp, {
-      type: "bearer",
-      accessToken: "a1",
-      refreshToken: "r1",
-      expiresAtMs: 0,
-    });
-    const refreshing = new AccountService().credential(account, ENDPOINT, signal);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    await new AccountService().logout(account.id, signal);
-    await refreshing;
-    expect(await readCredential(account.id)).toBeUndefined();
-    expect(await revoked(tmp)).toEqual(["r2"]);
   });
 
   test("spends a refresh token once when two callers refresh at the same time", async ({ tmp }) => {

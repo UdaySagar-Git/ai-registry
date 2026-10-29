@@ -19,7 +19,6 @@ export interface SignInPrompt {
   waiting(url: string, port: number): void;
 }
 
-/** https, or http on a loopback host for a server running on this machine. */
 function trustedUrl(raw: unknown, origin: string | undefined, field: string): URL {
   let url: URL;
   try {

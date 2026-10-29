@@ -34,16 +34,6 @@ describe("placementFor", () => {
     expect(place("skill", ["universal", "codex"]).targets).toEqual(["universal"]);
   });
 
-  it("serves Gemini CLI from its own folder while GEMINI_CLI_HOME moves its home", () => {
-    const at = (scope: "project" | "user", env: NodeJS.ProcessEnv) =>
-      placementFor("skill", ["gemini-cli", "codex"], targetTable, scope, false, env).targets;
-    const moved = { HOME: "/tmp/home", GEMINI_CLI_HOME: "/tmp/gemini" };
-    expect(at("user", moved)).toEqual(["gemini-cli", "universal"]);
-    expect(at("user", { HOME: "/tmp/home" })).toEqual(["universal"]);
-    expect(at("user", { HOME: "/tmp/home", GEMINI_CLI_HOME: " " })).toEqual(["universal"]);
-    expect(at("project", moved)).toEqual(["universal"]);
-  });
-
   it("serves a target from a shared folder that is its own folder in this scope", () => {
     expect(place("skill", ["antigravity"]).targets).toEqual(["universal"]);
     expect(place("skill", ["antigravity", "codex"]).targets).toEqual(["universal"]);

@@ -7,7 +7,7 @@ export const geminiCli = defineTarget({
   category: "coding-agent",
   roots: {
     project: ".gemini",
-    user: { default: "~/.gemini", env: "GEMINI_CLI_HOME", within: ".gemini", isolated: true },
+    user: { default: "~/.gemini", env: "GEMINI_CLI_HOME", within: ".gemini" },
   },
   detect: { env: ["GEMINI_CLI_HOME"], binary: ["gemini"], caller: ["GEMINI_CLI"] },
   // Its own folder first: its user `.agents` moves with GEMINI_CLI_HOME, the shared one does not.

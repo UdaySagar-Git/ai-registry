@@ -112,7 +112,6 @@ function toTarget(
     userRoot: expandUserPath(definition.roots.user.default, env),
     envHome: definition.roots.user.env,
     envWithin: definition.roots.user.within,
-    isolated: definition.roots.user.isolated === true,
     detect:
       detect === "never"
         ? "never"
@@ -228,10 +227,7 @@ export function readsFor(
 ): string[] {
   const target = targetTable[name];
   if (target === undefined) return [];
-  let reads = target.reads[kind] ?? (target.kinds[kind] === undefined ? [] : [name]);
-  if (scope === "user" && target.isolated && envOverride(target, env) !== undefined) {
-    reads = reads.filter((read) => read === name);
-  }
+  const reads = target.reads[kind] ?? (target.kinds[kind] === undefined ? [] : [name]);
   const shared =
     scope === undefined ? undefined : sharedOwnFolder(targetTable, target, kind, scope, env);
   return shared === undefined
@@ -263,11 +259,6 @@ function sharedOwnFolder(
       resolve(root(other)) === resolve(root(target))
     );
   })?.name;
-}
-
-function envOverride(target: Target, env: NodeJS.ProcessEnv): string | undefined {
-  const value = target.envHome === undefined ? undefined : env[target.envHome]?.trim();
-  return value === undefined || value === "" ? undefined : value;
 }
 
 function placeable(target: Target | undefined, kind: ArtifactKind, scope: Scope): boolean {
@@ -415,8 +406,8 @@ export function targetRoot(
   env: NodeJS.ProcessEnv = process.env,
 ): string {
   if (scope !== "user") return join(cwd, target.projectRoot);
-  const override = envOverride(target, env);
-  if (override === undefined) return target.userRoot;
+  const override = target.envHome === undefined ? undefined : env[target.envHome]?.trim();
+  if (override === undefined || override === "") return target.userRoot;
   return resolve(override, target.envWithin ?? "");
 }
 

@@ -51,6 +51,7 @@ describe("init", () => {
       "cursor",
       "gemini-cli",
       "github-copilot",
+      "grok",
       "opencode",
       "universal",
     ]);

@@ -39,6 +39,7 @@ Pass the id to `--for`. The earlier ids `claude`, `copilot`, `gemini` and `agent
 | GitHub Copilot | `github-copilot` | `.github/skills/` | `~/.copilot/skills/` |
 | Gemini CLI | `gemini-cli` | `.gemini/skills/` | `~/.gemini/skills/` |
 | OpenCode | `opencode` | `.agents/skills/` | `~/.agents/skills/` |
+| Grok Build | `grok` | `.grok/skills/` | `~/.grok/skills/` |
 | Shared `.agents` folder | `universal` | `.agents/skills/` | `~/.agents/skills/` |
 
 ### Agents
@@ -51,9 +52,10 @@ Pass the id to `--for`. The earlier ids `claude`, `copilot`, `gemini` and `agent
 | GitHub Copilot | `github-copilot` | `.github/agents/` | `~/.copilot/agents/` |
 | Gemini CLI | `gemini-cli` | `.gemini/agents/` | `~/.gemini/agents/` |
 | OpenCode | `opencode` | `.opencode/agents/` | `~/.config/opencode/agents/` |
+| Grok Build | `grok` | `.grok/agents/` | `~/.grok/agents/` |
 | Shared `.agents` folder | `universal` | `.agents/agents/` | `~/.agents/agents/` |
 
-A user folder moves with its target's own variable: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `COPILOT_HOME`, `GEMINI_CLI_HOME`, or `XDG_CONFIG_HOME` for OpenCode.
+A user folder moves with its target's own variable: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `COPILOT_HOME`, `GEMINI_CLI_HOME`, `GROK_HOME`, or `XDG_CONFIG_HOME` for OpenCode.
 
 The shared `.agents` folder is one several coding agents read, not a coding agent, so aireg never detects it and never installs into it by default.
 

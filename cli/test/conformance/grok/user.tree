@@ -1,0 +1,13 @@
+.grok/
+.grok/agents/
+.grok/agents/planner.md -> ../../.registry/artifacts/kit/kit/agents/planner.md
+.grok/agents/reviewer.md -> ../../.registry/artifacts/fx/ns/agents/reviewer.md
+.grok/skills/
+.grok/skills/lint -> ../../.registry/artifacts/fx/ns/skills/lint
+.grok/skills/ship -> ../../.registry/artifacts/kit/kit/skills/ship
+project/
+project/.grok/
+project/.grok/agents/
+project/.grok/agents/reviewer.md -> ../../.registry/artifacts/fx/ns/agents/reviewer.md
+project/.grok/skills/
+project/.grok/skills/lint -> ../../.registry/artifacts/fx/ns/skills/lint

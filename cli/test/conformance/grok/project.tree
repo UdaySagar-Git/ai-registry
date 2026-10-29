@@ -1,0 +1,6 @@
+project/
+project/.grok/
+project/.grok/agents/
+project/.grok/agents/reviewer.md -> ../../.registry/artifacts/fx/ns/agents/reviewer.md
+project/.grok/skills/
+project/.grok/skills/lint -> ../../.registry/artifacts/fx/ns/skills/lint

@@ -17,6 +17,8 @@ interface StubOptions {
   metadataIssuer?: string;
   /** Its own issuer by default, null for none. */
   iss?: string | null;
+  /** Streams a token answer past any sane size, with no length to refuse it by. */
+  endless?: boolean;
 }
 
 /** An authorization server that signs anyone in, or refuses with `refuse`. */
@@ -56,6 +58,16 @@ async function stub(options: StubOptions = {}): Promise<Stub> {
       body += chunk;
     });
     request.on("end", () => {
+      if (options.endless) {
+        response.writeHead(200, { "content-type": "application/json" });
+        const chunk = "x".repeat(64 * 1024);
+        const pour = () => {
+          while (response.write(chunk)) if (response.destroyed) return;
+        };
+        response.on("drain", pour);
+        response.on("close", () => response.off("drain", pour));
+        return pour();
+      }
       const form = new URLSearchParams(body);
       exchanged.push(form);
       const proven =
@@ -220,6 +232,13 @@ describe("signInWithOAuth", () => {
       expect(server.exchanged).toEqual([]);
     },
   );
+
+  it("stops reading a token answer past its size limit", async () => {
+    server = await stub({ endless: true });
+    await expect(
+      signInWithOAuth({ issuer: server.issuer, clientId: "client-1" }, browser(), never, keep),
+    ).rejects.toThrow("The sign-in server's answer is too large.");
+  });
 
   it("ignores an answer for another sign-in, or sent to another host name", async () => {
     server = await stub();

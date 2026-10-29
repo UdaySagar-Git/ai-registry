@@ -1,3 +1,4 @@
+import { heldAt } from "#accounts/registry.ts";
 import { AccountService, noSignIn } from "#accounts/service.ts";
 import { failureOf, isAuthFailure } from "#adapter/errors.ts";
 import {
@@ -217,7 +218,20 @@ async function declared(alias: string, cwd: string): Promise<Declared | undefine
       },
     );
   }
-  return { source: here, location, projectOnly: theirs === undefined };
+  // The daemon signs in with the user scope's declaration, so the browser goes where it will.
+  if (user !== undefined && theirs !== undefined) {
+    return { source: user, location: theirs, projectOnly: false };
+  }
+  return { source: here, location, projectOnly: true };
+}
+
+/** With `--address`, the daemon keeps the user scope's declaration there, and refuses one elsewhere. */
+async function heldFor(alias: string, address: string, cwd: string): Promise<Declared | undefined> {
+  const { registries } = await readManifest(roots("user", cwd).manifest);
+  const held = heldAt(registries, alias, address, cwd);
+  return held === undefined
+    ? undefined
+    : { source: held, location: expandLocation(held.location, cwd), projectOnly: false };
 }
 
 function failureHint(
@@ -332,7 +346,10 @@ async function login(
     });
   }
 
-  const found = flags.address === undefined ? await declared(registry, context.cwd) : undefined;
+  const found =
+    flags.address === undefined
+      ? await declared(registry, context.cwd)
+      : await heldFor(registry, flags.address, context.cwd);
   const signsIn =
     found === undefined
       ? undefined
@@ -354,8 +371,10 @@ async function login(
   const client =
     // CI has nobody at a browser. A terminal is not required: an agent's shell has none.
     token === undefined && !isCI() ? await oauthClientFor(found, signsIn, flags) : undefined;
-  const signIn = (oauth?: Credential) =>
-    withDaemon((daemon) =>
+  let finishing = false;
+  const signIn = (oauth?: Credential) => {
+    finishing = true;
+    return withDaemon((daemon) =>
       daemon.request(
         "account.login",
         {
@@ -370,6 +389,7 @@ async function login(
         { timeoutMs: LOGIN_TIMEOUT_MS },
       ),
     );
+  };
   // Ctrl+C while the browser is out ends the wait and closes the port, rather than the process.
   const controller = new AbortController();
   const stop = () => controller.abort();
@@ -380,7 +400,8 @@ async function login(
       : signInWithOAuth(client, prompt, controller.signal, signIn));
     report(context, signedIn, where);
   } catch (error) {
-    if (controller.signal.aborted) {
+    // Once the daemon has the sign-in, Ctrl+C no longer stops it, so its own outcome stands.
+    if (controller.signal.aborted && !finishing) {
       context.printer.info("Canceled. Nothing was changed.");
       return;
     }

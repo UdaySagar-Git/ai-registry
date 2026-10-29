@@ -173,5 +173,15 @@ describe("auth login", () => {
         message: expect.stringContaining("in your user scope"),
       });
     });
+
+    test("refuses an --address your user scope declares elsewhere, before any sign-in", async () => {
+      const root = await project([], ["  acme: https://two.example.test/org"]);
+      const argv = ["login", "acme", "--address", "https://one.example.test/org"];
+      await expect(run(context(argv, root))).rejects.toMatchObject({
+        code: ErrorCode.Usage,
+        message:
+          "acme is https://two.example.test/org in your user scope, not https://one.example.test/org.",
+      });
+    });
   });
 });

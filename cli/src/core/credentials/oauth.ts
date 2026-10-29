@@ -41,9 +41,29 @@ function trustedUrl(raw: unknown, origin: string | undefined, field: string): UR
   return url;
 }
 
+/** Read up to the cap and no further, so a server that never stops sending cannot exhaust memory. */
 async function readJson(response: Response): Promise<Record<string, unknown>> {
-  const text = await response.text();
-  if (text.length > MAX_BODY_BYTES) throw failed("The sign-in server's answer is too large.");
+  const tooLarge = () => failed("The sign-in server's answer is too large.");
+  if (Number(response.headers.get("content-length")) > MAX_BODY_BYTES) {
+    await response.body?.cancel().catch(() => undefined);
+    throw tooLarge();
+  }
+  const reader = response.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (
+    let read = await reader?.read();
+    read !== undefined && !read.done;
+    read = await reader?.read()
+  ) {
+    size += read.value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader?.cancel().catch(() => undefined);
+      throw tooLarge();
+    }
+    chunks.push(read.value);
+  }
+  const text = Buffer.concat(chunks).toString("utf8");
   try {
     const value: unknown = JSON.parse(text);
     return typeof value === "object" && value !== null && !Array.isArray(value)

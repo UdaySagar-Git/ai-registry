@@ -86,6 +86,23 @@ describe("AccountService", () => {
     expect(await revoked(tmp)).toEqual(["r1"]);
   });
 
+  test("ends a sign-in whose account could not be saved, rather than keep it", async ({ tmp }) => {
+    await signedIn(tmp, { type: "bearer", accessToken: "unused" });
+    await writeConfig({ ...emptyRegistryConfig(), adapters: { rotating: await rotating(tmp) } }, 1);
+    const login = (refreshToken: string) =>
+      new AccountService().login(
+        { registry: "acme" },
+        { oauth: { type: "bearer", accessToken: `a-${refreshToken}`, refreshToken } },
+        signal,
+      );
+    // Two first sign-ins race to create the account; only one row can win.
+    const [first, second] = await Promise.allSettled([login("r1"), login("r2")]);
+    expect([first.status, second.status].sort()).toEqual(["fulfilled", "rejected"]);
+    expect(await revoked(tmp)).toEqual([first.status === "rejected" ? "r1" : "r2"]);
+    const stored = JSON.parse(await readFile(join(tmp, "credentials.json"), "utf8"));
+    expect(Object.keys(stored.credentials)).toHaveLength(2);
+  });
+
   test("signs out on this machine though the registry cannot be told", async ({ tmp }) => {
     const account = await signedIn(tmp, {
       type: "bearer",

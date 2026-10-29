@@ -77,6 +77,9 @@ function expiring(credential: Credential): boolean {
   );
 }
 
+/** Ending an abandoned sign-in outlives a canceled request, but not by longer than this. */
+const REVOKE_MS = 30_000;
+
 /** One change to an account's sign-in at a time: a refresh racing a login or logout writes back the old one. */
 function changing<T>(accountId: string, change: () => Promise<T>): Promise<T> {
   return withLease(
@@ -86,13 +89,15 @@ function changing<T>(accountId: string, change: () => Promise<T>): Promise<T> {
   );
 }
 
-/** A session this sign-in replaced; an operator's token may still serve elsewhere, as in CI. */
+/** A session the registry minted; an operator's token may still serve elsewhere, as in CI. */
+function isSession(credential: Credential): boolean {
+  return credential.type === "bearer" && credential.refreshToken !== undefined;
+}
+
+/** A session this sign-in replaced. */
 function endedSession(replaced: Credential, current: Credential): boolean {
-  return (
-    replaced.type === "bearer" &&
-    replaced.refreshToken !== undefined &&
-    !(current.type === "bearer" && current.refreshToken === replaced.refreshToken)
-  );
+  if (replaced.type !== "bearer" || replaced.refreshToken === undefined) return false;
+  return !(current.type === "bearer" && current.refreshToken === replaced.refreshToken);
 }
 
 /** Best effort: the registry may be unreachable, and the sign-out on this machine still stands. */
@@ -193,27 +198,38 @@ export class AccountService {
       });
     const held = before.accounts.find(({ registry }) => registry === alias);
     const id = held?.id ?? newAccountId();
-    const replaced = await changing(id, async () => {
-      const previous = await readCredential(id);
-      await saveCredential(id, { origin, credential: session.credential });
-      return previous;
-    });
-    if (
-      replaced !== undefined &&
-      replaced.origin === origin &&
-      endedSession(replaced.credential, session.credential)
-    ) {
-      await revoke(resolved, replaced.credential, signal);
+    let saved = false;
+    try {
+      const replaced = await changing(id, async () => {
+        const previous = await readCredential(id);
+        await saveCredential(id, { origin, credential: session.credential });
+        saved = true;
+        return previous;
+      });
+      if (
+        replaced !== undefined &&
+        replaced.origin === origin &&
+        endedSession(replaced.credential, session.credential)
+      ) {
+        await revoke(resolved, replaced.credential, signal);
+      }
+      const defaultNamespace = input.defaultNamespace ?? held?.defaultNamespace;
+      const account: Account = {
+        id,
+        registry: alias,
+        ...(defaultNamespace === undefined ? {} : { defaultNamespace }),
+      };
+      const latest = await readConfig();
+      await writeConfig({ ...latest, accounts: upsert(latest.accounts, account) }, latest.revision);
+      return { account, created: held === undefined, identity: shownIdentity(session.identity) };
+    } catch (error) {
+      // No account row reaches a sign-in stored for a new one, so no sign-out would ever end it.
+      if (saved && held === undefined) await changing(id, () => deleteCredential(id));
+      if ((!saved || held === undefined) && isSession(session.credential)) {
+        await revoke(resolved, session.credential, AbortSignal.timeout(REVOKE_MS));
+      }
+      throw error;
     }
-    const defaultNamespace = input.defaultNamespace ?? held?.defaultNamespace;
-    const account: Account = {
-      id,
-      registry: alias,
-      ...(defaultNamespace === undefined ? {} : { defaultNamespace }),
-    };
-    const latest = await readConfig();
-    await writeConfig({ ...latest, accounts: upsert(latest.accounts, account) }, latest.revision);
-    return { account, created: held === undefined, identity: shownIdentity(session.identity) };
   }
 
   /** Deletes the sign-in and keeps the row, so jobs keep their reference. */

@@ -1,0 +1,19 @@
+{
+  "id": "grok",
+  "displayName": "Grok Build",
+  "overrides": true,
+  "roots": {
+    "project": ".grok",
+    "user": { "default": "~/.grok", "env": "GROK_HOME" }
+  },
+  "detect": { "env": ["GROK_HOME"], "binary": ["grok"] },
+  "reads": { "skill": ["grok", "universal"] },
+  "kinds": {
+    "plugin": { "shape": "contents" },
+    "skill": { "shape": "directory", "subdir": "skills" },
+    "agent": { "shape": "file", "subdir": "agents", "extension": ".md" }
+  },
+  "verified": { "command": ["grok", "--version"], "range": "1.0.5" },
+  "trust": { "skill": { "run": "grok --trust", "scope": "project" } },
+  "reload": "Start a new Grok Build session to load the change."
+}

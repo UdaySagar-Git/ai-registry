@@ -3,6 +3,7 @@ import { codex } from "./codex.ts";
 import { cursor } from "./cursor.ts";
 import { geminiCli } from "./gemini-cli.ts";
 import { githubCopilot } from "./github-copilot.ts";
+import { grok } from "./grok.ts";
 import { opencode } from "./opencode.ts";
 import { universal } from "./universal.ts";
 
@@ -14,5 +15,6 @@ export const BUILTIN_TARGETS = [
   githubCopilot,
   geminiCli,
   opencode,
+  grok,
   universal,
 ] as const;

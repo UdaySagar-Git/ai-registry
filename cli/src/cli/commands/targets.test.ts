@@ -53,6 +53,7 @@ describe("targets", () => {
     vi.stubEnv("CODEX_HOME", "");
     vi.stubEnv("COPILOT_HOME", "");
     vi.stubEnv("GEMINI_CLI_HOME", "");
+    vi.stubEnv("GROK_HOME", "");
     vi.stubEnv("OPENCODE_CONFIG_DIR", "");
   });
 
@@ -101,6 +102,7 @@ describe("targets", () => {
         ...builtIn,
         detected: false,
       },
+      { name: "grok", aliases: [], displayName: "Grok Build", ...builtIn, detected: false },
       { name: "opencode", aliases: [], displayName: "OpenCode", ...builtIn, detected: false },
       {
         name: "universal",
@@ -122,7 +124,7 @@ describe("targets", () => {
       "  Claude Code  claude-code  claude   found   from its environment variables",
     );
     expect(lines.some((line) => /^ +(Codex|Cursor|agents|Shared)/.test(line))).toBe(false);
-    expect(lines).toContain("Found 1 of 6 supported targets on this machine.");
+    expect(lines).toContain("Found 1 of 7 supported targets on this machine.");
     expect(lines).toContain("hint: Run `aireg targets --all` to see every one.");
     expect(lines).toContain(
       "hint: Use `--for universal`, or `agents`, for the shared .agents folder.",

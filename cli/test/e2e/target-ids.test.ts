@@ -70,7 +70,8 @@ describe("a target's earlier id", () => {
     ]);
 
     const rows = JSON.parse((await aireg(["list", "--json"])).stdout).data.artifacts;
-    expect(rows[0].targets).toEqual(["claude", "gemini"]);
+    expect(rows[0].targets).toEqual(["claude-code", "gemini-cli"]);
+    expect(rows[0].harnesses).toEqual(["claude", "gemini"]);
 
     const detail = JSON.parse((await aireg(["list", "kit/lint", "--json"])).stdout);
     expect(

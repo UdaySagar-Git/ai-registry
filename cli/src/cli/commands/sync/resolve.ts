@@ -1,6 +1,6 @@
 import { actionOf, type CommandContext } from "#cli/commands/command.ts";
 import { attentionHints, type Followed, follow, stoppedError } from "#cli/commands/sync/follow.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { loadAdapter } from "#core/adapter/load.ts";
 import { findJob, type Job } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";

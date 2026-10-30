@@ -1,6 +1,6 @@
 import { relative } from "node:path";
 import { LIST_COMMAND } from "#cli/commands/list/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import {
   heading,
   type Installed,

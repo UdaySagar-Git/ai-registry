@@ -1,8 +1,8 @@
 import { list, plural, quoted } from "#adapter/text.ts";
 import { actionOf, type CommandContext } from "#cli/commands/command.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { defaultIo } from "#cli/prompt/ask.ts";
-import { cancel, interaction, interactive, silence } from "#cli/prompt/flow.ts";
+import { cancel, interaction, interactive, silence } from "#cli/prompt/interaction.ts";
 import { canceled } from "#cli/prompt/model.ts";
 import { confirm } from "#cli/prompt/select.ts";
 import { note } from "#cli/prompt/spinner.ts";

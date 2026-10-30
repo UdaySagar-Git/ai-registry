@@ -3,10 +3,10 @@ import { COMMANDS } from "#cli/commands/index.ts";
 import { ExitCode } from "#core/errors.ts";
 import { Printer } from "#core/term/printer.ts";
 import { homeTest as test } from "#test/kit/fixtures.ts";
-import { printHelp } from "./help.ts";
+import { printHelp } from "./print.ts";
 
 // The e2e suite checks the root page against the built CLI from the same folder.
-const SNAPSHOTS = "../../test/e2e/__snapshots__/help";
+const SNAPSHOTS = "__snapshots__";
 
 /** The built-in commands, and the skill and agent commands every scope has outside a registry. */
 const PAGES: string[] = [

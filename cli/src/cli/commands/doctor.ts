@@ -6,7 +6,7 @@ import { advertisedCapabilities } from "#adapter/contract.ts";
 import { gte } from "#adapter/semver.ts";
 import { plural, sanitizeText } from "#adapter/text.ts";
 import { DOCTOR_COMMAND } from "#cli/commands/doctor/spec.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { loadAdapters } from "#core/adapter/load.ts";
 import { fileExposure } from "#core/credentials/store.ts";

@@ -1,5 +1,5 @@
 import { quoted } from "#adapter/text.ts";
-import { NAMESPACE } from "#cli/options.ts";
+import { NAMESPACE } from "#cli/options/flags.ts";
 import type { CommandContribution, OptionSpec } from "#core/host/extend.ts";
 import { contributedCommands } from "#core/host/load.ts";
 import type { Printer } from "#core/term/printer.ts";

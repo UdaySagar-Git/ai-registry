@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { list, quoted, sanitizeBlock, sanitizeName } from "#adapter/text.ts";
 import { SHOW_COMMAND } from "#cli/commands/show/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { expandUserPath, isMissing } from "#core/fs/path.ts";
 import { isDirectory } from "#core/fs/tree.ts";

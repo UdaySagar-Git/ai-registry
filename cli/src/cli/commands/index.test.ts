@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { GLOBAL_OPTIONS } from "#cli/options.ts";
+import { GLOBAL_OPTIONS } from "#cli/options/flags.ts";
 import type { OptionSpec } from "#core/host/extend.ts";
 import type { CommandSpec } from "./command.ts";
 import { COMMANDS } from "./index.ts";

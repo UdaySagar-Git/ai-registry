@@ -5,7 +5,7 @@ import { addContributedJob } from "#cli/commands/job/contributed.ts";
 import { existing, jobNamed, needsJob, noJob, typedFolder } from "#cli/commands/job/find.ts";
 import type { RunsOptions } from "#cli/commands/job/runs.ts";
 import { JOB_COMMAND } from "#cli/commands/job/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";

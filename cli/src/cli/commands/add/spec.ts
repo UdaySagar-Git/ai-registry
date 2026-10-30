@@ -11,7 +11,7 @@ import {
   SELECT,
   SOURCE,
   USER,
-} from "#cli/options.ts";
+} from "#cli/options/flags.ts";
 
 export const ADD_COMMAND: CommandSpec = {
   name: "add",

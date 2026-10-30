@@ -58,7 +58,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 ## How a command runs
 
 1. `main.ts` finds the command in `cli/commands/index.ts` and loads its module.
-2. The command parses its options with `cli/options.ts` and reads the scope once: the project's or your user scope's `.registry/manifest.yml` and `manifest.lock.yml`.
+2. The command parses its options with `cli/options/parse.ts` and reads the scope once: the project's or your user scope's `.registry/manifest.yml` and `manifest.lock.yml`.
 3. Installing commands call `engine/install/pipeline.ts`, which acquires each registry through its adapter (`core/adapter/`), builds a plan (`core/plan/build/build.ts`) and, through one guarded commit, applies it (`core/plan/apply/apply.ts`) under the scope's lease (`core/lease/lease.ts`). How the run is shown is the command's, through `cli/render/plan.ts`.
 4. Placement in each target folder follows the target's definition (`src/targets/`, applied by `core/target/`), including any config file the target needs edited, such as Codex's `config.toml`.
 5. A failure is an `AiregError`; `cli/render/error.ts` prints it, or its `--json` form, and returns its exit status.
@@ -82,7 +82,7 @@ Vitest runs five projects. `pnpm test` runs them all, and `pnpm run test:unit`, 
 |---|---|---|
 | unit | `src/**/*.test.ts` beside the code, the tests in `scripts/` and `packaging/`, and `test/architecture.test.ts` | One module at a time, in process, and the import directions between layers. |
 | integration | `test/integration/` | Several modules together, in process, such as a client driving the daemon. |
-| e2e | `test/e2e/`, `test/scenarios/` | The built CLI in an isolated home. Each built-in command's `--help` is snapshotted. |
+| e2e | `test/e2e/`, `test/scenarios/` | The built CLI in an isolated home, including the root `--help` page; each command's own page is snapshotted by `cli/help/print.test.ts`. |
 | contract | `test/contract/` | The JSON Schemas against the spec, and the generated schemas against their definitions. |
 | conformance | `test/conformance/` | Each target against its evidence: what aireg places, and, with `AIREG_CONFORMANCE=1` and the target installed, what the target itself loads. |
 

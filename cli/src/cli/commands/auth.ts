@@ -10,9 +10,9 @@ import {
 } from "#adapter/index.ts";
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { AUTH_COMMAND } from "#cli/commands/auth/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { defaultIo } from "#cli/prompt/ask.ts";
-import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
+import { cancel, interaction, interactive } from "#cli/prompt/interaction.ts";
 import { canceled } from "#cli/prompt/model.ts";
 import { confirm } from "#cli/prompt/select.ts";
 import { comparableLocation } from "#core/adapter/identity.ts";

@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { COPY, DRY_RUN, FOR, FROZEN, USER } from "#cli/options.ts";
+import { COPY, DRY_RUN, FOR, FROZEN, USER } from "#cli/options/flags.ts";
 
 export const UPDATE_COMMAND: CommandSpec = {
   name: "update",

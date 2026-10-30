@@ -2,6 +2,10 @@ import { homedir } from "node:os";
 import { list, quoted, sanitizeBlock } from "#adapter/text.ts";
 import { stopGit } from "#adapters/git/api.ts";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
+import type { Command, CommandContext } from "#cli/commands/command.ts";
+import { lookup, warnHidden } from "#cli/commands/index.ts";
+import { findMapFormat, runMap } from "#cli/help/map.ts";
+import { printHelp, printShortHelp, unknownCommand } from "#cli/help/print.ts";
 import {
   colorWhen,
   findCommand,
@@ -10,13 +14,9 @@ import {
   misplacedOption,
   misusedGlobal,
   readGlobals,
-} from "#cli/argv.ts";
-import type { Command, CommandContext } from "#cli/commands/command.ts";
-import { lookup, warnHidden } from "#cli/commands/index.ts";
-import { printHelp, printShortHelp, unknownCommand } from "#cli/help.ts";
-import { findMapFormat, runMap } from "#cli/map.ts";
+} from "#cli/options/globals.ts";
+import { closest, didYouMean } from "#cli/options/suggest.ts";
 import { reportError } from "#cli/render/error.ts";
-import { closest, didYouMean } from "#cli/suggest.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { releaseLeasesOnInterrupt } from "#core/lease/lease.ts";
 import { LogLevelError } from "#core/log/level.ts";

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { type Accepts, AS, parse } from "./options.ts";
+import { AS } from "./flags.ts";
+import { type Accepts, parse } from "./parse.ts";
 
 const GROUP: Accepts = {
   name: "group",

@@ -1,6 +1,6 @@
 import { CONSOLE_COMMAND } from "#cli/commands/console/spec.ts";
 import { collect } from "#cli/console/data/state.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { contributedPanels, contributedUpstream } from "#core/host/load.ts";
 import type { CommandContext } from "./command.ts";

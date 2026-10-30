@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { ALL, DRY_RUN, FORCE, FROZEN, SELECT, USER } from "#cli/options.ts";
+import { ALL, DRY_RUN, FORCE, FROZEN, SELECT, USER } from "#cli/options/flags.ts";
 
 export const REMOVE_COMMAND: CommandSpec = {
   name: "remove",

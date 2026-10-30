@@ -1,12 +1,12 @@
 import { list, quoted } from "#adapter/text.ts";
 import type { ActionSpec, CommandSpec } from "#cli/commands/command.ts";
 import { allCommands, warnHidden } from "#cli/commands/index.ts";
+import { GLOBAL_OPTIONS, MAP_FORMATS, type MapFormat } from "#cli/options/flags.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import type { OptionSpec } from "#core/host/extend.ts";
 import { DOCS_URL, NAME } from "#core/product.ts";
 import type { Printer } from "#core/term/printer.ts";
 import pkg from "#package.json" with { type: "json" };
-import { GLOBAL_OPTIONS, MAP_FORMATS, type MapFormat } from "./options.ts";
 
 /** A node in the `--map` tree: a command, an action, or the root. */
 export interface MapNode {

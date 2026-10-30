@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { REGISTRY, SOURCE, USER } from "#cli/options.ts";
+import { REGISTRY, SOURCE, USER } from "#cli/options/flags.ts";
 
 export const SHOW_COMMAND: CommandSpec = {
   name: "show",

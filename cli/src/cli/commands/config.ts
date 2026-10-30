@@ -1,7 +1,7 @@
 import { list as listOf, quoted } from "#adapter/text.ts";
 import { CONFIG_COMMAND } from "#cli/commands/config/spec.ts";
-import { parse } from "#cli/options.ts";
-import { closest, didYouMean } from "#cli/suggest.ts";
+import { parse } from "#cli/options/parse.ts";
+import { closest, didYouMean } from "#cli/options/suggest.ts";
 import type { RegistryConfig } from "#core/config/model.ts";
 import { isNameCollision, isNamespaceAddress, nameCollisionOf } from "#core/config/model.ts";
 import { configPath, readConfig, updateConfig } from "#core/config/repository.ts";

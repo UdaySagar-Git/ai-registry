@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { actionOf } from "#cli/commands/command.ts";
 import { builtin } from "#cli/commands/index.ts";
-import { parse, takeGlobals } from "#cli/options.ts";
+import { parse, takeGlobals } from "#cli/options/parse.ts";
 import { isStepPolicy } from "#core/config/model.ts";
 import * as actions from "#core/console/actions.ts";
 

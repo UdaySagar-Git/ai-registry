@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { builtin } from "#cli/commands/index.ts";
 import { ErrorCode } from "#core/errors.ts";
-import { colorWhen, findCommand, misplacedOption, misusedGlobal, readGlobals } from "./argv.ts";
+import { colorWhen, findCommand, misplacedOption, misusedGlobal, readGlobals } from "./globals.ts";
 
 describe("findCommand", () => {
   test.each([

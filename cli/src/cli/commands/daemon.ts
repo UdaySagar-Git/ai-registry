@@ -1,7 +1,7 @@
 import { gte } from "#adapter/semver.ts";
 import { DAEMON_COMMAND } from "#cli/commands/daemon/spec.ts";
-import { parse } from "#cli/options.ts";
-import { unknownAction } from "#cli/suggest.ts";
+import { parse } from "#cli/options/parse.ts";
+import { unknownAction } from "#cli/options/suggest.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { VERSION } from "#core/version.ts";

@@ -1,6 +1,8 @@
 import { list, quoted } from "#adapter/text.ts";
 import { type ActionSpec, type CommandSpec, GROUPS } from "#cli/commands/command.ts";
 import { allCommands, lookup, warnHidden } from "#cli/commands/index.ts";
+import { GLOBAL_OPTIONS } from "#cli/options/flags.ts";
+import { closest, didYouMean, unknownAction } from "#cli/options/suggest.ts";
 import { callingAgent } from "#cli/prompt/caller.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import type { Example, OptionSpec } from "#core/host/extend.ts";
@@ -8,8 +10,6 @@ import { NAME } from "#core/product.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { actionNode, commandNode, docsUrl, ISSUES_URL, ROOT_SUMMARY, ROOT_USAGE } from "./map.ts";
-import { GLOBAL_OPTIONS } from "./options.ts";
-import { closest, didYouMean, unknownAction } from "./suggest.ts";
 
 const EXAMPLES: readonly Example[] = [
   {

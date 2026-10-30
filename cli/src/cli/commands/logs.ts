@@ -1,6 +1,6 @@
 import { list, quoted, sanitizeText } from "#adapter/text.ts";
 import { LOGS_COMMAND } from "#cli/commands/logs/spec.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isLevel, LEVELS, type LogRecord } from "#core/log/model.ts";
 import {

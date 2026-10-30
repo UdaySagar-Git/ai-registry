@@ -1,6 +1,6 @@
 import { gte } from "#adapter/semver.ts";
 import { actionOf, type CommandContext } from "#cli/commands/command.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { withReleaseHint } from "#core/release/errors.ts";
 import { shimPath, versionBin } from "#core/release/layout.ts";
 import { VERSION } from "#core/version.ts";

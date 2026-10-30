@@ -1,6 +1,6 @@
 import { list } from "#adapter/text.ts";
-import type { Accepts } from "#cli/options.ts";
-import { unknownAction } from "#cli/suggest.ts";
+import type { Accepts } from "#cli/options/parse.ts";
+import { unknownAction } from "#cli/options/suggest.ts";
 import type { ExitCode } from "#core/errors.ts";
 import type { Example, HostCommandContext, OptionSpec } from "#core/host/extend.ts";
 

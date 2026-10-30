@@ -1,7 +1,7 @@
 import { KINDS } from "#adapter/kinds.ts";
 import { list } from "#adapter/text.ts";
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { REGISTRY, USER } from "#cli/options.ts";
+import { REGISTRY, USER } from "#cli/options/flags.ts";
 
 export const SEARCH_COMMAND: CommandSpec = {
   name: "search",

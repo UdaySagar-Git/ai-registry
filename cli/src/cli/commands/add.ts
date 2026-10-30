@@ -6,25 +6,26 @@ import { expandHome } from "#adapter/paths.ts";
 import { list, plural, quoted, sanitizeName, withoutCredentials } from "#adapter/text.ts";
 import { type LockedSkill, readSkillLock } from "#cli/commands/add/skill-lock.ts";
 import { ADD_COMMAND } from "#cli/commands/add/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { defaultIo } from "#cli/prompt/ask.ts";
-import { chooseRegistry } from "#cli/prompt/choose-registry.ts";
 import {
-  cancel,
   chooseArtifacts,
   chooseMethod,
   chooseScope,
   chooseTargets,
-  confirmPlan,
-  confirmTrust,
-  equivalent,
+  methodIsMeaningful,
+  pickedNamespace,
+} from "#cli/prompt/choose.ts";
+import { chooseRegistry } from "#cli/prompt/choose-registry.ts";
+import { confirmPlan, confirmTrust } from "#cli/prompt/confirm-plan.ts";
+import { equivalent } from "#cli/prompt/equivalent.ts";
+import {
+  cancel,
   type Interaction,
   interaction,
   interactive,
-  methodIsMeaningful,
-  pickedNamespace,
   preparing,
-} from "#cli/prompt/flow.ts";
+} from "#cli/prompt/interaction.ts";
 import { canceled } from "#cli/prompt/model.ts";
 import { canAnimate, spinner } from "#cli/prompt/spinner.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";

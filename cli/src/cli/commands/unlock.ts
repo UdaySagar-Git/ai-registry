@@ -1,6 +1,6 @@
 import { quoted } from "#adapter/text.ts";
 import { UNLOCK_COMMAND } from "#cli/commands/unlock/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { LeaseError } from "#core/lease/errors.ts";
 import { breakLease, readLease } from "#core/lease/lease.ts";

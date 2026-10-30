@@ -1,6 +1,6 @@
 import { list } from "#adapter/text.ts";
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { FOR, POLICIES, SELECT, USER } from "#cli/options.ts";
+import { FOR, POLICIES, SELECT, USER } from "#cli/options/flags.ts";
 import { DEFAULT_INTERVAL_SECONDS } from "#core/config/model.ts";
 import { RUN_MODES } from "#core/run/model.ts";
 import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";

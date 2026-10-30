@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { COPY, DRY_RUN, FOR, FORCE, FROZEN, USER } from "#cli/options.ts";
+import { COPY, DRY_RUN, FOR, FORCE, FROZEN, USER } from "#cli/options/flags.ts";
 
 export const INSTALL_COMMAND: CommandSpec = {
   name: "install",

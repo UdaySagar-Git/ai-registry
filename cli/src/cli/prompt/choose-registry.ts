@@ -1,7 +1,7 @@
 import { list, sanitizeText, withoutCredentials } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";
-import { type Interaction, interactive } from "./flow.ts";
+import { type Interaction, interactive } from "./interaction.ts";
 import { canceled } from "./model.ts";
 import { select } from "./select.ts";
 

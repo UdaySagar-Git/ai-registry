@@ -1,7 +1,7 @@
 import { credentialFor } from "#accounts/credentials.ts";
 import { contentDigest, type ResolveOptions, type Want } from "#adapter/index.ts";
 import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { type Watched, watchedFrom } from "#cli/render/installed.ts";
 import { connectSource, resolveArtifacts } from "#core/adapter/connect.ts";
 import { declaredLayout } from "#core/adapter/load.ts";

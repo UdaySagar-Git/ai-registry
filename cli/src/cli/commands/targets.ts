@@ -4,7 +4,7 @@ import { stringify } from "yaml";
 import { list as listed, plural, quoted } from "#adapter/text.ts";
 import { foundBy } from "#cli/commands/targets/render.ts";
 import { TARGETS_COMMAND } from "#cli/commands/targets/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { targetsDir } from "#core/store/paths.ts";

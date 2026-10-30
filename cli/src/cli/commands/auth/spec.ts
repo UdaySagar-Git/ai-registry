@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { ADAPTER, TOKEN_STDIN } from "#cli/options.ts";
+import { ADAPTER, TOKEN_STDIN } from "#cli/options/flags.ts";
 
 export const AUTH_COMMAND: CommandSpec = {
   name: "auth",

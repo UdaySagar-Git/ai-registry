@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { DRY_RUN, POLICIES, SELECT, USER } from "#cli/options.ts";
+import { DRY_RUN, POLICIES, SELECT, USER } from "#cli/options/flags.ts";
 
 export const SYNC_COMMAND: CommandSpec = {
   name: "sync",

@@ -12,7 +12,7 @@ import {
 } from "#cli/commands/sync/follow.ts";
 import { renderSync } from "#cli/commands/sync/render.ts";
 import { SYNC_COMMAND } from "#cli/commands/sync/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { isStepPolicy, STEP_POLICIES } from "#core/config/model.ts";
 import { registryToken } from "#core/env.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";

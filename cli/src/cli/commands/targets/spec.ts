@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { ALL } from "#cli/options.ts";
+import { ALL } from "#cli/options/flags.ts";
 
 export const TARGETS_COMMAND: CommandSpec = {
   name: "targets",

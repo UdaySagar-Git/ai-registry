@@ -1,10 +1,10 @@
 import { describe, expect } from "vitest";
-import type { Interaction } from "#cli/prompt/flow.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";
 import { Printer } from "#core/term/printer.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { chooseRegistry } from "./choose-registry.ts";
+import type { Interaction } from "./interaction.ts";
 
 describe("chooseRegistry", () => {
   test("shows each registry's address on one line of inert text", async () => {

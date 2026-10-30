@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { USER } from "#cli/options.ts";
+import { USER } from "#cli/options/flags.ts";
 
 export const WATCH_COMMAND: CommandSpec = {
   name: "watch",

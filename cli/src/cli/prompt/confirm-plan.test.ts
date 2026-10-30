@@ -9,16 +9,15 @@ import { resolveTargets } from "#core/target/table.ts";
 import { Printer } from "#core/term/printer.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
 import { withoutKind } from "#test/kit/target.ts";
+import { chooseTargets, methodIsMeaningful } from "./choose.ts";
 import {
-  chooseTargets,
   confirmPlan,
   destroys,
-  equivalent,
   linkedTargets,
-  methodIsMeaningful,
   type PlanContext,
   unreached,
-} from "./flow.ts";
+} from "./confirm-plan.ts";
+import { equivalent } from "./equivalent.ts";
 
 const targetTable = resolveTargets({ HOME: "/home/dev" });
 /** A table where Codex has nowhere to put an agent, for what is said about a kind left out. */

@@ -3,7 +3,7 @@ import { relative } from "node:path";
 import { isWithin } from "#adapter/paths.ts";
 import { plural } from "#adapter/text.ts";
 import { STATUS_COMMAND } from "#cli/commands/status/spec.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { installed } from "#cli/render/installed.ts";
 import { renderStatus } from "#cli/render/status.ts";

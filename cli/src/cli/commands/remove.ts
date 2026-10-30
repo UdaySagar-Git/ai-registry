@@ -1,16 +1,10 @@
 import { list, sanitizeName } from "#adapter/text.ts";
 import { REMOVE_COMMAND } from "#cli/commands/remove/spec.ts";
-import { parse } from "#cli/options.ts";
+import { parse } from "#cli/options/parse.ts";
 import { defaultIo } from "#cli/prompt/ask.ts";
-import {
-  cancel,
-  chooseRemovals,
-  confirmPlan,
-  interaction,
-  interactive,
-  preparing,
-  silence,
-} from "#cli/prompt/flow.ts";
+import { chooseRemovals } from "#cli/prompt/choose.ts";
+import { confirmPlan } from "#cli/prompt/confirm-plan.ts";
+import { cancel, interaction, interactive, preparing, silence } from "#cli/prompt/interaction.ts";
 import { canceled } from "#cli/prompt/model.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { planReport, summarize, whoNeeds } from "#cli/render/plan.ts";

@@ -1,5 +1,5 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
-import { AS, DRY_RUN, NAMESPACE, SOURCE, USER } from "#cli/options.ts";
+import { AS, DRY_RUN, NAMESPACE, SOURCE, USER } from "#cli/options/flags.ts";
 
 export const REGISTRY_COMMAND: CommandSpec = {
   name: "registry",

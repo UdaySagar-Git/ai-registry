@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { Styler } from "#core/output.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
+import { CANCEL } from "./model.ts";
 import { type Choice, type MultiselectOptions, multiselect } from "./multiselect.ts";
-import { CANCEL } from "./prompt.ts";
 
 const { up, down, left, right, enter, space, escape: esc, ctrlC } = KEY;
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Styler } from "#core/output.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
-import { CANCEL } from "./prompt.ts";
+import { CANCEL } from "./model.ts";
 import { confirm, type SelectOptions, select } from "./select.ts";
 
 const { up, down, enter, space, escape: esc, ctrlC } = KEY;

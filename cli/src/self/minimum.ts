@@ -9,7 +9,6 @@ import { needsMinimumUpdate } from "#core/release/channel.ts";
 import { runningEntry } from "#core/release/launch.ts";
 import { cliRoot, versionBin } from "#core/release/layout.ts";
 import { isSourceVersion, VERSION } from "#core/version.ts";
-import { cacheFrom, readUpdateCache, writeUpdateCache } from "./check.ts";
 import { installBinary, pruneOld } from "./install.ts";
 import {
   describeSize,
@@ -18,6 +17,7 @@ import {
   type ResolvedRelease,
   resolveRelease,
 } from "./source.ts";
+import { cacheFrom, readUpdateCache, writeUpdateCache } from "./update-cache.ts";
 
 /** 0.15 MB/s, a slow link that still works; a forced update that times out stays below the floor. */
 const SLOW_LINK_BYTES_PER_MS = 150;

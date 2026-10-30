@@ -4,7 +4,7 @@ import { isLocalPath } from "#adapter/paths.ts";
 import { list, quoted, sanitizeText, stripTrailing, withoutCredentials } from "#adapter/text.ts";
 import { splitRepository } from "#adapters/git/api.ts";
 import { type Interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled } from "#cli/prompt/prompt.ts";
+import { canceled } from "#cli/prompt/model.ts";
 import { select } from "#cli/prompt/select.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";

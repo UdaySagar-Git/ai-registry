@@ -2,14 +2,8 @@ import type { Styler } from "#core/output.ts";
 import { displayWidth } from "#core/term/format.ts";
 import { GLYPH } from "#core/term/theme.ts";
 import { footerLines, type Mark, railLine, titleLine } from "./layout.ts";
-import {
-  ask,
-  CANCEL,
-  type Canceled,
-  type Keypress,
-  type Machine,
-  type PromptIo,
-} from "./prompt.ts";
+import { CANCEL, type Canceled, type Keypress, type Machine, type PromptIo } from "./model.ts";
+import { ask } from "./prompt.ts";
 
 interface Option<T> {
   value: T;

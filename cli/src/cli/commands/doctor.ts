@@ -20,7 +20,7 @@ import { cacheDir, credentialsPath, toolHome, userScopeDir } from "#core/store/p
 import { displayWidth, pad } from "#core/term/format.ts";
 import { nodeTooOld, VERSION } from "#core/version.ts";
 import { autostartState } from "#daemon/autostart/index.ts";
-import { readUpdateCache, type UpdateCache } from "#self/check.ts";
+import { readUpdateCache, type UpdateCache } from "#self/update-cache.ts";
 import type { CommandContext } from "./command.ts";
 
 interface Check {

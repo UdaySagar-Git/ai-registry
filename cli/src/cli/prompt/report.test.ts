@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Styler } from "#core/output.ts";
-import type { PromptIo } from "./prompt.ts";
+import type { PromptIo } from "./model.ts";
 import { note, spinner } from "./report.ts";
 
 const style = new Styler({ isTTY: false }, {}, "always");

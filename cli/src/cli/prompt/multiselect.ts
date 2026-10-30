@@ -5,14 +5,14 @@ import { displayWidth } from "#core/term/format.ts";
 import { GLYPH } from "#core/term/theme.ts";
 import { fitLines, footerLines, heightOf, type Mark, railLine, titleLine } from "./layout.ts";
 import {
-  ask,
   CANCEL,
   type Canceled,
   type Keypress,
   type Machine,
   type PromptIo,
   type Size,
-} from "./prompt.ts";
+} from "./model.ts";
+import { ask } from "./prompt.ts";
 import { type Fill, type Node, outline, plant, Selection } from "./tree.ts";
 
 export interface Choice<T> {

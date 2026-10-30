@@ -1,63 +1,53 @@
 import { quoted } from "#adapter/text.ts";
-import { ADAPTER_COMMAND } from "#cli/commands/adapter/spec.ts";
-import { ADD_COMMAND } from "#cli/commands/add/spec.ts";
-import { AUTH_COMMAND } from "#cli/commands/auth/spec.ts";
-import { CONFIG_COMMAND } from "#cli/commands/config/spec.ts";
-import { CONSOLE_COMMAND } from "#cli/commands/console/spec.ts";
-import { DAEMON_COMMAND } from "#cli/commands/daemon/spec.ts";
-import { DOCTOR_COMMAND } from "#cli/commands/doctor/spec.ts";
-import { INIT_COMMAND } from "#cli/commands/init/spec.ts";
-import { INSTALL_COMMAND } from "#cli/commands/install/spec.ts";
-import { JOB_COMMAND } from "#cli/commands/job/spec.ts";
-import { LIST_COMMAND } from "#cli/commands/list/spec.ts";
-import { LOGS_COMMAND } from "#cli/commands/logs/spec.ts";
-import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
-import { PUBLISH_COMMAND } from "#cli/commands/publish/spec.ts";
-import { REGISTRY_COMMAND } from "#cli/commands/registry/spec.ts";
-import { REMOVE_COMMAND } from "#cli/commands/remove/spec.ts";
-import { SEARCH_COMMAND } from "#cli/commands/search/spec.ts";
-import { SELF_COMMAND } from "#cli/commands/self/spec.ts";
-import { SHOW_COMMAND } from "#cli/commands/show/spec.ts";
-import { STATUS_COMMAND } from "#cli/commands/status/spec.ts";
-import { SYNC_COMMAND } from "#cli/commands/sync/spec.ts";
-import { TARGETS_COMMAND } from "#cli/commands/targets/spec.ts";
-import { UNLOCK_COMMAND } from "#cli/commands/unlock/spec.ts";
-import { UPDATE_COMMAND } from "#cli/commands/update/spec.ts";
-import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
 import { NAMESPACE } from "#cli/options.ts";
 import type { CommandContribution, OptionSpec } from "#core/host/extend.ts";
 import { contributedCommands } from "#core/host/load.ts";
 import type { Printer } from "#core/output.ts";
+import {
+  BUILTIN_SPECS,
+  type Hidden,
+  hiddenKind,
+  PRECEDENCE,
+  printHidden,
+  RESERVED,
+} from "./builtins.ts";
 import { type Command, GROUPS, type Group } from "./command.ts";
 
+/** Each built-in command's module, by name, loaded only when that command runs. */
+const LOADERS: Readonly<Record<string, Command["load"]>> = {
+  init: () => import("./init.ts"),
+  registry: () => import("./registry.ts"),
+  auth: () => import("./auth.ts"),
+  search: () => import("./search.ts"),
+  add: () => import("./add.ts"),
+  remove: () => import("./remove.ts"),
+  install: () => import("./install.ts"),
+  update: () => import("./update.ts"),
+  show: () => import("./show.ts"),
+  console: () => import("./console.ts"),
+  status: () => import("./status.ts"),
+  list: () => import("./list.ts"),
+  outdated: () => import("./outdated.ts"),
+  targets: () => import("./targets.ts"),
+  sync: () => import("./sync.ts"),
+  publish: () => import("./publish.ts"),
+  watch: () => import("./watch.ts"),
+  job: () => import("./job.ts"),
+  daemon: () => import("./daemon.ts"),
+  config: () => import("./config.ts"),
+  doctor: () => import("./doctor.ts"),
+  unlock: () => import("./unlock.ts"),
+  adapter: () => import("./adapter.ts"),
+  logs: () => import("./logs.ts"),
+  self: () => import("./self.ts"),
+};
+
 /** Every built-in command, in the order `--help` lists each group. */
-export const COMMANDS: readonly Command[] = [
-  { ...INIT_COMMAND, load: () => import("./init.ts") },
-  { ...REGISTRY_COMMAND, load: () => import("./registry.ts") },
-  { ...AUTH_COMMAND, load: () => import("./auth.ts") },
-  { ...SEARCH_COMMAND, load: () => import("./search.ts") },
-  { ...ADD_COMMAND, load: () => import("./add.ts") },
-  { ...REMOVE_COMMAND, load: () => import("./remove.ts") },
-  { ...INSTALL_COMMAND, load: () => import("./install.ts") },
-  { ...UPDATE_COMMAND, load: () => import("./update.ts") },
-  { ...SHOW_COMMAND, load: () => import("./show.ts") },
-  { ...CONSOLE_COMMAND, load: () => import("./console.ts") },
-  { ...STATUS_COMMAND, load: () => import("./status.ts") },
-  { ...LIST_COMMAND, load: () => import("./list.ts") },
-  { ...OUTDATED_COMMAND, load: () => import("./outdated.ts") },
-  { ...TARGETS_COMMAND, load: () => import("./targets.ts") },
-  { ...SYNC_COMMAND, load: () => import("./sync.ts") },
-  { ...PUBLISH_COMMAND, load: () => import("./publish.ts") },
-  { ...WATCH_COMMAND, load: () => import("./watch.ts") },
-  { ...JOB_COMMAND, load: () => import("./job.ts") },
-  { ...DAEMON_COMMAND, load: () => import("./daemon.ts") },
-  { ...CONFIG_COMMAND, load: () => import("./config.ts") },
-  { ...DOCTOR_COMMAND, load: () => import("./doctor.ts") },
-  { ...UNLOCK_COMMAND, load: () => import("./unlock.ts") },
-  { ...ADAPTER_COMMAND, load: () => import("./adapter.ts") },
-  { ...LOGS_COMMAND, load: () => import("./logs.ts") },
-  { ...SELF_COMMAND, load: () => import("./self.ts") },
-];
+export const COMMANDS: readonly Command[] = BUILTIN_SPECS.map((spec) => {
+  const load = LOADERS[spec.name];
+  if (load === undefined) throw new Error(`No module for the built-in command ${spec.name}`);
+  return { ...spec, load };
+});
 
 /** A built-in command by its name, for code that reads specs by name. */
 export function builtin(name: string): Command {
@@ -95,29 +85,6 @@ function fromContribution(command: CommandContribution): Command {
   };
 }
 
-/** Names aireg's own commands answer to, so a kind or an adapter's command cannot have them. */
-export const RESERVED: ReadonlySet<string> = new Set([
-  "help",
-  ...COMMANDS.flatMap((c) => [c.name, ...(c.aliases ?? []), ...(c.formerly ?? [])]),
-]);
-
-/** A kind or an adapter's command that a command with the same name hides. */
-export interface Hidden {
-  readonly name: string;
-  readonly message: string;
-  readonly hint: string;
-}
-
-const PRECEDENCE = "aireg's own commands come first.";
-
-export function hiddenKind(name: string): Hidden {
-  return {
-    name,
-    message: `The kind ${quoted(name)} has the same name as a command, so \`aireg ${name}\` runs the command.`,
-    hint: `Rename the kind in registry.json, since ${PRECEDENCE}`,
-  };
-}
-
 /** Built-ins win over adapters' commands, and both over kinds; `hidden` is what lost. */
 async function table(cwd: string): Promise<{ commands: Command[]; hidden: Hidden[] }> {
   const commands = [...COMMANDS];
@@ -151,11 +118,6 @@ export async function warnHidden(printer: Printer, name?: string): Promise<void>
     (entry) => name === undefined || entry.name === name,
   );
   printHidden(printer, hidden);
-}
-
-export function printHidden(printer: Printer, hidden: readonly Hidden[]): void {
-  for (const entry of hidden) printer.warning(entry.message);
-  for (const hint of new Set(hidden.map((entry) => entry.hint))) printer.hint(hint);
 }
 
 export async function lookup(name: string, cwd = process.cwd()): Promise<Command | undefined> {

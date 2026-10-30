@@ -3,7 +3,7 @@ import { isCI } from "#core/env.ts";
 import type { Styler } from "#core/output.ts";
 import { displayWidth } from "#core/term/format.ts";
 import { GLYPH } from "#core/term/theme.ts";
-import type { PromptIo, PromptWriter } from "./prompt.ts";
+import type { PromptIo, PromptWriter } from "./model.ts";
 
 // The non-interactive parts of the prompt frame. Both write to the prompt's
 // stream, never to stdout, so a redirected stdout still holds only results.

@@ -13,7 +13,7 @@ import {
   type PromptIo,
   type PromptWriter,
   type Size,
-} from "./prompt.ts";
+} from "./model.ts";
 
 const DEFAULT_COLUMNS = 80;
 

@@ -284,25 +284,6 @@
     },
     {
       "includes": [
-        "src/cli/commands/index.ts",
-        "src/cli/commands/init.ts",
-        "src/cli/commands/registry.ts",
-        "src/cli/onboarding/flow.ts",
-        "src/cli/prompt/mount.ts",
-        "src/cli/prompt/prompt.ts",
-        "src/self/check.ts",
-        "src/self/minimum.ts"
-      ],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noImportCycles": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": [
         "src/accounts/service.test.ts",
         "src/adapter/files.ts",
         "src/adapter/filespec/write.ts",

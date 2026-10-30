@@ -28,7 +28,8 @@ import { type Move, moveOf, recordMove, signInLeftBehind } from "#cli/commands/r
 import { REGISTRY_COMMAND } from "#cli/commands/registry/spec.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { canceled } from "#cli/prompt/model.ts";
+import { defaultIo } from "#cli/prompt/prompt.ts";
 import { text } from "#cli/prompt/text.ts";
 import { commitAndPush, releaseSubject } from "#cli/publish/target.ts";
 import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
@@ -62,8 +63,8 @@ import { type Roots, scopeName } from "#core/store/paths.ts";
 import { fields, table } from "#core/term/table.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, withScope } from "#engine/pipeline.ts";
+import { type Hidden, hiddenKind, printHidden, RESERVED } from "./builtins.ts";
 import { type CommandContext, runAction } from "./command.ts";
-import { type Hidden, hiddenKind, printHidden, RESERVED } from "./index.ts";
 
 interface Flags extends SourceFlags {
   as?: string;

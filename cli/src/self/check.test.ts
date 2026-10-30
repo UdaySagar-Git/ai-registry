@@ -5,7 +5,8 @@ import { describe, expect, vi } from "vitest";
 import type { spawnDetached } from "#core/process.ts";
 import type { ReleaseStamp } from "#core/release/stamp.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { readUpdateCache, scheduleUpdateCheck, skipUpdateCheck } from "./check.ts";
+import { scheduleUpdateCheck, skipUpdateCheck } from "./check.ts";
+import { readUpdateCache } from "./update-cache.ts";
 
 // The stamp is build-time only, so a test stands one in.
 vi.mock("#core/release/stamp.ts", () => ({ releaseStamp: () => ({}) as ReleaseStamp }));

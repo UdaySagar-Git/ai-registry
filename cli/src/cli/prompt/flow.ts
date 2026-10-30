@@ -21,8 +21,9 @@ import {
 } from "#core/target/index.ts";
 import { tableLines } from "#core/term/table.ts";
 import { blocker, explain } from "./caller.ts";
+import { type Canceled, canceled, type PromptIo } from "./model.ts";
 import { type Choice, multiselect } from "./multiselect.ts";
-import { type Canceled, canceled, type PromptIo, prepare } from "./prompt.ts";
+import { prepare } from "./prompt.ts";
 import { confirm, select } from "./select.ts";
 
 /** Shared prompt state for commands that gather missing choices. */

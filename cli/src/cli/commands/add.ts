@@ -22,7 +22,8 @@ import {
   pickedNamespace,
   preparing,
 } from "#cli/prompt/flow.ts";
-import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { canceled } from "#cli/prompt/model.ts";
+import { defaultIo } from "#cli/prompt/prompt.ts";
 import { canAnimate, spinner } from "#cli/prompt/report.ts";
 import {
   aliasFor,

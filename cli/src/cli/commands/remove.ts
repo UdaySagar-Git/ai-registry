@@ -11,7 +11,8 @@ import {
   preparing,
   silence,
 } from "#cli/prompt/flow.ts";
-import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { canceled } from "#cli/prompt/model.ts";
+import { defaultIo } from "#cli/prompt/prompt.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
 import { loadedBy, toolName } from "#cli/render/tools.ts";

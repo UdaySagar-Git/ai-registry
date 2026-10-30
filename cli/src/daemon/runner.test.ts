@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Account } from "#core/config/model.ts";
 import { jobOfWork, type ScopeWork } from "#engine/work.ts";
 import { SqliteRunStore } from "./run-store.ts";
@@ -59,7 +59,7 @@ afterEach(async () => {
 });
 
 describe("one-off sync runs", () => {
-  it("joins the run already doing the same request rather than starting another", async () => {
+  test("joins the run already doing the same request rather than starting another", async () => {
     const first = oneOff();
     const second = oneOff();
     const a = await runner.start(first.id, "sync", "manual", { ephemeral: first.target });
@@ -69,7 +69,7 @@ describe("one-off sync runs", () => {
     await vi.waitFor(() => expect(sync.calls).toBe(1));
   });
 
-  it("starts a separate run for a different scope, and anew once the first ends", async () => {
+  test("starts a separate run for a different scope, and anew once the first ends", async () => {
     const first = oneOff();
     const a = await runner.start(first.id, "sync", "manual", { ephemeral: first.target });
     const elsewhere = oneOff("/other");
@@ -88,7 +88,7 @@ describe("one-off sync runs", () => {
 
 describe("a run whose work ignores its abort", () => {
   // The mocked sync never looks at its signal, which is the case being guarded.
-  it("is settled as timed out a grace period after its deadline, and frees its job", async () => {
+  test("is settled as timed out a grace period after its deadline, and frees its job", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     const first = oneOff();
     const run = await runner.start(first.id, "sync", "manual", { ephemeral: first.target });
@@ -104,7 +104,7 @@ describe("a run whose work ignores its abort", () => {
     expect(next.id).not.toBe(run.id);
   });
 
-  it("does not hold a stop open past the grace period", async () => {
+  test("does not hold a stop open past the grace period", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const first = oneOff();
     await runner.start(first.id, "sync", "manual", { ephemeral: first.target });

@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { changeLines, changesFrom } from "./changes.ts";
 
 const file = (path: string, digest = `sha256:${path}`) => ({ path, digest });
 const edge = (to: string) => ({ rel_type: "depends_on", to });
 
 describe("changesFrom", () => {
-  it("names each file added, changed and removed, and each edge whose `to` moved", () => {
+  test("names each file added, changed and removed, and each edge whose `to` moved", () => {
     const held = {
       files: [file("AGENT.md"), file("identity/SOUL.md"), file("identity/MEMORY.md")],
       relationships: [edge("eng/skill/review@0.1.0"), edge("eng/skill/lint@1.0.0")],
@@ -24,7 +24,7 @@ describe("changesFrom", () => {
     });
   });
 
-  it("compares a sole entry by content when the registry names it AGENT.md", () => {
+  test("compares a sole entry by content when the registry names it AGENT.md", () => {
     const held = { files: [file("AGENT.md", "sha256:same")] };
     expect(changesFrom(held, { files: [file("reviewer.md", "sha256:same")] }).files).toEqual({
       added: [],
@@ -38,7 +38,7 @@ describe("changesFrom", () => {
     });
   });
 
-  it("adds everything when no version is held, and counts only depends_on edges", () => {
+  test("adds everything when no version is held, and counts only depends_on edges", () => {
     const sent = {
       files: [file("SKILL.md"), file("a.md")],
       relationships: [edge("eng/skill/b@1.0.0"), { rel_type: "related", to: "eng/skill/c@1.0.0" }],
@@ -51,7 +51,7 @@ describe("changesFrom", () => {
 });
 
 describe("changeLines", () => {
-  it("lists at most ten lines, the last saying how many more", () => {
+  test("lists at most ten lines, the last saying how many more", () => {
     const many = Array.from({ length: 12 }, (_, at) => file(`f${String(at).padStart(2, "0")}.md`));
     const lines = changeLines(changesFrom(undefined, { files: many }));
     expect(lines).toHaveLength(10);
@@ -60,7 +60,7 @@ describe("changeLines", () => {
     expect(changeLines(changesFrom(undefined, { files: many.slice(0, 10) }))).toHaveLength(10);
   });
 
-  it("prints a path the registry gives safely", () => {
+  test("prints a path the registry gives safely", () => {
     const changes = changesFrom({ files: [file("evil\u001b[2J.md")] }, { files: [] });
     expect(changeLines(changes)).toEqual(["    removed  evil.md"]);
   });

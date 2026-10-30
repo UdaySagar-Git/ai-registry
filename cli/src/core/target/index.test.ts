@@ -1,16 +1,16 @@
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Target } from "./contract.ts";
 import { canonicalId, canonicalIds, earlierId, earlierTable, resolveTargets } from "./index.ts";
 
 describe("resolveTargets", () => {
-  it("expands each user root against HOME", () => {
+  test("expands each user root against HOME", () => {
     expect(resolveTargets({ HOME: "/home/u" })["claude-code"]?.userRoot).toBe(
       join("/home/u", ".claude"),
     );
   });
 
-  it("fills the defaults an entry leaves out", () => {
+  test("fills the defaults an entry leaves out", () => {
     const table = resolveTargets();
     expect(table.cursor?.detect).toEqual({
       env: [],
@@ -21,7 +21,7 @@ describe("resolveTargets", () => {
     expect(table["claude-code"]?.shared).toBe(false);
   });
 
-  it("files every built-in as a coding agent but the shared folder", () => {
+  test("files every built-in as a coding agent but the shared folder", () => {
     const table = resolveTargets();
     const others = Object.values(table).filter((target) => target.category !== "coding-agent");
     expect(others.map(({ name, category, shared }) => [name, category, shared])).toEqual([
@@ -29,7 +29,7 @@ describe("resolveTargets", () => {
     ]);
   });
 
-  it("keys each built-in by its industry id, with its earlier id as an alias", () => {
+  test("keys each built-in by its industry id, with its earlier id as an alias", () => {
     const table = resolveTargets();
     expect(
       Object.fromEntries(Object.values(table).map((each) => [each.name, each.aliases])),
@@ -49,7 +49,7 @@ describe("resolveTargets", () => {
 });
 
 describe("earlierId", () => {
-  it.each([
+  test.each([
     ["claude-code", "claude"],
     ["github-copilot", "copilot"],
     ["gemini-cli", "gemini"],
@@ -61,7 +61,7 @@ describe("earlierId", () => {
     expect(earlierId(resolveTargets(), id)).toBe(was);
   });
 
-  it("keeps today's id once the table no longer reads the earlier one as this target", () => {
+  test("keeps today's id once the table no longer reads the earlier one as this target", () => {
     const table = resolveTargets();
     const renamed = {
       ...table,
@@ -75,7 +75,7 @@ describe("earlierId", () => {
 });
 
 describe("earlierTable", () => {
-  it("keys and names each target by the id aireg 0.1 knew, with its kind", () => {
+  test("keys and names each target by the id aireg 0.1 knew, with its kind", () => {
     const table = earlierTable(resolveTargets());
     const claude = Object.values(table).find((target) => target.name === "claude");
     expect(claude?.displayName).toBe("Claude Code");
@@ -105,7 +105,7 @@ describe("earlierTable", () => {
     expect(earlierTable({ helper }).helper?.kind).toBe("personal");
   });
 
-  it("leaves an earlier id to a target that has it as its own", () => {
+  test("leaves an earlier id to a target that has it as its own", () => {
     const table = resolveTargets();
     const mine = { ...(table.codex as Target), name: "claude", displayName: "Mine" };
     expect(earlierTable({ ...table, claude: mine }).claude?.displayName).toBe("Mine");
@@ -115,7 +115,7 @@ describe("earlierTable", () => {
 describe("canonicalId", () => {
   const table = resolveTargets();
 
-  it.each([
+  test.each([
     ["claude", "claude-code"],
     ["claude-code", "claude-code"],
     ["copilot", "github-copilot"],
@@ -129,7 +129,7 @@ describe("canonicalId", () => {
     expect(canonicalId(table, id)).toBe(canonical);
   });
 
-  it("names each target once, in the order given", () => {
+  test("names each target once, in the order given", () => {
     expect(canonicalIds(table, ["claude", "codex", "claude-code"])).toEqual([
       "claude-code",
       "codex",

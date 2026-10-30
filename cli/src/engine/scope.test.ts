@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Candidate } from "#core/sync/adopt.ts";
 import type { SyncItem } from "#core/sync/model.ts";
 import { artifactKey } from "./decide.ts";
@@ -32,11 +32,11 @@ const catalog = scanOf(
 );
 
 describe("scopedKeys", () => {
-  it("covers everything the job does when no refs were asked for", () => {
+  test("covers everything the job does when no refs were asked for", () => {
     expect(scopedKeys(undefined, catalog, REGISTRY)).toBeUndefined();
   });
 
-  it.each([
+  test.each([
     ["the catalog name", "sales/deploy", [artifactKey("skill", "sales/deploy")]],
     [
       "the address grammar manifest.yml uses",
@@ -67,7 +67,7 @@ describe("scopedKeys", () => {
     expect([...(scopedKeys([ref], catalog, REGISTRY) ?? [])].sort()).toEqual(expected);
   });
 
-  it("reaches an installed artifact by the namespace its lock row records", () => {
+  test("reaches an installed artifact by the namespace its lock row records", () => {
     const installed = {
       items: [item("lint")],
       local: [],
@@ -80,23 +80,23 @@ describe("scopedKeys", () => {
     ]);
   });
 
-  it("reaches the whole registry, and only this job's", () => {
+  test("reaches the whole registry, and only this job's", () => {
     const scoped = scopedKeys(["shop"], catalog, REGISTRY);
     expect([...(scoped ?? [])]).not.toContain(artifactKey("skill", "other/deploy"));
     expect([...(scoped ?? [])]).toContain(artifactKey("skill", "loose"));
   });
 
-  it("refuses a ref that reaches nothing rather than running empty", () => {
+  test("refuses a ref that reaches nothing rather than running empty", () => {
     expect(() => scopedKeys(["shop/sales/skill/absent"], catalog, REGISTRY)).toThrow(RunScopeError);
   });
 
-  it("refuses an address whose registry is not this job's", () => {
+  test("refuses an address whose registry is not this job's", () => {
     expect(() => scopedKeys(["elsewhere/other/skill/deploy"], catalog, REGISTRY)).toThrow(
       RunScopeError,
     );
   });
 
-  it("names every ref that missed, so one call fixes them all", () => {
+  test("names every ref that missed, so one call fixes them all", () => {
     try {
       scopedKeys(["sales/deploy", "nope", "also/nope"], catalog, REGISTRY);
       expect.unreachable("should have thrown");

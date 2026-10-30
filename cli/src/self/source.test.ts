@@ -1,5 +1,5 @@
 import { generateKeyPairSync, sign } from "node:crypto";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { sha256Hex } from "#core/fs/hash.ts";
 import { decodeTrustedKeys } from "#core/release/keyring.ts";
 import { canonicalPayload, type ReleaseManifest } from "#core/release/manifest.ts";
@@ -87,7 +87,7 @@ beforeEach(() => {
 });
 
 describe("resolveRelease from the signed channel", () => {
-  it("reads the stable manifest and derives the artifact URL", async () => {
+  test("reads the stable manifest and derives the artifact URL", async () => {
     const keys = stamped();
     stub.stamp = keys.stamp;
     const manifest = manifestOf();
@@ -109,7 +109,7 @@ describe("resolveRelease from the signed channel", () => {
     expect(seen).toEqual([MANIFEST, ARTIFACT]);
   });
 
-  it("never fetches the manifest's own url field", async () => {
+  test("never fetches the manifest's own url field", async () => {
     const keys = stamped();
     stub.stamp = keys.stamp;
     const manifest = manifestOf();
@@ -123,7 +123,7 @@ describe("resolveRelease from the signed channel", () => {
     expect(seen).toEqual([MANIFEST, ARTIFACT]);
   });
 
-  it("aborts the update when the payload does not match the signed digest", async () => {
+  test("aborts the update when the payload does not match the signed digest", async () => {
     const keys = stamped();
     stub.stamp = keys.stamp;
     const manifest = manifestOf();
@@ -135,7 +135,7 @@ describe("resolveRelease from the signed channel", () => {
     await expect(downloadRelease(release, $fetch)).rejects.toThrow(/failed its checksum/);
   });
 
-  it("aborts the update when the payload is not the signed size", async () => {
+  test("aborts the update when the payload is not the signed size", async () => {
     const keys = stamped();
     stub.stamp = keys.stamp;
     const manifest = manifestOf();
@@ -146,7 +146,7 @@ describe("resolveRelease from the signed channel", () => {
     await expect(downloadRelease(release, $fetch)).rejects.toThrow(/wrong size/);
   });
 
-  it("refuses a manifest this build has no key for", async () => {
+  test("refuses a manifest this build has no key for", async () => {
     const keys = stamped();
     stub.stamp = keys.stamp;
     const signature = keys.sign(canonicalPayload(manifestOf()));
@@ -156,7 +156,7 @@ describe("resolveRelease from the signed channel", () => {
     );
   });
 
-  it("refuses a release the channel does not carry the payload for", async () => {
+  test("refuses a release the channel does not carry the payload for", async () => {
     const keys = stamped();
     stub.stamp = keys.stamp;
     const manifest = manifestOf({
@@ -168,7 +168,7 @@ describe("resolveRelease from the signed channel", () => {
     );
   });
 
-  it("refuses an adapter's release served as its own", async () => {
+  test("refuses an adapter's release served as its own", async () => {
     const keys = stamped();
     stub.stamp = keys.stamp;
     const manifest = manifestOf({ adapter: "acme" });
@@ -182,7 +182,7 @@ describe("resolveRelease from the signed channel", () => {
 // There is no second source: an unverifiable update is refused rather than
 // resolved to a download that cannot exist.
 describe("with no channel to read", () => {
-  it("refuses an unstamped build rather than reach for an unsigned binary", async () => {
+  test("refuses an unstamped build rather than reach for an unsigned binary", async () => {
     await expect(resolveRelease({}, async () => new Response())).rejects.toThrow(
       /does not update itself/,
     );

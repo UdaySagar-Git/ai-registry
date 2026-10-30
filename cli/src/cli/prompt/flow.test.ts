@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { PassThrough } from "node:stream";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { unhandled } from "#cli/render/tools.ts";
 import { emptyLock, type LockArtifact } from "#core/lock.ts";
 import { Printer } from "#core/output.ts";
@@ -26,7 +26,7 @@ const noCodexAgents = withoutKind(targetTable, "codex", "agent");
 
 describe("methodIsMeaningful", () => {
   // Codex places a plugin as its parts; Cursor has nowhere for an agent.
-  it.each([
+  test.each([
     ["one target, where a link and a copy land identically", ["claude-code"], undefined, false],
     ["two target roots that would each receive it", ["claude-code", "codex"], undefined, true],
     ["nothing selected", [], undefined, false],
@@ -50,7 +50,7 @@ describe("methodIsMeaningful", () => {
 });
 
 describe("unreached", () => {
-  it("names the chosen targets no link was made for", () => {
+  test("names the chosen targets no link was made for", () => {
     const plan: Plan = {
       ...emptyPlan(),
       actions: [
@@ -61,7 +61,7 @@ describe("unreached", () => {
     expect(unreached(plan, ["claude-code", "codex", "universal"])).toEqual(["codex", "universal"]);
   });
 
-  it("is empty when every target got something", () => {
+  test("is empty when every target got something", () => {
     const plan: Plan = {
       ...emptyPlan(),
       actions: [
@@ -71,7 +71,7 @@ describe("unreached", () => {
     expect(unreached(plan, ["claude-code"])).toEqual([]);
   });
 
-  it("counts a target reached through a folder it reads", () => {
+  test("counts a target reached through a folder it reads", () => {
     const plan: Plan = {
       ...emptyPlan(),
       actions: [
@@ -84,7 +84,7 @@ describe("unreached", () => {
 });
 
 describe("linkedTargets", () => {
-  it("names each target once, however many members point into it", () => {
+  test("names each target once, however many members point into it", () => {
     // A plugin is one entry in the plan but one link per member per target,
     // so the line otherwise repeats each target for every member.
     const plan: Plan = {
@@ -99,7 +99,7 @@ describe("linkedTargets", () => {
     expect(linkedTargets(plan).get("core")).toEqual(["codex", "pi"]);
   });
 
-  it("has no entry for an artifact that was only staged", () => {
+  test("has no entry for an artifact that was only staged", () => {
     const plan: Plan = {
       ...emptyPlan(),
       actions: [{ kind: "stage", name: "lint", source: "kit", path: "skills/lint", to: "/t" }],
@@ -110,7 +110,7 @@ describe("linkedTargets", () => {
 });
 
 describe("unhandled", () => {
-  it.each([
+  test.each([
     ["names the kinds a target has nowhere to put", "codex", ["skill", "agent"], ["agent"]],
     ["does not count a kind the target takes as parts", "codex", ["plugin", "skill"], []],
     ["is empty for a target that handles them all", "claude", ["plugin", "skill", "agent"], []],
@@ -122,7 +122,7 @@ describe("unhandled", () => {
 });
 
 describe("destroys", () => {
-  it("is false for a plan that only adds", () => {
+  test("is false for a plan that only adds", () => {
     const plan: Plan = {
       ...emptyPlan(),
       actions: [{ kind: "stage", name: "a", source: "kit", path: "skills/lint", to: "/t" }],
@@ -130,7 +130,7 @@ describe("destroys", () => {
     expect(destroys(plan)).toBe(false);
   });
 
-  it("is true as soon as a link is taken away", () => {
+  test("is true as soon as a link is taken away", () => {
     const plan: Plan = { ...emptyPlan(), actions: [{ kind: "unlink", name: "a", to: "/t" }] };
     expect(destroys(plan)).toBe(true);
   });
@@ -138,7 +138,7 @@ describe("destroys", () => {
 
 describe("equivalent", () => {
   const none = { select: [], targets: [], scope: "project", copy: false } as const;
-  it.each([
+  test.each([
     [
       "the selection and targets",
       "add",
@@ -201,7 +201,7 @@ describe("confirmPlan", () => {
     return { proceed: await run, shown: frames.join("") };
   }
 
-  it("names the tools each artifact reaches, and what a tool skips", async () => {
+  test("names the tools each artifact reaches, and what a tool skips", async () => {
     const row = (kind: "skill" | "agent") =>
       ({ kind, version: "0.1.0", links: [] }) as unknown as LockArtifact;
     const plan: Plan = {
@@ -255,7 +255,7 @@ describe("confirmPlan", () => {
     expect(shown).not.toContain("Proceed?");
   });
 
-  it("places a plugin's members where the lock records them", async () => {
+  test("places a plugin's members where the lock records them", async () => {
     const row = (kind: "skill" | "agent", targets: string[]) =>
       ({
         kind,
@@ -297,21 +297,21 @@ describe("confirmPlan", () => {
     expect(shown).toContain("Codex skips reviewer: it does not load agents.");
   });
 
-  it("starts on No when the plan deletes local edits", async () => {
+  test("starts on No when the plan deletes local edits", async () => {
     const { proceed, shown } = await answer(edited, [ENTER]);
     expect(proceed).toBe(false);
     expect(shown).toContain("has local edits");
     expect(shown).toContain("Remove 1 artifact?");
   });
 
-  it("asks nothing when nothing on disk would change", async () => {
+  test("asks nothing when nothing on disk would change", async () => {
     const plan: Plan = { ...emptyPlan(), actions: [{ kind: "record", lock: emptyLock() }] };
     const { proceed, shown } = await answer(plan, []);
     expect(proceed).toBe(true);
     expect(shown).toBe("");
   });
 
-  it("asks an update by everything it changes", async () => {
+  test("asks an update by everything it changes", async () => {
     const { shown } = await answer(edited, [ENTER], { verb: "Update" });
     expect(shown).toContain("Update 1 artifact?");
   });
@@ -358,21 +358,21 @@ describe("chooseTargets", () => {
     return { picked: await run, shown };
   }
 
-  it("offers the tools, not the folder they share", async () => {
+  test("offers the tools, not the folder they share", async () => {
     const { picked, shown } = await pick([], []);
     expect(shown).toContain("Codex");
     expect(shown).not.toContain(".agents folder");
     expect(picked).toEqual(["claude-code", "codex"]);
   });
 
-  it("shows where the highlighted tool loads what was picked, and nothing on other rows", async () => {
+  test("shows where the highlighted tool loads what was picked, and nothing on other rows", async () => {
     const { shown } = await pick([], TO_CLAUDE);
     expect(shown).toMatch(/Claude Code\s+\.claude[\\/]skills, \.claude[\\/]agents/);
     expect(shown).not.toMatch(/Codex\s+\.agents/);
     expect(shown).not.toContain("Found");
   });
 
-  it("follows the cursor: Codex reads skills from .agents, Cursor from .agents and .claude", async () => {
+  test("follows the cursor: Codex reads skills from .agents, Cursor from .agents and .claude", async () => {
     expect((await pick([], [...TO_CLAUDE, KEY.down])).shown).toMatch(
       /Codex\s+\.agents[\\/]skills, \.codex[\\/]agents$/m,
     );
@@ -381,7 +381,7 @@ describe("chooseTargets", () => {
     );
   });
 
-  it("leaves a tool that loads none of it unpicked, with a dash", async () => {
+  test("leaves a tool that loads none of it unpicked, with a dash", async () => {
     const agent = [item("agent", "reviewer")];
     const { picked, shown } = await pick(
       [],
@@ -394,20 +394,20 @@ describe("chooseTargets", () => {
     expect(picked).toEqual(["claude-code"]);
   });
 
-  it("shows a user scope's folders under ~, never as absolute paths", async () => {
+  test("shows a user scope's folders under ~, never as absolute paths", async () => {
     const tools = resolveTargets({ HOME: homedir() });
     const { shown } = await pick([], TO_CLAUDE, BOTH, "user", tools);
     expect(shown).toContain("~/.claude/skills, ~/.claude/agents");
     expect(shown).not.toContain(homedir());
   });
 
-  it("shows the plugin folder for a source that installs its namespaces as plugins", async () => {
+  test("shows the plugin folder for a source that installs its namespaces as plugins", async () => {
     const tools = resolveTargets({ HOME: homedir() });
     const { shown } = await pick([], TO_CLAUDE, BOTH, "user", tools, true);
     expect(shown).toContain("~/.claude/skills/engineering");
   });
 
-  it("keeps a shared folder the manifest already names", async () => {
+  test("keeps a shared folder the manifest already names", async () => {
     const { picked } = await pick(["universal", "claude-code"], []);
     expect(picked).toEqual(["claude-code", "universal"]);
   });

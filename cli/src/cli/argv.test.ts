@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { builtin } from "#cli/commands/index.ts";
 import { ErrorCode } from "#core/errors.ts";
 import { colorWhen, findCommand, misplacedOption, misusedGlobal, readGlobals } from "./argv.ts";
 
 describe("findCommand", () => {
-  it.each([
+  test.each([
     { argv: [], index: -1 },
     { argv: ["add", "x"], index: 0 },
     { argv: ["--json", "add"], index: 1 },
@@ -23,7 +23,7 @@ describe("findCommand", () => {
 });
 
 describe("readGlobals", () => {
-  it.each([
+  test.each([
     { argv: ["--json", "list"], command: "list", values: { json: true }, rest: [] },
     {
       argv: ["list", "--json", "-q"],
@@ -67,7 +67,7 @@ describe("readGlobals", () => {
 });
 
 describe("misusedGlobal", () => {
-  it.each([
+  test.each([
     {
       values: { quiet: true, verbose: true },
       message: "--quiet and --verbose cannot be used together.",
@@ -87,7 +87,7 @@ describe("misusedGlobal", () => {
     expect(misusedGlobal(values)).toMatchObject({ code: ErrorCode.Usage, message });
   });
 
-  it.each([
+  test.each([
     {},
     { color: "always" },
     { quiet: true },
@@ -99,7 +99,7 @@ describe("misusedGlobal", () => {
 });
 
 describe("colorWhen", () => {
-  it.each([
+  test.each([
     { values: {}, when: "auto" },
     { values: { "no-color": true }, when: "never" },
     { values: { color: "always" }, when: "always" },
@@ -113,14 +113,14 @@ describe("colorWhen", () => {
 describe("misplacedOption", () => {
   const known = async (name: string) => ["add", "install", "list", "remove"].includes(name);
 
-  it.each([["add", "--json"], ["--json", "add"], ["--log-level", "debug", "list"], ["list"], []])(
+  test.each([["add", "--json"], ["--json", "add"], ["--log-level", "debug", "list"], ["list"], []])(
     "accepts %j",
     async (...argv) => {
       expect(await misplacedOption(argv, findCommand(argv), known)).toBeUndefined();
     },
   );
 
-  it.each([
+  test.each([
     {
       argv: ["--dry-run", "install"],
       message: "--dry-run must come after the command name.",
@@ -144,7 +144,7 @@ describe("misplacedOption", () => {
   });
 
   // `--for claude add` makes `claude` the command, so no fix is offered for it.
-  it.each([["--for", "claude", "add", "kit"], ["--frozen"]])(
+  test.each([["--for", "claude", "add", "kit"], ["--frozen"]])(
     "offers no fix for %j",
     async (...argv) => {
       const error = await misplacedOption(argv, findCommand(argv), known);

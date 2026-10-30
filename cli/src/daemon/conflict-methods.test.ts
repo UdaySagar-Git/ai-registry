@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, vi } from "vitest";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
 import { ITEM_EVENT } from "#core/run/model.ts";
@@ -179,7 +179,7 @@ describe("conflict methods", () => {
 });
 
 describe("resolvable", () => {
-  it("takes the registry's copy over an edit, and publishes only an edit", () => {
+  test("takes the registry's copy over an edit, and publishes only an edit", () => {
     const edited = { operation: "report", disposition: "publish" } as const;
     const moved = { operation: "pull", disposition: "pull" } as const;
     const settled = { operation: "none", disposition: "synced" } as const;

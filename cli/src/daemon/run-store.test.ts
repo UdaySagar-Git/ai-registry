@@ -1,7 +1,7 @@
 import { chmod, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { describe, expect, it, onTestFinished, vi } from "vitest";
+import { describe, expect, onTestFinished, vi } from "vitest";
 import { carriedPaths, upstreamFacts } from "#core/console/runs.ts";
 import { ITEM_EVENT } from "#core/run/model.ts";
 import { test } from "#test/kit/fixtures.ts";
@@ -22,7 +22,7 @@ vi.mock("./run-schema.ts", async (actual) => ({
 }));
 
 describe("SQLite run store", () => {
-  it("commits run state and its ordered event stream together", async () => {
+  test("commits run state and its ordered event stream together", async () => {
     const store = await SqliteRunStore.open(":memory:");
     onTestFinished(() => store.close());
     store.create({
@@ -96,7 +96,7 @@ describe("SQLite run store", () => {
     ).toHaveLength(1);
   });
 
-  it("returns only the events the console reads, and they tell it everything", async () => {
+  test("returns only the events the console reads, and they tell it everything", async () => {
     const store = await SqliteRunStore.open(":memory:");
     onTestFinished(() => store.close());
     store.create({
@@ -135,7 +135,7 @@ describe("SQLite run store", () => {
     expect(carriedPaths(runs(notable))).toEqual(carriedPaths(runs(all)));
   });
 
-  it("keeps a job's run history capped, pruning the oldest away", async () => {
+  test("keeps a job's run history capped, pruning the oldest away", async () => {
     const store = await SqliteRunStore.open(":memory:");
     onTestFinished(() => store.close());
     for (let index = 0; index < RUN_HISTORY_PER_JOB + 5; index += 1) {
@@ -159,7 +159,7 @@ describe("SQLite run store", () => {
     expect(store.events("run_0")).toHaveLength(0);
   });
 
-  it("keeps a job's history inside its event budget, and always its newest run", async () => {
+  test("keeps a job's history inside its event budget, and always its newest run", async () => {
     const store = await SqliteRunStore.open(":memory:");
     onTestFinished(() => store.close());
     const perRun = Math.ceil(RUN_EVENTS_PER_JOB / 2) + 1;
@@ -191,7 +191,7 @@ describe("SQLite run store", () => {
     expect(store.get("run_old")).toBeUndefined();
   });
 
-  it("forgets a job's run history once it is no longer live", async () => {
+  test("forgets a job's run history once it is no longer live", async () => {
     const store = await SqliteRunStore.open(":memory:");
     onTestFinished(() => store.close());
     store.create({
@@ -254,7 +254,7 @@ describe("file modes", () => {
 });
 
 describe("failed transactions", () => {
-  it("reports the error that ended a transaction, not the rollback after it", async () => {
+  test("reports the error that ended a transaction, not the rollback after it", async () => {
     const store = await SqliteRunStore.open(":memory:");
     onTestFinished(() => store.close());
     const exec = DatabaseSync.prototype.exec;
@@ -288,7 +288,7 @@ describe("failed transactions", () => {
 });
 
 describe("schema versions", () => {
-  it("creates only the tables it drops, so an adapter owns its own", () => {
+  test("creates only the tables it drops, so an adapter owns its own", () => {
     const created = [...RUN_SCHEMA.matchAll(/CREATE TABLE\s+(\w+)/g)].map((m) => m[1]);
     expect([...created].sort()).toEqual([...RUN_TABLES].sort());
   });

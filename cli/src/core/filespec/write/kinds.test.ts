@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
 import {
   check,
@@ -17,12 +17,12 @@ const text = (body: string) => new TextEncoder().encode(body);
 describe("fileProblems", async () => {
   const { skill, agent } = (await kindsOf(undefined)) as Record<string, KindManifest>;
 
-  it("names each required file a version lacks", () => {
+  test("names each required file a version lacks", () => {
     expect(fileProblems(skill as KindManifest, new Set(["SKILL.md"]))).toEqual([]);
     expect(fileProblems(skill as KindManifest, new Set(["notes.md"]))).toEqual(["has no SKILL.md"]);
   });
 
-  it("asks for one whole set of a choice, naming them all when none is whole", () => {
+  test("asks for one whole set of a choice, naming them all when none is whole", () => {
     expect(fileProblems(agent as KindManifest, new Set(["AGENT.md"]))).toEqual([]);
     expect(fileProblems(agent as KindManifest, new Set(["agent-card.json"]))).toEqual([]);
     expect(fileProblems(agent as KindManifest, new Set(["notes.md"]))).toEqual([
@@ -32,7 +32,7 @@ describe("fileProblems", async () => {
 });
 
 describe("envelopeSpec", () => {
-  it("reads a kind's document from its front matter", () => {
+  test("reads a kind's document from its front matter", () => {
     const files = new Map([
       ["SKILL.md", text("---\nname: lint\ndescription: Lint it.\n---\nRun the linter.\n")],
       ["scripts/run.sh", text("#!/bin/sh\n")],
@@ -40,14 +40,14 @@ describe("envelopeSpec", () => {
     expect(envelopeSpec("skill", files)).toEqual({ name: "lint", description: "Lint it." });
   });
 
-  it("is empty for a kind with no manifest, or files with no document", () => {
+  test("is empty for a kind with no manifest, or files with no document", () => {
     expect(envelopeSpec("tool", new Map([["SKILL.md", text("---\nname: x\n---\n")]]))).toEqual({});
     expect(envelopeSpec("agent", new Map([["agent-card.json", text("{")]]))).toEqual({});
   });
 });
 
 describe("check", () => {
-  it("names each field that breaks the schema", () => {
+  test("names each field that breaks the schema", () => {
     const schema = {
       type: "object",
       required: ["name"],
@@ -75,7 +75,7 @@ describe("native kind contracts", async () => {
   const skill = manifests.skill!;
   const agent = manifests.agent!;
 
-  it("keeps native agent fields and validates the shared fields", () => {
+  test("keeps native agent fields and validates the shared fields", () => {
     const files = new Map([
       [
         "AGENT.md",
@@ -97,7 +97,7 @@ describe("native kind contracts", async () => {
     expect(check(agent, { ...spec, runtime: { model: "x" } })).toEqual([]);
   });
 
-  it("uses only the declared built-in entry, regardless of file order", () => {
+  test("uses only the declared built-in entry, regardless of file order", () => {
     const card = { name: "Recipe Agent", description: "Recipes.", skills: [] };
     const extras = [
       ["README.md", text("---\nname: wrong\ndescription: Wrong.\n---\n")],
@@ -120,7 +120,7 @@ describe("native kind contracts", async () => {
     expect(envelopeSpec("agent", new Map(extras.slice(0, 2)))).toEqual({});
   });
 
-  it("rejects both agent entries and scaffolds shared files with the chosen alternative", () => {
+  test("rejects both agent entries and scaffolds shared files with the chosen alternative", () => {
     expect(fileProblems(agent, new Set(["AGENT.md", "agent-card.json"]))).toEqual([
       "must contain exactly one file alternative: AGENT.md or agent-card.json",
     ]);
@@ -134,7 +134,7 @@ describe("native kind contracts", async () => {
     expect(() => primaryFiles(skill, "README.md")).toThrow("not a file alternative");
   });
 
-  it("enforces skill constraints at their boundaries", () => {
+  test("enforces skill constraints at their boundaries", () => {
     const spec = { name: "pdf-processing", description: "PDFs." };
     expect(check(skill, { ...spec, name: "pdf--processing" })).not.toEqual([]);
     expect(check(skill, { ...spec, name: "a".repeat(64) })).toEqual([]);

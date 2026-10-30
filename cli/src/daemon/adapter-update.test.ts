@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { executableFile } from "#core/product.ts";
 import { applyDaemonAdapterUpdate } from "./adapter-update.ts";
 
@@ -16,7 +16,7 @@ describe("applyDaemonAdapterUpdate", () => {
     };
   }
 
-  it("restarts on the same version after an adapter update, so it loads", async () => {
+  test("restarts on the same version after an adapter update, so it loads", async () => {
     const next = hooks(["acme 1.1.0"]);
     expect(await applyDaemonAdapterUpdate(next)).toBe("replace");
     expect(next.start).toHaveBeenCalledWith(
@@ -25,7 +25,7 @@ describe("applyDaemonAdapterUpdate", () => {
     );
   });
 
-  it("stays up when nothing changed or a run is in flight", async () => {
+  test("stays up when nothing changed or a run is in flight", async () => {
     const idle = hooks([]);
     expect(await applyDaemonAdapterUpdate(idle)).toBe("skip");
     expect(idle.close).not.toHaveBeenCalled();

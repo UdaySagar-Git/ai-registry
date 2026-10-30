@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { AdapterError } from "#adapter/index.ts";
 import { LeaseError } from "#core/lease.ts";
 import { EMPTY_RUN_COUNTS, type RunRecord } from "#core/run/model.ts";
@@ -34,30 +34,30 @@ function repeatedHistory(count: number): RunRecord[] {
 }
 
 describe("dueAt", () => {
-  it("waits the plain interval the first time and doubles per repeat", () => {
+  test("waits the plain interval the first time and doubles per repeat", () => {
     expect(dueAt(WATCH, repeatedHistory(0))).toBe(60_000);
     expect(dueAt(WATCH, repeatedHistory(1))).toBe(120_000);
     expect(dueAt(WATCH, repeatedHistory(4))).toBe(960_000);
   });
 
-  it("never leaves a job alone past the ceiling", () => {
+  test("never leaves a job alone past the ceiling", () => {
     expect(dueAt(WATCH, repeatedHistory(40))).toBe(30 * 60_000);
   });
 
   // Intervals run to 24 hours, well past the ceiling, and a backoff that
   // shortened them would check a daily job every half hour instead.
-  it("never schedules a job sooner than its own interval", () => {
+  test("never schedules a job sooner than its own interval", () => {
     const daily = { schedule: { every: 24 * 60 * 60, enabled: true } } as typeof WATCH;
     expect(dueAt(daily, repeatedHistory(0))).toBe(24 * 60 * 60_000);
     expect(dueAt(daily, repeatedHistory(5))).toBe(24 * 60 * 60_000);
   });
 
-  it("keeps a steady job on its interval however often nothing changes", () => {
+  test("keeps a steady job on its interval however often nothing changes", () => {
     expect(dueAt(WATCH, repeatedHistory(0), true)).toBe(60_000);
     expect(dueAt(WATCH, repeatedHistory(6), true)).toBe(60_000);
   });
 
-  it("still backs off a steady job that keeps failing", () => {
+  test("still backs off a steady job that keeps failing", () => {
     const failing = [
       run({ id: "run_1", state: "failed", errorCode: "sync_failed" }),
       run({ id: "run_0", state: "failed", errorCode: "sync_failed" }),
@@ -65,7 +65,7 @@ describe("dueAt", () => {
     expect(dueAt(WATCH, failing, true)).toBe(120_000);
   });
 
-  it("stops the repeat count at the first run with a different outcome", () => {
+  test("stops the repeat count at the first run with a different outcome", () => {
     const recent = [
       run({ id: "run_2", counts: { ...EMPTY_RUN_COUNTS, attention: 1 } }),
       run({ id: "run_1", counts: { ...EMPTY_RUN_COUNTS, attention: 1 } }),
@@ -74,7 +74,7 @@ describe("dueAt", () => {
     expect(dueAt(WATCH, recent)).toBe(120_000);
   });
 
-  it("backs off consecutive outright failures, ignoring interruptions between them", () => {
+  test("backs off consecutive outright failures, ignoring interruptions between them", () => {
     const recent = [
       run({ id: "run_2", state: "failed", finishedAtMs: 300 }),
       run({ id: "run_1", state: "canceled" }),
@@ -85,20 +85,20 @@ describe("dueAt", () => {
     expect(dueAt(WATCH, recent)).toBe(300 + 60_000 * 2);
   });
 
-  it("keeps the interval when the clock stepped back past the last run", () => {
+  test("keeps the interval when the clock stepped back past the last run", () => {
     const now = 1_000_000;
     const ahead = [run({ finishedAtMs: now + 2 * 60 * 60_000 })];
     expect(dueAt(WATCH, ahead, true, now)).toBe(now + 60_000);
   });
 
-  it("runs immediately once a job was abandoned, and after one interval once canceled", () => {
+  test("runs immediately once a job was abandoned, and after one interval once canceled", () => {
     expect(dueAt(WATCH, [run({ state: "abandoned", finishedAtMs: 500 })])).toBe(0);
     expect(dueAt(WATCH, [run({ state: "canceled", finishedAtMs: 500 })])).toBe(60_500);
   });
 });
 
 describe("failure classification", () => {
-  it("keeps an adapter's retry-later answer retryable, partial once anything landed", () => {
+  test("keeps an adapter's retry-later answer retryable, partial once anything landed", () => {
     const later = new AdapterError("acme", "unavailable", "rate limited", {
       retryAfterMs: 30_000,
     });
@@ -111,7 +111,7 @@ describe("failure classification", () => {
     expect(classifyFailure(later, undefined, 2).state).toBe("partial");
   });
 
-  it("classifies an adapter throw from a packed module the CLI did not construct", () => {
+  test("classifies an adapter throw from a packed module the CLI did not construct", () => {
     const packed = new Error("rate limited");
     packed.name = "AdapterError";
     Object.assign(packed, { adapter: "acme", failure: "unavailable" });
@@ -122,7 +122,7 @@ describe("failure classification", () => {
     });
   });
 
-  it("names a lease another writer took over, and retries from what it wrote", () => {
+  test("names a lease another writer took over, and retries from what it wrote", () => {
     const lost = new LeaseError("Another process took over the lease", "lease_lost");
     expect(classifyFailure(lost, undefined, 0)).toEqual({
       state: "failed",
@@ -133,7 +133,7 @@ describe("failure classification", () => {
     expect(classifyFailure(lost, undefined, 1).state).toBe("partial");
   });
 
-  it("names a ref that reached nothing, and does not offer to retry it", () => {
+  test("names a ref that reached nothing, and does not offer to retry it", () => {
     // Generic `sync_failed` would read as an outage; the address was just wrong.
     expect(classifyFailure(new RunScopeError(["shop/sales/skill/absent"]), undefined, 0)).toEqual({
       state: "failed",

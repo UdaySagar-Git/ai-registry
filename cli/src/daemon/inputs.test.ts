@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import { job, scope, syncPolicy } from "./inputs.ts";
@@ -31,11 +31,11 @@ function rejected(value: unknown): ProtocolError {
 }
 
 describe("job input", () => {
-  it("rebuilds a job field by field, ignoring what it does not know", () => {
+  test("rebuilds a job field by field, ignoring what it does not know", () => {
     expect(job({ ...VALID, sneaked: "value" })).toEqual(VALID);
   });
 
-  it("takes back a job as the daemon hands it out, a selector's targets under both keys", () => {
+  test("takes back a job as the daemon hands it out, a selector's targets under both keys", () => {
     const stored = job({
       ...VALID,
       steps: [{ ...STEP, select: [{ from: "/tmp/s", harness: ["claude"] }] }],
@@ -49,7 +49,7 @@ describe("job input", () => {
     expect(job(disabled).schedule.enabled).toBe(false);
   });
 
-  it("keeps a step's own fields, which aireg never names", () => {
+  test("keeps a step's own fields, which aireg never names", () => {
     const parsed = job({
       ...VALID,
       steps: [{ name: "probe", kind: "probe", content: "store" }],
@@ -57,7 +57,7 @@ describe("job input", () => {
     expect(parsed.steps[0]?.extra).toEqual({ content: "store" });
   });
 
-  it.each([
+  test.each([
     ["a job with no steps", { steps: [] }, "steps"],
     ["an interval below the scheduler's floor", { schedule: { every: 30 } }, "every"],
     ["an identifier that is not usable as a key", { id: "../escape" }, "id"],
@@ -80,7 +80,7 @@ describe("job input", () => {
 });
 
 describe("syncPolicy optional axes", () => {
-  it("leaves adopt and claim absent unless a caller names them", () => {
+  test("leaves adopt and claim absent unless a caller names them", () => {
     expect(syncPolicy({ policy: { pull: "on" } }, "policy")).toEqual({
       pull: "on",
       publish: "off",
@@ -95,7 +95,7 @@ describe("syncPolicy optional axes", () => {
 });
 
 describe("scope input", () => {
-  it("names only the scopes it accepts", () => {
+  test("names only the scopes it accepts", () => {
     expect(() => scope({ scope: "local" }, "scope", "user")).toThrow(
       "`scope` must be user or project.",
     );

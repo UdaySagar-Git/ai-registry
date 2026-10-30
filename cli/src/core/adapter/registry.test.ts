@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { ErrorCode } from "#core/errors.ts";
 import { refuseInsecure } from "./registry.ts";
 
 describe("a registry address without transport security", () => {
-  it("is refused over git:// and plain http://, with the address to use instead", () => {
+  test("is refused over git:// and plain http://, with the address to use instead", () => {
     for (const location of [
       "git://example.com/acme/kit",
       "http://example.com/acme/kit",
@@ -20,7 +20,7 @@ describe("a registry address without transport security", () => {
     }
   });
 
-  it("is allowed over http:// on this machine, where no network carries it", () => {
+  test("is allowed over http:// on this machine, where no network carries it", () => {
     for (const location of [
       "http://localhost:8080/acme/kit",
       "http://registry.localhost/acme",

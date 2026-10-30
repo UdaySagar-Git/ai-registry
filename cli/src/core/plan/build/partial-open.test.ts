@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Lock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
 import { build } from "#core/plan/build.ts";
@@ -54,7 +54,7 @@ describe("a run that opened only some registries", () => {
     return last.lock;
   };
 
-  it("carries an unopened registry's rows and source through untouched", () => {
+  test("carries an unopened registry's rows and source through untouched", () => {
     const lock = withFar(installed());
     const plan = build(
       withFarManifest(["kit/skill/lint", "far/skill/fmt"]),
@@ -68,7 +68,7 @@ describe("a run that opened only some registries", () => {
     expect(recorded(plan).registries.far).toEqual(lock.registries.far);
   });
 
-  it("keeps the installed row when an opened registry publishes the same name", () => {
+  test("keeps the installed row when an opened registry publishes the same name", () => {
     const lock = withFar(installed());
     const plan = build(
       withFarManifest(["kit/skill/lint", "kit/skill/fmt", "far/skill/fmt"]),
@@ -86,7 +86,7 @@ describe("a run that opened only some registries", () => {
     });
   });
 
-  it("still removes the last artifact of a registry it opened", () => {
+  test("still removes the last artifact of a registry it opened", () => {
     const plan = build(withFarManifest(["far/skill/fmt"]), withFar(installed()), [], SYNCED, {
       ...PLAN_OPTIONS,
       opened: ["kit"],

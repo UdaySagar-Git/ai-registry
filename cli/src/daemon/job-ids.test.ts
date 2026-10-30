@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { emptyRegistryConfig, type RegistryConfig, type Step } from "#core/config/model.ts";
 import { contributedJobId, skillsJobId } from "./job-ids.ts";
 
 describe("a job's default id", () => {
-  it("slugifies the registry name so spaces are legal", () => {
+  test("slugifies the registry name so spaces are legal", () => {
     const account = { id: "acct_1", registry: "Acme Demo" };
     expect(contributedJobId(emptyRegistryConfig(), {}, account, "probe")).toBe(
       "job_probe_acme-demo",
@@ -33,7 +33,7 @@ describe("a second job for the same registry", () => {
   };
   const account = { id: "acct_1", registry: "acme" };
 
-  it("names the job that already has the folder or the kind", () => {
+  test("names the job that already has the folder or the kind", () => {
     expect(() => skillsJobId(config, { name: "other" }, account, "acme", "/p", "project")).toThrow(
       "/p already syncs with acme as job job_skills_acme. Leave out --name to update that job",
     );

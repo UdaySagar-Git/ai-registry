@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import { build } from "#core/plan/build.ts";
 import {
@@ -11,7 +11,7 @@ import {
 } from "#test/kit/builders/plan.ts";
 
 describe("two plugins publishing the same name", () => {
-  it("keeps the first and says so, rather than linking one over the other", () => {
+  test("keeps the first and says so, rather than linking one over the other", () => {
     const entries = [
       ...pluginCatalog("alpha"),
       entry({ name: "beta", kind: "plugin", path: "plugins/beta", group: undefined }),

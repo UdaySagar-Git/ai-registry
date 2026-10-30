@@ -1,6 +1,6 @@
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { delimiter, join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, vi } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
 import { lsRemote, peel, type RemoteRef, resolveRef } from "./resolve.ts";
 import { parseSource, type SourceSpec } from "./url.ts";
@@ -17,7 +17,7 @@ const annotated: RemoteRef[] = [
 const lightweight: RemoteRef[] = [{ commit: PEELED, name: "refs/tags/v1.1.0" }];
 
 describe("peel", () => {
-  it.each([
+  test.each([
     [
       "takes the commit an annotated tag points at, not the tag object",
       annotated,

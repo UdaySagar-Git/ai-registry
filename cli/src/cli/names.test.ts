@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { emptyLock, type Lock, type LockArtifact } from "#core/lock.ts";
 import { matchInstalled, rowsNamed, shownNames } from "./names.ts";
 
@@ -28,20 +28,20 @@ describe("installed names", () => {
     "frontend/lint": row("acme", "frontend", "lint"),
   });
 
-  it("shows the shortest name no other artifact shares", () => {
+  test("shows the shortest name no other artifact shares", () => {
     const shown = shownNames(scope);
     expect(shown.get("personal/pr-review")).toBe("pr-review");
     expect(shown.get("lint")).toBe("eng/lint");
     expect(shown.get("frontend/lint")).toBe("frontend/lint");
   });
 
-  it("takes any longer form of a name", () => {
+  test("takes any longer form of a name", () => {
     expect(rowsNamed("pr-review", scope)).toEqual(["personal/pr-review"]);
     expect(rowsNamed("personal/skill/pr-review", scope)).toEqual(["personal/pr-review"]);
     expect(rowsNamed("acme/frontend/skill/lint", scope)).toEqual(["frontend/lint"]);
   });
 
-  it("refuses a name two artifacts share, and names both", () => {
+  test("refuses a name two artifacts share, and names both", () => {
     expect(() => rowsNamed("lint", scope)).toThrow(
       '"lint" matches 2 installed artifacts: acme/eng/skill/lint and acme/frontend/skill/lint.',
     );

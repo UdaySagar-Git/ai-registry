@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { AdapterError } from "#adapter/index.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { LeaseError } from "#core/lease.ts";
@@ -18,7 +18,7 @@ function capture(format: "text" | "json") {
 }
 
 describe("reportError", () => {
-  it("keeps the code and hint of a failure the daemon classified", () => {
+  test("keeps the code and hint of a failure the daemon classified", () => {
     const { printer, out } = capture("json");
     const refused = new RpcClientError(-32602, "acme is elsewhere.", {
       code: "usage",
@@ -32,7 +32,7 @@ describe("reportError", () => {
     });
   });
 
-  it("keeps the AiregError hint on --json", () => {
+  test("keeps the AiregError hint on --json", () => {
     const { printer, out } = capture("json");
     const code = reportError(
       printer,
@@ -49,7 +49,7 @@ describe("reportError", () => {
     });
   });
 
-  it("tells a writer that lost its write lock to run again", () => {
+  test("tells a writer that lost its write lock to run again", () => {
     const { printer, err } = capture("text");
     const lost = new LeaseError(
       "Another aireg process took over this project.",
@@ -61,13 +61,13 @@ describe("reportError", () => {
     expect(err.join("")).toContain("hint: Run the command again.");
   });
 
-  it("prints no code line for a plain error", () => {
+  test("prints no code line for a plain error", () => {
     const { printer, err } = capture("text");
     reportError(printer, new AiregError("Nothing to add."));
     expect(err.join("")).toBe("error: Nothing to add.\n");
   });
 
-  it("prints the code, hint and trace of a registry's failure", () => {
+  test("prints the code, hint and trace of a registry's failure", () => {
     const { printer, err } = capture("text");
     const error = new AdapterError("acme", "unauthorized", "Token expired: sign in again", {
       problem: {
@@ -86,7 +86,7 @@ describe("reportError", () => {
     expect(err.join("")).toContain("trace: trc_1");
   });
 
-  it("keeps the code and hint of an AdapterError carried as a AiregError cause", () => {
+  test("keeps the code and hint of an AdapterError carried as a AiregError cause", () => {
     const { printer, out } = capture("json");
     const cause = new AdapterError("git", "not_found", "repository not found", {
       hint: "Check the address.",
@@ -103,7 +103,7 @@ describe("reportError", () => {
     });
   });
 
-  it("reports a usage AiregError with the usage code", () => {
+  test("reports a usage AiregError with the usage code", () => {
     const { printer, out } = capture("json");
     expect(reportError(printer, new AiregError("Nothing to add.", { code: ErrorCode.Usage }))).toBe(
       ExitCode.Usage,

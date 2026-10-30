@@ -1,5 +1,5 @@
 import { relative } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import { build } from "#core/plan/build.ts";
 import { roots } from "#core/store/paths.ts";
@@ -9,7 +9,7 @@ import { acquired, entry, kitManifest, PLAN_OPTIONS, wrapping } from "#test/kit/
 const REVIEWER = entry({ name: "reviewer", kind: "agent", path: "agents/reviewer.md" });
 
 describe("an agent for a target that reads its own format", () => {
-  it("is written on its own even where its namespace becomes a Codex plugin", () => {
+  test("is written on its own even where its namespace becomes a Codex plugin", () => {
     const plan = build(
       kitManifest(["kit/agent/reviewer"]),
       emptyLock(),
@@ -26,7 +26,7 @@ describe("an agent for a target that reads its own format", () => {
 });
 
 describe("a target that places a kind as a folder of its own", () => {
-  it("writes an agent into its own folder, never through the plugin its namespace becomes", () => {
+  test("writes an agent into its own folder, never through the plugin its namespace becomes", () => {
     const targetTable = resolveTargets();
     const claude = targetTable["claude-code"] as Target;
     targetTable["claude-code"] = {
@@ -49,7 +49,7 @@ describe("a target that places a kind as a folder of its own", () => {
     expect(relative("/work", links[0]?.to as string)).not.toContain("plugins");
   });
 
-  it("copies a plugin folder for a target that will not load a linked one", () => {
+  test("copies a plugin folder for a target that will not load a linked one", () => {
     const targetTable = resolveTargets();
     const claude = targetTable["claude-code"] as Target;
     const plugin = claude.kinds.plugin as Extract<KindMapping, { shape: "directory" }>;

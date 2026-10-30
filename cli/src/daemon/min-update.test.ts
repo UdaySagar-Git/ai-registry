@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { executableFile } from "#core/product.ts";
 import type { ResolvedRelease } from "#self/source.ts";
 import {
@@ -37,7 +37,7 @@ function hooks(over: Partial<Parameters<typeof applyDaemonCliUpdate>[0]> = {}) {
 }
 
 describe("applyDaemonCliUpdate", () => {
-  it("skips when opted out or a run is in flight", async () => {
+  test("skips when opted out or a run is in flight", async () => {
     const idle = hooks({ skip: () => true });
     expect(await applyDaemonCliUpdate(idle)).toBe("skip");
     expect(idle.probe).not.toHaveBeenCalled();
@@ -47,7 +47,7 @@ describe("applyDaemonCliUpdate", () => {
     expect(busy.probe).not.toHaveBeenCalled();
   });
 
-  it("skips a failed probe and a daemon already on the channel head", async () => {
+  test("skips a failed probe and a daemon already on the channel head", async () => {
     const failed = hooks({ probe: async () => undefined });
     expect(await applyDaemonCliUpdate(failed)).toBe("skip");
     expect(failed.install).not.toHaveBeenCalled();
@@ -57,13 +57,13 @@ describe("applyDaemonCliUpdate", () => {
     expect(current.install).not.toHaveBeenCalled();
   });
 
-  it("updates to a newer head even when already at the floor", async () => {
+  test("updates to a newer head even when already at the floor", async () => {
     const next = hooks({ current: "0.1.0", present: async () => false });
     expect(await applyDaemonCliUpdate(next)).toBe("replace");
     expect(next.install).toHaveBeenCalledOnce();
   });
 
-  it("holds a rollback: a head already on disk is not fetched again, unless below the floor", async () => {
+  test("holds a rollback: a head already on disk is not fetched again, unless below the floor", async () => {
     const rolledBack = hooks({ current: "0.1.0", present: async () => true });
     expect(await applyDaemonCliUpdate(rolledBack)).toBe("skip");
     expect(rolledBack.install).not.toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe("applyDaemonCliUpdate", () => {
     expect(belowFloor.install).toHaveBeenCalledOnce();
   });
 
-  it("installs latest, closes this process, and starts the new binary", async () => {
+  test("installs latest, closes this process, and starts the new binary", async () => {
     const next = hooks();
     expect(await applyDaemonCliUpdate(next)).toBe("replace");
     expect(next.install).toHaveBeenCalledWith(release, home, expect.any(Function));
@@ -84,7 +84,7 @@ describe("applyDaemonCliUpdate", () => {
     );
   });
 
-  it("leaves the replacement to a supervisor instead of spawning one", async () => {
+  test("leaves the replacement to a supervisor instead of spawning one", async () => {
     const restart = vi.fn(async () => {});
     const next = hooks({ restart });
     expect(await applyDaemonCliUpdate(next)).toBe("replace");
@@ -94,7 +94,7 @@ describe("applyDaemonCliUpdate", () => {
     expect(next.start).not.toHaveBeenCalled();
   });
 
-  it("marks the process failed if the replacement daemon does not start", async () => {
+  test("marks the process failed if the replacement daemon does not start", async () => {
     const previous = process.exitCode;
     const next = hooks({
       start: vi.fn(async () => {
@@ -125,7 +125,7 @@ function follow(over: Partial<Parameters<typeof applyDaemonFollowInstalled>[0]> 
 }
 
 describe("applyDaemonFollowInstalled", () => {
-  it("replaces itself with a newer installed version, with no download", async () => {
+  test("replaces itself with a newer installed version, with no download", async () => {
     const next = follow();
     expect(await applyDaemonFollowInstalled(next)).toBe("replace");
     expect(next.close).toHaveBeenCalledOnce();
@@ -135,7 +135,7 @@ describe("applyDaemonFollowInstalled", () => {
     );
   });
 
-  it("never downgrades, and skips when nothing runnable is installed", async () => {
+  test("never downgrades, and skips when nothing runnable is installed", async () => {
     for (const installed of ["0.1.0", "0.0.9", undefined]) {
       const next = follow({ installed: async () => installed });
       expect(await applyDaemonFollowInstalled(next)).toBe("skip");
@@ -143,14 +143,14 @@ describe("applyDaemonFollowInstalled", () => {
     }
   });
 
-  it("waits out a run in flight, and a replace already under way", async () => {
+  test("waits out a run in flight, and a replace already under way", async () => {
     const next = follow({ busy: () => true });
     expect(await applyDaemonFollowInstalled(next)).toBe("skip");
     expect(next.installed).not.toHaveBeenCalled();
     expect(next.close).not.toHaveBeenCalled();
   });
 
-  it("leaves the replacement to a supervisor", async () => {
+  test("leaves the replacement to a supervisor", async () => {
     const restart = vi.fn(async () => {});
     const next = follow({ restart });
     expect(await applyDaemonFollowInstalled(next)).toBe("replace");
@@ -164,7 +164,7 @@ describe("DaemonMinUpdate", () => {
     vi.useRealTimers();
   });
 
-  it("checks immediately and every 15 minutes until a replace", async () => {
+  test("checks immediately and every 15 minutes until a replace", async () => {
     vi.useFakeTimers();
     const apply = vi.fn(
       async (): Promise<"skip" | "replace"> => (apply.mock.calls.length >= 2 ? "replace" : "skip"),
@@ -179,7 +179,7 @@ describe("DaemonMinUpdate", () => {
     expect(apply).toHaveBeenCalledTimes(2);
   });
 
-  it("does not overlap ticks and retries after a thrown apply", async () => {
+  test("does not overlap ticks and retries after a thrown apply", async () => {
     vi.useFakeTimers();
     let inflight = 0;
     let overlap = 0;

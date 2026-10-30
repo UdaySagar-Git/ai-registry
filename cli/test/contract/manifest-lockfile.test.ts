@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Ajv2020, type SchemaObject } from "ajv/dist/2020.js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
 import { formatLock, parseLock } from "#core/lock.ts";
 import { EXPORT_KEYS, MANIFEST_KEYS, parseManifest, REGISTRY_KEYS } from "#core/manifest.ts";
@@ -46,7 +46,7 @@ describe("manifest.schema.json", () => {
     const parsed = accepts((input) => parseManifest(input), text);
 
     if (name.startsWith("invalid-semantic-")) {
-      it(`${name}: only the parser can see it`, () => {
+      test(`${name}: only the parser can see it`, () => {
         expect(shaped, why).toBe(true);
         expect(parsed).toBe(false);
       });
@@ -54,7 +54,7 @@ describe("manifest.schema.json", () => {
     }
 
     const both = name.startsWith("valid-");
-    it(`${name}: ${both ? "both accept it" : "both reject it"}`, () => {
+    test(`${name}: ${both ? "both accept it" : "both reject it"}`, () => {
       expect(shaped, why).toBe(both);
       expect(parsed).toBe(both);
     });
@@ -67,13 +67,13 @@ describe("lockfile.schema.json", () => {
 
   for (const { name, text } of fixtures("lockfile")) {
     const valid = name.startsWith("valid-");
-    it(`${name}: the schema ${valid ? "accepts" : "rejects"} it`, () => {
+    test(`${name}: the schema ${valid ? "accepts" : "rejects"} it`, () => {
       const shaped = validate(parse(text) ?? {});
       expect(shaped, JSON.stringify(validate.errors)).toBe(valid);
     });
   }
 
-  it("accepts what the writer produces, which is the contract it describes", () => {
+  test("accepts what the writer produces, which is the contract it describes", () => {
     for (const { name, text } of fixtures("lockfile")) {
       if (!name.startsWith("valid-")) continue;
       const written = parse(formatLock(parseLock(text)));
@@ -101,11 +101,11 @@ describe("the schema describes every key the parser reads", () => {
   const entry = (node: unknown): Node =>
     Object.values((node as Node).patternProperties ?? {})[0] ?? {};
 
-  it("at the top level", () => {
+  test("at the top level", () => {
     expect(Object.keys(schema.properties).sort()).toEqual([...MANIFEST_KEYS].sort());
   });
 
-  it("on a registry, across every transport", () => {
+  test("on a registry, across every transport", () => {
     const described = new Set<string>();
     for (const branch of entry(schema.properties.registries).anyOf ?? []) {
       for (const key of props(branch)) described.add(key);
@@ -113,7 +113,7 @@ describe("the schema describes every key the parser reads", () => {
     expect([...described].sort()).toEqual([...REGISTRY_KEYS].sort());
   });
 
-  it("on an export", () => {
+  test("on an export", () => {
     const exports = schema.properties.exports as Node;
     const described = (exports.items?.anyOf ?? []).flatMap(props);
     expect(described.sort()).toEqual([...EXPORT_KEYS].sort());
@@ -123,13 +123,13 @@ describe("the schema describes every key the parser reads", () => {
 /** The regenerate-and-diff gate, where it can name the command to run. */
 describe("the published schema is what the definitions produce", () => {
   for (const [name, definition] of Object.entries(GENERATED)) {
-    it(`${name} is up to date`, () => {
+    test(`${name} is up to date`, () => {
       const onDisk = readFileSync(join(SCHEMAS, name), "utf8");
       expect(onDisk, "run `pnpm run schema` and commit the result").toBe(render(definition));
     });
   }
   for (const [name, text] of Object.entries(kindCopies())) {
-    it(`${name} is the spec's`, () => {
+    test(`${name} is the spec's`, () => {
       const onDisk = readFileSync(join(SCHEMAS, name), "utf8");
       expect(onDisk, "run `pnpm run schema` and commit the result").toBe(text);
     });

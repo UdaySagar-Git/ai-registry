@@ -42,6 +42,7 @@ describe("resolveTargets", () => {
       "gemini-cli": ["gemini"],
       grok: [],
       opencode: [],
+      pi: [],
       universal: ["agents"],
     });
   });
@@ -89,6 +90,7 @@ describe("earlierTable", () => {
         "gemini",
         "grok",
         "opencode",
+        "pi",
       ].sort(),
     );
     expect(table.agents?.kind).toBe("shared");

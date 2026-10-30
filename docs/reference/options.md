@@ -45,7 +45,7 @@ aireg installs into one of two scopes:
 
 ## Targets
 
-A target is a coding agent, or a folder several of them read, that aireg installs into. aireg knows nine:
+A target is a coding agent, or a folder several of them read, that aireg installs into. aireg knows ten:
 
 | Id | Alias | Target |
 |---|---|---|
@@ -56,6 +56,7 @@ A target is a coding agent, or a folder several of them read, that aireg install
 | `gemini-cli` | `gemini` | Gemini CLI |
 | `opencode` | | OpenCode |
 | `grok` | | Grok Build |
+| `pi` | | Pi |
 | `antigravity` | | Google Antigravity: its App, IDE and CLI (`agy`) |
 | `universal` | `agents` | The shared `.agents` folder, which several coding agents read. `add` doesn't offer it; choosing one of those agents writes there. |
 

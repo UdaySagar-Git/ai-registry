@@ -40,6 +40,7 @@ Pass the id to `--for`. The earlier ids `claude`, `copilot`, `gemini` and `agent
 | Gemini CLI | `gemini-cli` | `.gemini/skills/` | `~/.gemini/skills/` |
 | OpenCode | `opencode` | `.agents/skills/` | `~/.agents/skills/` |
 | Grok Build | `grok` | `.grok/skills/` | `~/.grok/skills/` |
+| Pi | `pi` | `.agents/skills/` | `~/.agents/skills/` |
 | Google Antigravity | `antigravity` | `.agents/skills/` | `~/.gemini/config/skills/` |
 | Shared `.agents` folder | `universal` | `.agents/skills/` | `~/.agents/skills/` |
 
@@ -57,7 +58,9 @@ Pass the id to `--for`. The earlier ids `claude`, `copilot`, `gemini` and `agent
 | Google Antigravity | `antigravity` | none | `~/.gemini/config/agents/` |
 | Shared `.agents` folder | `universal` | `.agents/agents/` | `~/.agents/agents/` |
 
-A user folder moves with its target's own variable: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `COPILOT_HOME`, `GEMINI_CLI_HOME`, `GROK_HOME`, or `XDG_CONFIG_HOME` for OpenCode.
+Pi has no agents, so aireg installs none for it.
+
+A user folder moves with its target's own variable: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `COPILOT_HOME`, `GEMINI_CLI_HOME`, `GROK_HOME`, `PI_CODING_AGENT_DIR`, or `XDG_CONFIG_HOME` for OpenCode.
 
 With `GEMINI_CLI_HOME` set, Gemini CLI reads `.agents/skills` inside that folder, not the shared `~/.agents/skills`. aireg places Gemini CLI's own skills under the variable, but a skill you install for Gemini CLI together with a target that reads `~/.agents`, such as Codex, lands only in that shared folder, where Gemini CLI does not look. While the variable is set, install for Gemini CLI on its own: `aireg add -g <source> --for gemini-cli`.
 

@@ -55,6 +55,7 @@ describe("targets", () => {
     vi.stubEnv("GEMINI_CLI_HOME", "");
     vi.stubEnv("GROK_HOME", "");
     vi.stubEnv("OPENCODE_CONFIG_DIR", "");
+    vi.stubEnv("PI_CODING_AGENT_DIR", "");
   });
 
   afterEach(async () => {
@@ -111,6 +112,7 @@ describe("targets", () => {
       },
       { name: "grok", aliases: [], displayName: "Grok Build", ...builtIn, detected: false },
       { name: "opencode", aliases: [], displayName: "OpenCode", ...builtIn, detected: false },
+      { name: "pi", aliases: [], displayName: "Pi", ...builtIn, detected: false },
       {
         name: "universal",
         aliases: ["agents"],

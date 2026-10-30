@@ -6,6 +6,7 @@ import { geminiCli } from "./gemini-cli.ts";
 import { githubCopilot } from "./github-copilot.ts";
 import { grok } from "./grok.ts";
 import { opencode } from "./opencode.ts";
+import { pi } from "./pi.ts";
 import { universal } from "./universal.ts";
 
 /** Every target aireg installs into; the order is the order defaults are listed in. */
@@ -17,6 +18,7 @@ export const BUILTIN_TARGETS = [
   geminiCli,
   opencode,
   grok,
+  pi,
   antigravity,
   universal,
 ] as const;

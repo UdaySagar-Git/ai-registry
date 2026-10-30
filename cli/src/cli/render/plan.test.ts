@@ -173,6 +173,35 @@ describe("summarize", () => {
     ]);
   });
 
+  it("asks for the steps of a tool that reads the shared folder a skill went to", () => {
+    const lock = { artifacts: { lint: { kind: "skill", links: [at("universal")] } } };
+    const applied = {
+      performed: { link: 1 } as never,
+      installed: ["lint"],
+      added: ["lint"],
+      lock: lock as never,
+    };
+    // Grok Build and Codex both read skills from `.agents`.
+    expect(printed([link("lint", "universal")], applied, {}, ["grok", "codex"])).toEqual([
+      "✓ Installed lint for Grok Build and Codex.",
+      "hint: Grok Build loads skills here only once you trust them: run `grok --trust`.",
+      "hint: Start a new Grok Build session to load the change.",
+    ]);
+  });
+
+  it("asks a tool that reads the shared folder a skill left to reload, not to trust", () => {
+    const gone = [
+      { kind: "unlink", name: "lint", to: "x", link: at("universal") } as unknown as Action,
+    ];
+    const before = { lint: { kind: "skill", links: [at("universal")] } };
+    const applied = { performed: { unlink: 1 } as never, removed: ["lint"] };
+    expect(printed(gone, applied, before, ["grok", "cursor"])).toEqual([
+      "✓ Removed lint.",
+      "hint: Start a new Grok Build session to load the change.",
+      "hint: Restart Cursor, or run Developer: Reload Window, to load the change.",
+    ]);
+  });
+
   it("says a plugin's hooks run only where it installs whole, not where its skills went", () => {
     const actions = [
       { ...link("tools", "claude-code"), plugin: true } as Action,

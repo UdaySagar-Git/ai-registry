@@ -1,9 +1,9 @@
 import { resolve } from "node:path";
+import { CONCURRENCY, limiter } from "#core/concurrency.ts";
 import { dict } from "#core/fields.ts";
 import { digest } from "#core/fs/digest.ts";
 import { inspect } from "#core/fs/link.ts";
 import { exists } from "#core/fs/tree.ts";
-import { CONCURRENCY, limiter } from "#core/limit.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { artifactPath, copyLeaf } from "#core/store/paths.ts";

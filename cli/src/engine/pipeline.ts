@@ -4,15 +4,16 @@ import { basename, dirname, join } from "node:path";
 import { credentialsForManifest } from "#accounts/credentials.ts";
 import { isAdapterError, type Want } from "#adapter/index.ts";
 import { list, quoted, sanitizeText } from "#adapter/text.ts";
-import { loadAdapter } from "#core/adapter/registry.ts";
+import { loadAdapter } from "#core/adapter/load.ts";
 import { withheldAt, withheldMessage } from "#core/catalog/withheld.ts";
 import { type NameCollision, nameCollisionOf } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
+import { unmetEngine } from "#core/engines.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { dict } from "#core/fields.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { homeDir, readTextIfPresent } from "#core/fs/path.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { runPipelineHooks } from "#core/hook/run.ts";
 import { type LeaseHolder, withLease } from "#core/lease.ts";
 import { type Lock, lockChanges, readLock } from "#core/lock.ts";
@@ -20,6 +21,7 @@ import { formatManifest, type Manifest, readManifest, writeManifest } from "#cor
 import type { Printer } from "#core/output.ts";
 import { acquire, answers, lockView, newlyYanked } from "#core/plan/acquire.ts";
 import { type ApplyResult, apply, guardsOf, type Recovered, recover } from "#core/plan/apply.ts";
+import { blockedTargets } from "#core/plan/blocked-targets.ts";
 import { leafOf, NAME_COLLISION_HINT, shownAddress } from "#core/plan/build/rename.ts";
 import { build, clashMessage } from "#core/plan/build.ts";
 import { describeCarried } from "#core/plan/carries.ts";
@@ -30,8 +32,6 @@ import { wrappedInLock, wrapsNamespaces } from "#core/plan/namespaces.ts";
 import type { Untrusted } from "#core/plan/select.ts";
 import { survey } from "#core/plan/survey.ts";
 import { type Unlisted, unlistedMessage } from "#core/plan/unlisted.ts";
-import { blockedTargets } from "#core/plan/writable.ts";
-import { unmetEngine } from "#core/semver.ts";
 import {
   MANIFEST_FILE,
   roots as makeRoots,

@@ -8,6 +8,13 @@ import {
 } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
 import {
+  mergedIndex,
+  mergedVersions,
+  newest,
+  type OfferedVersion,
+  specJson,
+} from "#adapter/filespec/merge.ts";
+import {
   ENVELOPE,
   INDEX_DOCUMENT,
   isArtifactName,
@@ -18,13 +25,6 @@ import {
   versionsPath,
 } from "#adapter/filespec/names.ts";
 import { isRemote, locatorOf } from "#adapter/filespec/resolve.ts";
-import {
-  mergedIndex,
-  mergedVersions,
-  newest,
-  type OfferedVersion,
-  specJson,
-} from "#adapter/filespec/write.ts";
 import {
   type ArtifactKind,
   buildEnvelope,
@@ -37,8 +37,8 @@ import {
 import { catalogDigest } from "#adapter/spec/canonical.ts";
 import { describeFile } from "#adapter/spec/envelope.ts";
 import { isDigest, isVersion } from "#adapter/spec/ref.ts";
-import { ownDescription } from "#core/catalog/frontmatter.ts";
 import { isRecord } from "#core/fields.ts";
+import { ownDescription } from "#core/frontmatter.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { authored, exists, refusal, subdirectories } from "#core/fs/tree.ts";
 import { withLease } from "#core/lease.ts";

@@ -1,8 +1,8 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { isWithin } from "#adapter/paths.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { inspect } from "#core/fs/link.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import type { LinkMode } from "#core/lock.ts";
 import { moveToBackup } from "#core/store/backups.ts";
 import { assertRemovable, type RemovableRoots, removal } from "./removable.ts";

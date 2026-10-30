@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { describe, expect } from "vitest";
-import type { Entry } from "#core/catalog/model.ts";
+import type { Entry } from "#core/catalog/catalog.ts";
 import { emptyLock } from "#core/lock.ts";
 import { type BuildOptions, build } from "#core/plan/build.ts";
 import type { Action, Plan } from "#core/plan/model.ts";

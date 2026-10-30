@@ -8,7 +8,7 @@ import { plural, sanitizeText } from "#adapter/text.ts";
 import { DOCTOR_COMMAND } from "#cli/commands/doctor/spec.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { underHome } from "#cli/render/home.ts";
-import { loadAdapters } from "#core/adapter/registry.ts";
+import { loadAdapters } from "#core/adapter/load.ts";
 import { fileExposure } from "#core/credentials/store.ts";
 import { ExitCode } from "#core/errors.ts";
 import { WRITABLE_BY_OTHERS } from "#core/fs/mode.ts";

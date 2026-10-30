@@ -46,8 +46,8 @@ import { noteUserScope } from "#cli/render/where.ts";
 import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { digest } from "#core/fs/digest.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { gitIn } from "#core/git.ts";
 import { writeLock } from "#core/lock.ts";
 import {

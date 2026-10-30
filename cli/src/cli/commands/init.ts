@@ -10,7 +10,7 @@ import { applyImport, planImport } from "#cli/onboarding/import.ts";
 import { noArguments, parse, USER } from "#cli/options.ts";
 import { isNamespaceAddress } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { gitIn } from "#core/git.ts";
 import { emptyManifest, formatManifest, readManifest } from "#core/manifest.ts";
 import { ensureScopeIgnore } from "#core/store/ignore.ts";

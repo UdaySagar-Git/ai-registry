@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { emptyPlan } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { blockedTargets } from "./blocked-targets.ts";
 import type { Plan } from "./model.ts";
-import { blockedTargets } from "./writable.ts";
 
 let home: string;
 

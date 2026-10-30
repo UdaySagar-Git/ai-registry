@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import type { RegisterEntry, Target, Targets } from "#core/target/contract.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { applyRegister, type Where } from "./index.ts";
+import { applyRegister, type Where } from "./register.ts";
 
 let dir: string;
 let home: string;

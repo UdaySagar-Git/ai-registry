@@ -2,7 +2,7 @@ import { dirname, resolve } from "node:path";
 import type { Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { resolveTargets } from "#core/target/index.ts";
-import { applyRegister, type Kept, type Touched } from "#core/target/register/index.ts";
+import { applyRegister, type Kept, type Touched } from "#core/target/register/register.ts";
 import type { Action } from "./model.ts";
 
 /**

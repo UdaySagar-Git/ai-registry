@@ -9,7 +9,7 @@ import {
   watchedFolders,
 } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
 import { withDaemon } from "#daemon/service.ts";

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from "vitest";
-import { registerBuiltinAdapter } from "#core/adapter/registry.ts";
+import { registerBuiltinAdapter } from "#core/adapter/load.ts";
 import { AiregError } from "#core/errors.ts";
 import { parseAdapterId, parseWant } from "./want.ts";
 

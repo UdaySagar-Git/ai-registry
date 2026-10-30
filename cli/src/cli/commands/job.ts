@@ -9,10 +9,9 @@ import { parse } from "#cli/options.ts";
 import { cannotPublish } from "#cli/publish/target.ts";
 import { underHome } from "#cli/render/home.ts";
 import { probeAddress, throughManifest } from "#cli/source.ts";
+import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
-import { readOnlyLayout } from "#core/adapter/writable.ts";
-import { MINIMUM_INTERVAL_SECONDS } from "#core/config/job.ts";
+import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import {
   DEFAULT_INTERVAL_SECONDS,
   findJob,
@@ -22,6 +21,7 @@ import {
   type StepPolicy,
   watchedFolders,
 } from "#core/config/model.ts";
+import { MINIMUM_INTERVAL_SECONDS } from "#core/config/parse-job.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { contributedStepFlags, stepContribution, stepForFlags } from "#core/host/load.ts";

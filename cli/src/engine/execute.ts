@@ -1,8 +1,8 @@
 import { credentialsForManifest } from "#accounts/credentials.ts";
 import type { Artifact } from "#adapter/index.ts";
 import type { ArtifactKind } from "#adapter/kinds.ts";
-import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
-import { readOnlyLayout } from "#core/adapter/writable.ts";
+import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
+import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import type { Account } from "#core/config/model.ts";
 import { withLease } from "#core/lease.ts";
 import type { RegistrySource } from "#core/manifest.ts";

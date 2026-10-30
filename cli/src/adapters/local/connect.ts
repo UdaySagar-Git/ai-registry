@@ -14,7 +14,7 @@ import {
   type Want,
 } from "#adapter/index.ts";
 import { isLayoutId, isReadOnlyLayout, type LayoutId } from "#adapter/layouts/ids.ts";
-import { detectLayout, openLayoutRoot } from "#adapter/layouts/index.ts";
+import { detectLayout, openLayoutRoot } from "#adapter/layouts/open.ts";
 import { fail, translating } from "./errors.ts";
 import { writeOffer } from "./publish.ts";
 

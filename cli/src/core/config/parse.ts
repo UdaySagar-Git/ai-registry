@@ -4,8 +4,8 @@ import { isRecord } from "#core/fields.ts";
 import { isAdapterId } from "#core/release/origin.ts";
 import { resolveTargets, type Targets } from "#core/target/index.ts";
 import { parseYaml } from "#core/yaml.ts";
+import { ConfigConflictError, ConfigError, fields } from "./errors.ts";
 import { isHookStage, type PipelineHook } from "./hook-stages.ts";
-import { earlierIds, parseJob } from "./job.ts";
 import {
   CONFIG_SCHEMA_VERSION,
   type Defaults,
@@ -16,7 +16,7 @@ import {
   type Step,
 } from "./model.ts";
 import { parseAccount } from "./parse-account.ts";
-import { ConfigConflictError, ConfigError, fields } from "./parse-errors.ts";
+import { earlierIds, parseJob } from "./parse-job.ts";
 
 const { onlyKnown, optionalFlag, record, text } = fields;
 

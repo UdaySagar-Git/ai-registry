@@ -16,7 +16,6 @@ import { canceled } from "#cli/prompt/model.ts";
 import { defaultIo } from "#cli/prompt/prompt.ts";
 import { select } from "#cli/prompt/select.ts";
 import { text } from "#cli/prompt/text.ts";
-import { withName } from "#core/catalog/frontmatter.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord, RESERVED_KEYS } from "#core/fields.ts";
 import { inBlobStore } from "#core/filespec/write/indexer.ts";
@@ -30,6 +29,7 @@ import {
   specOf,
 } from "#core/filespec/write/kinds.ts";
 import { check } from "#core/filespec/write/schema.ts";
+import { withName } from "#core/frontmatter.ts";
 import { expandUserPath } from "#core/fs/path.ts";
 import { authored, type Irregular, present, refusal } from "#core/fs/tree.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";

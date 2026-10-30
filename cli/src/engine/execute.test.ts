@@ -120,7 +120,7 @@ vi.mock("#accounts/registry.ts", () => ({
     source: { location: ENDPOINT, adapter: "acme" },
   }),
 }));
-vi.mock("#core/adapter/source.ts", () => ({
+vi.mock("#core/adapter/connect.ts", () => ({
   connectSource: async () => ({
     adapter: { id: "acme", displayName: "Acme" },
     handle: {

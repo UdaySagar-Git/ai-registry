@@ -1,9 +1,9 @@
 import { lstat, mkdir, readFile, rm, rmdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { copyDescribed, reasonOf } from "#core/adapter/content.ts";
-import { withName } from "#core/catalog/frontmatter.ts";
+import { copyDescribed, reasonOf } from "#core/adapter/materialize.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord } from "#core/fields.ts";
+import { withName } from "#core/frontmatter.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { digest } from "#core/fs/digest.ts";
 import { fanOut, inspect, link } from "#core/fs/link.ts";

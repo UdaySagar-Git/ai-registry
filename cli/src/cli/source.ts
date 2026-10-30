@@ -24,12 +24,12 @@ import {
   withoutCredentials,
 } from "#adapter/text.ts";
 import { ID as GIT, pastedRepository, settlePastedLink } from "#adapters/git/api.ts";
-import { materialize } from "#core/adapter/content.ts";
+import { connectSource, type Listing, resolveArtifacts } from "#core/adapter/connect.ts";
 import { canonicalConfig } from "#core/adapter/identity.ts";
+import { declaredLayout, limitsFor, loadAdapter } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { declaredLayout, limitsFor, loadAdapter } from "#core/adapter/registry.ts";
-import { connectSource, type Listing, resolveArtifacts } from "#core/adapter/source.ts";
-import type { Catalog, Entry } from "#core/catalog/model.ts";
+import { materialize } from "#core/adapter/materialize.ts";
+import type { Catalog, Entry } from "#core/catalog/catalog.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { findRegistry } from "#core/filespec/write/init.ts";
 import { dotRelative, posixRelative } from "#core/fs/path.ts";

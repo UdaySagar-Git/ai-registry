@@ -2,7 +2,7 @@ import { isArtifactName, isNamespace } from "#adapter/filespec/names.ts";
 import type { Envelope, Want } from "#adapter/index.ts";
 import { type ArtifactKind, isKind } from "#adapter/kinds.ts";
 import { isVersion } from "#adapter/spec/ref.ts";
-import { entryFor } from "#core/catalog/model.ts";
+import { entryFor } from "#core/catalog/catalog.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import type { Ref } from "#core/ref.ts";
 import type { Acquired, Selected } from "./model.ts";

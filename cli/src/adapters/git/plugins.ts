@@ -1,5 +1,5 @@
 import { isSafePath, quoted, registryPath, type SourceContext, type Want } from "#adapter/index.ts";
-import type { FetchedPlugin, RemotePlugin } from "#adapter/layouts/layout.ts";
+import type { FetchedPlugin, RemotePlugin } from "#adapter/layouts/model.ts";
 import { fail } from "./errors.ts";
 import type { GitLimits } from "./exec.ts";
 import { resolveRef } from "./resolve.ts";

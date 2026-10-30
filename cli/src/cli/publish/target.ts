@@ -16,10 +16,10 @@ import { type Bump, bumpVersion, compareVersion, parseVersion } from "#adapter/s
 import { canonicalize } from "#adapter/spec/canonical.ts";
 import { list, quoted, sanitizeName } from "#adapter/text.ts";
 import { ID as LOCAL } from "#adapters/local/api.ts";
+import { type ConnectedSource, connectSource, resolveArtifacts } from "#core/adapter/connect.ts";
+import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
-import { type ConnectedSource, connectSource, resolveArtifacts } from "#core/adapter/source.ts";
-import { readOnlyLayout } from "#core/adapter/writable.ts";
+import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import {
   countPast,
   type Newest,

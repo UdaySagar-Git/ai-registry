@@ -19,16 +19,16 @@ import { collidingPaths } from "#adapter/paths.ts";
 import { isDigest, isVersion } from "#adapter/spec/ref.ts";
 import { ENVELOPE_API_VERSION } from "#adapter/spec/types.ts";
 import { quoted, sanitizeName, sanitizeText } from "#adapter/text.ts";
-import type { Catalog, Entry } from "#core/catalog/model.ts";
-import { emptyCatalog, finalize, merge } from "#core/catalog/model.ts";
+import type { Catalog, Entry } from "#core/catalog/catalog.ts";
+import { emptyCatalog, finalize, merge } from "#core/catalog/catalog.ts";
 import { newestFrom, withheldFrom } from "#core/catalog/withheld.ts";
+import { engineFromUnknown } from "#core/engines.ts";
 import { bindAdapter } from "#core/hook/bind.ts";
 import { KIND_SPECS, specKindDir } from "#core/kinds.ts";
 import { withLease } from "#core/lease.ts";
-import { engineFromUnknown } from "#core/semver.ts";
 import { cacheDir, ensureHome } from "#core/store/paths.ts";
 import { type SourceConfig, sourceKey } from "./identity.ts";
-import { adapterFor, limitsFor } from "./registry.ts";
+import { adapterFor, limitsFor } from "./load.ts";
 
 export interface DeclaredSource {
   alias: string;

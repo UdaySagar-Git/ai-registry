@@ -18,7 +18,7 @@ vi.mock("#accounts/registry.ts", () => ({
   }),
 }));
 vi.mock("#accounts/credentials.ts", () => ({ credentialFor: async () => undefined }));
-vi.mock("#core/adapter/source.ts", () => ({
+vi.mock("#core/adapter/connect.ts", () => ({
   connectSource: async () => ({
     adapter: { id: "acme", displayName: "Acme" },
     handle: {

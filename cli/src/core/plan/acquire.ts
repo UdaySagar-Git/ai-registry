@@ -12,11 +12,11 @@ import {
 import { isLayoutId, isReadOnlyLayout } from "#adapter/layouts/ids.ts";
 import { isSafePath } from "#adapter/paths.ts";
 import { quoted, sanitizeName, sanitizeText } from "#adapter/text.ts";
-import { materialize } from "#core/adapter/content.ts";
+import { connectSource, resolveArtifacts } from "#core/adapter/connect.ts";
+import { declaredLayout, loadAdapter } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { declaredLayout, loadAdapter } from "#core/adapter/registry.ts";
-import { connectSource, resolveArtifacts } from "#core/adapter/source.ts";
-import type { Entry } from "#core/catalog/model.ts";
+import { materialize } from "#core/adapter/materialize.ts";
+import type { Entry } from "#core/catalog/catalog.ts";
 import { tokenVariable } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord } from "#core/fields.ts";

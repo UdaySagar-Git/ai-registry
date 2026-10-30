@@ -1,5 +1,5 @@
 import type { SourceAdapter } from "#adapter/index.ts";
-import { loadAdapters } from "#core/adapter/registry.ts";
+import { loadAdapters } from "#core/adapter/load.ts";
 import {
   type AdapterExtension,
   type CommandContribution,

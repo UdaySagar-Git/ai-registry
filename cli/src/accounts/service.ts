@@ -7,8 +7,8 @@ import {
   type SourceContext,
 } from "#adapter/index.ts";
 import { list, plural, quoted, sanitizeText, withoutCredentials } from "#adapter/text.ts";
+import { hostServices } from "#core/adapter/connect.ts";
 import type { SourceConfig } from "#core/adapter/identity.ts";
-import { hostServices } from "#core/adapter/source.ts";
 import type { Account, RegistryConfig } from "#core/config/model.ts";
 import { readConfig, writeConfig } from "#core/config/repository.ts";
 import { credentialOrigin } from "#core/credentials/origin.ts";

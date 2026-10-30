@@ -2,12 +2,12 @@ import { resolve } from "node:path";
 import { isWithin } from "#adapter/paths.ts";
 import { parseVersion } from "#adapter/semver.ts";
 import { envName, isCI, isSet } from "#core/env.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import type { Printer } from "#core/output.ts";
 import { handOff } from "#core/process.ts";
-import { needsMinimumUpdate } from "#core/release/channel.ts";
 import { runningEntry } from "#core/release/launch.ts";
 import { cliRoot, versionBin } from "#core/release/layout.ts";
+import { needsMinimumUpdate } from "#core/release/minimum.ts";
 import { isSourceVersion, VERSION } from "#core/version.ts";
 import { installBinary, pruneOld } from "./install.ts";
 import {

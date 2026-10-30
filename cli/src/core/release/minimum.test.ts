@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { needsMinimumUpdate } from "./channel.ts";
+import { needsMinimumUpdate } from "./minimum.ts";
 
 describe("needsMinimumUpdate", () => {
   test("asks for an update only below the floor", () => {

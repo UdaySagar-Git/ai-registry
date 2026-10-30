@@ -3,7 +3,7 @@ import { readdir, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { PUBLIC_FILE } from "#adapter/files.ts";
 import { isWithin } from "#adapter/paths.ts";
-import { inspectAdapterModule, isBuiltinAdapter } from "#core/adapter/registry.ts";
+import { inspectAdapterModule, isBuiltinAdapter } from "#core/adapter/load.ts";
 import { updateConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";

@@ -4,8 +4,8 @@ import { isLocalPath } from "#adapter/paths.ts";
 import { plural, quoted } from "#adapter/text.ts";
 import { comparableLocation, sourceKey } from "#core/adapter/identity.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { posixRelative } from "#core/fs/path.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import type { Lock } from "#core/lock.ts";
 import {
   artifactFor,

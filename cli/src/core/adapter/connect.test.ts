@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { AdapterError, type Envelope, type SourceAdapter } from "#adapter/index.ts";
 import { ENVELOPE_API_VERSION } from "#adapter/spec/types.ts";
-import { resolveArtifacts } from "./source.ts";
+import { resolveArtifacts } from "./connect.ts";
 
 /** Composed by hand, not built: these listings are meant to be malformed. */
 function serving(files: { path: string; locator?: string }[]): SourceAdapter {

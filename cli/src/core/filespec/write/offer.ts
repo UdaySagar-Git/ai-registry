@@ -13,11 +13,11 @@ import {
 import { describeFile } from "#adapter/spec/envelope.ts";
 import { isVersion } from "#adapter/spec/ref.ts";
 import { quoted } from "#adapter/text.ts";
-import { frontmatterRecord, ownDescription } from "#core/catalog/frontmatter.ts";
+import { CONCURRENCY, limiter } from "#core/concurrency.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
+import { frontmatterRecord, ownDescription } from "#core/frontmatter.ts";
 import { authoredArtifact, isDirectory, refusal } from "#core/fs/tree.ts";
 import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
-import { CONCURRENCY, limiter } from "#core/limit.ts";
 import { envelopeSpec } from "./kinds.ts";
 
 const reading = limiter(CONCURRENCY);

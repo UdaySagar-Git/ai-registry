@@ -43,9 +43,9 @@ import {
   throughManifest,
 } from "#cli/source.ts";
 import { workflowCommand } from "#cli/workflow-command.ts";
+import { loadAdapter } from "#core/adapter/load.ts";
 import { expandLocation, recordedLocation } from "#core/adapter/location.ts";
-import { loadAdapter } from "#core/adapter/registry.ts";
-import type { Entry } from "#core/catalog/model.ts";
+import type { Entry } from "#core/catalog/catalog.ts";
 import { emptyRegistryConfig, type RegistryConfig } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { inGitHubActions, registryToken } from "#core/env.ts";

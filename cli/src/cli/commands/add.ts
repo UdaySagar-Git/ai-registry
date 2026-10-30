@@ -52,7 +52,7 @@ import {
   wantOf,
 } from "#cli/source.ts";
 import { expandLocation, recordedLocation } from "#core/adapter/location.ts";
-import { type Entry, withoutCoveredLeaves } from "#core/catalog/model.ts";
+import { type Entry, withoutCoveredLeaves } from "#core/catalog/catalog.ts";
 import { withheldAt, withheldMessage } from "#core/catalog/withheld.ts";
 import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";

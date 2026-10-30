@@ -11,7 +11,7 @@ import {
   type SourceHandle,
 } from "#adapter/index.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { copyDescribed, materialize } from "./content.ts";
+import { copyDescribed, materialize } from "./materialize.ts";
 
 /** This test's folder, which the kit removes after it. */
 let scratch: string;

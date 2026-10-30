@@ -3,7 +3,7 @@ import { type ArtifactKind, KINDS } from "#adapter/kinds.ts";
 import { list, plural } from "#adapter/text.ts";
 import { underHome } from "#cli/render/home.ts";
 import { loadedBy, skipLine, toolName, unhandled } from "#cli/render/tools.ts";
-import type { Entry } from "#core/catalog/model.ts";
+import type { Entry } from "#core/catalog/catalog.ts";
 import { kindDir } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Printer } from "#core/output.ts";

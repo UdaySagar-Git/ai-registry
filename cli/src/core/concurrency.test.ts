@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { weighted } from "./limit.ts";
+import { weighted } from "./concurrency.ts";
 
 /** Runs the tasks under one budget and reports the most weight ever held at once. */
 async function peakOf(

@@ -2,7 +2,7 @@ import { mkdir, realpath, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
-import { canonical } from "./canonical.ts";
+import { canonical } from "./realpath.ts";
 
 test("resolves a directory reached through a link to where it really is", async ({ tmp }) => {
   await mkdir(join(tmp, "real"));

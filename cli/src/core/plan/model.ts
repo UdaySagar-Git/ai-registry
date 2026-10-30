@@ -3,7 +3,7 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { LayoutId } from "#adapter/layouts/ids.ts";
 import { quoted } from "#adapter/text.ts";
 import type { SourceConfig } from "#core/adapter/identity.ts";
-import { type Catalog, type Entry, entryFor } from "#core/catalog/model.ts";
+import { type Catalog, type Entry, entryFor } from "#core/catalog/catalog.ts";
 import type { Withheld } from "#core/catalog/withheld.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { LinkMode, Lock, LockArtifact, LockRegistry } from "#core/lock.ts";

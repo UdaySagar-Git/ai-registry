@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { sha256Hex } from "#core/fs/hash.ts";
 import { decodeTrustedKeys } from "#core/release/keyring.ts";
 import { canonicalPayload, type ReleaseManifest } from "#core/release/manifest.ts";
+import { binaryName, releasePlatform } from "#core/release/platform.ts";
 import type { ReleaseStamp } from "#core/release/stamp.ts";
-import { binaryName, releasePlatform } from "#core/release/urls.ts";
 import { downloadRelease, resolveRelease } from "./source.ts";
 
 // The stamp is build-time only by design, so a test substitutes one here

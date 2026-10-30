@@ -1,7 +1,7 @@
 import { formatVersion, gte, parseVersion } from "#adapter/semver.ts";
-import { needsMinimumUpdate } from "#core/release/channel.ts";
 import { runningEntry } from "#core/release/launch.ts";
 import { versionBin } from "#core/release/layout.ts";
+import { needsMinimumUpdate } from "#core/release/minimum.ts";
 import { isSourceVersion, VERSION } from "#core/version.ts";
 import { installedVersion, versionOnDisk } from "#self/install.ts";
 import { installRelease, isInstalledCli, probeRelease, skipMinimumUpdate } from "#self/minimum.ts";

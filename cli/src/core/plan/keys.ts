@@ -2,7 +2,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { stringify } from "yaml";
 import { list } from "#adapter/text.ts";
-import { frontmatterRecord } from "#core/catalog/frontmatter.ts";
+import { frontmatterRecord } from "#core/frontmatter.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";
 import type { KeyFile } from "#core/target/contract.ts";

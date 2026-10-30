@@ -1,6 +1,6 @@
 import { canSignIn } from "#adapter/contract.ts";
 import { sanitizeText, withoutCredentials } from "#adapter/text.ts";
-import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
+import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import type { Account, RegistryConfig } from "#core/config/model.ts";
 import type { AccountRow } from "#core/console/model.ts";
 import { signedInAccounts } from "#core/credentials/store.ts";

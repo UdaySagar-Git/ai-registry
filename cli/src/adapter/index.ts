@@ -55,6 +55,7 @@ export {
   registryPath,
   rootReader,
 } from "./filespec/folder.ts";
+export { mergedIndex, mergedVersions, type OfferedVersion, specJson } from "./filespec/merge.ts";
 export {
   ENVELOPE,
   INDEX_DOCUMENT,
@@ -68,7 +69,6 @@ export {
   versionsPath,
 } from "./filespec/names.ts";
 export { type RootResolveOptions, resolveFromRoot } from "./filespec/resolve.ts";
-export { mergedIndex, mergedVersions, type OfferedVersion, specJson } from "./filespec/write.ts";
 export { type ArtifactKind, isKind, KINDS } from "./kinds.ts";
 export type { LayoutId } from "./layouts/ids.ts";
 export { namesHost, registryNameFromLocation, SCP_LOCATION } from "./location.ts";

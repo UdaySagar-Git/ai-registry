@@ -1,8 +1,8 @@
 import { plural, sanitizeName, stripTrailing } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { probe } from "#cli/source.ts";
+import { adapterFor } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { adapterFor } from "#core/adapter/registry.ts";
 import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
 import { readConfig, writeConfig } from "#core/config/repository.ts";
 import { contributedStepFlags } from "#core/host/load.ts";

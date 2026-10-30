@@ -3,7 +3,7 @@ import { attentionHints, type Followed, follow, stoppedError } from "#cli/comman
 import { matchInstalled, rowsNamed } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import { cannotPublish } from "#cli/publish/target.ts";
-import { loadAdapter } from "#core/adapter/registry.ts";
+import { loadAdapter } from "#core/adapter/load.ts";
 import { findJob, type Job } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { registryToken } from "#core/env.ts";

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ErrorCode } from "#core/errors.ts";
-import { refuseInsecure } from "./registry.ts";
+import { refuseInsecure } from "./load.ts";
 
 describe("a registry address without transport security", () => {
   test("is refused over git:// and plain http://, with the address to use instead", () => {

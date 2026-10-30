@@ -1,7 +1,7 @@
 import { basename } from "node:path";
 import { quoted, sanitizeName } from "#adapter/text.ts";
 import type { Account, Job, RegistryConfig } from "#core/config/model.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import type { Scope } from "#core/store/paths.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";

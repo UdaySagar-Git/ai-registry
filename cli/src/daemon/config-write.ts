@@ -1,4 +1,4 @@
-import { ConfigConflictError } from "#core/config/parse-errors.ts";
+import { ConfigConflictError } from "#core/config/errors.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 

@@ -43,7 +43,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 | What an adapter adds beside the contract: commands, job steps and console tabs | `core/host/` |
 | Reading a file spec registry from any `read(path)`, its name rules and document names | `adapter/filespec/` |
 | How a source on disk lays out what it holds, and reading one that is not a registry, such as a folder of skills | `adapter/layouts/` |
-| The merges a publish writes into `versions.json` and `index.json` | `adapter/filespec/write.ts` |
+| The merges a publish writes into `versions.json` and `index.json` | `adapter/filespec/merge.ts` |
 | Registry authoring: init, index, validate, kinds and offers | `core/filespec/write/` |
 | SemVer ordering, digests, safe file reads and writes, and message text helpers | `adapter/semver.ts`, `adapter/spec/canonical.ts`, `adapter/files.ts`, `adapter/text.ts` |
 | Paths, the home folder, hashing, file modes and processes | `adapter/paths.ts`, `core/fs/path.ts`, `core/fs/hash.ts`, `core/fs/mode.ts`, `core/process.ts` |

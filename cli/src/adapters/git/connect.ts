@@ -9,7 +9,7 @@ import {
   type Want,
 } from "#adapter/index.ts";
 import { isLayoutId, type LayoutId } from "#adapter/layouts/ids.ts";
-import { detectLayout, openLayoutRoot } from "#adapter/layouts/index.ts";
+import { detectLayout, openLayoutRoot } from "#adapter/layouts/open.ts";
 import { list } from "#adapter/text.ts";
 import { fail, translating } from "./errors.ts";
 import { GitError, type GitLimits } from "./exec.ts";

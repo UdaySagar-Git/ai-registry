@@ -1,14 +1,19 @@
 import { posix } from "node:path";
 import { isReadOnlyLayout } from "#adapter/layouts/ids.ts";
 import { list, plural, quoted, sanitizeName } from "#adapter/text.ts";
-import { type Entry, entriesIn, entriesNamed, withoutCoveredLeaves } from "#core/catalog/model.ts";
+import {
+  type Entry,
+  entriesIn,
+  entriesNamed,
+  withoutCoveredLeaves,
+} from "#core/catalog/catalog.ts";
 import { withheldAt } from "#core/catalog/withheld.ts";
+import { unmetEngine } from "#core/engines.ts";
 import { kindDir, stagedLeaf } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
 import type { Ref } from "#core/ref.ts";
 import { formatRef, isWholeNamespace, isWholeRegistry, refName, relativeTo } from "#core/ref.ts";
-import { unmetEngine } from "#core/semver.ts";
 import type { Carried } from "./carries.ts";
 import type {
   Acquired,

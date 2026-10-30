@@ -19,11 +19,11 @@ import { list, quoted, sanitizeName } from "#adapter/text.ts";
 import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { parseEngine, unmetEngine } from "#core/semver.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { type Roots, type Scope, scopeName } from "#core/store/paths.ts";
 import { canonicalIds, earlierId, resolveTargets } from "#core/target/index.ts";
 import { VERSION } from "#core/version.ts";
+import { parseEngine, unmetEngine } from "./engines.ts";
 import { AiregError, ErrorCode } from "./errors.ts";
 import {
   type ExportFile,

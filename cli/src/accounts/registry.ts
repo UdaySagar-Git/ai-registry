@@ -1,8 +1,8 @@
 import type { SourceAdapter } from "#adapter/index.ts";
 import { withoutCredentials } from "#adapter/text.ts";
 import { comparableLocation, sourceKey } from "#core/adapter/identity.ts";
+import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import {
   type Manifest,

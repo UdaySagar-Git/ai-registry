@@ -1,8 +1,8 @@
 import { sanitizeText } from "#adapter/text.ts";
-import { isRecord } from "#core/fields.ts";
-import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
-import { engineFromUnknown } from "#core/semver.ts";
-import { parseYaml } from "#core/yaml.ts";
+import { engineFromUnknown } from "./engines.ts";
+import { isRecord } from "./fields.ts";
+import { AGENT_ENTRY, SKILL_ENTRY } from "./kinds.ts";
+import { parseYaml } from "./yaml.ts";
 
 export interface Frontmatter {
   name: string | undefined;

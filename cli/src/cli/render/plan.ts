@@ -1,12 +1,12 @@
 import { relative } from "node:path";
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, plural } from "#adapter/text.ts";
+import { olderThan } from "#core/engines.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Printer } from "#core/output.ts";
 import type { ApplyResult } from "#core/plan/apply.ts";
 import { describeCarried } from "#core/plan/carries.ts";
 import type { Action, Plan } from "#core/plan/model.ts";
-import { olderThan } from "#core/semver.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { type Targets, trustFor } from "#core/target/index.ts";
 import { table } from "#core/term/table.ts";

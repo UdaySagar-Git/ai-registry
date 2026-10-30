@@ -3,7 +3,7 @@ import { basename, dirname, join } from "node:path";
 import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 import { isWithin } from "#adapter/paths.ts";
 import { list, quoted } from "#adapter/text.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { legacyTargetsDir, targetsDir } from "#core/store/paths.ts";
 import schema from "#schema/target.schema.json" with { type: "json" };
 import { BUILTIN_TARGETS } from "#targets/index.ts";

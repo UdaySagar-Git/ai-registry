@@ -12,7 +12,7 @@ const fake = vi.hoisted(() => ({
   listed: [] as { path: string; artifact: unknown }[],
 }));
 
-vi.mock("#core/adapter/source.ts", () => ({
+vi.mock("#core/adapter/connect.ts", () => ({
   connectSource: async ({ alias }: { alias: string }) => ({
     adapter: { id: "fake", capabilities: {} },
     handle: { alias, close: async () => void fake.closed.add(alias) },
@@ -32,7 +32,7 @@ vi.mock("#core/adapter/source.ts", () => ({
     };
   },
 }));
-vi.mock("#core/adapter/content.ts", () => ({
+vi.mock("#core/adapter/materialize.ts", () => ({
   materialize: async (
     _adapter: string,
     _handle: unknown,

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { ArtifactRow } from "#core/console/model.ts";
 import { LOCAL_SOURCE } from "#core/console/model.ts";
 import type { Carrier } from "#core/console/runs.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { candidates } from "#core/sync/adopt.ts";

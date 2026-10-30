@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { readIndex, readVersions, SpecError } from "./documents.ts";
-import { mergedIndex, mergedVersions, newest, type OfferedVersion, specJson } from "./write.ts";
+import { mergedIndex, mergedVersions, newest, type OfferedVersion, specJson } from "./merge.ts";
 
 const OFFER: OfferedVersion = {
   namespace: "mine",

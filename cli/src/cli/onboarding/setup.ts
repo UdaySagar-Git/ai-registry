@@ -9,7 +9,7 @@ import { canAnimate, spinner } from "#cli/prompt/report.ts";
 import { underHome } from "#cli/render/home.ts";
 import { inGitHubActions, isCI, isSet } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { readManifest, writeManifest } from "#core/manifest.ts";
 import { Printer } from "#core/output.ts";
 import {
@@ -22,7 +22,7 @@ import {
 } from "#core/own-skills.ts";
 import { handOff } from "#core/process.ts";
 import { binDir, shimPath } from "#core/release/layout.ts";
-import { BINARY_NAME } from "#core/release/urls.ts";
+import { BINARY_NAME } from "#core/release/platform.ts";
 import { roots } from "#core/store/paths.ts";
 import { detectAll, resolveTargets } from "#core/target/index.ts";
 import { VERSION } from "#core/version.ts";

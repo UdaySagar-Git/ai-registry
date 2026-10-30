@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { releaseBinary } from "#core/product.ts";
-import { RELEASE_PLATFORMS, type ReleasePlatform, releasePlatform } from "#core/release/urls.ts";
+import {
+  RELEASE_PLATFORMS,
+  type ReleasePlatform,
+  releasePlatform,
+} from "#core/release/platform.ts";
 
 /**
  * Exact, never a range: a standalone binary IS its Bun runtime, so `latest` would make every

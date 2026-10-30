@@ -6,8 +6,8 @@ import { besideEnvelope } from "../filespec/resolve.ts";
 import { list } from "../text.ts";
 import { folderLayout, ROOT_ID } from "./folder.ts";
 import type { LayoutId } from "./ids.ts";
-import type { Found, Layout, LayoutContext } from "./layout.ts";
 import { marketplaceLayout } from "./marketplace.ts";
+import type { Found, Layout, LayoutContext } from "./model.ts";
 import { openTree, type Tree } from "./tree.ts";
 
 /** Tried in order: the first that matches reads the source. */

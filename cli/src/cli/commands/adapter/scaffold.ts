@@ -4,7 +4,7 @@ import { redirection } from "#adapter/files.ts";
 import { parseVersion } from "#adapter/semver.ts";
 import { plural, quoted } from "#adapter/text.ts";
 import { parseAdapterId } from "#core/adapter/installed/want.ts";
-import { isBuiltinAdapter } from "#core/adapter/registry.ts";
+import { isBuiltinAdapter } from "#core/adapter/load.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import type { HostCommandContext } from "#core/host/extend.ts";

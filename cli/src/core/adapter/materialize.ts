@@ -18,10 +18,10 @@ import {
 import { assertWithin } from "#adapter/paths.ts";
 import { sha256 } from "#adapter/spec/canonical.ts";
 import { plural } from "#adapter/text.ts";
+import { CONCURRENCY, limiter, weighted } from "#core/concurrency.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { exists } from "#core/fs/tree.ts";
 import { KIND_SPECS } from "#core/kinds.ts";
-import { CONCURRENCY, limiter, weighted } from "#core/limit.ts";
 
 const fetching = limiter(CONCURRENCY);
 

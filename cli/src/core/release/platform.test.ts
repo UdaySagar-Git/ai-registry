@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { binaryName, releasePlatform, requireReleasePlatform } from "./urls.ts";
+import { binaryName, releasePlatform, requireReleasePlatform } from "./platform.ts";
 
 describe("releasePlatform", () => {
   test("names only the platforms a standalone build is published for", () => {

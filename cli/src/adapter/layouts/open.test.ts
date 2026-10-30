@@ -5,8 +5,8 @@ import { skillsFolder } from "#test/kit/builders/layouts.ts";
 import { registry } from "#test/kit/builders/registry.ts";
 import { test } from "#test/kit/fixtures.ts";
 import type { Want } from "../contract.ts";
-import { detectLayout, openLayoutRoot } from "./index.ts";
-import type { RemotePlugin } from "./layout.ts";
+import type { RemotePlugin } from "./model.ts";
+import { detectLayout, openLayoutRoot } from "./open.ts";
 
 const context = { namespace: "kit", rootName: "kit" };
 

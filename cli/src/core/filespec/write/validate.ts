@@ -7,6 +7,7 @@ import {
   SpecError,
 } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
+import { newest } from "#adapter/filespec/merge.ts";
 import {
   ENVELOPE,
   INDEX_DOCUMENT,
@@ -19,7 +20,6 @@ import {
   versionsPath,
 } from "#adapter/filespec/names.ts";
 import { isRemote, locatorOf } from "#adapter/filespec/resolve.ts";
-import { newest } from "#adapter/filespec/write.ts";
 import { contentDigest, type Envelope } from "#adapter/index.ts";
 import { collidingPaths, isSafePath } from "#adapter/paths.ts";
 import { compareVersion, parseVersion } from "#adapter/semver.ts";

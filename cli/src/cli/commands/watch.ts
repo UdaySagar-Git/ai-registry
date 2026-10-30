@@ -13,7 +13,7 @@ import {
 } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { type Roots, type Scope, scopeFor, scopeName, userScopeDir } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";

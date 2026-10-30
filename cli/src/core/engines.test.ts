@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { engineFromUnknown, olderThan, parseEngine, unmetEngine } from "#core/semver.ts";
+import { engineFromUnknown, olderThan, parseEngine, unmetEngine } from "./engines.ts";
 
 describe("engines.aireg", () => {
   test("accepts an optional >= prefix and refuses a range", () => {

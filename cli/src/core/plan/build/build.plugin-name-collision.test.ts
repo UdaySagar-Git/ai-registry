@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
-import { build } from "#core/plan/build.ts";
 import {
   acquired,
   entry,
@@ -9,6 +8,7 @@ import {
   PLAN_OPTIONS,
   pluginCatalog,
 } from "#test/kit/builders/plan.ts";
+import { build } from "./build.ts";
 
 describe("two plugins publishing the same name", () => {
   test("keeps the first and says so, rather than linking one over the other", () => {

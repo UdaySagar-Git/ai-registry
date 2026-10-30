@@ -4,7 +4,7 @@ import { describe, expect } from "vitest";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
 import type { ExtensionHost } from "#core/host/extend.ts";
-import type { Printer } from "#core/output.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { SqliteRunStore } from "#daemon/run-store.ts";
 import { homeTest as test } from "#test/kit/fixtures.ts";
 import { collect } from "./state.ts";

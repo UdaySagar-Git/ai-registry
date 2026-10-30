@@ -1,13 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, vi } from "vitest";
-import { offerFrom } from "#core/filespec/write/offer.ts";
+import { offerFrom } from "#core/filespec/offer.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { commitAndPush, type Published, parseTo, plan } from "./target.ts";
 import type { Work } from "./work.ts";
 
-vi.mock("#core/filespec/write/offer.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("#core/filespec/write/offer.ts")>();
+vi.mock("#core/filespec/offer.ts", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("#core/filespec/offer.ts")>();
   return { ...actual, offerFrom: vi.fn(actual.offerFrom) };
 });
 

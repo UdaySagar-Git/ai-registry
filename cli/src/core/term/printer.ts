@@ -1,6 +1,6 @@
 import type { WriteStream } from "node:tty";
 import { sanitizeBlock } from "#adapter/text.ts";
-import { isCI } from "./env.ts";
+import { isCI } from "#core/env.ts";
 
 export type OutputFormat = "text" | "json";
 

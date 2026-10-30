@@ -30,9 +30,15 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord } from "#core/fields.ts";
 import { authored, exists, refusal, subdirectories } from "#core/fs/tree.ts";
 import { gitIn } from "#core/git.ts";
-import { sentence } from "#core/output.ts";
+import { sentence } from "#core/term/printer.ts";
 import { listed, versionFolders } from "./indexer.ts";
-import { fileProblems, type KindManifest, kindsOf, manifestProblems, specOf } from "./kinds.ts";
+import {
+  fileProblems,
+  type KindManifest,
+  kindsOf,
+  manifestProblems,
+  specOf,
+} from "./kind-manifests.ts";
 import { check } from "./schema.ts";
 
 interface Problem {

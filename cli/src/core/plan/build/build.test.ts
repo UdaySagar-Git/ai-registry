@@ -3,7 +3,6 @@ import { join, relative, resolve } from "node:path";
 import { describe, expect } from "vitest";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { emptyLock } from "#core/lock.ts";
-import { build } from "#core/plan/build.ts";
 import type { Action, Survey } from "#core/plan/model.ts";
 import { parseRef, withLocalName } from "#core/ref.ts";
 import { artifactPath, roots } from "#core/store/paths.ts";
@@ -20,6 +19,7 @@ import {
 } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { withoutKind } from "#test/kit/target.ts";
+import { build } from "./build.ts";
 
 describe("build", () => {
   test("stages and links on a fresh install", () => {

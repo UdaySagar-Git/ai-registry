@@ -2,7 +2,7 @@ import { join, sep } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import { emptyRegistryConfig, type Job, type Step } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { test } from "#test/kit/fixtures.ts";
 import type { CommandContext } from "./command.ts";
 import { run } from "./watch.ts";

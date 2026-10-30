@@ -1,9 +1,9 @@
 import { shownNames } from "#cli/names.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { asksFor, type Manifest, pinOf } from "#core/manifest.ts";
-import { abbreviate, type Printer } from "#core/output.ts";
 import { type Scope, scopeName } from "#core/store/paths.ts";
 import { earlierId, type Targets } from "#core/target/index.ts";
+import { abbreviate, type Printer } from "#core/term/printer.ts";
 import type { Column } from "#core/term/table.ts";
 
 export interface Installed {

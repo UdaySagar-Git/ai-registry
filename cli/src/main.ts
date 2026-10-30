@@ -21,7 +21,7 @@ import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { releaseLeasesOnInterrupt } from "#core/lease.ts";
 import { LogLevelError } from "#core/log/level.ts";
 import { type LogBootstrap, openCliLog } from "#core/log/open.ts";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { NODE_REQUIREMENT, nodeTooOld, VERSION, versionInfo } from "#core/version.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
 import { recycleDaemon } from "#daemon/service.ts";
@@ -70,8 +70,8 @@ async function mapIfRequested(printer: Printer, argv: string[]): Promise<ExitCod
 }
 
 async function unknownKind(name: string, action: string): Promise<AiregError> {
-  const { findRegistry } = await import("#core/filespec/write/init.ts");
-  const { kindsOf, leftOutKind } = await import("#core/filespec/write/kinds.ts");
+  const { findRegistry } = await import("#core/filespec/init.ts");
+  const { kindsOf, leftOutKind } = await import("#core/filespec/kind-manifests.ts");
   const root = findRegistry(process.cwd());
   const left = root === undefined ? undefined : await leftOutKind(root, name);
   if (left !== undefined) {

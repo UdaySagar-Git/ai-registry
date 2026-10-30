@@ -1,7 +1,7 @@
 import { describe, expect, vi } from "vitest";
 import { COMMANDS } from "#cli/commands/index.ts";
 import { ExitCode } from "#core/errors.ts";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { homeTest as test } from "#test/kit/fixtures.ts";
 import { printHelp } from "./help.ts";
 

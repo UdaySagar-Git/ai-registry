@@ -4,7 +4,6 @@ import { describe, expect, test } from "vitest";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { emptyLock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
-import { type BuildOptions, build } from "#core/plan/build.ts";
 import type { Acquired, Action } from "#core/plan/model.ts";
 import { projectionDir, roots } from "#core/store/paths.ts";
 import { manifest } from "#test/kit/builders/manifest.ts";
@@ -16,6 +15,7 @@ import {
   PLAN_OPTIONS,
   wrapping,
 } from "#test/kit/builders/plan.ts";
+import { type BuildOptions, build } from "./build.ts";
 
 // Both sources declare each namespace a plugin, which is what makes two of them share a directory.
 describe("two registries with a namespace of the same name", () => {

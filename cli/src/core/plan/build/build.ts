@@ -4,6 +4,20 @@ import { statusWarning } from "#core/catalog/withheld.ts";
 import { dict } from "#core/fields.ts";
 import { emptyLock, type Lock, type LockArtifact } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
+import { closure, dependentsByName, nameClashes } from "#core/plan/depends.ts";
+import type {
+  Acquired,
+  Clash,
+  Incompatible,
+  Plan,
+  Selected,
+  Survey,
+  Warning,
+} from "#core/plan/model.ts";
+import { dropUnusedSources, lockSourceOf } from "#core/plan/model.ts";
+import { crowdedContainers } from "#core/plan/projection.ts";
+import { addressOf, select, type Untrusted } from "#core/plan/select.ts";
+import { artifactPath, copyLeaf } from "#core/store/paths.ts";
 import {
   carryUnlisted,
   carryUnopened,
@@ -13,21 +27,15 @@ import {
   heldElsewhere,
   keep,
   namespaceWants,
-} from "#core/plan/build/carry.ts";
-import { placeLinks, updateLinks, wantedLinks } from "#core/plan/build/links.ts";
-import { keepUnmovedRevisions, lockRow, rewrittenFrom } from "#core/plan/build/lock-row.ts";
-import { carriedOut, renamesFor } from "#core/plan/build/rename.ts";
-import { planCopy, restages } from "#core/plan/build/restage.ts";
-import type { BuildOptions, BuildState } from "#core/plan/build/state.ts";
-import { flushUnlinks, removeStale } from "#core/plan/build/unlink.ts";
-import { artifactPath, copyLeaf } from "#core/store/paths.ts";
-import { closure, dependentsByName, nameClashes } from "./depends.ts";
-import type { Acquired, Clash, Incompatible, Plan, Selected, Survey, Warning } from "./model.ts";
-import { dropUnusedSources, lockSourceOf } from "./model.ts";
-import { crowdedContainers } from "./projection.ts";
-import { addressOf, select, type Untrusted } from "./select.ts";
+} from "./carry.ts";
+import { placeLinks, updateLinks, wantedLinks } from "./links.ts";
+import { keepUnmovedRevisions, lockRow, rewrittenFrom } from "./lock-row.ts";
+import { carriedOut, renamesFor } from "./rename.ts";
+import { planCopy, restages } from "./restage.ts";
+import type { BuildOptions, BuildState } from "./state.ts";
+import { flushUnlinks, removeStale } from "./unlink.ts";
 
-export type { BuildOptions } from "#core/plan/build/state.ts";
+export type { BuildOptions } from "./state.ts";
 
 /**
  * Pure planning keeps dry runs and applied runs on the same decision path. A clash this

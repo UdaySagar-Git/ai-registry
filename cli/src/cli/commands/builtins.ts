@@ -24,7 +24,7 @@ import { TARGETS_COMMAND } from "#cli/commands/targets/spec.ts";
 import { UNLOCK_COMMAND } from "#cli/commands/unlock/spec.ts";
 import { UPDATE_COMMAND } from "#cli/commands/update/spec.ts";
 import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
-import type { Printer } from "#core/output.ts";
+import type { Printer } from "#core/term/printer.ts";
 import type { CommandSpec } from "./command.ts";
 
 /** Every built-in command's spec, in the order `--help` lists each group. */

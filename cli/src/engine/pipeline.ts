@@ -18,12 +18,11 @@ import { runPipelineHooks } from "#core/hook/run.ts";
 import { type LeaseHolder, withLease } from "#core/lease.ts";
 import { type Lock, lockChanges, readLock } from "#core/lock.ts";
 import { formatManifest, type Manifest, readManifest, writeManifest } from "#core/manifest.ts";
-import type { Printer } from "#core/output.ts";
 import { acquire, answers, lockView, newlyYanked } from "#core/plan/acquire.ts";
 import { type ApplyResult, apply, guardsOf, type Recovered, recover } from "#core/plan/apply.ts";
 import { blockedTargets } from "#core/plan/blocked-targets.ts";
+import { build, clashMessage } from "#core/plan/build/build.ts";
 import { leafOf, NAME_COLLISION_HINT, shownAddress } from "#core/plan/build/rename.ts";
-import { build, clashMessage } from "#core/plan/build.ts";
 import { describeCarried } from "#core/plan/carries.ts";
 import { formatNeed, type Unresolved, wantOf } from "#core/plan/depends.ts";
 import type { Acquired, Action, Kept, Plan } from "#core/plan/model.ts";
@@ -43,6 +42,7 @@ import {
 import { displayPath } from "#core/sync/adopt.ts";
 import { DEFAULT_TARGETS, names, resolveTargets, type Targets } from "#core/target/index.ts";
 import { loadTargetFiles } from "#core/target/load.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import type { CommonOptions } from "./options.ts";
 

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, vi } from "vitest";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { run } from "./resolve.ts";
 

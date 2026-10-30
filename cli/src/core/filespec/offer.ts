@@ -18,7 +18,7 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { frontmatterRecord, ownDescription } from "#core/frontmatter.ts";
 import { authoredArtifact, isDirectory, refusal } from "#core/fs/tree.ts";
 import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
-import { envelopeSpec } from "./kinds.ts";
+import { envelopeSpec } from "./kind-manifests.ts";
 
 const reading = limiter(CONCURRENCY);
 

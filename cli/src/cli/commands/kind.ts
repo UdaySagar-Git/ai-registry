@@ -18,8 +18,8 @@ import { select } from "#cli/prompt/select.ts";
 import { text } from "#cli/prompt/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord, RESERVED_KEYS } from "#core/fields.ts";
-import { inBlobStore } from "#core/filespec/write/indexer.ts";
-import { findRegistry, requireRegistry } from "#core/filespec/write/init.ts";
+import { inBlobStore } from "#core/filespec/indexer.ts";
+import { findRegistry, requireRegistry } from "#core/filespec/init.ts";
 import {
   fileProblems,
   type KindManifest,
@@ -27,8 +27,8 @@ import {
   type SchemaNode,
   specFile,
   specOf,
-} from "#core/filespec/write/kinds.ts";
-import { check } from "#core/filespec/write/schema.ts";
+} from "#core/filespec/kind-manifests.ts";
+import { check } from "#core/filespec/schema.ts";
 import { withName } from "#core/frontmatter.ts";
 import { expandUserPath } from "#core/fs/path.ts";
 import { authored, type Irregular, present, refusal } from "#core/fs/tree.ts";

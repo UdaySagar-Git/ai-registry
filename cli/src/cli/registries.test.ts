@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import type { Interaction } from "#cli/prompt/flow.ts";
 import type { RegistrySource } from "#core/manifest.ts";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { asAddress, chooseRegistry, sameLocation } from "./registries.ts";

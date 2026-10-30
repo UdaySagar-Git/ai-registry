@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { type ColorWhen, Printer, type PrinterOptions, Styler, sentence } from "#core/output.ts";
+import { type ColorWhen, Printer, type PrinterOptions, Styler, sentence } from "./printer.ts";
 
 function capture(options: PrinterOptions) {
   const out: string[] = [];

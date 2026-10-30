@@ -1,9 +1,9 @@
 import { plural } from "#adapter/text.ts";
-import type { Printer } from "#core/output.ts";
 import type { Roots } from "#core/store/paths.ts";
 import type { Candidate } from "#core/sync/adopt.ts";
 import { displayPath } from "#core/sync/adopt.ts";
 import type { Disposition, SyncItem } from "#core/sync/model.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
 
 /** One verb per disposition, in the direction bytes would move. */

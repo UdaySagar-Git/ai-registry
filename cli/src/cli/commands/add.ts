@@ -57,7 +57,6 @@ import { withheldAt, withheldMessage } from "#core/catalog/withheld.ts";
 import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { coveredByWhole, type RegistrySource } from "#core/manifest.ts";
-import { abbreviate } from "#core/output.ts";
 import { reached } from "#core/plan/acquire.ts";
 import { describeCarried } from "#core/plan/carries.ts";
 import type { Selected } from "#core/plan/model.ts";
@@ -70,6 +69,7 @@ import {
   withExclusions,
 } from "#core/ref.ts";
 import { MANIFEST_FILE, SCOPE_DIR, type Scope, scopeFor, userScopeDir } from "#core/store/paths.ts";
+import { abbreviate } from "#core/term/printer.ts";
 import { autostartState } from "#daemon/autostart/index.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
 import { withDaemon } from "#daemon/service.ts";

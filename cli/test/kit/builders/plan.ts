@@ -1,7 +1,7 @@
 import type { Entry } from "#core/catalog/catalog.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
-import type { BuildOptions } from "#core/plan/build.ts";
+import type { BuildOptions } from "#core/plan/build/build.ts";
 import type {
   Acquired,
   Action,

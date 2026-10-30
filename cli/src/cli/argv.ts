@@ -4,7 +4,7 @@ import type { CommandSpec } from "#cli/commands/command.ts";
 import { lookup } from "#cli/commands/index.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { LEVEL_CHOICES, LogLevelError } from "#core/log/level.ts";
-import { COLOR_WHEN, type ColorWhen } from "#core/output.ts";
+import { COLOR_WHEN, type ColorWhen } from "#core/term/printer.ts";
 import { mapTakesValue } from "./map.ts";
 import { takeGlobals } from "./options.ts";
 import { didYouMean } from "./suggest.ts";

@@ -2,11 +2,11 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import type { Entry } from "#core/catalog/catalog.ts";
 import { emptyLock } from "#core/lock.ts";
-import { type BuildOptions, build } from "#core/plan/build.ts";
 import type { Action, Plan } from "#core/plan/model.ts";
 import { parseRef, withLocalName } from "#core/ref.ts";
 import { acquired, entry, kitManifest, PLAN_OPTIONS } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { type BuildOptions, build } from "./build.ts";
 
 const member = (group: string, name = "pr-review", kind: Entry["kind"] = "skill"): Entry =>
   entry({

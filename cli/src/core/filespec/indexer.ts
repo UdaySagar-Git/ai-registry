@@ -42,7 +42,7 @@ import { ownDescription } from "#core/frontmatter.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { authored, exists, refusal, subdirectories } from "#core/fs/tree.ts";
 import { withLease } from "#core/lease.ts";
-import { envelopeSpec, type KindManifest, kindsOf } from "./kinds.ts";
+import { envelopeSpec, type KindManifest, kindsOf } from "./kind-manifests.ts";
 
 /** One version folder, as the path grammar reads it. */
 export interface VersionFolder {

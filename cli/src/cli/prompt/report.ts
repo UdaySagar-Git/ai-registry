@@ -1,7 +1,7 @@
 import { sanitizeText } from "#adapter/text.ts";
 import { isCI } from "#core/env.ts";
-import type { Styler } from "#core/output.ts";
 import { displayWidth } from "#core/term/format.ts";
+import type { Styler } from "#core/term/printer.ts";
 import { GLYPH } from "#core/term/theme.ts";
 import type { PromptIo, PromptWriter } from "./model.ts";
 

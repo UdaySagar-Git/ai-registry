@@ -6,7 +6,6 @@ import { loadedBy, skipLine, toolName, unhandled } from "#cli/render/tools.ts";
 import type { Entry } from "#core/catalog/catalog.ts";
 import { kindDir } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
-import type { Printer } from "#core/output.ts";
 import type { Plan, Selected } from "#core/plan/model.ts";
 import { loadsFrom, type ProjectionOptions } from "#core/plan/projection.ts";
 import { NAME } from "#core/product.ts";
@@ -19,6 +18,7 @@ import {
   type Targets,
   targetRoot,
 } from "#core/target/index.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { tableLines } from "#core/term/table.ts";
 import { blocker, explain } from "./caller.ts";
 import { type Canceled, canceled, type PromptIo } from "./model.ts";

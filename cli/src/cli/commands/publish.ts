@@ -57,7 +57,7 @@ import {
   type RegistrySource,
   unknownRegistry,
 } from "#core/manifest.ts";
-import type { Printer } from "#core/output.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { applyLocal } from "#engine/local.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, withScope } from "#engine/pipeline.ts";

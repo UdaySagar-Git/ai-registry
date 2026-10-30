@@ -32,7 +32,7 @@ vi.mock("#adapter/files.ts", async (importOriginal) => {
   };
 });
 
-const ACME = join(dirname(fileURLToPath(import.meta.url)), "../../../../../examples/acme-registry");
+const ACME = join(dirname(fileURLToPath(import.meta.url)), "../../../../examples/acme-registry");
 
 let root: string;
 

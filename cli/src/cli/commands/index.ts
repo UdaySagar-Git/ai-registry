@@ -2,7 +2,7 @@ import { quoted } from "#adapter/text.ts";
 import { NAMESPACE } from "#cli/options.ts";
 import type { CommandContribution, OptionSpec } from "#core/host/extend.ts";
 import { contributedCommands } from "#core/host/load.ts";
-import type { Printer } from "#core/output.ts";
+import type { Printer } from "#core/term/printer.ts";
 import {
   BUILTIN_SPECS,
   type Hidden,
@@ -156,8 +156,8 @@ const KIND_NEW: readonly OptionSpec[] = [
 
 /** A kind the registry here holds is a command of its own: `aireg agent new triage`. */
 async function kindCommands(cwd: string): Promise<Command[]> {
-  const { findRegistry } = await import("#core/filespec/write/init.ts");
-  const { kindsOf } = await import("#core/filespec/write/kinds.ts");
+  const { findRegistry } = await import("#core/filespec/init.ts");
+  const { kindsOf } = await import("#core/filespec/kind-manifests.ts");
   return Object.entries(await kindsOf(findRegistry(cwd))).map(([name, manifest]) => {
     const a = /^[aeiou]/.test(name) ? "an" : "a";
     const spec: Command = {

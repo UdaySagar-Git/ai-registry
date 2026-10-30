@@ -28,9 +28,9 @@ import {
   withheldFrom,
 } from "#core/catalog/withheld.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { kindsOf } from "#core/filespec/write/kinds.ts";
-import { type OfferTarget, offerFrom } from "#core/filespec/write/offer.ts";
-import { versionProblems } from "#core/filespec/write/validate.ts";
+import { kindsOf } from "#core/filespec/kind-manifests.ts";
+import { type OfferTarget, offerFrom } from "#core/filespec/offer.ts";
+import { versionProblems } from "#core/filespec/validate.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import type { RegistrySource } from "#core/manifest.ts";
 import { parseRef, type Ref, RefParseError } from "#core/ref.ts";

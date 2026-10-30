@@ -1,7 +1,7 @@
 import { adapterProblem } from "#adapter/errors.ts";
 import { type AdapterError, isAdapterError, SpecError } from "#adapter/index.ts";
 import { AiregError, ErrorCode, type ExitCode, exitCodeFor } from "#core/errors.ts";
-import type { Printer } from "#core/output.ts";
+import type { Printer } from "#core/term/printer.ts";
 
 interface Classified {
   code: ErrorCode;

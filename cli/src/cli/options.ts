@@ -5,9 +5,9 @@ import { list, quoted } from "#adapter/text.ts";
 import { STEP_POLICIES } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { OptionSpec } from "#core/host/extend.ts";
-import { COLOR_WHEN } from "#core/output.ts";
 import type { Scope } from "#core/store/paths.ts";
 import { canonicalIds, resolveTargets } from "#core/target/index.ts";
+import { COLOR_WHEN } from "#core/term/printer.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { closest, didYouMean } from "./suggest.ts";
 

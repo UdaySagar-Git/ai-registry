@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { RESERVED } from "./builtins.ts";
 import type { CommandContext } from "./command.ts";

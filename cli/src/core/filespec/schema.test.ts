@@ -4,7 +4,7 @@ import type { SchemaObject } from "ajv/dist/2020.js";
 import { describe, expect } from "vitest";
 import skill from "#schema/kinds/skill.json" with { type: "json" };
 import { test } from "#test/kit/fixtures.ts";
-import { kindsOf, manifestProblems } from "./kinds.ts";
+import { kindsOf, manifestProblems } from "./kind-manifests.ts";
 import { check, prepareManifest } from "./schema.ts";
 
 const custom = () => ({

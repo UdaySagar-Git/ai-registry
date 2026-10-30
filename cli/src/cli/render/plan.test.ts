@@ -1,10 +1,10 @@
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import type { Lock } from "#core/lock.ts";
-import { Printer } from "#core/output.ts";
 import type { ApplyResult } from "#core/plan/apply.ts";
 import { type Action, emptyPlan } from "#core/plan/model.ts";
 import { resolveTargets } from "#core/target/index.ts";
+import { Printer } from "#core/term/printer.ts";
 import { planReport, summarize } from "./plan.ts";
 
 function printed(

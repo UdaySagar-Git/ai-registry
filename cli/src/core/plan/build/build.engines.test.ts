@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
-import { build } from "#core/plan/build.ts";
 import { acquired, entry, kitManifest, PLAN_OPTIONS } from "#test/kit/builders/plan.ts";
+import { build } from "./build.ts";
 
 describe("engines.aireg", () => {
   test("blocks an explicit artifact the running CLI is too old for", () => {

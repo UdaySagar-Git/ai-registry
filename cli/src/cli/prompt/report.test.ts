@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Styler } from "#core/output.ts";
+import { Styler } from "#core/term/printer.ts";
 import type { PromptIo } from "./model.ts";
 import { note, spinner } from "./report.ts";
 

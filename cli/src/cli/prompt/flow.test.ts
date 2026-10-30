@@ -3,10 +3,10 @@ import { PassThrough } from "node:stream";
 import { describe, expect, test } from "vitest";
 import { unhandled } from "#cli/render/tools.ts";
 import { emptyLock, type LockArtifact } from "#core/lock.ts";
-import { Printer } from "#core/output.ts";
 import { emptyPlan, type Plan, type Selected } from "#core/plan/model.ts";
 import { roots, type Scope } from "#core/store/paths.ts";
 import { resolveTargets } from "#core/target/index.ts";
+import { Printer } from "#core/term/printer.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
 import { withoutKind } from "#test/kit/target.ts";
 import {

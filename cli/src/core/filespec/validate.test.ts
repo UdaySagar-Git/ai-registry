@@ -232,7 +232,7 @@ describe("validateRoot", () => {
   });
 });
 
-const ACME = join(dirname(fileURLToPath(import.meta.url)), "../../../../../examples/acme-registry");
+const ACME = join(dirname(fileURLToPath(import.meta.url)), "../../../../examples/acme-registry");
 const RUBRIC_BLOB = "blobs/sha256/28eb2235f00fa89d30904eb6e4a3625dca764a66a67aa9d55c56218c5138fc0c";
 
 describe("validateRoot on blob storage", () => {

@@ -2,7 +2,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
-import { type BuildOptions, build } from "#core/plan/build.ts";
 import type { Action } from "#core/plan/model.ts";
 import { artifactPath, projectionDir, roots, stagingPath } from "#core/store/paths.ts";
 import {
@@ -13,6 +12,7 @@ import {
   PLUGIN_TREES,
   pluginCatalog,
 } from "#test/kit/builders/plan.ts";
+import { type BuildOptions, build } from "./build.ts";
 
 // Claude and Codex read plugins from the user installation, so that is the
 // scope these assertions have to be made in; a project gets the parts instead.

@@ -9,7 +9,7 @@ import {
   kindsOf,
   manifestProblems,
   primaryFiles,
-} from "./kinds.ts";
+} from "./kind-manifests.ts";
 import { check } from "./schema.ts";
 
 const text = (body: string) => new TextEncoder().encode(body);

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ErrorCode, ExitCode } from "#core/errors.ts";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { homeTest } from "#test/kit/fixtures.ts";
 import { buildMap, findMapFormat, type MapNode, runMap } from "./map.ts";
 import { GLOBAL_OPTIONS } from "./options.ts";

@@ -1,11 +1,11 @@
 import { gte } from "#adapter/semver.ts";
 import { updateAdapters } from "#core/adapter/installed/update.ts";
 import { isCI, isSet } from "#core/env.ts";
-import type { Printer } from "#core/output.ts";
 import { spawnDetached } from "#core/process.ts";
 import { launchArgv, runningEntry } from "#core/release/launch.ts";
 import { versionBin } from "#core/release/layout.ts";
 import { releaseStamp } from "#core/release/stamp.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { versionOnDisk } from "./install.ts";
 import { installRelease, isInstalledCli, probeRelease, type RecycleDaemon } from "./minimum.ts";

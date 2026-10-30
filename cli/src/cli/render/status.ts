@@ -1,10 +1,10 @@
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, plural } from "#adapter/text.ts";
 import { STATE_MEANING, stateTone } from "#core/console/state-style.ts";
-import type { Printer } from "#core/output.ts";
 import type { ArtifactStatus, LinkState, State } from "#core/plan/status.ts";
 import { type Scope, scopeName } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/index.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
 import { heading, type Installed, identity } from "./installed.ts";
 import { loadedBy, skipLine, stateFor, toolName } from "./tools.ts";

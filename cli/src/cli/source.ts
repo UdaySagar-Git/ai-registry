@@ -31,7 +31,7 @@ import { expandLocation } from "#core/adapter/location.ts";
 import { materialize } from "#core/adapter/materialize.ts";
 import type { Catalog, Entry } from "#core/catalog/catalog.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { findRegistry } from "#core/filespec/write/init.ts";
+import { findRegistry } from "#core/filespec/init.ts";
 import { dotRelative, posixRelative } from "#core/fs/path.ts";
 import type { RegistrySource } from "#core/manifest.ts";
 import { manifestOf } from "#core/plan/acquire.ts";

@@ -11,7 +11,7 @@ import { withLease } from "#core/lease.ts";
 import { readLock } from "#core/lock.ts";
 import { readManifest } from "#core/manifest.ts";
 import { apply, recover } from "#core/plan/apply.ts";
-import { build } from "#core/plan/build.ts";
+import { build } from "#core/plan/build/build.ts";
 import { fetchFrom, type Plan } from "#core/plan/model.ts";
 import { spawnDetached } from "#core/process.ts";
 import { NAME } from "#core/product.ts";

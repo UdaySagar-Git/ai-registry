@@ -1,7 +1,7 @@
 import { plural } from "#adapter/text.ts";
 import { windowAround } from "#cli/console/model/list.ts";
-import type { Styler } from "#core/output.ts";
 import { displayWidth } from "#core/term/format.ts";
+import type { Styler } from "#core/term/printer.ts";
 import { GLYPH } from "#core/term/theme.ts";
 import { fitLines, footerLines, heightOf, type Mark, railLine, titleLine } from "./layout.ts";
 import {

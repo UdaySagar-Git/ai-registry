@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { Printer } from "#core/output.ts";
 import type { ArtifactStatus } from "#core/plan/status.ts";
 import { resolveTargets } from "#core/target/index.ts";
+import { Printer } from "#core/term/printer.ts";
 import { withoutKind } from "#test/kit/target.ts";
 import type { Installed } from "./installed.ts";
 import { renderStatus } from "./status.ts";

@@ -1,7 +1,7 @@
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
-import { offerFrom } from "#core/filespec/write/offer.ts";
+import { offerFrom } from "#core/filespec/offer.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { type Published, plan } from "./target.ts";
 import type { Work } from "./work.ts";

@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Lock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
-import { build } from "#core/plan/build.ts";
 import type { Action } from "#core/plan/model.ts";
 import {
   acquired,
@@ -12,6 +11,7 @@ import {
   PLAN_OPTIONS,
   SYNCED,
 } from "#test/kit/builders/plan.ts";
+import { build } from "./build.ts";
 
 describe("a run that opened only some registries", () => {
   // Another registry's row, installed earlier and not opened by this run.

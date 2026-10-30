@@ -4,7 +4,6 @@ import { describe, expect, test } from "vitest";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { emptyLock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
-import { type BuildOptions, build } from "#core/plan/build.ts";
 import type { Acquired, Action } from "#core/plan/model.ts";
 import { roots } from "#core/store/paths.ts";
 import {
@@ -15,6 +14,7 @@ import {
   PLAN_OPTIONS,
   wrapping,
 } from "#test/kit/builders/plan.ts";
+import { type BuildOptions, build } from "./build.ts";
 
 describe("a sync that reads one registry and names none", () => {
   // The daemon's path: it reads the job's registry and passes no `opened`.

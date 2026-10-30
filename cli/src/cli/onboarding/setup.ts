@@ -11,7 +11,6 @@ import { inGitHubActions, isCI, isSet } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import { readManifest, writeManifest } from "#core/manifest.ts";
-import { Printer } from "#core/output.ts";
 import {
   OWN_SKILLS_ALIAS,
   OWN_SKILLS_NAMESPACE,
@@ -25,6 +24,7 @@ import { binDir, shimPath } from "#core/release/layout.ts";
 import { BINARY_NAME } from "#core/release/platform.ts";
 import { roots } from "#core/store/paths.ts";
 import { detectAll, resolveTargets } from "#core/target/index.ts";
+import { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { probeDaemon, recycleDaemon } from "#daemon/service.ts";
 import { withScope } from "#engine/pipeline.ts";

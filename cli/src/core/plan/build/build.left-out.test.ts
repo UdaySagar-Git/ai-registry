@@ -1,9 +1,9 @@
 import { describe, expect } from "vitest";
 import { emptyLock } from "#core/lock.ts";
-import { build } from "#core/plan/build.ts";
 import type { Placement } from "#core/plan/model.ts";
 import { acquired, entry, kitManifest, PLAN_OPTIONS } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { build } from "./build.ts";
 
 const HELPER = "agents/helper.md";
 

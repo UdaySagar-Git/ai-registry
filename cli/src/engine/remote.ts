@@ -8,7 +8,7 @@ import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import { countPast } from "#core/catalog/withheld.ts";
 import type { Account } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { offerFrom } from "#core/filespec/write/offer.ts";
+import { offerFrom } from "#core/filespec/offer.ts";
 import type { LockArtifact } from "#core/lock.ts";
 import type { RegistrySource } from "#core/manifest.ts";
 import { listedAt } from "#core/plan/model.ts";

@@ -44,7 +44,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 | Reading a file spec registry from any `read(path)`, its name rules and document names | `adapter/filespec/` |
 | How a source on disk lays out what it holds, and reading one that is not a registry, such as a folder of skills | `adapter/layouts/` |
 | The merges a publish writes into `versions.json` and `index.json` | `adapter/filespec/merge.ts` |
-| Registry authoring: init, index, validate, kinds and offers | `core/filespec/write/` |
+| Registry authoring: init, index, validate, kinds and offers | `core/filespec/` |
 | SemVer ordering, digests, safe file reads and writes, and message text helpers | `adapter/semver.ts`, `adapter/spec/canonical.ts`, `adapter/files.ts`, `adapter/text.ts` |
 | Paths, the home folder, hashing, file modes and processes | `adapter/paths.ts`, `core/fs/path.ts`, `core/fs/hash.ts`, `core/fs/mode.ts`, `core/process.ts` |
 | The lockfile, `.registry/manifest.lock.yml` | `core/lock.ts` |
@@ -59,7 +59,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 
 1. `main.ts` finds the command in `cli/commands/index.ts` and loads its module.
 2. The command parses its options with `cli/options.ts` and reads the scope once: the project's or your user scope's `.registry/manifest.yml` and `manifest.lock.yml`.
-3. Installing commands call `engine/pipeline.ts`, which acquires each registry through its adapter (`core/adapter/`), builds a plan (`core/plan/build.ts`) and, through one guarded commit, applies it (`core/plan/apply.ts`) under the scope's lease (`core/lease.ts`). How the run is shown is the command's, through `cli/render/plan.ts`.
+3. Installing commands call `engine/pipeline.ts`, which acquires each registry through its adapter (`core/adapter/`), builds a plan (`core/plan/build/build.ts`) and, through one guarded commit, applies it (`core/plan/apply.ts`) under the scope's lease (`core/lease.ts`). How the run is shown is the command's, through `cli/render/plan.ts`.
 4. Placement in each target folder follows the target's definition (`src/targets/`, applied by `core/target/`), including any config file the target needs edited, such as Codex's `config.toml`.
 5. A failure is an `AiregError`; `cli/report.ts` prints it, or its `--json` form, and returns its exit status.
 

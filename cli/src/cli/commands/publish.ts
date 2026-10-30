@@ -6,8 +6,10 @@ import { BUMPS, type Bump } from "#adapter/semver.ts";
 import { list, plural, quoted } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled, confirm, defaultIo, select, text } from "#cli/prompt/index.ts";
 import { multiselect } from "#cli/prompt/multiselect.ts";
+import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { confirm, select } from "#cli/prompt/select.ts";
+import { text } from "#cli/prompt/text.ts";
 import { changeLines, changesJson } from "#cli/publish/changes.ts";
 import {
   chooseTarget,

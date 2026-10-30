@@ -15,12 +15,10 @@ import {
   type DaemonMethods,
   type DaemonNotification,
   type DaemonNotifications,
-  encodeMessage,
   MAX_PAGE_SIZE,
   PROTOCOL_VERSION,
-  type RpcId,
-  type RpcResponse,
-} from "./protocol.ts";
+} from "./methods.ts";
+import { encodeMessage, type RpcId, type RpcResponse } from "./protocol.ts";
 
 interface Pending {
   resolve(value: unknown): void;

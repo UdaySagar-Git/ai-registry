@@ -1,6 +1,6 @@
 import { isRetryable } from "#adapter/errors.ts";
 import { type Failure, isAdapterError } from "#adapter/index.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { Disposition } from "#core/sync/model.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
 

@@ -1,10 +1,10 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { onPath } from "#adapter/paths.ts";
 import { sanitizeName } from "#adapter/text.ts";
 import { present } from "#core/env.ts";
 import { expandUserPath } from "#core/fs/path.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import type { Scope } from "#core/store/paths.ts";
 import { codecOf } from "#core/target/codecs/index.ts";
 import { BUILTIN_TARGETS } from "#targets/index.ts";

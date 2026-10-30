@@ -1,8 +1,8 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { PUBLIC_FILE } from "#adapter/files.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
-import { PUBLIC_FILE } from "#core/fs/mode.ts";
 import { readTextIfPresent } from "#core/fs/path.ts";
 import { SERVICE } from "#core/product.ts";
 import { type AutostartBackend, type Exec, type ServiceSpec, SUPERVISOR_ENV } from "./model.ts";

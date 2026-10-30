@@ -1,21 +1,17 @@
 import { list, quoted, sanitizeText } from "#adapter/text.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
+import { isLevel, LEVELS, type LogRecord } from "#core/log/model.ts";
 import {
-  DAEMON_LOG_FILE,
-  DAEMON_STDERR_FILE,
   type Entry,
   type Filter,
-  isLevel,
   isRaw,
-  LEVELS,
-  type LogRecord,
-  logPath,
   matches,
   newestEntries,
   parseLine,
   parseSince,
-} from "#core/log/index.ts";
+} from "#core/log/read.ts";
+import { DAEMON_LOG_FILE, DAEMON_STDERR_FILE, logPath } from "#core/log/sink.ts";
 import { follow } from "#core/log/tail.ts";
 import { toolHome } from "#core/store/paths.ts";
 import { builtin, type CommandContext } from "./index.ts";

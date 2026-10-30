@@ -5,7 +5,7 @@ import { afterEach, describe, expect, vi } from "vitest";
 import { type OutputFormat, Printer } from "#core/output.ts";
 import { writeDaemonPid } from "#daemon/pidfile.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
-import { PROTOCOL_VERSION } from "#daemon/rpc/protocol.ts";
+import { PROTOCOL_VERSION } from "#daemon/rpc/methods.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { daemonAction, run } from "./daemon.ts";
 import type { CommandContext } from "./index.ts";

@@ -1,10 +1,10 @@
+import { type ArtifactKind, isKind, KINDS } from "#adapter/kinds.ts";
 import { list, plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
 import { search } from "#cli/search.ts";
 import { probe, type Resolved, throughManifest } from "#cli/source.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { type ArtifactKind, isKind, KINDS } from "#core/kinds.ts";
 import { formatAddress } from "#core/ref.ts";
 import { scopeName } from "#core/store/paths.ts";
 import { truncate } from "#core/term/format.ts";

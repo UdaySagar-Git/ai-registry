@@ -5,7 +5,7 @@ import { isWithin } from "#adapter/paths.ts";
 import { envName, setting } from "#core/env.ts";
 import { canonical } from "#core/fs/canonical.ts";
 import { userHome } from "#core/fs/path.ts";
-import { DAEMON_STDERR_FILE, logPath } from "#core/log/index.ts";
+import { DAEMON_STDERR_FILE, logPath } from "#core/log/sink.ts";
 import { exec } from "#core/process.ts";
 import { HOME_DIR } from "#core/product.ts";
 import { launchArgv, runningEntry } from "#core/release/launch.ts";
@@ -22,8 +22,6 @@ import {
 } from "./model.ts";
 import { runKeyBackend } from "./run-key.ts";
 import { systemdBackend } from "./systemd.ts";
-
-export { type AutostartState, RESTART_EXIT_CODE } from "./model.ts";
 
 const EXEC_MS = 15_000;
 

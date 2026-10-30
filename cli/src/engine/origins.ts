@@ -1,5 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { sanitizeName } from "#adapter/text.ts";
 import type { Selector, Step } from "#core/config/model.ts";
@@ -7,7 +8,7 @@ import { canonical, canonicalAsync } from "#core/fs/canonical.ts";
 import { authoredDigest } from "#core/fs/digest.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import { authoredArtifact, copyAuthored, exists, type Irregular, refusal } from "#core/fs/tree.ts";
-import { type ArtifactKind, KIND_SPECS } from "#core/kinds.ts";
+import { KIND_SPECS } from "#core/kinds.ts";
 import { CONCURRENCY, limiter } from "#core/limit.ts";
 import { type Lock, type LockArtifact, readLock, writeLock } from "#core/lock.ts";
 import { listedAt } from "#core/plan/model.ts";

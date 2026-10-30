@@ -1,4 +1,5 @@
-import { type ArtifactKind, SCANNED_KINDS } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
+import { SCANNED_KINDS } from "#core/kinds.ts";
 import { listedAt } from "#core/plan/model.ts";
 import {
   EMPTY_RUN_COUNTS,

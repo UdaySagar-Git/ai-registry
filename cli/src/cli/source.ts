@@ -9,6 +9,7 @@ import {
   type SourceAdapter,
   type Want,
 } from "#adapter/index.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isLayoutId, isReadOnlyLayout, LAYOUT_IDS, type LayoutId } from "#adapter/layouts/ids.ts";
 import { registryNameFromLocation } from "#adapter/location.ts";
 import { expandHome, isLocalPath } from "#adapter/paths.ts";
@@ -32,7 +33,6 @@ import type { Catalog, Entry } from "#core/catalog/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { findRegistry } from "#core/filespec/write/init.ts";
 import { dotRelative, posixRelative } from "#core/fs/path.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import type { RegistrySource } from "#core/manifest.ts";
 import { manifestOf } from "#core/plan/acquire.ts";
 import { type Carried, carriedIn } from "#core/plan/carries.ts";

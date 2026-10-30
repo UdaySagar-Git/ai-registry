@@ -1,13 +1,14 @@
 import { resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
+import type { ExportFile } from "#core/export-fields.ts";
 import { gitignore } from "#core/fs/gitignore.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import { authored } from "#core/fs/tree.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
-import type { Export, ExportFile } from "#core/manifest.ts";
+import type { Export } from "#core/manifest.ts";
 
 function entryOf(kind: ArtifactKind): string {
   return kind === "agent" ? AGENT_ENTRY : SKILL_ENTRY;

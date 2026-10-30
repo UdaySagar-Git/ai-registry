@@ -1,9 +1,10 @@
 import type { ArtifactKind } from "../kinds.ts";
 import { compareVersion, parseVersion, type Version } from "../semver.ts";
+import { isVersion } from "../spec/ref.ts";
 import { SUPPORTED_FORMAT } from "../spec/types.ts";
 import { quoted } from "../text.ts";
 import { SpecError } from "./documents.ts";
-import { INDEX_DOCUMENT, isVersion, versionsPath } from "./names.ts";
+import { INDEX_DOCUMENT, versionsPath } from "./names.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

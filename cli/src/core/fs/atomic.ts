@@ -1,8 +1,8 @@
 import { lstat, readlink, realpath, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { writeAtomic as write } from "#adapter/files.ts";
+import { PUBLIC_FILE, writeAtomic as write } from "#adapter/files.ts";
 import { assertLeasesHeld } from "#core/lease.ts";
-import { PRIVATE_FILE, PUBLIC_FILE } from "./mode.ts";
+import { PRIVATE_FILE } from "./mode.ts";
 import { isMissing } from "./path.ts";
 
 /**

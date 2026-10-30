@@ -10,7 +10,7 @@ import {
 import type { ArtifactKind } from "../kinds.ts";
 import { collidingPaths, isSafePath } from "../paths.ts";
 import { contentDigest } from "../spec/canonical.ts";
-import { digestHex } from "../spec/ref.ts";
+import { digestHex, isVersion } from "../spec/ref.ts";
 import type { Envelope, FileDescriptor } from "../spec/types.ts";
 import { quoted } from "../text.ts";
 import {
@@ -25,14 +25,7 @@ import {
   SpecError,
   type VersionRow,
 } from "./documents.ts";
-import {
-  ENVELOPE,
-  INDEX_DOCUMENT,
-  isArtifactName,
-  isNamespace,
-  isVersion,
-  versionDir,
-} from "./names.ts";
+import { ENVELOPE, INDEX_DOCUMENT, isArtifactName, isNamespace, versionDir } from "./names.ts";
 
 /** Each descriptor is checked and kept as written, since the content digest covers all of it. */
 function checkFiles(value: unknown, path: string): void {

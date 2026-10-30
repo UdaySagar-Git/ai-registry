@@ -14,7 +14,8 @@ import {
 import { readConfig } from "#core/config/repository.ts";
 import type { StepRunResult } from "#core/host/extend.ts";
 import { stepContribution, stepOn } from "#core/host/load.ts";
-import { type Logger, nullLogger } from "#core/log/index.ts";
+import { nullLogger } from "#core/log/logger.ts";
+import type { Logger } from "#core/log/model.ts";
 import {
   EMPTY_RUN_COUNTS,
   ITEM_EVENT,

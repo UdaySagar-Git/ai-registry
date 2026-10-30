@@ -4,12 +4,8 @@ import { unknownAction } from "#cli/suggest.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { VERSION } from "#core/version.ts";
-import {
-  type AutostartState,
-  autostartState,
-  disableAutostart,
-  enableAutostart,
-} from "#daemon/autostart/index.ts";
+import { autostartState, disableAutostart, enableAutostart } from "#daemon/autostart/index.ts";
+import type { AutostartState } from "#daemon/autostart/model.ts";
 import { readDaemonPid } from "#daemon/pidfile.ts";
 import { ensureDaemon, probeDaemon, stopDaemon } from "#daemon/service.ts";
 import { builtin, type CommandContext, runAction } from "./index.ts";

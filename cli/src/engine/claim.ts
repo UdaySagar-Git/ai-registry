@@ -1,6 +1,7 @@
 import { join } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { digest } from "#core/fs/digest.ts";
-import { type ArtifactKind, kindDir } from "#core/kinds.ts";
+import { kindDir } from "#core/kinds.ts";
 import type { Acquired } from "#core/plan/model.ts";
 import { assertRemovable, type RemovableRoots, removal } from "#core/plan/removable.ts";
 import { moveToBackup } from "#core/store/backups.ts";

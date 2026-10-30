@@ -8,13 +8,12 @@ import { quoted, sanitizeName } from "#adapter/text.ts";
 import { frontmatterRecord } from "#core/catalog/frontmatter.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { dict, isRecord } from "#core/fields.ts";
-import { AGENT_CARD_ENTRY, AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
+import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
+import { AGENT_CARD_ENTRY } from "#core/product.ts";
 import agent from "#schema/kinds/agent.json" with { type: "json" };
 import skill from "#schema/kinds/skill.json" with { type: "json" };
 
 import { prepareManifest } from "./schema.ts";
-
-export { check } from "./schema.ts";
 
 /** Fields the scaffolder understands; validation accepts the full JSON Schema vocabulary. */
 export interface SchemaNode {

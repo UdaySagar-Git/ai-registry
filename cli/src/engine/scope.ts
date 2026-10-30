@@ -1,6 +1,6 @@
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import type { Ref } from "#core/ref.ts";
 import { formatAddress, isWholeNamespace, isWholeRegistry, parseRef } from "#core/ref.ts";
 import type { Candidate } from "#core/sync/adopt.ts";

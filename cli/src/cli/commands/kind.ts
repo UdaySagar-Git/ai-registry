@@ -5,26 +5,22 @@ import { stringify } from "yaml";
 import { redirection } from "#adapter/files.ts";
 import { readJson } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
-import {
-  ENVELOPE,
-  isArtifactName,
-  isDeviceName,
-  isNamespace,
-  isVersion,
-} from "#adapter/filespec/names.ts";
+import { ENVELOPE, isArtifactName, isDeviceName, isNamespace } from "#adapter/filespec/names.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { bumpVersion, compareVersion, parseVersion } from "#adapter/semver.ts";
+import { isVersion } from "#adapter/spec/ref.ts";
 import { list, plural, quoted, sanitizeName } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled, defaultIo, select, text } from "#cli/prompt/index.ts";
+import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { select } from "#cli/prompt/select.ts";
+import { text } from "#cli/prompt/text.ts";
 import { withName } from "#core/catalog/frontmatter.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord, RESERVED_KEYS } from "#core/fields.ts";
 import { inBlobStore } from "#core/filespec/write/indexer.ts";
 import { findRegistry, requireRegistry } from "#core/filespec/write/init.ts";
 import {
-  check,
   fileProblems,
   type KindManifest,
   primaryFiles,
@@ -32,6 +28,7 @@ import {
   specFile,
   specOf,
 } from "#core/filespec/write/kinds.ts";
+import { check } from "#core/filespec/write/schema.ts";
 import { expandUserPath } from "#core/fs/path.ts";
 import { authored, type Irregular, present, refusal } from "#core/fs/tree.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";

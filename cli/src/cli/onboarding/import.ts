@@ -1,11 +1,11 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { authoredDigest } from "#core/fs/digest.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import { authoredArtifact, copyAuthored, exists, type Irregular, refusal } from "#core/fs/tree.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import { emptyLock, type Lock, writeLock } from "#core/lock.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { artifactPath, type Roots, type Scope } from "#core/store/paths.ts";

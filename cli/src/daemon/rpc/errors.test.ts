@@ -3,7 +3,7 @@ import { AdapterError } from "#adapter/index.ts";
 import { CredentialStoreError } from "#core/credentials/store.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { LeaseError } from "#core/lease.ts";
-import { ManifestError } from "#core/manifest.ts";
+import { ManifestError } from "#core/manifest-error.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { rpcError } from "./errors.ts";
 import { ProtocolError } from "./protocol.ts";

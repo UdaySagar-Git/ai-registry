@@ -1,5 +1,5 @@
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { Account } from "#core/config/model.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import { type Candidate, displayPath } from "#core/sync/adopt.ts";
 import type { Disposition } from "#core/sync/model.ts";
 import { operation, type SyncOperation } from "#core/sync/policy.ts";

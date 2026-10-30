@@ -1,13 +1,13 @@
 import { existsSync } from "node:fs";
 import { readdir, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
+import { PUBLIC_FILE } from "#adapter/files.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { inspectAdapterModule, isBuiltinAdapter } from "#core/adapter/registry.ts";
 import { updateConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { sha256Hex } from "#core/fs/hash.ts";
-import { PUBLIC_FILE } from "#core/fs/mode.ts";
 import { ADAPTER_MODULE_FILE } from "#core/product.ts";
 import { adapterDataDir, adapterModulePath, ensureHome, toolHome } from "#core/store/paths.ts";
 import { parseDispatch, writeInstallRecord } from "./record.ts";

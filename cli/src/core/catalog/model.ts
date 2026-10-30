@@ -1,4 +1,4 @@
-import type { ArtifactKind } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { Newest, Withheld } from "./withheld.ts";
 
 /** Where an entry was read from. */

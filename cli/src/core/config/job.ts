@@ -1,8 +1,8 @@
 import { isAbsolute } from "node:path";
+import { isKind } from "#adapter/kinds.ts";
 import { expandHome } from "#adapter/paths.ts";
 import { quoted } from "#adapter/text.ts";
 import { parseDuration, type Readers } from "#core/fields.ts";
-import { isKind } from "#core/kinds.ts";
 import { canonicalIds, earlierId, resolveTargets, type Targets } from "#core/target/index.ts";
 import {
   DEFAULT_INTERVAL_SECONDS,

@@ -1,11 +1,12 @@
 import type { Dirent } from "node:fs";
 import { readdir, readlink, stat } from "node:fs/promises";
 import { basename, dirname, join, posix, resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { canonical } from "#core/fs/canonical.ts";
 import { inspect } from "#core/fs/link.ts";
 import { posixRelative } from "#core/fs/path.ts";
-import { type ArtifactKind, KIND_SPECS, SCANNED_KINDS } from "#core/kinds.ts";
+import { KIND_SPECS, SCANNED_KINDS } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { entriesIn } from "#core/sync/scan.ts";

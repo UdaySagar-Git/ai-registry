@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { isArtifactName, isKindSegment, isNamespace, isVersion } from "#adapter/filespec/names.ts";
+import { isArtifactName, isKindSegment, isNamespace } from "#adapter/filespec/names.ts";
 import {
   type ArtifactKind,
   buildEnvelope,
@@ -11,6 +11,7 @@ import {
   type UploadFile,
 } from "#adapter/index.ts";
 import { describeFile } from "#adapter/spec/envelope.ts";
+import { isVersion } from "#adapter/spec/ref.ts";
 import { quoted } from "#adapter/text.ts";
 import { frontmatterRecord, ownDescription } from "#core/catalog/frontmatter.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";

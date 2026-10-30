@@ -1,6 +1,6 @@
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, plural } from "#adapter/text.ts";
 import { STATE_MEANING, stateTone } from "#core/console/state-style.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import type { Printer } from "#core/output.ts";
 import type { ArtifactStatus, LinkState, State } from "#core/plan/status.ts";
 import { type Scope, scopeName } from "#core/store/paths.ts";

@@ -3,7 +3,8 @@ import { createInterface } from "node:readline";
 import { sanitizeText } from "#adapter/text.ts";
 import type { Job, RegistryConfig } from "#core/config/model.ts";
 import { isRecord, textOf } from "#core/fields.ts";
-import { DAEMON_LOG_FILE, isRaw, logPath, parseLine } from "#core/log/index.ts";
+import { isRaw, parseLine } from "#core/log/read.ts";
+import { DAEMON_LOG_FILE, logPath } from "#core/log/sink.ts";
 import {
   ITEM_EVENT,
   type ItemOutcome,

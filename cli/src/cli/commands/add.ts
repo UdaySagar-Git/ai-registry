@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isReadOnlyLayout, type LayoutId } from "#adapter/layouts/ids.ts";
 import { expandHome } from "#adapter/paths.ts";
 import { list, plural, quoted, sanitizeName, withoutCredentials } from "#adapter/text.ts";
@@ -20,7 +21,8 @@ import {
   pickedNamespace,
   preparing,
 } from "#cli/prompt/flow.ts";
-import { canAnimate, canceled, defaultIo, spinner } from "#cli/prompt/index.ts";
+import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { canAnimate, spinner } from "#cli/prompt/report.ts";
 import {
   aliasFor,
   asAddress,
@@ -52,7 +54,6 @@ import { type Entry, withoutCoveredLeaves } from "#core/catalog/model.ts";
 import { withheldAt, withheldMessage } from "#core/catalog/withheld.ts";
 import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import { coveredByWhole, type RegistrySource } from "#core/manifest.ts";
 import { abbreviate } from "#core/output.ts";
 import { reached } from "#core/plan/acquire.ts";

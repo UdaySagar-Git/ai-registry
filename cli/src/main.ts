@@ -18,7 +18,7 @@ import { reportError } from "#cli/report.ts";
 import { closest, didYouMean } from "#cli/suggest.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { releaseLeasesOnInterrupt } from "#core/lease.ts";
-import { LogLevelError } from "#core/log/index.ts";
+import { LogLevelError } from "#core/log/level.ts";
 import { type LogBootstrap, openCliLog } from "#core/log/open.ts";
 import { Printer } from "#core/output.ts";
 import { NODE_REQUIREMENT, nodeTooOld, VERSION, versionInfo } from "#core/version.ts";

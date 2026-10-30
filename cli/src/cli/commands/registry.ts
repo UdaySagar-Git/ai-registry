@@ -27,7 +27,8 @@ import { jobsClause, registryJobs, removeJobs } from "#cli/commands/registry/job
 import { type Move, moveOf, recordMove, signInLeftBehind } from "#cli/commands/registry/move.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled, defaultIo, text } from "#cli/prompt/index.ts";
+import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { text } from "#cli/prompt/text.ts";
 import { commitAndPush, releaseSubject } from "#cli/publish/target.ts";
 import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
 import { underHome } from "#cli/render/home.ts";

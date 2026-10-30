@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { test as base, expect, vi } from "vitest";
 import { RpcClient } from "#daemon/rpc/client.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
-import type { ClientInfo } from "#daemon/rpc/protocol.ts";
+import type { ClientInfo } from "#daemon/rpc/methods.ts";
 import { DaemonRuntime } from "#daemon/runtime.ts";
 import { testClient } from "./daemon.ts";
 import { type Home, makeHome } from "./home.ts";

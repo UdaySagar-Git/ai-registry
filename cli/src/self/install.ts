@@ -13,12 +13,12 @@ import {
   symlink,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { EXECUTABLE } from "#adapter/files.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { gte, parseVersion } from "#adapter/semver.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { canonical } from "#core/fs/canonical.ts";
-import { EXECUTABLE } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
 import {
   binDir,

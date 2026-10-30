@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { type ArtifactKind, KIND_SPECS } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
+import { KIND_SPECS } from "#core/kinds.ts";
 import type { Targets } from "#core/target/index.ts";
 import { BUILTIN_TARGETS } from "#targets/index.ts";
 

@@ -1,3 +1,4 @@
+import { KINDS } from "#adapter/kinds.ts";
 import { list } from "#adapter/text.ts";
 import {
   ADAPTER,
@@ -14,10 +15,9 @@ import {
 } from "#cli/options.ts";
 import { DEFAULT_INTERVAL_SECONDS, STEP_POLICIES } from "#core/config/model.ts";
 import type { OptionSpec } from "#core/host/extend.ts";
-import { KINDS } from "#core/kinds.ts";
 import { RUN_MODES } from "#core/run/model.ts";
 import { IMPORTABLE_TARGETS } from "#core/target/index.ts";
-import { MAX_PAGE_SIZE } from "#daemon/rpc/protocol.ts";
+import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
 import type { CommandSpec } from "./index.ts";
 
 const TOKEN_STDIN: OptionSpec = {

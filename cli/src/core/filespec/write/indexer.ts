@@ -13,7 +13,6 @@ import {
   isArtifactName,
   isKindSegment,
   isNamespace,
-  isVersion,
   REGISTRY_DOCUMENT,
   versionDir,
   versionsPath,
@@ -37,7 +36,7 @@ import {
 } from "#adapter/index.ts";
 import { catalogDigest } from "#adapter/spec/canonical.ts";
 import { describeFile } from "#adapter/spec/envelope.ts";
-import { isDigest } from "#adapter/spec/ref.ts";
+import { isDigest, isVersion } from "#adapter/spec/ref.ts";
 import { ownDescription } from "#core/catalog/frontmatter.ts";
 import { isRecord } from "#core/fields.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";

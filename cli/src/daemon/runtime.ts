@@ -9,7 +9,8 @@ import { readConfig } from "#core/config/repository.ts";
 import { removeTokens, tokenVariable, withRegistryTokens } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { Fields } from "#core/fields.ts";
-import { type Logger, nullLogger } from "#core/log/index.ts";
+import { nullLogger } from "#core/log/logger.ts";
+import type { Logger } from "#core/log/model.ts";
 import { installCrashHandlers, openDaemonLog } from "#core/log/open.ts";
 import { NAME } from "#core/product.ts";
 import {
@@ -22,15 +23,12 @@ import {
   type RunRecord,
 } from "#core/run/model.ts";
 import { type Scope, toolHome, userScopeDir } from "#core/store/paths.ts";
-import { RESTART_EXIT_CODE, refreshAutostart, supervised } from "#daemon/autostart/index.ts";
+import { refreshAutostart, supervised } from "#daemon/autostart/index.ts";
+import { RESTART_EXIT_CODE } from "#daemon/autostart/model.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { privateDirectory, rpcEndpoint } from "#daemon/rpc/endpoint.ts";
-import {
-  type DaemonInfo,
-  MAX_PAGE_SIZE,
-  PROTOCOL_VERSION,
-  ProtocolError,
-} from "#daemon/rpc/protocol.ts";
+import { type DaemonInfo, MAX_PAGE_SIZE, PROTOCOL_VERSION } from "#daemon/rpc/methods.ts";
+import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import { DaemonAlreadyRunningError, type RpcContext, RpcServer } from "#daemon/rpc/server.ts";
 import { jobOfWork, type ScopeWork } from "#engine/work.ts";
 import { loginAccount, logoutAccount, removeAccount } from "./account-methods.ts";

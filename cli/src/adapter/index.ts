@@ -62,7 +62,6 @@ export {
   isDeviceName,
   isKindSegment,
   isNamespace,
-  isVersion,
   REGISTRY_DOCUMENT,
   VERSIONS_DOCUMENT,
   versionDir,
@@ -98,6 +97,7 @@ export {
 } from "./semver.ts";
 export { contentDigest, sha256 } from "./spec/canonical.ts";
 export { buildEnvelope, describeFile, type EnvelopeInput } from "./spec/envelope.ts";
+export { isVersion } from "./spec/ref.ts";
 export type {
   Envelope,
   EnvelopeMetadata,

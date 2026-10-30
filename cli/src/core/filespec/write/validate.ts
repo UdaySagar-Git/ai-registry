@@ -14,7 +14,6 @@ import {
   isDeviceName,
   isKindSegment,
   isNamespace,
-  isVersion,
   REGISTRY_DOCUMENT,
   VERSIONS_DOCUMENT,
   versionsPath,
@@ -25,6 +24,7 @@ import { contentDigest, type Envelope } from "#adapter/index.ts";
 import { collidingPaths, isSafePath } from "#adapter/paths.ts";
 import { compareVersion, parseVersion } from "#adapter/semver.ts";
 import { catalogDigest } from "#adapter/spec/canonical.ts";
+import { isVersion } from "#adapter/spec/ref.ts";
 import { list, quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord } from "#core/fields.ts";
@@ -32,14 +32,8 @@ import { authored, exists, refusal, subdirectories } from "#core/fs/tree.ts";
 import { gitIn } from "#core/git.ts";
 import { sentence } from "#core/output.ts";
 import { listed, versionFolders } from "./indexer.ts";
-import {
-  check,
-  fileProblems,
-  type KindManifest,
-  kindsOf,
-  manifestProblems,
-  specOf,
-} from "./kinds.ts";
+import { fileProblems, type KindManifest, kindsOf, manifestProblems, specOf } from "./kinds.ts";
+import { check } from "./schema.ts";
 
 interface Problem {
   /** Root-relative, POSIX: the file or folder to look at. */

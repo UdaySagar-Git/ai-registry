@@ -1,6 +1,6 @@
 import { relative } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, plural } from "#adapter/text.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Printer } from "#core/output.ts";
 import type { ApplyResult } from "#core/plan/apply.ts";

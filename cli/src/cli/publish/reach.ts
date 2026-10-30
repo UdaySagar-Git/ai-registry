@@ -2,23 +2,19 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { quoted } from "#adapter/text.ts";
 import { frontmatter } from "#core/catalog/frontmatter.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
+import { type ExportFile, isGlob } from "#core/export-fields.ts";
 import { canonicalAsync } from "#core/fs/canonical.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import { isDirectory } from "#core/fs/tree.ts";
 import { gitIn } from "#core/git.ts";
-import { AGENT_ENTRY, type ArtifactKind, SKILL_ENTRY } from "#core/kinds.ts";
+import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
-import {
-  type Export,
-  type ExportDependency,
-  type ExportFile,
-  isGlob,
-  type Manifest,
-} from "#core/manifest.ts";
+import type { Export, ExportDependency, Manifest } from "#core/manifest.ts";
 import { formatAddress } from "#core/ref.ts";
 import { chooseFiles } from "./files.ts";
 import { type Exported, expand } from "./work.ts";

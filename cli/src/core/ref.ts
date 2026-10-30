@@ -1,7 +1,8 @@
-import { isArtifactName, isDeviceName, isVersion } from "#adapter/filespec/names.ts";
+import { isArtifactName, isDeviceName } from "#adapter/filespec/names.ts";
+import { type ArtifactKind, isKind, KINDS } from "#adapter/kinds.ts";
+import { isVersion } from "#adapter/spec/ref.ts";
 import { list, quoted, withoutCredentials } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "./errors.ts";
-import { type ArtifactKind, isKind, KINDS } from "./kinds.ts";
 
 /**
  * Breadth by segment count: `kit`, `kit/sales`, then `kit/skill/lint`, `kit/sales/deploy` or `kit/sales/skill/deploy`,

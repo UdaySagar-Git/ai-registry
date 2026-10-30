@@ -1,5 +1,5 @@
 import { isNamespace } from "#adapter/filespec/names.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { Scope } from "#core/store/paths.ts";
 import { shellWord } from "#core/term/format.ts";
 import type { PipelineHook } from "./hook-stages.ts";

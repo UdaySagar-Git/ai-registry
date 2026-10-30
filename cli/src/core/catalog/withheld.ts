@@ -1,7 +1,7 @@
 import type { Withheld as Reported, Newest as ReportedNewest } from "#adapter/contract.ts";
+import { type ArtifactKind, isKind } from "#adapter/kinds.ts";
 import { compareVersion, parseVersion } from "#adapter/semver.ts";
 import { sanitizeName, sanitizeText } from "#adapter/text.ts";
-import { type ArtifactKind, isKind } from "#core/kinds.ts";
 
 /** An artifact a registry reached but would not serve at that version, by its status. */
 export interface Withheld {

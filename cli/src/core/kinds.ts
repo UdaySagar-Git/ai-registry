@@ -2,9 +2,6 @@ import { basename, extname, join } from "node:path";
 import { type ArtifactKind, KINDS } from "#adapter/index.ts";
 import { AGENT_CARD_ENTRY } from "./product.ts";
 
-export { type ArtifactKind, isKind, KINDS } from "#adapter/index.ts";
-export { AGENT_CARD_ENTRY } from "./product.ts";
-
 /** How a kind appears in a registry, and what it is called there. */
 export interface KindSpec {
   /** Directory name, both in a registry and in this scope's own copies. */

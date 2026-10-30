@@ -19,7 +19,7 @@ import { ago, duration } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
 import { followRun, type RpcClient, runEvents } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
-import { MAX_PAGE_SIZE } from "#daemon/rpc/protocol.ts";
+import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
 import { withDaemon } from "#daemon/service.ts";
 
 /** `run_` plus a v4 uuid, as `runner.ts` mints them. */

@@ -3,7 +3,7 @@ import { chmod, mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
 import type { CliCode } from "#adapter/codes.ts";
 import { adapterProblem, failureOf } from "#adapter/errors.ts";
-import { assertUnredirected, copyRegular, hashRegular } from "#adapter/files.ts";
+import { assertUnredirected, copyRegular, EXECUTABLE, hashRegular } from "#adapter/files.ts";
 import {
   AdapterError,
   type Artifact,
@@ -19,7 +19,6 @@ import { assertWithin } from "#adapter/paths.ts";
 import { sha256 } from "#adapter/spec/canonical.ts";
 import { plural } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { EXECUTABLE } from "#core/fs/mode.ts";
 import { exists } from "#core/fs/tree.ts";
 import { KIND_SPECS } from "#core/kinds.ts";
 import { CONCURRENCY, limiter, weighted } from "#core/limit.ts";

@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { digestHex } from "#adapter/spec/ref.ts";
 import { sanitizeName } from "#adapter/text.ts";
 import { setting } from "#core/env.ts";
@@ -7,7 +8,7 @@ import { canonical } from "#core/fs/canonical.ts";
 import { isSha256Hex, sha256Hex, shortHash } from "#core/fs/hash.ts";
 import { PRIVATE_DIR } from "#core/fs/mode.ts";
 import { homeDir } from "#core/fs/path.ts";
-import { type ArtifactKind, kindDir, stagedLeaf } from "#core/kinds.ts";
+import { kindDir, stagedLeaf } from "#core/kinds.ts";
 import { HOME_DIR, LEGACY_TARGETS_DIR, TARGETS_DIR } from "#core/product.ts";
 
 /** Where a command installs: this project, or `-g` for the user. */

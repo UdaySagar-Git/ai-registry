@@ -2,7 +2,7 @@ import { closeSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
-import { logPath } from "#core/log/index.ts";
+import { logPath } from "#core/log/sink.ts";
 import { cliClient, RpcClient } from "#daemon/rpc/client.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
 import { test } from "#test/kit/fixtures.ts";

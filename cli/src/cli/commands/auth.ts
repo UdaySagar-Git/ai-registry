@@ -11,7 +11,8 @@ import {
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled, confirm, defaultIo } from "#cli/prompt/index.ts";
+import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
+import { confirm } from "#cli/prompt/select.ts";
 import { comparableLocation } from "#core/adapter/identity.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";

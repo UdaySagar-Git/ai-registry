@@ -162,6 +162,16 @@
       }
     },
     {
+      "includes": ["src/adapter/index.ts", "src/adapters/*/api.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "src/cli/commands/add.ts",
         "src/cli/commands/kind.ts",
@@ -183,40 +193,6 @@
         "rules": {
           "complexity": {
             "useMaxParams": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": [
-        "src/adapter/filespec/names.ts",
-        "src/adapter/index.ts",
-        "src/adapters/git/api.ts",
-        "src/adapters/local/api.ts",
-        "src/adapters/well-known/api.ts",
-        "src/cli/prompt/index.ts",
-        "src/core/filespec/write/kinds.ts",
-        "src/core/fs/mode.ts",
-        "src/core/kinds.ts",
-        "src/core/log/index.ts",
-        "src/core/manifest.ts",
-        "src/daemon/autostart/index.ts",
-        "src/daemon/rpc/protocol.ts"
-      ],
-      "linter": {
-        "rules": {
-          "performance": {
-            "noBarrelFile": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["src/daemon/rpc/protocol.ts"],
-      "linter": {
-        "rules": {
-          "performance": {
-            "noReExportAll": "off"
           }
         }
       }

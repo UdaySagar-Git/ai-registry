@@ -1,7 +1,7 @@
 import { dirname, join, posix, resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { sanitizeName } from "#adapter/text.ts";
 import { posixRelative } from "#core/fs/path.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { namespaceDir, projectionDir, type Scope } from "#core/store/paths.ts";

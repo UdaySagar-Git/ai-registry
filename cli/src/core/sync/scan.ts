@@ -1,12 +1,13 @@
 import type { Stats } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { sanitizeName } from "#adapter/text.ts";
 import { descriptionText, frontmatter } from "#core/catalog/frontmatter.ts";
 import type { Entry } from "#core/catalog/model.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import { isDirectory } from "#core/fs/tree.ts";
-import type { ArtifactKind, KindSpec } from "#core/kinds.ts";
+import type { KindSpec } from "#core/kinds.ts";
 import { readTable } from "#core/target/register/toml.ts";
 
 type KindDir = KindSpec & { kind: ArtifactKind };

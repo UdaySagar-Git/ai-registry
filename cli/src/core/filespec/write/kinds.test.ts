@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
 import {
-  check,
   envelopeSpec,
   fileProblems,
   type KindManifest,
@@ -11,6 +10,7 @@ import {
   manifestProblems,
   primaryFiles,
 } from "./kinds.ts";
+import { check } from "./schema.ts";
 
 const text = (body: string) => new TextEncoder().encode(body);
 

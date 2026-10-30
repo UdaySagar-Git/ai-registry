@@ -8,7 +8,7 @@ import { NAME } from "#core/product.ts";
 import { EMPTY_RUN_COUNTS, type RunEvent, type RunRecord } from "#core/run/model.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
 import { privateDirectory, rpcEndpoint } from "#daemon/rpc/endpoint.ts";
-import { PROTOCOL_VERSION } from "#daemon/rpc/protocol.ts";
+import { PROTOCOL_VERSION } from "#daemon/rpc/methods.ts";
 import { RpcServer } from "#daemon/rpc/server.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { runs } from "./runs.ts";

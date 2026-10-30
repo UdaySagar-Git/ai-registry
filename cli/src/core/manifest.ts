@@ -114,9 +114,6 @@ export interface Export {
 /** A local exported path or the unversioned address of a declared installed artifact. */
 export type ExportDependency = { type: "local"; path: string } | { type: "remote"; ref: Ref };
 
-export { type ExportFile, isGlob } from "./export-fields.ts";
-export { ManifestError } from "./manifest-error.ts";
-
 /** How aireg 0.1 spells `targets:`, and the key aireg writes unless a manifest says `targets:`. */
 export const LEGACY_TARGETS_KEY = "harnesses";
 

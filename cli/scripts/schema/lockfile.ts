@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import { KINDS } from "#core/kinds.ts";
+import { KINDS } from "#adapter/kinds.ts";
 import { LOCK_VERSION } from "#core/lock.ts";
 
 /** The shape of `manifest.lock.yml`, as written. Reading is deliberately looser. */

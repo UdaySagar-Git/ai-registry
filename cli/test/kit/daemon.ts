@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import { readConfig } from "#core/config/repository.ts";
 import type { RunRecord } from "#core/run/model.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
-import type { ClientInfo } from "#daemon/rpc/protocol.ts";
+import type { ClientInfo } from "#daemon/rpc/methods.ts";
 import { type WatchStatus, watchStatus } from "#engine/status.ts";
 import { workOf } from "#engine/work.ts";
 

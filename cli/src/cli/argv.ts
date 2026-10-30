@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 import { list, quoted } from "#adapter/text.ts";
 import { type CommandSpec, lookup } from "#cli/commands/index.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { LEVEL_CHOICES, LogLevelError } from "#core/log/index.ts";
+import { LEVEL_CHOICES, LogLevelError } from "#core/log/level.ts";
 import { COLOR_WHEN, type ColorWhen } from "#core/output.ts";
 import { mapTakesValue } from "./map.ts";
 import { takeGlobals } from "./options.ts";

@@ -11,7 +11,8 @@ import { cliClient, followRun, RpcClient, RpcClientError, withFreshConfig } from
 import { RpcErrorCode } from "./codes.ts";
 import { daemonProof } from "./endpoint.ts";
 import { FrameDecoder } from "./frames.ts";
-import { encodeMessage, PROTOCOL_VERSION } from "./protocol.ts";
+import { PROTOCOL_VERSION } from "./methods.ts";
+import { encodeMessage } from "./protocol.ts";
 import { RpcServer } from "./server.ts";
 
 const paths: string[] = [];

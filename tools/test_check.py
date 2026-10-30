@@ -2,13 +2,12 @@
 """Exercise check.py --fix on a copy of the acme example registry."""
 
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CHECK = ROOT / "tools" / "check.py"
@@ -28,7 +27,8 @@ class CheckFixTests(unittest.TestCase):
     def check(self, *args):
         return subprocess.run(
             [sys.executable, "-I", str(CHECK), str(self.registry), *args],
-            text=True, capture_output=True,
+            text=True,
+            capture_output=True,
         )
 
     def link(self, relative):
@@ -45,7 +45,8 @@ class CheckFixTests(unittest.TestCase):
     def snapshot(self):
         return {
             path.relative_to(self.outside): path.read_bytes()
-            for path in sorted(self.outside.rglob("*")) if path.is_file()
+            for path in sorted(self.outside.rglob("*"))
+            if path.is_file()
         }
 
     def stale(self, path):

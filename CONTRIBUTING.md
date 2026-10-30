@@ -76,6 +76,10 @@ python3 -m unittest discover -s tools -p test_check.py   # regression tests for 
 
 All of these use only the standard library, but `check_schemas.py` validates the examples only when `jsonschema` is installed. Install the pinned version with `python3 -m pip install -r tools/requirements.txt`; CI passes `--require-jsonschema`, so a missing `jsonschema` fails there instead of skipping. Run them when you change the specification, the schemas, an example, or `check.py`.
 
+### Python tools
+
+`ruff.toml` sets the style for everything in `tools/`. After editing a tool, run `python3 -m ruff format tools` and `python3 -m ruff check tools`; `tools/requirements.txt` pins `ruff`, and CI runs both.
+
 ### Documentation
 
 ```sh

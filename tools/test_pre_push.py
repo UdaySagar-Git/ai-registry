@@ -2,12 +2,11 @@
 """Exercise the pre-push hook in temporary local Git repositories."""
 
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ZERO = "0" * 40
@@ -22,19 +21,22 @@ class PrePushTests(unittest.TestCase):
         self.repo.mkdir()
         self.log = self.root / "pnpm.log"
         self.env = {
-            key: value for key, value in os.environ.items()
+            key: value
+            for key, value in os.environ.items()
             if not key.startswith("GIT_") and key != "LINT_BASE"
         }
-        self.env.update({
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "PNPM_LOG": str(self.log),
-        })
+        self.env.update(
+            {
+                "GIT_CONFIG_GLOBAL": os.devnull,
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "PNPM_LOG": str(self.log),
+            }
+        )
         binaries = self.root / "bin"
         binaries.mkdir()
         pnpm = binaries / "pnpm"
         pnpm.write_text(
-            '#!/usr/bin/env bash\nset -euo pipefail\n'
+            "#!/usr/bin/env bash\nset -euo pipefail\n"
             'printf "%s|%s|%s\\n" "$PWD" "$*" "${LINT_BASE-}" >> "$PNPM_LOG"\n'
             'if [[ "$*" == *"${FAIL_COMMAND:-__none__}"* ]]; then exit 19; fi\n',
             encoding="utf-8",
@@ -64,8 +66,12 @@ class PrePushTests(unittest.TestCase):
 
     def git(self, *args):
         return subprocess.run(
-            ["git", *args], cwd=self.repo, env=self.env,
-            text=True, capture_output=True, check=True,
+            ["git", *args],
+            cwd=self.repo,
+            env=self.env,
+            text=True,
+            capture_output=True,
+            check=True,
         )
 
     def push(self, *shas, **env):
@@ -74,8 +80,12 @@ class PrePushTests(unittest.TestCase):
             for index, sha in enumerate(shas)
         )
         return subprocess.run(
-            [str(self.hook), "origin", "unused"], input=lines,
-            cwd=self.repo, env={**self.env, **env}, text=True, capture_output=True,
+            [str(self.hook), "origin", "unused"],
+            input=lines,
+            cwd=self.repo,
+            env={**self.env, **env},
+            text=True,
+            capture_output=True,
         )
 
     def calls(self):
@@ -84,10 +94,13 @@ class PrePushTests(unittest.TestCase):
     def test_current_commit_runs_both_checks_with_default_base(self):
         result = self.push(self.head)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.calls(), [
-            f"{self.repo / 'cli'}|run --silent typecheck|",
-            f"{self.repo / 'cli'}|run --silent lint:changed --since=origin/main|",
-        ])
+        self.assertEqual(
+            self.calls(),
+            [
+                f"{self.repo / 'cli'}|run --silent typecheck|",
+                f"{self.repo / 'cli'}|run --silent lint:changed --since=origin/main|",
+            ],
+        )
 
     def test_deletion_only_skips_checks_and_base_lookup(self):
         result = self.push(ZERO, LINT_BASE="missing-base")

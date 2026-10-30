@@ -66,12 +66,17 @@ jobs:
                       # The install pins in the docs follow the CLI's version.
                       if path == "cli/package.json":
                           selected["docs"] = True
-                  elif path in ("tools/check.py", "tools/check_schemas.py", "tools/requirements.txt", "tools/test_check.py"):
+                  elif path in ("tools/check.py", "tools/check_schemas.py", "tools/requirements.in",
+                                "tools/requirements.txt", "tools/test_check.py", "tools/test_pre_push.py",
+                                "ruff.toml"):
                       selected["spec"] = True
                   elif (path.startswith("docs/")
                         or path in ("mkdocs.yml", "tools/build_figures.py", "tools/check_pins.py")
                         or ("/" not in path and path.endswith(".md"))):
                       selected["docs"] = True
+                      # Every tool is linted with the spec checks.
+                      if path.endswith(".py"):
+                          selected["spec"] = True
                   else:
                       selected = dict(cli=True, spec=True, docs=True)
               if changed:
@@ -431,9 +436,12 @@ jobs:
           python-version: "3.15.2"
 
       - run: python3 -m pip install --require-hashes -r tools/requirements.txt
+      - run: python3 -m ruff check tools
+      - run: python3 -m ruff format --check tools
       - run: python3 tools/check.py examples/acme-registry
       - run: python3 tools/check.py examples/aireg
       - run: python3 -I -m unittest discover -s tools -p test_check.py
+      - run: python3 -I -m unittest discover -s tools -p test_pre_push.py
       # Fails rather than skipping the instance tier if jsonschema is missing.
       - run: python3 tools/check_schemas.py --require-jsonschema
 

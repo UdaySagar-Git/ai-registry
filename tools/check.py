@@ -16,6 +16,7 @@ indexer (`aireg registry index`) writes versions.json and index.json.
 versions.json lists, which is what a client's on-demand copy of an HTTPS root
 looks like.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -71,7 +72,7 @@ def _utf16_order(key: str) -> tuple[int, ...]:
     agreement for the keys it does not produce.
     """
     b = key.encode("utf-16-be")
-    return tuple(int.from_bytes(b[i:i + 2], "big") for i in range(0, len(b), 2))
+    return tuple(int.from_bytes(b[i : i + 2], "big") for i in range(0, len(b), 2))
 
 
 def _jcs(obj) -> str:
@@ -162,7 +163,9 @@ def inside(root: Path, target: Path) -> bool:
 def write_json(root: Path, path: Path, obj, rep: Report) -> None:
     """Every --fix write goes through here, so a link cannot redirect a repair."""
     if not inside(root, path):
-        rep.error(f"{path.relative_to(root)}: not rewritten; it is a symlink, sits under one, or lies outside the root")
+        rep.error(
+            f"{path.relative_to(root)}: not rewritten; it is a symlink, sits under one, or lies outside the root"
+        )
         return
     path.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -222,8 +225,10 @@ def safe_path(path) -> bool:
 def colliding_paths(paths: list[str]) -> tuple[str, str] | None:
     """Two paths a case-insensitive disk stores as one file, or as a file and the
     folder another sits in: the later one and the one it lands on."""
+
     def fold(path: str) -> str:
         return unicodedata.normalize("NFC", path).lower()
+
     files: dict[str, str] = {}
     for path in paths:
         if fold(path) in files:
@@ -253,23 +258,33 @@ def check_kind_manifests(root: Path, registry: dict, rep: Report) -> None:
             continue
         local = root / url
         if not inside(root, local) or not local.is_file():
-            rep.error(f"registry.json: kinds[{entry.get('name')!r}] manifest_url {url!r} does not resolve inside the root")
+            rep.error(
+                f"registry.json: kinds[{entry.get('name')!r}] manifest_url {url!r} does not resolve inside the root"
+            )
             continue
         reference = reference_dir / local.name
         if reference.is_file() and local.read_bytes() != reference.read_bytes():
-            rep.error(f"{url}: differs from spec/schemas/kinds/{local.name}; the root's copy has drifted")
+            rep.error(
+                f"{url}: differs from spec/schemas/kinds/{local.name}; the root's copy has drifted"
+            )
 
 
-def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, partial: bool = False) -> None:
+def check_registry(
+    root: Path, rep: Report, fix: bool, print_digests: bool, partial: bool = False
+) -> None:
     registry = load_json(root / "registry.json", rep)
     if registry is None:
         return
     if registry.get("kind", "registry") != "registry":
-        rep.error(f"registry.json: kind is {registry.get('kind')!r}; this is not a registry root (a host document lists roots; point at one of them)")
+        rep.error(
+            f"registry.json: kind is {registry.get('kind')!r}; this is not a registry root (a host document lists roots; point at one of them)"
+        )
         return
     fv = registry.get("format_version")
     if fv != SUPPORTED_FORMAT:
-        rep.error(f"registry.json: format_version {fv!r}; this checker implements {SUPPORTED_FORMAT}")
+        rep.error(
+            f"registry.json: format_version {fv!r}; this checker implements {SUPPORTED_FORMAT}"
+        )
         return
     caps = registry.get("capabilities", [])
     if "files" not in set(caps):
@@ -308,7 +323,11 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
     elif not artifacts.is_dir() and index_entries:
         rep.error("artifacts/ is missing but index.json has entries")
 
-    for vpath in sorted(artifacts.glob("*/*/*/versions.json")) if inside(root, artifacts) and artifacts.is_dir() else []:
+    for vpath in (
+        sorted(artifacts.glob("*/*/*/versions.json"))
+        if inside(root, artifacts) and artifacts.is_dir()
+        else []
+    ):
         name_dir = vpath.parent
         ns, kind, name = name_dir.parts[-3:]
         key = (ns, kind, name)
@@ -367,11 +386,18 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
                 continue
 
             meta = env.get("metadata", {})
-            for field, expected in (("namespace", ns), ("kind", None), ("name", name), ("version", v)):
+            for field, expected in (
+                ("namespace", ns),
+                ("kind", None),
+                ("name", name),
+                ("version", v),
+            ):
                 actual = env.get("kind") if field == "kind" else meta.get(field)
                 expected = kind if field == "kind" else expected
                 if actual != expected:
-                    rep.error(f"{label}@{v}: artifact.json {field} is {actual!r}, path says {expected!r}")
+                    rep.error(
+                        f"{label}@{v}: artifact.json {field} is {actual!r}, path says {expected!r}"
+                    )
             if env.get("apiVersion") != "aireg.sh/v1":
                 rep.error(f"{label}@{v}: apiVersion must be aireg.sh/v1")
 
@@ -381,7 +407,9 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
                 rep.error(f"{label}@{v}: files[] is empty")
             clash = colliding_paths([fd.get("path") for fd in files if safe_path(fd.get("path"))])
             if clash is not None:
-                rep.error(f"{label}@{v}: {clash[0]!r} and {clash[1]!r} are one file on a case-insensitive disk")
+                rep.error(
+                    f"{label}@{v}: {clash[0]!r} and {clash[1]!r} are one file on a case-insensitive disk"
+                )
             for fd in files:
                 p = fd.get("path", "")
                 if not safe_path(p):
@@ -398,11 +426,15 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
                         continue
                 else:
                     if not DIGEST_RE.match(fd.get("digest", "")):
-                        rep.error(f"{label}@{v}: {p} has no urls and no valid digest to resolve a blob")
+                        rep.error(
+                            f"{label}@{v}: {p} has no urls and no valid digest to resolve a blob"
+                        )
                         continue
                     target = resolve_blob(root, blob_template, fd["digest"])
                     if target is None:
-                        rep.warn(f"{label}@{v}: {p} resolves to a remote blob host; not verified offline")
+                        rep.warn(
+                            f"{label}@{v}: {p} resolves to a remote blob host; not verified offline"
+                        )
                         continue
                     if not inside(root, target):
                         rep.error(f"{label}@{v}: {p} resolves to a blob outside the registry")
@@ -439,7 +471,9 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
             if fix:
                 entry["digest"], entry["catalog_digest"] = cdig, catdig
             if entry.get("digest") != cdig:
-                rep.error(f"{label}@{v}: versions.json digest {entry.get('digest')} != computed {cdig}")
+                rep.error(
+                    f"{label}@{v}: versions.json digest {entry.get('digest')} != computed {cdig}"
+                )
             if "catalog_digest" in entry and entry["catalog_digest"] != catdig:
                 rep.error(f"{label}@{v}: versions.json catalog_digest != computed {catdig}")
 
@@ -452,7 +486,9 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
 
         for child in name_dir.iterdir():
             if child.is_dir() and child.name not in listed:
-                rep.error(f"{label}: directory {child.name} exists but is not listed in versions.json")
+                rep.error(
+                    f"{label}: directory {child.name} exists but is not listed in versions.json"
+                )
 
         latest = vdoc.get("latest")
         if latest not in listed:
@@ -467,7 +503,9 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
         if idx is None:
             if fix and index is not None and latest in listed:
                 latest_path = name_dir / latest / "artifact.json"
-                env_latest = (load_json(latest_path, rep) if inside(root, latest_path) else None) or {}
+                env_latest = (
+                    load_json(latest_path, rep) if inside(root, latest_path) else None
+                ) or {}
                 idx = {"namespace": ns, "kind": kind, "name": name}
                 meta_l = env_latest.get("metadata", {})
                 for f in ("display_name", "description"):
@@ -483,9 +521,15 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
                 idx["latest"], idx["digest"], idx["status"] = latest, le["digest"], le["status"]
                 idx["catalog_digest"] = le.get("catalog_digest")
                 idx["updated_at"] = le.get("published_at")
-            for f, want in (("latest", latest), ("digest", le.get("digest")), ("status", le.get("status"))):
+            for f, want in (
+                ("latest", latest),
+                ("digest", le.get("digest")),
+                ("status", le.get("status")),
+            ):
                 if idx.get(f) != want:
-                    rep.error(f"index.json: {label} {f} is {idx.get(f)!r}, versions.json says {want!r}")
+                    rep.error(
+                        f"index.json: {label} {f} is {idx.get(f)!r}, versions.json says {want!r}"
+                    )
             if "catalog_digest" in idx and idx["catalog_digest"] != le.get("catalog_digest"):
                 rep.error(f"index.json: {label} catalog_digest disagrees with versions.json")
 
@@ -502,11 +546,23 @@ def check_registry(root: Path, rep: Report, fix: bool, print_digests: bool, part
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("root", type=Path, help="registry root directory")
-    ap.add_argument("--fix", action="store_true", help="write computed digests into the registry (authoring aid)")
-    ap.add_argument("--print-digests", action="store_true", help="print computed digests per version")
-    ap.add_argument("--partial", action="store_true", help="accept versions listed in versions.json whose directory is absent (a client's on-demand copy)")
+    ap.add_argument(
+        "--fix",
+        action="store_true",
+        help="write computed digests into the registry (authoring aid)",
+    )
+    ap.add_argument(
+        "--print-digests", action="store_true", help="print computed digests per version"
+    )
+    ap.add_argument(
+        "--partial",
+        action="store_true",
+        help="accept versions listed in versions.json whose directory is absent (a client's on-demand copy)",
+    )
     args = ap.parse_args()
 
     rep = Report()

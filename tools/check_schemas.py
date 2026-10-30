@@ -16,6 +16,7 @@ succeeds, so this script is usable wherever tools/check.py is. CI passes
 $ids here are relative paths, not URLs, so schemas are preloaded into a resolver
 keyed by path rather than fetched. See spec/schemas/README.md.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -58,10 +59,7 @@ def resolve_pointer(doc, pointer: str):
         if raw == "":
             continue
         token = raw.replace("~1", "/").replace("~0", "~")
-        if isinstance(node, list):
-            node = node[int(token)]
-        else:
-            node = node[token]
+        node = node[int(token)] if isinstance(node, list) else node[token]
     return node
 
 
@@ -107,7 +105,9 @@ def check_structure(rep: Report) -> dict[str, dict]:
             if file_part:
                 target_key = (base / file_part).as_posix().replace("./", "")
                 if target_key not in loaded:
-                    rep.error(f"{key}: $ref at {trail} points at {file_part!r}, which is not a schema here")
+                    rep.error(
+                        f"{key}: $ref at {trail} points at {file_part!r}, which is not a schema here"
+                    )
                     continue
                 target = loaded[target_key]
             else:
@@ -116,7 +116,9 @@ def check_structure(rep: Report) -> dict[str, dict]:
                 try:
                     resolve_pointer(target, fragment)
                 except (KeyError, IndexError, ValueError):
-                    rep.error(f"{key}: $ref at {trail} points at {ref!r}; the pointer does not resolve")
+                    rep.error(
+                        f"{key}: $ref at {trail} points at {ref!r}; the pointer does not resolve"
+                    )
     return loaded
 
 
@@ -150,11 +152,15 @@ def check_instances(loaded: dict[str, dict], rep: Report, required: bool) -> boo
         from referencing.jsonschema import DRAFT202012
     except ImportError:
         if required:
-            rep.error("jsonschema is not installed, and --require-jsonschema needs the instance tier "
-                      "(pip install -r tools/requirements.txt)")
+            rep.error(
+                "jsonschema is not installed, and --require-jsonschema needs the instance tier "
+                "(pip install -r tools/requirements.txt)"
+            )
         else:
-            rep.note("jsonschema is not installed; instance validation skipped "
-                     "(pip install -r tools/requirements.txt). Structural checks above still ran.")
+            rep.note(
+                "jsonschema is not installed; instance validation skipped "
+                "(pip install -r tools/requirements.txt). Structural checks above still ran."
+            )
         return False
 
     registry = Registry().with_resources(
@@ -191,9 +197,14 @@ def check_instances(loaded: dict[str, dict], rep: Report, required: bool) -> boo
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--require-jsonschema", action="store_true",
-                    help="fail instead of skipping the instance tier when jsonschema is not installed")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--require-jsonschema",
+        action="store_true",
+        help="fail instead of skipping the instance tier when jsonschema is not installed",
+    )
     args = ap.parse_args()
 
     rep = Report()

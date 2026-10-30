@@ -1,6 +1,6 @@
 import { list as listOf } from "#adapter/text.ts";
+import { add as addJob } from "#cli/commands/job/add.ts";
 import { folderKey, jobNamed, jobScope, scopeLabel, typedFolder } from "#cli/commands/job/find.ts";
-import { add as addJob } from "#cli/commands/job.ts";
 import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
 import { parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";

@@ -1,1 +1,10 @@
 .githooks/* text eol=lf
+
+# Generated: change the source and regenerate (see AGENTS.md), so diffs fold them by default.
+cli/schema/*.json linguist-generated
+cli/schema/kinds/*.json linguist-generated
+cli/THIRD_PARTY_NOTICES.txt linguist-generated
+docs/assets/*.svg linguist-generated
+examples/**/index.json linguist-generated
+examples/**/artifact.json linguist-generated
+examples/**/versions.json linguist-generated

@@ -4,7 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { envName, withoutTokens } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { PRIVATE_FILE } from "#core/fs/mode.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { DAEMON_STDERR_FILE, logPath } from "#core/log/sink.ts";
 import { spawnDetached } from "#core/process.ts";
 import { launchArgv, runningEntry } from "#core/release/launch.ts";

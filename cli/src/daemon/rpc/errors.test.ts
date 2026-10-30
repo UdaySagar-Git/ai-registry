@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { AdapterError } from "#adapter/index.ts";
 import { CredentialStoreError } from "#core/credentials/store.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { LeaseError } from "#core/lease.ts";
+import { LeaseError } from "#core/lease/errors.ts";
 import { ManifestError } from "#core/manifest/errors.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { rpcError } from "./errors.ts";

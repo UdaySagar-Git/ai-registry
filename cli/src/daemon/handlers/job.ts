@@ -15,7 +15,7 @@ import { readConfig, writeConfig } from "#core/config/repository.ts";
 import { tokenVariable } from "#core/env.ts";
 import { ErrorCode } from "#core/errors.ts";
 import { stepContribution, stepOn } from "#core/host/load.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { unknownRegistry } from "#core/manifest/errors.ts";
 import { coveredByWhole } from "#core/manifest/match.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";

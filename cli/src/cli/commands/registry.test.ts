@@ -1,6 +1,6 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { describe, expect } from "vitest";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { readManifest } from "#core/manifest/repository.ts";
 import { manifest } from "#test/kit/builders/manifest.ts";
 import { commandContext } from "#test/kit/command.ts";

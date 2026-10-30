@@ -7,7 +7,7 @@ import { isWithin } from "#adapter/paths.ts";
 import { dict } from "#core/fields.ts";
 import { homeDir } from "#core/fs/path.ts";
 import { canonical } from "#core/fs/realpath.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { readLock } from "#core/lock.ts";
 import { readManifest } from "#core/manifest/repository.ts";
 import { apply, recover } from "#core/plan/apply.ts";

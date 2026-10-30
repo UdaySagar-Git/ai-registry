@@ -18,7 +18,7 @@ import { findMapFormat, runMap } from "#cli/map.ts";
 import { reportError } from "#cli/render/error.ts";
 import { closest, didYouMean } from "#cli/suggest.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
-import { releaseLeasesOnInterrupt } from "#core/lease.ts";
+import { releaseLeasesOnInterrupt } from "#core/lease/lease.ts";
 import { LogLevelError } from "#core/log/level.ts";
 import { type LogBootstrap, openCliLog } from "#core/log/open.ts";
 import { Printer } from "#core/term/printer.ts";

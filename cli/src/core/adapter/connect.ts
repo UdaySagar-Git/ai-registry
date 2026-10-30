@@ -25,7 +25,7 @@ import { newestFrom, withheldFrom } from "#core/catalog/withheld.ts";
 import { engineFromUnknown } from "#core/engines.ts";
 import { bindAdapter } from "#core/hook/bind.ts";
 import { KIND_SPECS, specKindDir } from "#core/kinds.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { cacheDir, ensureHome } from "#core/store/paths.ts";
 import { type SourceConfig, sourceKey } from "./identity.ts";
 import { adapterFor, limitsFor } from "./load.ts";

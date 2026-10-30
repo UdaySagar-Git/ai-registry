@@ -4,7 +4,7 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import type { Account } from "#core/config/model.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";
 import { movedPluginLinks } from "#core/plan/projection.ts";
 import { type RunMode, WARNING_EVENT } from "#core/run/model.ts";

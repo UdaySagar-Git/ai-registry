@@ -319,7 +319,7 @@
         "src/core/fs/tree.test.ts",
         "src/core/fs/tree.ts",
         "src/core/hook/run.test.ts",
-        "src/core/lease-release.test.ts",
+        "src/core/lease/lease.fs-faults.test.ts",
         "src/core/lock.test.ts",
         "src/core/manifest/parse.ts",
         "src/core/plan/apply.ts",

@@ -77,7 +77,7 @@ const applyLocal = vi.hoisted(() => vi.fn());
 const partialMutation = vi.hoisted(() => vi.fn());
 
 // This suite is about classification, not locking.
-vi.mock("#core/lease.ts", () => ({
+vi.mock("#core/lease/lease.ts", () => ({
   withLease: (_roots: unknown, _options: unknown, run: () => Promise<unknown>) => run(),
 }));
 vi.mock("./scan.ts", async (importOriginal) => ({

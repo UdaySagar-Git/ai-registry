@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { AdapterError } from "#adapter/index.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
-import { LeaseError } from "#core/lease.ts";
+import { LeaseError } from "#core/lease/errors.ts";
 import { Printer } from "#core/term/printer.ts";
 import { RpcClientError } from "#daemon/rpc/client.ts";
 import { reportError } from "./error.ts";

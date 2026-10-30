@@ -1,5 +1,5 @@
 import type { Job } from "#core/config/model.ts";
-import { LeaseBusyError, LeaseError } from "#core/lease.ts";
+import { LeaseBusyError, LeaseError } from "#core/lease/errors.ts";
 import {
   failureCode,
   isActive,

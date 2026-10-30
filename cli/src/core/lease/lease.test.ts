@@ -19,17 +19,10 @@ import { ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { expectMode } from "#test/kit/mode.ts";
-import {
-  acquire,
-  breakLease,
-  type Lease,
-  LeaseBusyError,
-  LeaseError,
-  type LeaseHolder,
-  leaseKey,
-  readLease,
-  withLease,
-} from "./lease.ts";
+import { LeaseBusyError, LeaseError } from "./errors.ts";
+import type { LeaseHolder } from "./holder.ts";
+import { acquire, breakLease, type Lease, readLease, withLease } from "./lease.ts";
+import { leaseKey } from "./location.ts";
 
 let home: string;
 let env: NodeJS.ProcessEnv;

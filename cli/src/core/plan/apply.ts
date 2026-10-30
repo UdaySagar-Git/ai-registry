@@ -11,7 +11,7 @@ import { PRIVATE_DIR } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
 import { entries, exists, present, pruneEmptyParent, remove, unseal } from "#core/fs/tree.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";
-import { assertLeasesHeld } from "#core/lease.ts";
+import { assertLeasesHeld } from "#core/lease/lease.ts";
 import { type LinkMode, type Lock, readLock, writeLock } from "#core/lock.ts";
 import { backupStamp } from "#core/store/backups.ts";
 import { ensureScopeIgnore } from "#core/store/ignore.ts";

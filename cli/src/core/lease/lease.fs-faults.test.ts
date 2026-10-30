@@ -2,16 +2,9 @@ import { mkdir, utimes } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
-import {
-  acquire as acquireLease,
-  breakLease,
-  type Lease,
-  LeaseBusyError,
-  LeaseError,
-  leaseKey,
-  readLease,
-  withLease,
-} from "./lease.ts";
+import { LeaseBusyError, LeaseError } from "./errors.ts";
+import { acquire as acquireLease, breakLease, type Lease, readLease, withLease } from "./lease.ts";
+import { leaseKey } from "./location.ts";
 
 interface Fault {
   suffix: string;

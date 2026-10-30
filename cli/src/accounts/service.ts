@@ -21,7 +21,7 @@ import {
   saveCredential,
 } from "#core/credentials/store.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { credentialsPath, type Scope } from "#core/store/paths.ts";
 import {
   declareRegistryFor,

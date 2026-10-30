@@ -82,6 +82,7 @@ describe("summarize", () => {
     };
     expect(printed(actions, applied, {}, ["antigravity"])).toEqual([
       "✓ Installed lint for Google Antigravity.",
+      "hint: Start a new conversation in Antigravity, or run `/skills reload` in its CLI, to load the change.",
     ]);
   });
 

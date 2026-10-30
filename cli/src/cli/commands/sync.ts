@@ -10,6 +10,7 @@ import {
   type StoppedRun,
   stoppedError,
 } from "#cli/commands/sync/follow.ts";
+import { SYNC_COMMAND } from "#cli/commands/sync/spec.ts";
 import { parse } from "#cli/options.ts";
 import { renderSync } from "#cli/render/sync.ts";
 import { isStepPolicy, STEP_POLICIES } from "#core/config/model.ts";
@@ -27,7 +28,7 @@ import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/pipeline.ts";
 import { closeScan, scan } from "#engine/scan.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 type Own = Record<string, unknown> & Partial<Record<PolicyAxis, string>>;
 
@@ -298,7 +299,7 @@ export async function run(context: CommandContext): Promise<void> {
     return settle({ ...context, argv: context.argv.slice(1) });
   }
 
-  const { common, positionals, own } = parse<Own>(context.argv, builtin("sync"));
+  const { common, positionals, own } = parse<Own>(context.argv, SYNC_COMMAND);
   const policy = policyFrom(own);
 
   if (common.dryRun) return report(context, common, policy, positionals[0]);

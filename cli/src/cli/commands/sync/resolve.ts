@@ -1,4 +1,4 @@
-import { actionOf, builtin, type CommandContext } from "#cli/commands/index.ts";
+import { actionOf, type CommandContext } from "#cli/commands/command.ts";
 import { attentionHints, type Followed, follow, stoppedError } from "#cli/commands/sync/follow.ts";
 import { matchInstalled, rowsNamed } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
@@ -14,6 +14,7 @@ import type { RpcClient } from "#daemon/rpc/client.ts";
 import { withDaemon } from "#daemon/service.ts";
 import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import { load } from "#engine/pipeline.ts";
+import { SYNC_COMMAND } from "./spec.ts";
 
 interface Own extends Record<string, unknown> {
   mine?: boolean;
@@ -22,10 +23,7 @@ interface Own extends Record<string, unknown> {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { common, positionals, own } = parse<Own>(
-    context.argv,
-    actionOf(builtin("sync"), "resolve"),
-  );
+  const { common, positionals, own } = parse<Own>(context.argv, actionOf(SYNC_COMMAND, "resolve"));
   const name = positionals[0];
   if (name === undefined) {
     throw new AiregError("`aireg sync resolve` needs an artifact name.", {

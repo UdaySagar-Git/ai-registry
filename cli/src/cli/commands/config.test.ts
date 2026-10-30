@@ -3,8 +3,8 @@ import { readConfig } from "#core/config/repository.ts";
 import { ErrorCode } from "#core/errors.ts";
 import { Printer } from "#core/output.ts";
 import { test } from "#test/kit/fixtures.ts";
+import type { CommandContext } from "./command.ts";
 import { run } from "./config.ts";
-import type { CommandContext } from "./index.ts";
 
 function context(argv: string[], printed: string[] = []): CommandContext {
   return {

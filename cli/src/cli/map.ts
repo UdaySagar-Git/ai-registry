@@ -1,5 +1,6 @@
 import { list, quoted } from "#adapter/text.ts";
-import { type ActionSpec, allCommands, type CommandSpec, warnHidden } from "#cli/commands/index.ts";
+import type { ActionSpec, CommandSpec } from "#cli/commands/command.ts";
+import { allCommands, warnHidden } from "#cli/commands/index.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import type { OptionSpec } from "#core/host/extend.ts";
 import type { Printer } from "#core/output.ts";

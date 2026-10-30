@@ -4,6 +4,7 @@ import { qualify } from "#cli/commands/add.ts";
 import { addContributedJob } from "#cli/commands/job/contributed.ts";
 import { existing, jobNamed, needsJob, noJob, typedFolder } from "#cli/commands/job/find.ts";
 import type { RunsOptions } from "#cli/commands/job/runs.ts";
+import { JOB_COMMAND } from "#cli/commands/job/spec.ts";
 import { parse } from "#cli/options.ts";
 import { cannotPublish } from "#cli/publish/target.ts";
 import { underHome } from "#cli/render/home.ts";
@@ -32,7 +33,7 @@ import { table } from "#core/term/table.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
 import { withDaemon } from "#daemon/service.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 interface Own extends Record<string, unknown>, RunsOptions {
   account?: string;
@@ -383,7 +384,7 @@ async function setPaused(
 
 export async function run(context: CommandContext): Promise<void> {
   const extra = await contributedStepFlags();
-  const spec = builtin("job");
+  const spec = JOB_COMMAND;
   const { positionals, own, common } = parse<Own>(context.argv, spec, extra);
   const [action = "list", argument] = positionals;
   return runAction(spec, action, {

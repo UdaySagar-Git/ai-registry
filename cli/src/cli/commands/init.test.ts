@@ -5,7 +5,7 @@ import { afterEach, describe, expect, vi } from "vitest";
 import { ErrorCode } from "#core/errors.ts";
 import { Printer } from "#core/output.ts";
 import { test } from "#test/kit/fixtures.ts";
-import type { CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 import { run } from "./init.ts";
 
 /** This test's folder, which the kit removes after it. */

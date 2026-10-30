@@ -1,5 +1,6 @@
 import { credentialFor } from "#accounts/credentials.ts";
 import { contentDigest, type ResolveOptions, type Want } from "#adapter/index.ts";
+import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
 import { shownNames } from "#cli/names.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { type Watched, watchedFrom } from "#cli/render/installed.ts";
@@ -20,7 +21,7 @@ import { scopeName } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/index.ts";
 import { table } from "#core/term/table.ts";
 import { load } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 interface Row {
   name: string;
@@ -255,7 +256,7 @@ function next(printer: Printer, moved: readonly Row[], scope: string): void {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("outdated"));
+  const { positionals, common } = parse(context.argv, OUTDATED_COMMAND);
   noArguments(positionals, "outdated");
   const { roots, manifest, targetTable, lock } = await load(common, context.cwd, "user");
 

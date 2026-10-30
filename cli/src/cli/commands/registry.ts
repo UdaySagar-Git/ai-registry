@@ -25,6 +25,7 @@ import {
 import { parseSource } from "#adapters/git/api.ts";
 import { jobsClause, registryJobs, removeJobs } from "#cli/commands/registry/jobs.ts";
 import { type Move, moveOf, recordMove, signInLeftBehind } from "#cli/commands/registry/move.ts";
+import { REGISTRY_COMMAND } from "#cli/commands/registry/spec.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
 import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
@@ -61,15 +62,8 @@ import { type Roots, scopeName } from "#core/store/paths.ts";
 import { fields, table } from "#core/term/table.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, withScope } from "#engine/pipeline.ts";
-import {
-  builtin,
-  type CommandContext,
-  type Hidden,
-  hiddenKind,
-  printHidden,
-  RESERVED,
-  runAction,
-} from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
+import { type Hidden, hiddenKind, printHidden, RESERVED } from "./index.ts";
 
 interface Flags extends SourceFlags {
   as?: string;
@@ -84,7 +78,7 @@ interface Flags extends SourceFlags {
  * can name its sources up front and let `add` pick from them by alias.
  */
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("registry");
+  const spec = REGISTRY_COMMAND;
   const { positionals, common, own } = parse<Flags>(context.argv, spec);
   const [action = "list", argument] = positionals;
   return runAction(spec, action, {

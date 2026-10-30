@@ -4,7 +4,7 @@ import { emptyRegistryConfig, type Job, type Step } from "#core/config/model.ts"
 import { writeConfig } from "#core/config/repository.ts";
 import { Printer } from "#core/output.ts";
 import { test } from "#test/kit/fixtures.ts";
-import type { CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 import { run } from "./watch.ts";
 
 const daemon = vi.hoisted(() => ({ withDaemon: vi.fn() }));

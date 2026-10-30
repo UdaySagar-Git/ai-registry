@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { list, quoted, sanitizeBlock, sanitizeName } from "#adapter/text.ts";
+import { SHOW_COMMAND } from "#cli/commands/show/spec.ts";
 import { parse } from "#cli/options.ts";
 import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
 import {
@@ -17,7 +18,7 @@ import { isDirectory } from "#core/fs/tree.ts";
 import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
 import { type Carried, carries, describeCarried } from "#core/plan/carries.ts";
 import { parseRef } from "#core/ref.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /**
  * Prints an artifact so it can be piped straight into an agent. Nothing is
@@ -26,7 +27,7 @@ import { builtin, type CommandContext } from "./index.ts";
 export async function run(context: CommandContext): Promise<void> {
   const { positionals, common, own } = parse<SourceFlags & { registry?: string }>(
     context.argv,
-    builtin("show"),
+    SHOW_COMMAND,
   );
   const input = positionals[0];
   if (input === undefined) {

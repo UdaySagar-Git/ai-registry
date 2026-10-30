@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { plural, quoted } from "#adapter/text.ts";
 import { initAdapter } from "#cli/commands/adapter/scaffold.ts";
+import { ADAPTER_COMMAND } from "#cli/commands/adapter/spec.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
 import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
@@ -19,10 +20,10 @@ import { toolHome } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
 import { VERSION } from "#core/version.ts";
 import { recycleDaemon } from "#daemon/service.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("adapter");
+  const spec = ADAPTER_COMMAND;
   const { common, own, positionals } = parse<{ dir?: string }>(context.argv, spec);
   const [action = "list", argument] = positionals;
   return runAction(spec, action, {

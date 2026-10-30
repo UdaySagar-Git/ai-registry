@@ -1,6 +1,7 @@
 import { list as listOf } from "#adapter/text.ts";
 import { folderKey, jobNamed, jobScope, scopeLabel, typedFolder } from "#cli/commands/job/find.ts";
 import { add as addJob } from "#cli/commands/job.ts";
+import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
 import { parse } from "#cli/options.ts";
 import { underHome } from "#cli/render/home.ts";
 import {
@@ -20,7 +21,7 @@ import { withDaemon } from "#daemon/service.ts";
 import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { scopeRoots } from "#engine/pipeline.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 interface Own extends Record<string, unknown> {
   to?: string;
@@ -199,7 +200,7 @@ async function list(context: CommandContext): Promise<void> {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("watch");
+  const spec = WATCH_COMMAND;
   const { positionals, own, common } = parse<Own>(context.argv, spec);
   const [action = "list", ...folders] = positionals;
   return runAction(spec, action, {

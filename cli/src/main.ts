@@ -11,7 +11,8 @@ import {
   misusedGlobal,
   readGlobals,
 } from "#cli/argv.ts";
-import { type CommandContext, type CommandSpec, lookup, warnHidden } from "#cli/commands/index.ts";
+import type { Command, CommandContext } from "#cli/commands/command.ts";
+import { lookup, warnHidden } from "#cli/commands/index.ts";
 import { printHelp, printShortHelp, unknownCommand } from "#cli/help.ts";
 import { findMapFormat, runMap } from "#cli/map.ts";
 import { reportError } from "#cli/report.ts";
@@ -186,7 +187,7 @@ async function dispatch(
   if (answered !== undefined) return answered;
   if (name === undefined) return ExitCode.Usage;
 
-  const spec: CommandSpec | undefined = await lookup(name);
+  const spec: Command | undefined = await lookup(name);
   const action = rest[0];
   const kindAction = action === "new" || action === "bump";
   if (spec === undefined && kindAction) {
@@ -251,7 +252,7 @@ async function runCommand(
   printer: Printer,
   argv: string[],
   name: string,
-  spec: CommandSpec,
+  spec: Command,
   rest: string[],
   values: GlobalValues,
 ): Promise<ExitCode> {

@@ -1,4 +1,5 @@
 import { gte } from "#adapter/semver.ts";
+import { DAEMON_COMMAND } from "#cli/commands/daemon/spec.ts";
 import { parse } from "#cli/options.ts";
 import { unknownAction } from "#cli/suggest.ts";
 import { readConfig } from "#core/config/repository.ts";
@@ -8,7 +9,7 @@ import { autostartState, disableAutostart, enableAutostart } from "#daemon/autos
 import type { AutostartState } from "#daemon/autostart/model.ts";
 import { readDaemonPid } from "#daemon/pidfile.ts";
 import { ensureDaemon, probeDaemon, stopDaemon } from "#daemon/service.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 export function daemonAction(argv: readonly string[]): string {
   for (const arg of argv) {
@@ -23,7 +24,7 @@ export function daemonAction(argv: readonly string[]): string {
  * times you want to see it, restart it, or read what it did.
  */
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("daemon");
+  const spec = DAEMON_COMMAND;
   parse(context.argv, spec);
   const action = daemonAction(context.argv);
   const rest = context.argv.slice(context.argv.indexOf(action) + 1);

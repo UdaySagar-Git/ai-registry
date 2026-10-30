@@ -1,5 +1,6 @@
 import { type ArtifactKind, isKind, KINDS } from "#adapter/kinds.ts";
 import { list, plural, quoted, withoutCredentials } from "#adapter/text.ts";
+import { SEARCH_COMMAND } from "#cli/commands/search/spec.ts";
 import { parse } from "#cli/options.ts";
 import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
 import { search } from "#cli/search.ts";
@@ -10,7 +11,7 @@ import { scopeName } from "#core/store/paths.ts";
 import { truncate } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
 import { scopeRoots } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /** Room for the description once the other columns are printed. */
 const DESCRIPTION_WIDTH = 60;
@@ -36,7 +37,7 @@ interface Skipped {
 export async function run(context: CommandContext): Promise<void> {
   const { positionals, common, own } = parse<{ registry?: string; kind?: string }>(
     context.argv,
-    builtin("search"),
+    SEARCH_COMMAND,
   );
   const query = positionals.join(" ").trim();
   if (query === "") {

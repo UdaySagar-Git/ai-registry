@@ -1,8 +1,9 @@
+import { CONSOLE_COMMAND } from "#cli/commands/console/spec.ts";
 import { collect } from "#cli/console/model/state.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { contributedPanels, contributedUpstream } from "#core/host/load.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /** Ink owns the screen and reads raw keys; neither works through a pipe. */
 function interactive(): boolean {
@@ -14,7 +15,7 @@ function interactive(): boolean {
  * it. Contributed tabs load first: the render is synchronous.
  */
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, own } = parse<{ account?: string }>(context.argv, builtin("console"));
+  const { positionals, own } = parse<{ account?: string }>(context.argv, CONSOLE_COMMAND);
   noArguments(positionals, "console");
 
   if (context.printer.format !== "json" && !interactive()) {

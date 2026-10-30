@@ -32,7 +32,7 @@ import { check } from "#core/filespec/write/schema.ts";
 import { expandUserPath } from "#core/fs/path.ts";
 import { authored, type Irregular, present, refusal } from "#core/fs/tree.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";
-import { type CommandContext, type CommandSpec, runAction } from "./index.ts";
+import { type CommandContext, type CommandSpec, runAction } from "./command.ts";
 
 interface Own extends Record<string, unknown> {
   namespace?: string;

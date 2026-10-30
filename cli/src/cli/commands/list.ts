@@ -1,4 +1,5 @@
 import { relative } from "node:path";
+import { LIST_COMMAND } from "#cli/commands/list/spec.ts";
 import { rowsNamed } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import {
@@ -14,10 +15,10 @@ import { artifactPath, copyLeaf, scopeName } from "#core/store/paths.ts";
 import { earlierId, type Targets } from "#core/target/index.ts";
 import { fields, table } from "#core/term/table.ts";
 import { load } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {
-  const { common, positionals } = parse(context.argv, builtin("list"));
+  const { common, positionals } = parse(context.argv, LIST_COMMAND);
   const { roots, manifest, targetTable, lock } = await load(common, context.cwd, "user");
 
   // Naming one asks where it came from, which is the only question left once

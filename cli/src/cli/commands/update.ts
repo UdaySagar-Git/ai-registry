@@ -1,4 +1,5 @@
 import { list } from "#adapter/text.ts";
+import { UPDATE_COMMAND } from "#cli/commands/update/spec.ts";
 import { rowsNamed } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, confirmIfDestructive, interaction } from "#cli/prompt/flow.ts";
@@ -9,14 +10,14 @@ import { asksFor } from "#core/manifest.ts";
 import { lockView } from "#core/plan/acquire.ts";
 import { formatRef, refName } from "#core/ref.ts";
 import { load, run as runPipeline } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /**
  * The one command that moves locked versions: the rows it names, or every row,
  * resolve again. A version the manifest pinned survives, so it is reported.
  */
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("update"));
+  const { positionals, common } = parse(context.argv, UPDATE_COMMAND);
   const step = interaction(context.printer, defaultIo(), common.yes);
   const loaded = await load(common, context.cwd);
 

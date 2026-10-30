@@ -1,5 +1,5 @@
 import { plural, sanitizeName, stripTrailing } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
 import { probe } from "#cli/source.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { adapterFor } from "#core/adapter/registry.ts";

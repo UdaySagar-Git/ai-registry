@@ -1,4 +1,5 @@
 import { list, quoted, sanitizeText } from "#adapter/text.ts";
+import { LOGS_COMMAND } from "#cli/commands/logs/spec.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isLevel, LEVELS, type LogRecord } from "#core/log/model.ts";
@@ -14,7 +15,7 @@ import {
 import { DAEMON_LOG_FILE, DAEMON_STDERR_FILE, logPath } from "#core/log/sink.ts";
 import { follow } from "#core/log/tail.ts";
 import { toolHome } from "#core/store/paths.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 interface Own extends Record<string, unknown> {
   follow?: boolean;
@@ -112,7 +113,7 @@ function render(context: CommandContext, log: string, entry: Entry): void {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, own } = parse<Own>(context.argv, builtin("logs"));
+  const { positionals, own } = parse<Own>(context.argv, LOGS_COMMAND);
   noArguments(positionals, "logs");
 
   const home = toolHome();

@@ -1,5 +1,5 @@
 import { list, plural, quoted } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
 import { underHome } from "#cli/render/home.ts";
 import { eventLine, failureWords } from "#cli/render/run.ts";
 import { findJob } from "#core/config/model.ts";

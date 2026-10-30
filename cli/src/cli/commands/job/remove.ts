@@ -1,4 +1,4 @@
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
 import { existing, folderKey, jobNamed, needsJob, scopeLabel } from "#cli/commands/job/find.ts";
 import { underHome } from "#cli/render/home.ts";
 import { type Job, type RegistryConfig, watchedFolders } from "#core/config/model.ts";

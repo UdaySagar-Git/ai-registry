@@ -1,13 +1,14 @@
+import { INSTALL_COMMAND } from "#cli/commands/install/spec.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { cancel, confirmIfDestructive, interaction } from "#cli/prompt/flow.ts";
 import { defaultIo } from "#cli/prompt/prompt.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, summarize } from "#cli/render/plan.ts";
 import { load, run as runPipeline } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("install"));
+  const { positionals, common } = parse(context.argv, INSTALL_COMMAND);
   noArguments(positionals, "install", "Run `aireg add <name>` to install something new.");
   const step = interaction(context.printer, defaultIo(), common.yes);
   const loaded = await load(common, context.cwd);

@@ -5,6 +5,7 @@ import { isAdapterError } from "#adapter/index.ts";
 import { KINDS } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { list, plural, quoted } from "#adapter/text.ts";
+import { INIT_COMMAND } from "#cli/commands/init/spec.ts";
 import { applyImport, planImport } from "#cli/onboarding/import.ts";
 import { noArguments, parse, USER } from "#cli/options.ts";
 import { isNamespaceAddress } from "#core/config/model.ts";
@@ -23,7 +24,7 @@ import {
 } from "#core/target/index.ts";
 import { table } from "#core/term/table.ts";
 import { selectTargets } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /**
  * Whether git would leave `path` out of a commit. False outside a repository or
@@ -140,7 +141,7 @@ export async function run(context: CommandContext): Promise<void> {
       hint: "Install into it with `aireg add -g`.",
     });
   }
-  const { positionals, common, own } = parse<Own>(context.argv, builtin("init"));
+  const { positionals, common, own } = parse<Own>(context.argv, INIT_COMMAND);
   noArguments(positionals, "init", "Run `aireg init` inside the project folder.");
   const scope = "project";
   const roots = makeRoots(scope, context.cwd);

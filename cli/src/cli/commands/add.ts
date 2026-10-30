@@ -4,6 +4,7 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isReadOnlyLayout, type LayoutId } from "#adapter/layouts/ids.ts";
 import { expandHome } from "#adapter/paths.ts";
 import { list, plural, quoted, sanitizeName, withoutCredentials } from "#adapter/text.ts";
+import { ADD_COMMAND } from "#cli/commands/add/spec.ts";
 import { parse } from "#cli/options.ts";
 import {
   cancel,
@@ -81,7 +82,7 @@ import {
   run as runPipeline,
   selectTargets,
 } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /** Require explicit confirmation before a large implicit selection. */
 const CONFIRM_ABOVE = 10;
@@ -102,7 +103,7 @@ interface Gathered {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const parsed = parse<AddFlags>(context.argv, builtin("add"));
+  const parsed = parse<AddFlags>(context.argv, ADD_COMMAND);
   if (parsed.own.from !== undefined) return addFrom(context, parsed, parsed.own.from);
   return addAddress(context, parsed);
 }

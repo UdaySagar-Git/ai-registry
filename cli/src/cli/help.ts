@@ -1,12 +1,6 @@
 import { list, quoted } from "#adapter/text.ts";
-import {
-  type ActionSpec,
-  allCommands,
-  type CommandSpec,
-  GROUPS,
-  lookup,
-  warnHidden,
-} from "#cli/commands/index.ts";
+import { type ActionSpec, type CommandSpec, GROUPS } from "#cli/commands/command.ts";
+import { allCommands, lookup, warnHidden } from "#cli/commands/index.ts";
 import { callingAgent } from "#cli/prompt/caller.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import type { Example, OptionSpec } from "#core/host/extend.ts";

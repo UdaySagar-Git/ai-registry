@@ -9,6 +9,7 @@ import {
   type SourceAdapter,
 } from "#adapter/index.ts";
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
+import { AUTH_COMMAND } from "#cli/commands/auth/spec.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
 import { canceled, defaultIo } from "#cli/prompt/prompt.ts";
@@ -28,7 +29,7 @@ import { roots } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
 import { withDaemon } from "#daemon/service.ts";
 import { locate } from "#engine/pipeline.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 /** Accepts either handle, because the id is what a job stores and the alias is what a person types. */
 function findAccount(accounts: readonly Account[], wanted: string): Account | undefined {
@@ -468,7 +469,7 @@ async function remove(context: CommandContext, wanted: string | undefined): Prom
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("auth");
+  const spec = AUTH_COMMAND;
   const { positionals, own, common } = parse<LoginFlags & Record<string, unknown>>(
     context.argv,
     spec,

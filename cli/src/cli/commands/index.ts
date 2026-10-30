@@ -1,103 +1,72 @@
-import { list, quoted } from "#adapter/text.ts";
-import type { Accepts } from "#cli/options.ts";
-import { unknownAction } from "#cli/suggest.ts";
-import type { ExitCode } from "#core/errors.ts";
-import type {
-  CommandContribution,
-  Example,
-  HostCommandContext,
-  OptionSpec,
-} from "#core/host/extend.ts";
+import { quoted } from "#adapter/text.ts";
+import { ADAPTER_COMMAND } from "#cli/commands/adapter/spec.ts";
+import { ADD_COMMAND } from "#cli/commands/add/spec.ts";
+import { AUTH_COMMAND } from "#cli/commands/auth/spec.ts";
+import { CONFIG_COMMAND } from "#cli/commands/config/spec.ts";
+import { CONSOLE_COMMAND } from "#cli/commands/console/spec.ts";
+import { DAEMON_COMMAND } from "#cli/commands/daemon/spec.ts";
+import { DOCTOR_COMMAND } from "#cli/commands/doctor/spec.ts";
+import { INIT_COMMAND } from "#cli/commands/init/spec.ts";
+import { INSTALL_COMMAND } from "#cli/commands/install/spec.ts";
+import { JOB_COMMAND } from "#cli/commands/job/spec.ts";
+import { LIST_COMMAND } from "#cli/commands/list/spec.ts";
+import { LOGS_COMMAND } from "#cli/commands/logs/spec.ts";
+import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
+import { PUBLISH_COMMAND } from "#cli/commands/publish/spec.ts";
+import { REGISTRY_COMMAND } from "#cli/commands/registry/spec.ts";
+import { REMOVE_COMMAND } from "#cli/commands/remove/spec.ts";
+import { SEARCH_COMMAND } from "#cli/commands/search/spec.ts";
+import { SELF_COMMAND } from "#cli/commands/self/spec.ts";
+import { SHOW_COMMAND } from "#cli/commands/show/spec.ts";
+import { STATUS_COMMAND } from "#cli/commands/status/spec.ts";
+import { SYNC_COMMAND } from "#cli/commands/sync/spec.ts";
+import { TARGETS_COMMAND } from "#cli/commands/targets/spec.ts";
+import { UNLOCK_COMMAND } from "#cli/commands/unlock/spec.ts";
+import { UPDATE_COMMAND } from "#cli/commands/update/spec.ts";
+import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
+import { NAMESPACE } from "#cli/options.ts";
+import type { CommandContribution, OptionSpec } from "#core/host/extend.ts";
 import { contributedCommands } from "#core/host/load.ts";
 import type { Printer } from "#core/output.ts";
+import { type Command, GROUPS, type Group } from "./command.ts";
 
-import { COMMANDS, NAMESPACE } from "./table.ts";
-export type CommandContext = HostCommandContext & {
-  /** Set by a command that reports a state rather than a failure. */
-  exit?: ExitCode;
-};
+/** Every built-in command, in the order `--help` lists each group. */
+export const COMMANDS: readonly Command[] = [
+  { ...INIT_COMMAND, load: () => import("./init.ts") },
+  { ...REGISTRY_COMMAND, load: () => import("./registry.ts") },
+  { ...AUTH_COMMAND, load: () => import("./auth.ts") },
+  { ...SEARCH_COMMAND, load: () => import("./search.ts") },
+  { ...ADD_COMMAND, load: () => import("./add.ts") },
+  { ...REMOVE_COMMAND, load: () => import("./remove.ts") },
+  { ...INSTALL_COMMAND, load: () => import("./install.ts") },
+  { ...UPDATE_COMMAND, load: () => import("./update.ts") },
+  { ...SHOW_COMMAND, load: () => import("./show.ts") },
+  { ...CONSOLE_COMMAND, load: () => import("./console.ts") },
+  { ...STATUS_COMMAND, load: () => import("./status.ts") },
+  { ...LIST_COMMAND, load: () => import("./list.ts") },
+  { ...OUTDATED_COMMAND, load: () => import("./outdated.ts") },
+  { ...TARGETS_COMMAND, load: () => import("./targets.ts") },
+  { ...SYNC_COMMAND, load: () => import("./sync.ts") },
+  { ...PUBLISH_COMMAND, load: () => import("./publish.ts") },
+  { ...WATCH_COMMAND, load: () => import("./watch.ts") },
+  { ...JOB_COMMAND, load: () => import("./job.ts") },
+  { ...DAEMON_COMMAND, load: () => import("./daemon.ts") },
+  { ...CONFIG_COMMAND, load: () => import("./config.ts") },
+  { ...DOCTOR_COMMAND, load: () => import("./doctor.ts") },
+  { ...UNLOCK_COMMAND, load: () => import("./unlock.ts") },
+  { ...ADAPTER_COMMAND, load: () => import("./adapter.ts") },
+  { ...LOGS_COMMAND, load: () => import("./logs.ts") },
+  { ...SELF_COMMAND, load: () => import("./self.ts") },
+];
 
-type CommandRun = (context: CommandContext) => Promise<void>;
-
-/**
- * The order here is the order `--help` prints, and it is the order a new user
- * meets the tool in: set something up, install into it, check it, share it.
- */
-export const GROUPS = ["Set up", "Install", "Check", "Share", "Automate", "Maintain"] as const;
-
-type Group = (typeof GROUPS)[number];
-
-/** One verb of a command that has several: `aireg registry add`. */
-export interface ActionSpec {
-  readonly name: string;
-  readonly aliases?: readonly string[];
-  /** Absent only on an adapter's action, which declares just its name. */
-  readonly summary?: string;
-  readonly usage?: readonly string[];
-  readonly examples?: readonly Example[];
-  /** Everything the action takes; nothing is inherited from the command. */
-  readonly options?: readonly OptionSpec[];
-  /** The most words it takes after its name; absent takes any number. */
-  readonly maxArguments?: number;
+/** A built-in command by its name, for code that reads specs by name. */
+export function builtin(name: string): Command {
+  const command = COMMANDS.find((c) => c.name === name);
+  if (command === undefined) throw new Error(`No built-in command named ${name}`);
+  return command;
 }
 
-export interface CommandSpec {
-  name: string;
-  aliases?: string[];
-  /** Earlier names it still answers to, which help never lists. */
-  formerly?: string[];
-  summary: string;
-  group: Group;
-  usage: readonly string[];
-  examples?: readonly Example[];
-  /** A page under docs/reference/ without `.md`, or a URL for an adapter's command. */
-  docs?: string;
-  /** What the command takes when no action is named. */
-  options?: readonly OptionSpec[];
-  /** The most words it takes; absent takes any number. */
-  readonly maxArguments?: number;
-  actions?: readonly ActionSpec[];
-  /** Loaded only when the command runs. */
-  load: () => Promise<{ run: CommandRun }>;
-}
-
-export function builtin(name: string): CommandSpec {
-  const spec = COMMANDS.find((c) => c.name === name);
-  if (spec === undefined) throw new Error(`No built-in command named ${name}`);
-  return spec;
-}
-
-/** An action that parses its own argv, as `sync resolve` and `job runs` do. */
-export function actionOf(spec: CommandSpec, name: string): Accepts {
-  const action = spec.actions?.find((a) => a.name === name);
-  return {
-    name: `${spec.name} ${name}`,
-    options: action?.options ?? [],
-    ...(action?.maxArguments === undefined ? {} : { maxArguments: action.maxArguments }),
-  };
-}
-
-/** Each action's handler under the name the spec gives it, so help and dispatch agree. */
-export type ActionHandlers = Readonly<Record<string, () => Promise<void>>>;
-
-/**
- * Runs the handler for `action`, which parsing has already resolved from an alias,
- * or refuses it with the spec's own list. `more` follows that list in the hint.
- */
-export function runAction(
-  spec: CommandSpec,
-  action: string,
-  handlers: ActionHandlers,
-  more?: string,
-): Promise<void> {
-  const handler = Object.hasOwn(handlers, action) ? handlers[action] : undefined;
-  if (handler !== undefined) return handler();
-  const names = (spec.actions ?? []).map((a) => a.name);
-  const hint = `Use ${list(names, "or")}.${more === undefined ? "" : ` ${more}`}`;
-  throw unknownAction(spec.name, action, names, hint);
-}
-
-function lookupBuiltin(name: string): CommandSpec | undefined {
+function lookupBuiltin(name: string): Command | undefined {
   return COMMANDS.find(
     (c) => c.name === name || c.aliases?.includes(name) === true || c.formerly?.includes(name),
   );
@@ -107,7 +76,7 @@ function asGroup(group: string): Group {
   return (GROUPS as readonly string[]).includes(group) ? (group as Group) : "Maintain";
 }
 
-function fromContribution(command: CommandContribution): CommandSpec {
+function fromContribution(command: CommandContribution): Command {
   return {
     name: command.name,
     ...(command.aliases === undefined ? {} : { aliases: [...command.aliases] }),
@@ -150,7 +119,7 @@ export function hiddenKind(name: string): Hidden {
 }
 
 /** Built-ins win over adapters' commands, and both over kinds; `hidden` is what lost. */
-async function table(cwd: string): Promise<{ commands: CommandSpec[]; hidden: Hidden[] }> {
+async function table(cwd: string): Promise<{ commands: Command[]; hidden: Hidden[] }> {
   const commands = [...COMMANDS];
   const hidden: Hidden[] = [];
   for (const command of (await contributedCommands()).map(fromContribution)) {
@@ -173,7 +142,7 @@ async function table(cwd: string): Promise<{ commands: CommandSpec[]; hidden: Hi
 }
 
 /** Every command `--help` and `--map` list, with the kinds the registry here holds. */
-export async function allCommands(cwd = process.cwd()): Promise<readonly CommandSpec[]> {
+export async function allCommands(cwd = process.cwd()): Promise<readonly Command[]> {
   return (await table(cwd)).commands;
 }
 
@@ -189,7 +158,7 @@ export function printHidden(printer: Printer, hidden: readonly Hidden[]): void {
   for (const hint of new Set(hidden.map((entry) => entry.hint))) printer.hint(hint);
 }
 
-export async function lookup(name: string, cwd = process.cwd()): Promise<CommandSpec | undefined> {
+export async function lookup(name: string, cwd = process.cwd()): Promise<Command | undefined> {
   const own = lookupBuiltin(name);
   if (own !== undefined) return own;
   return (await allCommands(cwd)).find(
@@ -224,12 +193,12 @@ const KIND_NEW: readonly OptionSpec[] = [
 ];
 
 /** A kind the registry here holds is a command of its own: `aireg agent new triage`. */
-async function kindCommands(cwd: string): Promise<CommandSpec[]> {
+async function kindCommands(cwd: string): Promise<Command[]> {
   const { findRegistry } = await import("#core/filespec/write/init.ts");
   const { kindsOf } = await import("#core/filespec/write/kinds.ts");
   return Object.entries(await kindsOf(findRegistry(cwd))).map(([name, manifest]) => {
     const a = /^[aeiou]/.test(name) ? "an" : "a";
-    const spec: CommandSpec = {
+    const spec: Command = {
       name,
       summary: `Create ${a} ${name}, or start its next version`,
       group: "Share",

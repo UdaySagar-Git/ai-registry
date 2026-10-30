@@ -1,4 +1,5 @@
 import { list, sanitizeName } from "#adapter/text.ts";
+import { REMOVE_COMMAND } from "#cli/commands/remove/spec.ts";
 import { matchInstalled, rowsNamed, shownNames } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import {
@@ -24,7 +25,7 @@ import { formatAddress, parseRef, type Ref, relativeTo, withExclusions } from "#
 import { type Roots, scopeName } from "#core/store/paths.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, run as runPipeline, selectTargets } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /**
  * A ref naming a dropped artifact goes, as does a whole ref removed by its own address;
@@ -121,7 +122,7 @@ async function pickRemovals(
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("remove"));
+  const { positionals, common } = parse(context.argv, REMOVE_COMMAND);
   const named = [...positionals, ...(common.select ?? [])].filter((name) => name !== "*");
   const removeAll = common.all || common.select?.includes("*") === true;
 

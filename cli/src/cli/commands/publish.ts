@@ -4,6 +4,7 @@ import type { PublishRelationship, PublishResult, Want } from "#adapter/index.ts
 import { isLocalPath } from "#adapter/paths.ts";
 import { BUMPS, type Bump } from "#adapter/semver.ts";
 import { list, plural, quoted } from "#adapter/text.ts";
+import { PUBLISH_COMMAND } from "#cli/commands/publish/spec.ts";
 import { parse } from "#cli/options.ts";
 import { type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
 import { multiselect } from "#cli/prompt/multiselect.ts";
@@ -61,7 +62,7 @@ import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, withScope } from "#engine/pipeline.ts";
 import { closeScan, scan } from "#engine/scan.ts";
 import { moved, pinnedNote, unservedNote } from "#engine/served.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 interface Own extends Record<string, unknown> {
   to?: string;
@@ -645,7 +646,7 @@ async function reachExports(
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common, own } = parse<Own>(context.argv, builtin("publish"));
+  const { positionals, common, own } = parse<Own>(context.argv, PUBLISH_COMMAND);
   const printer = context.printer;
   const step = interaction(printer, defaultIo(), common.yes);
   const loaded = await load(common, context.cwd, "user");

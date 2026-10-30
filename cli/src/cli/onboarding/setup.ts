@@ -2,7 +2,7 @@ import { readSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { list } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
 import { blocker, explain } from "#cli/prompt/caller.ts";
 import { defaultIo, quietly } from "#cli/prompt/prompt.ts";
 import { canAnimate, spinner } from "#cli/prompt/report.ts";

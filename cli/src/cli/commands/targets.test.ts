@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import { Printer } from "#core/output.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { allCommands, type CommandContext, lookup, RESERVED } from "./index.ts";
+import type { CommandContext } from "./command.ts";
+import { allCommands, lookup, RESERVED } from "./index.ts";
 import { foundSummary, run } from "./targets.ts";
 
 function context(

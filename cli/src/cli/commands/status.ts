@@ -2,6 +2,7 @@ import { lstat } from "node:fs/promises";
 import { relative } from "node:path";
 import { isWithin } from "#adapter/paths.ts";
 import { plural } from "#adapter/text.ts";
+import { STATUS_COMMAND } from "#cli/commands/status/spec.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { underHome } from "#cli/render/home.ts";
 import { installed } from "#cli/render/installed.ts";
@@ -17,7 +18,7 @@ import { type Candidate, candidates, type DanglingLink, danglingLinks } from "#c
 import { byEarlierIds, earlierId, names, type Targets, trustFor } from "#core/target/index.ts";
 import { table } from "#core/term/table.ts";
 import { load } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /**
  * Installed at both scopes, so the target loads it twice or picks by its own order:
@@ -126,7 +127,7 @@ function printDangling(
  * Like `git status` with untracked files, it also names what nothing manages.
  */
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("status"));
+  const { positionals, common } = parse(context.argv, STATUS_COMMAND);
   noArguments(positionals, "status");
   const { roots, manifest, targetTable, lock } = await load(common, context.cwd, "user");
   const statuses = status(lock, await survey(lock, roots), roots);

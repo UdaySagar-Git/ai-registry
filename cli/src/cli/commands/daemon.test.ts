@@ -7,8 +7,8 @@ import { writeDaemonPid } from "#daemon/pidfile.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
 import { PROTOCOL_VERSION } from "#daemon/rpc/methods.ts";
 import { test } from "#test/kit/fixtures.ts";
+import type { CommandContext } from "./command.ts";
 import { daemonAction, run } from "./daemon.ts";
-import type { CommandContext } from "./index.ts";
 
 function context(argv: string[], writes: string[], format: OutputFormat = "json"): CommandContext {
   const writer = { write: (chunk: string) => writes.push(chunk), isTTY: false };

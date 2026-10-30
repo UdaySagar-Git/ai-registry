@@ -8,7 +8,7 @@ import { PACKAGE } from "#core/product.ts";
 import { homeTest as test } from "#test/kit/fixtures.ts";
 import { tempDir } from "#test/kit/temp.ts";
 import { run } from "./adapter.ts";
-import type { CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 // Never the checkout: an init that is not refused would write its package here.
 let cwd: string;

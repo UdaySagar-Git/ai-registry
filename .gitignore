@@ -93,6 +93,8 @@ yarn-error.log*
 # ─── Logs & Temp Files ──────────────────────────────────────────────────────
 *.log
 logs/
+# A command named logs, not a folder of them.
+!cli/src/cli/commands/logs/
 *.tmp
 *.temp
 *.bak

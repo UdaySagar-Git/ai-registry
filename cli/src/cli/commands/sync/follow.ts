@@ -1,6 +1,5 @@
 import { list, plural } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
-import { publishInstead } from "#cli/publish/target.ts";
 import { failureWords, itemLine } from "#cli/render/run.ts";
 import { loadAdapter } from "#core/adapter/load.ts";
 import { readOnlyLayout } from "#core/adapter/read-only.ts";
@@ -15,6 +14,7 @@ import {
 } from "#core/run/model.ts";
 import { followRun, type RpcClient } from "#daemon/rpc/client.ts";
 import type { load } from "#engine/pipeline.ts";
+import { publishInstead } from "#engine/publish/target.ts";
 
 type Loaded = Awaited<ReturnType<typeof load>>;
 

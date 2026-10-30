@@ -1,13 +1,11 @@
 import { credentialsForManifest } from "#accounts/credentials.ts";
 import type { Account } from "#core/config/model.ts";
 import { type RegistrySource, unknownRegistry } from "#core/manifest.ts";
-import type { CommonOptions } from "./options.ts";
-import { type Loaded, load } from "./pipeline.ts";
+import type { CommonOptions } from "#engine/options.ts";
+import { type Loaded, load } from "#engine/pipeline.ts";
+import type { RunScope } from "./narrow.ts";
 import { type Scan, scan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
-
-/** Narrows one run to chosen refs without touching what the job covers. */
-export type RunScope = readonly string[] | undefined;
 
 /** The flags a job implies, for every command a job drives. */
 export function syncOptions(job: ScopeWork, refs: RunScope): CommonOptions {

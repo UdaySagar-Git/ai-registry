@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { AdapterError } from "#adapter/index.ts";
 import { LeaseError } from "#core/lease.ts";
 import { EMPTY_RUN_COUNTS, type RunRecord } from "#core/run/model.ts";
-import { RunScopeError } from "#engine/scope.ts";
+import { RunScopeError } from "#engine/sync/narrow.ts";
 import { classifyFailure, dueAt } from "./failure.ts";
 
 const WATCH = { schedule: { every: 60, enabled: true } } as Parameters<typeof dueAt>[0];

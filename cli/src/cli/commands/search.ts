@@ -2,14 +2,14 @@ import { type ArtifactKind, isKind, KINDS } from "#adapter/kinds.ts";
 import { list, plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { SEARCH_COMMAND } from "#cli/commands/search/spec.ts";
 import { parse } from "#cli/options.ts";
-import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
 import { search } from "#cli/search.ts";
-import { probe, type Resolved, throughManifest } from "#cli/source.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { formatAddress } from "#core/ref.ts";
 import { scopeName } from "#core/store/paths.ts";
 import { truncate } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
+import { probe, type Resolved, throughManifest } from "#engine/address/probe.ts";
+import { knownRegistries, undeclaredRegistry } from "#engine/address/registries.ts";
 import { scopeRoots } from "#engine/pipeline.ts";
 import type { CommandContext } from "./command.ts";
 

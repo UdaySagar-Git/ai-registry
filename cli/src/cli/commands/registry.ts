@@ -31,17 +31,8 @@ import { cancel, type Interaction, interaction, interactive } from "#cli/prompt/
 import { canceled } from "#cli/prompt/model.ts";
 import { defaultIo } from "#cli/prompt/prompt.ts";
 import { text } from "#cli/prompt/text.ts";
-import { commitAndPush, releaseSubject } from "#cli/publish/target.ts";
-import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
 import { underHome } from "#cli/render/home.ts";
 import { noteUserScope } from "#cli/render/where.ts";
-import {
-  type Probed,
-  probe,
-  type SourceFlags,
-  sourceConfig,
-  throughManifest,
-} from "#cli/source.ts";
 import { workflowCommand } from "#cli/workflow-command.ts";
 import { loadAdapter } from "#core/adapter/load.ts";
 import { expandLocation, recordedLocation } from "#core/adapter/location.ts";
@@ -61,8 +52,17 @@ import { formatRef, type Ref } from "#core/ref.ts";
 import { type Roots, scopeName } from "#core/store/paths.ts";
 import { abbreviate } from "#core/term/printer.ts";
 import { fields, table } from "#core/term/table.ts";
+import {
+  type Probed,
+  probe,
+  type SourceFlags,
+  sourceConfig,
+  throughManifest,
+} from "#engine/address/probe.ts";
+import { knownRegistries, undeclaredRegistry } from "#engine/address/registries.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, withScope } from "#engine/pipeline.ts";
+import { commitAndPush, releaseSubject } from "#engine/publish/target.ts";
 import { type Hidden, hiddenKind, printHidden, RESERVED } from "./builtins.ts";
 import { type CommandContext, runAction } from "./command.ts";
 

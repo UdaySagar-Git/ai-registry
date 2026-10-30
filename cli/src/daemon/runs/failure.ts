@@ -9,7 +9,7 @@ import {
   type RunRecord,
   type TerminalRunState,
 } from "#core/run/model.ts";
-import { RunScopeError } from "#engine/scope.ts";
+import { RunScopeError } from "#engine/sync/narrow.ts";
 
 export const CANCELED = Symbol("canceled");
 export const SHUTDOWN = Symbol("shutdown");

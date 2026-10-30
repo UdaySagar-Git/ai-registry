@@ -1,7 +1,6 @@
 import { resolve } from "node:path";
 import { isLocalPath } from "#adapter/paths.ts";
 import { list as listOf, plural, withoutCredentials } from "#adapter/text.ts";
-import type { Probed } from "#cli/source.ts";
 import { comparableLocation, sourceKey } from "#core/adapter/identity.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { readConfig } from "#core/config/repository.ts";
@@ -11,6 +10,7 @@ import { type Lock, type LockArtifact, writeLock } from "#core/lock.ts";
 import type { Manifest, RegistrySource } from "#core/manifest.ts";
 import { formatRef } from "#core/ref.ts";
 import type { Roots } from "#core/store/paths.ts";
+import type { Probed } from "#engine/address/probe.ts";
 
 /** A declared name taking a new address, with what was checked against it. */
 export interface Move {

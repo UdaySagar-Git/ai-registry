@@ -46,7 +46,7 @@ import {
   DaemonMinUpdate,
   FOLLOW_INTERVAL_MS,
 } from "#daemon/updates/cli-update.ts";
-import { jobOfWork, type ScopeWork } from "#engine/work.ts";
+import { jobOfWork, type ScopeWork } from "#engine/sync/work.ts";
 
 const EVENT_PAGE_SIZE = 200;
 

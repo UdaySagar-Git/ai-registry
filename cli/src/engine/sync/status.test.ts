@@ -12,7 +12,7 @@ vi.mock("./inspect.ts", () => ({
     found: { items: [], local: [], undeclared: [], acquired: [{ alias: "shop", close }] },
   }),
 }));
-vi.mock("./pipeline.ts", () => ({ selectTargets: () => [] }));
+vi.mock("#engine/pipeline.ts", () => ({ selectTargets: () => [] }));
 
 test("closes the sources its scan opened, since status is asked for often", async () => {
   const job = { id: "job-1", root: "/project", policy: {} } as unknown as ScopeWork;

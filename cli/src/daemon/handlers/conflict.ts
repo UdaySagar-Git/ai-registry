@@ -9,10 +9,10 @@ import type { ConflictResolution } from "#daemon/rpc/methods.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import type { RpcContext } from "#daemon/rpc/server.ts";
 import type { SyncRunner } from "#daemon/runs/runner.ts";
-import { artifactKey } from "#engine/decide.ts";
-import { kindAddress } from "#engine/scope.ts";
-import { watchStatus } from "#engine/status.ts";
-import { jobOfWork, type ScopeWork, workOf } from "#engine/work.ts";
+import { artifactKey } from "#engine/sync/decide.ts";
+import { kindAddress } from "#engine/sync/narrow.ts";
+import { watchStatus } from "#engine/sync/status.ts";
+import { jobOfWork, type ScopeWork, workOf } from "#engine/sync/work.ts";
 import { accountOf, artifactsJobFor } from "./job.ts";
 import * as inputs from "./params.ts";
 

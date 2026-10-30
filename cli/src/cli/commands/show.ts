@@ -3,7 +3,12 @@ import { basename, join, resolve } from "node:path";
 import { list, quoted, sanitizeBlock, sanitizeName } from "#adapter/text.ts";
 import { SHOW_COMMAND } from "#cli/commands/show/spec.ts";
 import { parse } from "#cli/options.ts";
-import { knownRegistries, undeclaredRegistry } from "#cli/registries.ts";
+import { AiregError, ErrorCode } from "#core/errors.ts";
+import { expandUserPath, isMissing } from "#core/fs/path.ts";
+import { isDirectory } from "#core/fs/tree.ts";
+import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
+import { type Carried, carries, describeCarried } from "#core/plan/carries.ts";
+import { parseRef } from "#core/ref.ts";
 import {
   atAddress,
   probeAddress,
@@ -11,13 +16,8 @@ import {
   throughManifest,
   throughRegistry,
   wantOf,
-} from "#cli/source.ts";
-import { AiregError, ErrorCode } from "#core/errors.ts";
-import { expandUserPath, isMissing } from "#core/fs/path.ts";
-import { isDirectory } from "#core/fs/tree.ts";
-import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
-import { type Carried, carries, describeCarried } from "#core/plan/carries.ts";
-import { parseRef } from "#core/ref.ts";
+} from "#engine/address/probe.ts";
+import { knownRegistries, undeclaredRegistry } from "#engine/address/registries.ts";
 import type { CommandContext } from "./command.ts";
 
 /**

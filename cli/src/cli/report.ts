@@ -1,5 +1,5 @@
-import { adapterProblem } from "#adapter/errors.ts";
-import { type AdapterError, isAdapterError, SpecError } from "#adapter/index.ts";
+import { adapterOf, adapterProblem } from "#adapter/errors.ts";
+import { type AdapterError, SpecError } from "#adapter/index.ts";
 import { AiregError, ErrorCode, type ExitCode, exitCodeFor } from "#core/errors.ts";
 import type { Printer } from "#core/term/printer.ts";
 
@@ -9,13 +9,6 @@ interface Classified {
   hint: string | undefined;
   adapter: string | undefined;
   trace: string | undefined;
-}
-
-/** The adapter failure behind an error, raised directly or wrapped as its cause. */
-export function adapterOf(error: unknown) {
-  if (isAdapterError(error)) return error;
-  if (error instanceof Error && isAdapterError(error.cause)) return error.cause;
-  return undefined;
 }
 
 /** An adapter's failure is already one of our codes, save content that failed its digest or an address typed wrong. */

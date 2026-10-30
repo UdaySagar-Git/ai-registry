@@ -1,6 +1,5 @@
 import { relative } from "node:path";
 import { LIST_COMMAND } from "#cli/commands/list/spec.ts";
-import { rowsNamed } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import {
   heading,
@@ -14,6 +13,7 @@ import type { LockArtifact, readLock } from "#core/lock.ts";
 import { artifactPath, copyLeaf, scopeName } from "#core/store/paths.ts";
 import { earlierId, type Targets } from "#core/target/index.ts";
 import { fields, table } from "#core/term/table.ts";
+import { rowsNamed } from "#engine/installed-names.ts";
 import { load } from "#engine/pipeline.ts";
 import type { CommandContext } from "./command.ts";
 

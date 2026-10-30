@@ -1,6 +1,5 @@
 import { list, sanitizeName } from "#adapter/text.ts";
 import { REMOVE_COMMAND } from "#cli/commands/remove/spec.ts";
-import { matchInstalled, rowsNamed, shownNames } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import {
   cancel,
@@ -24,6 +23,7 @@ import { editedAnywhere } from "#core/plan/model.ts";
 import { survey } from "#core/plan/survey.ts";
 import { formatAddress, parseRef, type Ref, relativeTo, withExclusions } from "#core/ref.ts";
 import { type Roots, scopeName } from "#core/store/paths.ts";
+import { matchInstalled, rowsNamed, shownNames } from "#engine/installed-names.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, run as runPipeline, selectTargets } from "#engine/pipeline.ts";
 import type { CommandContext } from "./command.ts";

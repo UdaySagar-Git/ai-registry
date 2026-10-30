@@ -6,8 +6,8 @@ import { type Candidate, candidates } from "#core/sync/adopt.ts";
 import { reconcile } from "#core/sync/index.ts";
 import type { SyncItem } from "#core/sync/model.ts";
 import { readTargets } from "#core/target/index.ts";
-import type { CommonOptions } from "./options.ts";
-import { type Loaded, selectTargets } from "./pipeline.ts";
+import type { CommonOptions } from "#engine/options.ts";
+import { type Loaded, selectTargets } from "#engine/pipeline.ts";
 
 export interface Scan {
   items: SyncItem[];

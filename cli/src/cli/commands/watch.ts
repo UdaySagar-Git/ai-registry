@@ -18,9 +18,9 @@ import { type Roots, type Scope, scopeFor, scopeName, userScopeDir } from "#core
 import { table } from "#core/term/table.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { scopeRoots } from "#engine/pipeline.ts";
+import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
 import { type CommandContext, runAction } from "./command.ts";
 
 interface Own extends Record<string, unknown> {

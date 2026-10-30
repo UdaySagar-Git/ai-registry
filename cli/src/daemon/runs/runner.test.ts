@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Account } from "#core/config/model.ts";
-import { jobOfWork, type ScopeWork } from "#engine/work.ts";
+import { jobOfWork, type ScopeWork } from "#engine/sync/work.ts";
 import { SyncRunner } from "./runner.ts";
 import { SqliteRunStore } from "./store.ts";
 
@@ -16,7 +16,7 @@ const sync = vi.hoisted(() => ({
 vi.mock("#core/config/repository.ts", () => ({
   readConfig: async () => ({ revision: 1, jobs: [], accounts: [] }),
 }));
-vi.mock("#engine/execute.ts", () => ({
+vi.mock("#engine/sync/execute.ts", () => ({
   executeSync: async () => {
     sync.calls += 1;
     await new Promise<void>((resolve) => sync.waiting.push(resolve));

@@ -17,9 +17,9 @@ import {
   type SyncItem,
 } from "#core/sync/model.ts";
 import { CHANGING_OPERATIONS, operation, type SyncOperation } from "#core/sync/policy.ts";
+import type { Loaded } from "#engine/pipeline.ts";
 import { shadowedByYours } from "./claim.ts";
 import { type OriginOutcome, surveyOrigins } from "./origins.ts";
-import type { Loaded } from "./pipeline.ts";
 import type { Scan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
 

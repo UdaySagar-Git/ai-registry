@@ -1,6 +1,5 @@
 import { plural, sanitizeName, stripTrailing } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
-import { probe } from "#cli/source.ts";
 import { adapterFor } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
@@ -8,6 +7,7 @@ import { readConfig, writeConfig } from "#core/config/repository.ts";
 import { contributedStepFlags } from "#core/host/load.ts";
 import type { Scope } from "#core/store/paths.ts";
 import { GLYPH } from "#core/term/theme.ts";
+import { probe } from "#engine/address/probe.ts";
 export interface OnboardingFlow {
   /** Where artifacts come from. Declared, signed in to, and pulled whole. */
   registry: string;

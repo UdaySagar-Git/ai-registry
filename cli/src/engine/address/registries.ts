@@ -1,11 +1,8 @@
 import { resolve, sep } from "node:path";
 import { namesHost, registryNameFromLocation } from "#adapter/location.ts";
 import { isLocalPath } from "#adapter/paths.ts";
-import { list, quoted, sanitizeText, stripTrailing, withoutCredentials } from "#adapter/text.ts";
+import { quoted, stripTrailing, withoutCredentials } from "#adapter/text.ts";
 import { splitRepository } from "#adapters/git/api.ts";
-import { type Interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled } from "#cli/prompt/model.ts";
-import { select } from "#cli/prompt/select.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { expandUserPath } from "#core/fs/path.ts";
@@ -14,7 +11,7 @@ import { type RegistrySource, readManifest, unknownRegistry } from "#core/manife
 import { roots as makeRoots, type Scope, scopeName } from "#core/store/paths.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/pipeline.ts";
-import type { Probed } from "./source.ts";
+import type { Probed } from "./probe.ts";
 
 /** The alias a location is already declared under, so a second spelling of it reuses the name. */
 function declaredAlias(
@@ -89,46 +86,6 @@ function rooted(
         : source,
     ]),
   );
-}
-
-/**
- * With nothing named, a terminal offers what is declared; anywhere else that
- * is a usage error, because there is nobody to ask.
- */
-export async function chooseRegistry(
-  step: Interaction,
-  known: Readonly<Record<string, RegistrySource>>,
-  ask: { message: string; missing: string; usage: (aliases: string) => string } = {
-    message: "Install from which registry?",
-    missing: "`aireg add` needs a registry.",
-    usage: (aliases) => `Name the registry: \`aireg add <registry>\`, such as ${aliases}.`,
-  },
-): Promise<string | undefined> {
-  const aliases = Object.keys(known).sort();
-  if (!interactive(step) || aliases.length === 0) {
-    throw new AiregError(ask.missing, {
-      code: ErrorCode.Usage,
-      hint:
-        aliases.length === 0
-          ? "Declare one first with `aireg registry add <address>`, such as github.com/owner/repo or a folder."
-          : ask.usage(list(aliases, "or")),
-    });
-  }
-  const picked = await select<string>(
-    {
-      message: ask.message,
-      style: step.printer.errStyle,
-      initial: aliases[0] as string,
-      options: aliases.map((alias) => ({
-        value: alias,
-        label: alias,
-        // A cloned project's manifest can put line breaks and escapes in an address.
-        hint: sanitizeText(withoutCredentials(known[alias]?.location ?? "")),
-      })),
-    },
-    step.io,
-  );
-  return canceled(picked) ? undefined : picked;
 }
 
 /**

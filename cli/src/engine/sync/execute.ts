@@ -10,6 +10,8 @@ import { movedPluginLinks } from "#core/plan/projection.ts";
 import { type RunMode, WARNING_EVENT } from "#core/run/model.ts";
 import { backupStamp } from "#core/store/backups.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
+import type { CommonOptions } from "#engine/options.ts";
+import { type Loaded, load } from "#engine/pipeline.ts";
 import { type Claim, moveAside, surveyClaims } from "./claim.ts";
 import {
   artifactKey,
@@ -24,11 +26,10 @@ import {
   type SyncExecutionHooks,
   type SyncOutcome,
 } from "./decide.ts";
-import { type RunScope, registryOf, syncOptions } from "./inspect.ts";
+import { registryOf, syncOptions } from "./inspect.ts";
 import { applyLocal } from "./local.ts";
-import type { CommonOptions } from "./options.ts";
+import { type RunScope, scopedKeys } from "./narrow.ts";
 import { applyOrigins, originKey, takeIntoOrigins } from "./origins.ts";
-import { type Loaded, load } from "./pipeline.ts";
 import { settlePublished } from "./publish-settle.ts";
 import {
   mutateRemote,
@@ -37,7 +38,6 @@ import {
   type RemoteMutationResult,
 } from "./remote.ts";
 import { closeScan, type Scan, scan } from "./scan.ts";
-import { scopedKeys } from "./scope.ts";
 import type { ScopeWork } from "./work.ts";
 
 export async function executeSync(

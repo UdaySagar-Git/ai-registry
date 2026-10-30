@@ -1,6 +1,5 @@
 import { list } from "#adapter/text.ts";
 import { UPDATE_COMMAND } from "#cli/commands/update/spec.ts";
-import { rowsNamed } from "#cli/names.ts";
 import { parse } from "#cli/options.ts";
 import { cancel, confirmIfDestructive, interaction } from "#cli/prompt/flow.ts";
 import { defaultIo } from "#cli/prompt/prompt.ts";
@@ -9,6 +8,7 @@ import { outcome, planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
 import { asksFor } from "#core/manifest.ts";
 import { lockView } from "#core/plan/acquire.ts";
 import { formatRef, refName } from "#core/ref.ts";
+import { rowsNamed } from "#engine/installed-names.ts";
 import { load, run as runPipeline } from "#engine/pipeline.ts";
 import type { CommandContext } from "./command.ts";
 

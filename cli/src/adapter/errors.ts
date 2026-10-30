@@ -98,3 +98,10 @@ export function failureOf(problem: Problem): Failure {
   }
   return "invalid";
 }
+
+/** The adapter failure behind an error, raised directly or wrapped as its cause. */
+export function adapterOf(error: unknown) {
+  if (isAdapterError(error)) return error;
+  if (error instanceof Error && isAdapterError(error.cause)) return error.cause;
+  return undefined;
+}

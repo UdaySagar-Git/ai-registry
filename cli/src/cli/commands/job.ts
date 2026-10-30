@@ -6,9 +6,7 @@ import { existing, jobNamed, needsJob, noJob, typedFolder } from "#cli/commands/
 import type { RunsOptions } from "#cli/commands/job/runs.ts";
 import { JOB_COMMAND } from "#cli/commands/job/spec.ts";
 import { parse } from "#cli/options.ts";
-import { cannotPublish } from "#cli/publish/target.ts";
 import { underHome } from "#cli/render/home.ts";
-import { probeAddress, throughManifest } from "#cli/source.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { readOnlyLayout } from "#core/adapter/read-only.ts";
@@ -32,7 +30,9 @@ import { shortDuration } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
+import { probeAddress, throughManifest } from "#engine/address/probe.ts";
 import type { CommonOptions } from "#engine/options.ts";
+import { cannotPublish } from "#engine/publish/target.ts";
 import { type CommandContext, runAction } from "./command.ts";
 
 interface Own extends Record<string, unknown>, RunsOptions {

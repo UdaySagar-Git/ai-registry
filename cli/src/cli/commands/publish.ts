@@ -6,41 +6,13 @@ import { BUMPS, type Bump } from "#adapter/semver.ts";
 import { list, plural, quoted } from "#adapter/text.ts";
 import { PUBLISH_COMMAND } from "#cli/commands/publish/spec.ts";
 import { parse } from "#cli/options.ts";
+import { chooseRegistry } from "#cli/prompt/choose-registry.ts";
 import { type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
 import { canceled } from "#cli/prompt/model.ts";
 import { multiselect } from "#cli/prompt/multiselect.ts";
 import { defaultIo } from "#cli/prompt/prompt.ts";
 import { confirm, select } from "#cli/prompt/select.ts";
 import { text } from "#cli/prompt/text.ts";
-import { changeLines, changesJson } from "#cli/publish/changes.ts";
-import {
-  chooseTarget,
-  dependsOnFor,
-  exportWork,
-  forTarget,
-  inDependencyOrder,
-  namesTarget,
-  publishWants,
-  type Skipped,
-  takenBy,
-} from "#cli/publish/exports.ts";
-import { exportsOn, installedPaths } from "#cli/publish/reach.ts";
-import {
-  commitAndPush,
-  type Destination,
-  folderTo,
-  heldUnlisted,
-  namespacesIn,
-  type Planned,
-  type Published,
-  parseTo,
-  plan,
-  readPublished,
-  releaseSubject,
-  writableRegistries,
-} from "#cli/publish/target.ts";
-import { changedSince, type Exported, edited, fromArgs, type Work } from "#cli/publish/work.ts";
-import { chooseRegistry, knownIn, knownRegistries } from "#cli/registries.ts";
 import { underHome } from "#cli/render/home.ts";
 import { noteUserScope } from "#cli/render/where.ts";
 import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
@@ -58,11 +30,40 @@ import {
   unknownRegistry,
 } from "#core/manifest.ts";
 import type { Printer } from "#core/term/printer.ts";
-import { applyLocal } from "#engine/local.ts";
+import { knownIn, knownRegistries } from "#engine/address/registries.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load, withScope } from "#engine/pipeline.ts";
-import { closeScan, scan } from "#engine/scan.ts";
-import { moved, pinnedNote, unservedNote } from "#engine/served.ts";
+import { changeLines, changesJson } from "#engine/publish/changes.ts";
+import {
+  chooseTarget,
+  dependsOnFor,
+  exportWork,
+  forTarget,
+  inDependencyOrder,
+  namesTarget,
+  publishWants,
+  type Skipped,
+  takenBy,
+} from "#engine/publish/exports.ts";
+import { exportsOn, installedPaths } from "#engine/publish/reach.ts";
+import {
+  commitAndPush,
+  type Destination,
+  folderTo,
+  heldUnlisted,
+  namespacesIn,
+  type Planned,
+  type Published,
+  parseTo,
+  plan,
+  readPublished,
+  releaseSubject,
+  writableRegistries,
+} from "#engine/publish/target.ts";
+import { changedSince, type Exported, edited, fromArgs, type Work } from "#engine/publish/work.ts";
+import { applyLocal } from "#engine/sync/local.ts";
+import { closeScan, scan } from "#engine/sync/scan.ts";
+import { moved, pinnedNote, unservedNote } from "#engine/sync/served.ts";
 import type { CommandContext } from "./command.ts";
 
 interface Own extends Record<string, unknown> {

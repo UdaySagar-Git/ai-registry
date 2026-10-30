@@ -6,6 +6,7 @@ import { expandHome } from "#adapter/paths.ts";
 import { list, plural, quoted, sanitizeName, withoutCredentials } from "#adapter/text.ts";
 import { ADD_COMMAND } from "#cli/commands/add/spec.ts";
 import { parse } from "#cli/options.ts";
+import { chooseRegistry } from "#cli/prompt/choose-registry.ts";
 import {
   cancel,
   chooseArtifacts,
@@ -25,32 +26,10 @@ import {
 import { canceled } from "#cli/prompt/model.ts";
 import { defaultIo } from "#cli/prompt/prompt.ts";
 import { canAnimate, spinner } from "#cli/prompt/report.ts";
-import {
-  aliasFor,
-  asAddress,
-  chooseRegistry,
-  knownRegistries,
-  sameLocation,
-  undeclaredRegistry,
-} from "#cli/registries.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, type Ran, summarize } from "#cli/render/plan.ts";
 import { noteUserScope } from "#cli/render/where.ts";
 import { type LockedSkill, readSkillLock } from "#cli/skill-locks.ts";
-import {
-  among,
-  atAddress,
-  insideRegistry,
-  type Probed,
-  probeAddress,
-  type Resolved,
-  relativeRef,
-  rememberSource,
-  type SourceFlags,
-  throughManifest,
-  throughRegistry,
-  wantOf,
-} from "#cli/source.ts";
 import { expandLocation, recordedLocation } from "#core/adapter/location.ts";
 import { type Entry, withoutCoveredLeaves } from "#core/catalog/catalog.ts";
 import { withheldAt, withheldMessage } from "#core/catalog/withheld.ts";
@@ -73,6 +52,27 @@ import { abbreviate } from "#core/term/printer.ts";
 import { autostartState } from "#daemon/autostart/index.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
+import {
+  among,
+  atAddress,
+  insideRegistry,
+  type Probed,
+  probeAddress,
+  type Resolved,
+  relativeRef,
+  rememberSource,
+  type SourceFlags,
+  throughManifest,
+  throughRegistry,
+  wantOf,
+} from "#engine/address/probe.ts";
+import {
+  aliasFor,
+  asAddress,
+  knownRegistries,
+  sameLocation,
+  undeclaredRegistry,
+} from "#engine/address/registries.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import {
   type Loaded,

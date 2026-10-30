@@ -8,8 +8,7 @@ import { movedPluginLinks } from "#core/plan/projection.ts";
 import { survey } from "#core/plan/survey.ts";
 import { artifactPath, copyLeaf } from "#core/store/paths.ts";
 import { VERSION } from "#core/version.ts";
-import type { CommonOptions } from "./options.ts";
-import { recordServed } from "./origins.ts";
+import type { CommonOptions } from "#engine/options.ts";
 import {
   type ApplyNotice,
   appliedNotices,
@@ -22,7 +21,8 @@ import {
   refusePlan,
   selectTargets,
   unstagedNotices,
-} from "./pipeline.ts";
+} from "#engine/pipeline.ts";
+import { recordServed } from "./origins.ts";
 import { narrowToRelinks, relinksIn } from "./relink.ts";
 import type { Scan } from "./scan.ts";
 import { moved, pinnedNote, unservedNote } from "./served.ts";

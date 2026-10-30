@@ -3,8 +3,8 @@ import type { Account } from "#core/config/model.ts";
 import { type Candidate, displayPath } from "#core/sync/adopt.ts";
 import type { Disposition } from "#core/sync/model.ts";
 import { operation, type SyncOperation } from "#core/sync/policy.ts";
+import { selectTargets } from "#engine/pipeline.ts";
 import { inspect } from "./inspect.ts";
-import { selectTargets } from "./pipeline.ts";
 import { closeScan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
 

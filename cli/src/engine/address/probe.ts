@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { credentialFor, credentialForLocation } from "#accounts/credentials.ts";
-import { isAuthFailure } from "#adapter/errors.ts";
+import { adapterOf, isAuthFailure } from "#adapter/errors.ts";
 import { type ArtifactPlace, artifactAt, REGISTRY_DOCUMENT } from "#adapter/filespec/names.ts";
 import {
   isAdapterError,
@@ -40,7 +40,6 @@ import { wrapsNamespaces } from "#core/plan/namespaces.ts";
 import { unmatched } from "#core/plan/select.ts";
 import { parseRef, type Ref } from "#core/ref.ts";
 import { ensureHome, stagingPath } from "#core/store/paths.ts";
-import { adapterOf } from "./report.ts";
 
 export interface SourceFlags extends Record<string, unknown> {
   adapter?: string | undefined;

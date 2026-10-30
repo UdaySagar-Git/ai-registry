@@ -10,7 +10,7 @@ import {
   rememberSource,
   sourceConfig,
   throughManifest,
-} from "./source.ts";
+} from "./probe.ts";
 
 /** This test's folder, which the kit removes after it. */
 let scratch: string;

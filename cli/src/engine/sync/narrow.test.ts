@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 import type { Candidate } from "#core/sync/adopt.ts";
 import type { SyncItem } from "#core/sync/model.ts";
 import { artifactKey } from "./decide.ts";
+import { RunScopeError, scopedKeys } from "./narrow.ts";
 import type { Scan } from "./scan.ts";
-import { RunScopeError, scopedKeys } from "./scope.ts";
 
 const REGISTRY = "shop";
 

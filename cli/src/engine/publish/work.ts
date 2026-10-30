@@ -5,7 +5,6 @@ import { credentialsForManifest } from "#accounts/credentials.ts";
 import type { ArtifactKind } from "#adapter/index.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { quoted, sanitizeName } from "#adapter/text.ts";
-import { matchInstalled, rowsNamed } from "#cli/names.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { ExportFile } from "#core/export-fields.ts";
 import { descriptionText, frontmatter } from "#core/frontmatter.ts";
@@ -16,9 +15,10 @@ import type { LockArtifact } from "#core/lock.ts";
 import type { Export } from "#core/manifest.ts";
 import { refuseRedirectedCopy } from "#core/store/managed-paths.ts";
 import { artifactPath, copyLeaf } from "#core/store/paths.ts";
+import { matchInstalled, rowsNamed } from "#engine/installed-names.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import type { Loaded } from "#engine/pipeline.ts";
-import { closeScan, scan } from "#engine/scan.ts";
+import { closeScan, scan } from "#engine/sync/scan.ts";
 
 /** One artifact to publish: what it is, and where its bytes are. */
 export interface Work {

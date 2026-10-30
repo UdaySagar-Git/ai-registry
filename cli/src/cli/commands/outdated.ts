@@ -1,7 +1,6 @@
 import { credentialFor } from "#accounts/credentials.ts";
 import { contentDigest, type ResolveOptions, type Want } from "#adapter/index.ts";
 import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
-import { shownNames } from "#cli/names.ts";
 import { noArguments, parse } from "#cli/options.ts";
 import { type Watched, watchedFrom } from "#cli/render/installed.ts";
 import { connectSource, resolveArtifacts } from "#core/adapter/connect.ts";
@@ -20,6 +19,7 @@ import { scopeName } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/index.ts";
 import { abbreviate, type Printer, sentence } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
+import { shownNames } from "#engine/installed-names.ts";
 import { load } from "#engine/pipeline.ts";
 import type { CommandContext } from "./command.ts";
 

@@ -6,8 +6,10 @@ import { formatAddress, isWholeNamespace, isWholeRegistry, parseRef } from "#cor
 import type { Candidate } from "#core/sync/adopt.ts";
 import type { SyncItem } from "#core/sync/model.ts";
 import { artifactKey } from "./decide.ts";
-import type { RunScope } from "./inspect.ts";
 import type { Scan } from "./scan.ts";
+
+/** Narrows one run to chosen refs without touching what the job covers. */
+export type RunScope = readonly string[] | undefined;
 
 /** Typed so a caller can tell a mistyped address from a run with no work. */
 export class RunScopeError extends AiregError {

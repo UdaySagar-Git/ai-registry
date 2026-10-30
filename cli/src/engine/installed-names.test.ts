@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { emptyLock, type Lock, type LockArtifact } from "#core/lock.ts";
-import { matchInstalled, rowsNamed, shownNames } from "./names.ts";
+import { matchInstalled, rowsNamed, shownNames } from "./installed-names.ts";
 
 const row = (registry: string, namespace: string, name: string): LockArtifact => ({
   registry,

@@ -34,7 +34,7 @@ import { versionProblems } from "#core/filespec/validate.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import type { RegistrySource } from "#core/manifest.ts";
 import { parseRef, type Ref, RefParseError } from "#core/ref.ts";
-import { readOnly } from "#engine/remote.ts";
+import { readOnly } from "#engine/sync/remote.ts";
 import { type Changes, changesFrom, type Side, type StoredFile } from "./changes.ts";
 import type { Work } from "./work.ts";
 

@@ -23,11 +23,11 @@ import { type Candidate, displayPath } from "#core/sync/adopt.ts";
 import { UNSETTLED } from "#core/sync/model.ts";
 import { POLICY_AXES, type PolicyAxis, type SyncPolicy } from "#core/sync/policy.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
-import { shadowedByYours, surveyClaims } from "#engine/claim.ts";
-import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/pipeline.ts";
-import { closeScan, scan } from "#engine/scan.ts";
+import { shadowedByYours, surveyClaims } from "#engine/sync/claim.ts";
+import { closeScan, scan } from "#engine/sync/scan.ts";
+import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
 import type { CommandContext } from "./command.ts";
 
 type Own = Record<string, unknown> & Partial<Record<PolicyAxis, string>>;

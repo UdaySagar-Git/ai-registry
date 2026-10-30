@@ -5,7 +5,7 @@ import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import type { Account } from "#core/config/model.ts";
 import { withLease } from "#core/lease.ts";
-import type { RegistrySource } from "#core/manifest.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
 import { movedPluginLinks } from "#core/plan/projection.ts";
 import { type RunMode, WARNING_EVENT } from "#core/run/model.ts";
 import { backupStamp } from "#core/store/backups.ts";

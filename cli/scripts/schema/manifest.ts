@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import { LAYOUT_IDS, type LayoutId } from "#adapter/layouts/ids.ts";
-import { LEGACY_TARGETS_KEY } from "#core/manifest.ts";
+import { LEGACY_TARGETS_KEY } from "#core/manifest/model.ts";
 import { DEFAULT_TARGETS } from "#core/target/ids.ts";
 
 /** The shape of `manifest.yml`. The parser stays the authority on what is accepted. */

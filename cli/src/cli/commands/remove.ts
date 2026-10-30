@@ -18,7 +18,7 @@ import { loadedBy, toolName } from "#cli/render/tools.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { dict } from "#core/fields.ts";
 import type { Lock } from "#core/lock.ts";
-import { reaches } from "#core/manifest.ts";
+import { reaches } from "#core/manifest/match.ts";
 import { editedAnywhere } from "#core/plan/model.ts";
 import { survey } from "#core/plan/survey.ts";
 import { formatAddress, parseRef, type Ref, relativeTo, withExclusions } from "#core/ref.ts";

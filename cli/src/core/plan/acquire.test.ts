@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, vi } from "vitest";
 import { type Artifact, buildEnvelope } from "#adapter/index.ts";
 import { emptyLock, type Lock } from "#core/lock.ts";
-import { type Manifest, parseManifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
+import { parseManifest } from "#core/manifest/parse.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { type AcquireOptions, acquire, answers, lockView, newlyYanked, wanted } from "./acquire.ts";
 

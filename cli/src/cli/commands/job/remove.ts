@@ -3,7 +3,7 @@ import { existing, folderKey, jobNamed, needsJob, scopeLabel } from "#cli/comman
 import { underHome } from "#cli/render/home.ts";
 import { type Job, type RegistryConfig, watchedFolders } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
-import { readManifest } from "#core/manifest.ts";
+import { readManifest } from "#core/manifest/repository.ts";
 import { roots, scopeFor } from "#core/store/paths.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";

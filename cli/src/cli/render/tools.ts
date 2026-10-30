@@ -1,6 +1,7 @@
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list } from "#adapter/text.ts";
-import { askingFor, type Manifest, type Pinnable } from "#core/manifest.ts";
+import { askingFor, type Pinnable } from "#core/manifest/match.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import type { LinkState } from "#core/plan/status.ts";
 import type { Targets } from "#core/target/contract.ts";
 import { DEFAULT_TARGETS, names } from "#core/target/ids.ts";

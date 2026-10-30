@@ -10,7 +10,7 @@ import type { Account } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { offerFrom } from "#core/filespec/offer.ts";
 import type { LockArtifact } from "#core/lock.ts";
-import type { RegistrySource } from "#core/manifest.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
 import { listedAt } from "#core/plan/model.ts";
 import { refuseRedirectedCopy } from "#core/store/managed-paths.ts";
 import { artifactPath, copyLeaf, type Roots } from "#core/store/paths.ts";

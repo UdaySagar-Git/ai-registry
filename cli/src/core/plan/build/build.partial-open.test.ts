@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Lock } from "#core/lock.ts";
-import type { Manifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import type { Action } from "#core/plan/model.ts";
 import {
   acquired,

@@ -1,9 +1,9 @@
 import type { ArtifactKind } from "#adapter/index.ts";
 import { isSafePath } from "#adapter/paths.ts";
 import { quoted } from "#adapter/text.ts";
-import { isRecord, textOf } from "./fields.ts";
-import { AGENT_ENTRY, SKILL_ENTRY } from "./kinds.ts";
-import { ManifestError } from "./manifest-error.ts";
+import { isRecord, textOf } from "#core/fields.ts";
+import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
+import { ManifestError } from "./errors.ts";
 
 // The fields of an `exports:` entry that say what it reaches and which files each artifact
 // publishes, and how a path below the project, or below an artifact, is checked.

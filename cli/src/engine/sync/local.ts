@@ -1,7 +1,7 @@
 import { digest } from "#core/fs/digest.ts";
 import { exists } from "#core/fs/tree.ts";
 import { cloneLock, type Lock } from "#core/lock.ts";
-import { pinOf } from "#core/manifest.ts";
+import { pinOf } from "#core/manifest/match.ts";
 import { build } from "#core/plan/build/build.ts";
 import type { Action, Plan } from "#core/plan/model.ts";
 import { movedPluginLinks } from "#core/plan/projection.ts";

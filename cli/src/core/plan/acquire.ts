@@ -21,7 +21,7 @@ import { tokenVariable } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRecord } from "#core/fields.ts";
 import type { Lock, LockArtifact, LockRegistry } from "#core/lock.ts";
-import type { Manifest, RegistrySource } from "#core/manifest.ts";
+import type { Manifest, RegistrySource } from "#core/manifest/model.ts";
 import { formatAddress, type Ref } from "#core/ref.ts";
 import { ensureHome, stagingPath, toolHome } from "#core/store/paths.ts";
 import { abbreviate } from "#core/term/printer.ts";

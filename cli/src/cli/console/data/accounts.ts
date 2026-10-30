@@ -4,7 +4,7 @@ import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import type { Account, RegistryConfig } from "#core/config/model.ts";
 import type { AccountRow } from "#core/console/model.ts";
 import { signedInAccounts } from "#core/credentials/store.ts";
-import type { Manifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import { credentialsPath } from "#core/store/paths.ts";
 
 /** `auth list` does not say where a token lives, so each row does. */

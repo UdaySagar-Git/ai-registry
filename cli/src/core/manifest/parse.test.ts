@@ -1,10 +1,12 @@
 import { mkdir, readdir, readFile, realpath, stat, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { describe, expect, vi } from "vitest";
+import { parseRef } from "#core/ref.ts";
 import { roots } from "#core/store/paths.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { formatManifest, parseManifest, readManifest, writeManifest } from "./manifest.ts";
-import { parseRef } from "./ref.ts";
+import { formatManifest } from "./format.ts";
+import { parseManifest } from "./parse.ts";
+import { readManifest, writeManifest } from "./repository.ts";
 
 // A release's version, so a manifest can ask for one older or newer than this CLI.
 vi.mock("#core/version.ts", async (importOriginal) => ({

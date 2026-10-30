@@ -9,7 +9,7 @@ import { readConfig } from "#core/config/repository.ts";
 import { CredentialStoreError } from "#core/credentials/store.ts";
 import { registryToken, tokenVariable } from "#core/env.ts";
 import { ErrorCode } from "#core/errors.ts";
-import type { RegistrySource } from "#core/manifest.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
 import { readRootManifest } from "./registry.ts";
 import { AccountService } from "./service.ts";
 

@@ -16,13 +16,10 @@ import { tokenVariable } from "#core/env.ts";
 import { ErrorCode } from "#core/errors.ts";
 import { stepContribution, stepOn } from "#core/host/load.ts";
 import { withLease } from "#core/lease.ts";
-import {
-  coveredByWhole,
-  type RegistrySource,
-  readManifest,
-  unknownRegistry,
-  writeManifest,
-} from "#core/manifest.ts";
+import { unknownRegistry } from "#core/manifest/errors.ts";
+import { coveredByWhole } from "#core/manifest/match.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
+import { readManifest, writeManifest } from "#core/manifest/repository.ts";
 import { formatAddress, formatRef, parseRef, type Ref } from "#core/ref.ts";
 import { type Roots, roots, type Scope, scopeFor } from "#core/store/paths.ts";
 import type { SyncPolicy } from "#core/sync/policy.ts";

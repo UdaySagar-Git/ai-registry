@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { emptyRegistryConfig } from "#core/config/model.ts";
-import { parseManifest } from "#core/manifest.ts";
+import { parseManifest } from "#core/manifest/parse.ts";
 import { homeTest as test } from "#test/kit/fixtures.ts";
 import { readAccounts } from "./accounts.ts";
 

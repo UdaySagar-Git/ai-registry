@@ -1,7 +1,7 @@
 import { list, plural, quoted, sanitizeName } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import { reaches } from "#core/manifest.ts";
+import { reaches } from "#core/manifest/match.ts";
 import { parseRef, type Ref } from "#core/ref.ts";
 
 /** The ways to write one installed artifact, shortest first; the last is unique in any scope. */

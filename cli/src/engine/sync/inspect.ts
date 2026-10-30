@@ -1,6 +1,7 @@
 import { credentialsForManifest } from "#accounts/credentials.ts";
 import type { Account } from "#core/config/model.ts";
-import { type RegistrySource, unknownRegistry } from "#core/manifest.ts";
+import { unknownRegistry } from "#core/manifest/errors.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, load } from "#engine/pipeline.ts";
 import type { RunScope } from "./narrow.ts";

@@ -1,5 +1,6 @@
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import { asksFor, type Manifest, pinOf } from "#core/manifest.ts";
+import { asksFor, pinOf } from "#core/manifest/match.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import { type Scope, scopeName } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/contract.ts";
 import { earlierId } from "#core/target/ids.ts";

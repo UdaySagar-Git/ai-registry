@@ -4,7 +4,7 @@ import { type Withheld, withheldAt, withheldMessage } from "#core/catalog/withhe
 import { digest } from "#core/fs/digest.ts";
 import { exists } from "#core/fs/tree.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import type { Manifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import { describeCarried } from "#core/plan/carries.ts";
 import { closure } from "#core/plan/depends.ts";
 import type { Acquired, Fetch, Selected } from "#core/plan/model.ts";

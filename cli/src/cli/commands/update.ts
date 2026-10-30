@@ -5,7 +5,7 @@ import { defaultIo } from "#cli/prompt/ask.ts";
 import { cancel, confirmIfDestructive, interaction } from "#cli/prompt/flow.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
-import { asksFor } from "#core/manifest.ts";
+import { asksFor } from "#core/manifest/match.ts";
 import { lockView } from "#core/plan/acquire.ts";
 import { formatRef, refName } from "#core/ref.ts";
 import { rowsNamed } from "#engine/installed-names.ts";

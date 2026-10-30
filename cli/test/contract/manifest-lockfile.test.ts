@@ -4,7 +4,8 @@ import { Ajv2020, type SchemaObject } from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
 import { formatLock, parseLock } from "#core/lock.ts";
-import { EXPORT_KEYS, MANIFEST_KEYS, parseManifest, REGISTRY_KEYS } from "#core/manifest.ts";
+import { EXPORT_KEYS, MANIFEST_KEYS, REGISTRY_KEYS } from "#core/manifest/model.ts";
+import { parseManifest } from "#core/manifest/parse.ts";
 import { GENERATED, kindCopies, render } from "#scripts/schema/generate.ts";
 
 const SCHEMAS = join(import.meta.dirname, "..", "..", "schema");

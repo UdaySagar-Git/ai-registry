@@ -2,7 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import type { SourceAdapter } from "#adapter/index.ts";
-import { type Manifest, parseManifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
+import { parseManifest } from "#core/manifest/parse.ts";
 import { lock } from "#test/kit/builders/lock.ts";
 import { test } from "#test/kit/fixtures.ts";
 import {

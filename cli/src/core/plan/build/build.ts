@@ -3,7 +3,7 @@ import { list, plural, sanitizeText } from "#adapter/text.ts";
 import { statusWarning } from "#core/catalog/withheld.ts";
 import { dict } from "#core/fields.ts";
 import { emptyLock, type Lock, type LockArtifact } from "#core/lock.ts";
-import type { Manifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import { closure, dependentsByName, nameClashes } from "#core/plan/depends.ts";
 import type {
   Acquired,

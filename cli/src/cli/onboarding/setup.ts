@@ -10,7 +10,7 @@ import { underHome } from "#cli/render/home.ts";
 import { inGitHubActions, isCI, isSet } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { canonical } from "#core/fs/realpath.ts";
-import { readManifest, writeManifest } from "#core/manifest.ts";
+import { readManifest, writeManifest } from "#core/manifest/repository.ts";
 import {
   OWN_SKILLS_ALIAS,
   OWN_SKILLS_NAMESPACE,

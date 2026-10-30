@@ -7,7 +7,7 @@ import { readConfig } from "#core/config/repository.ts";
 import { credentialOrigin } from "#core/credentials/origin.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { type Lock, type LockArtifact, writeLock } from "#core/lock.ts";
-import type { Manifest, RegistrySource } from "#core/manifest.ts";
+import type { Manifest, RegistrySource } from "#core/manifest/model.ts";
 import { formatRef } from "#core/ref.ts";
 import type { Roots } from "#core/store/paths.ts";
 import type { Probed } from "#engine/address/probe.ts";

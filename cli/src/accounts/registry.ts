@@ -4,13 +4,9 @@ import { comparableLocation, sourceKey } from "#core/adapter/identity.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import {
-  type Manifest,
-  type RegistrySource,
-  readManifest,
-  unknownRegistry,
-  writeManifest,
-} from "#core/manifest.ts";
+import { unknownRegistry } from "#core/manifest/errors.ts";
+import type { Manifest, RegistrySource } from "#core/manifest/model.ts";
+import { readManifest, writeManifest } from "#core/manifest/repository.ts";
 import { roots, type Scope } from "#core/store/paths.ts";
 
 export interface ResolvedRegistry {

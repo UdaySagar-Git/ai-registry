@@ -1,6 +1,6 @@
 import { describe, expect } from "vitest";
 import type { Interaction } from "#cli/prompt/flow.ts";
-import type { RegistrySource } from "#core/manifest.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
 import { Printer } from "#core/term/printer.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
 import { test } from "#test/kit/fixtures.ts";

@@ -22,13 +22,9 @@ import { digest } from "#core/fs/digest.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import { gitIn } from "#core/git.ts";
 import { writeLock } from "#core/lock.ts";
-import {
-  type Export,
-  type Manifest,
-  pinOf,
-  type RegistrySource,
-  unknownRegistry,
-} from "#core/manifest.ts";
+import { unknownRegistry } from "#core/manifest/errors.ts";
+import { pinOf } from "#core/manifest/match.ts";
+import type { Export, Manifest, RegistrySource } from "#core/manifest/model.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { knownIn, knownRegistries } from "#engine/address/registries.ts";
 import type { CommonOptions } from "#engine/options.ts";

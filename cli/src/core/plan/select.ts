@@ -11,7 +11,7 @@ import { withheldAt } from "#core/catalog/withheld.ts";
 import { unmetEngine } from "#core/engines.ts";
 import { kindDir, stagedLeaf } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
-import type { Manifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import type { Ref } from "#core/ref.ts";
 import { formatRef, isWholeNamespace, isWholeRegistry, refName, relativeTo } from "#core/ref.ts";
 import type { Carried } from "./carries.ts";

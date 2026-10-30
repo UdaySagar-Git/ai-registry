@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
-import type { RegistrySource } from "#core/manifest.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { asAddress, sameLocation } from "./registries.ts";
 

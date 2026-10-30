@@ -321,7 +321,7 @@
         "src/core/hook/run.test.ts",
         "src/core/lease-release.test.ts",
         "src/core/lock.test.ts",
-        "src/core/manifest.ts",
+        "src/core/manifest/parse.ts",
         "src/core/plan/apply.ts",
         "src/core/plan/build/build.ts",
         "src/core/plan/build/carry.ts",

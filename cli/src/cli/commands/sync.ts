@@ -16,7 +16,7 @@ import { parse } from "#cli/options.ts";
 import { isStepPolicy, STEP_POLICIES } from "#core/config/model.ts";
 import { registryToken } from "#core/env.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
-import { unknownRegistry } from "#core/manifest.ts";
+import { unknownRegistry } from "#core/manifest/errors.ts";
 import type { RunRecord } from "#core/run/model.ts";
 import { scopeName } from "#core/store/paths.ts";
 import { type Candidate, displayPath } from "#core/sync/adopt.ts";

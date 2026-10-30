@@ -1,7 +1,7 @@
+import { readManifest } from "#core/manifest/repository.ts";
 import { roots } from "#core/store/paths.ts";
 import { shellWord } from "#core/term/format.ts";
 import { readLock } from "./lock.ts";
-import { readManifest } from "./manifest.ts";
 import { NAME, REPOSITORY, REPOSITORY_NAME, releaseTag } from "./product.ts";
 import { VERSION } from "./version.ts";
 

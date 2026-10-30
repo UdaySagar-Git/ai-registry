@@ -9,7 +9,7 @@ import { homeDir } from "#core/fs/path.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import { withLease } from "#core/lease.ts";
 import { readLock } from "#core/lock.ts";
-import { readManifest } from "#core/manifest.ts";
+import { readManifest } from "#core/manifest/repository.ts";
 import { apply, recover } from "#core/plan/apply.ts";
 import { build } from "#core/plan/build/build.ts";
 import { fetchFrom, type Plan } from "#core/plan/model.ts";

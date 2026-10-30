@@ -7,13 +7,8 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import type { Lock } from "#core/lock.ts";
-import {
-  artifactFor,
-  type Export,
-  type ExportDependency,
-  type Manifest,
-  type RegistrySource,
-} from "#core/manifest.ts";
+import { artifactFor } from "#core/manifest/match.ts";
+import type { Export, ExportDependency, Manifest, RegistrySource } from "#core/manifest/model.ts";
 import { formatAddress, type Ref } from "#core/ref.ts";
 import { artifactRoot } from "./reach.ts";
 import type { Destination, Planned, Published } from "./target.ts";

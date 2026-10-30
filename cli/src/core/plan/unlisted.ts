@@ -2,7 +2,7 @@ import { quoted } from "#adapter/text.ts";
 import { entryFor } from "#core/catalog/catalog.ts";
 import { withheldAt } from "#core/catalog/withheld.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import type { Manifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import { lockView } from "./acquire.ts";
 import type { Acquired } from "./model.ts";
 

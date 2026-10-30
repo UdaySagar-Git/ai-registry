@@ -1,8 +1,8 @@
 import { type ArtifactKind, isKind, KINDS } from "#adapter/kinds.ts";
 import { list, plural, quoted, withoutCredentials } from "#adapter/text.ts";
+import { search } from "#cli/commands/search/rank.ts";
 import { SEARCH_COMMAND } from "#cli/commands/search/spec.ts";
 import { parse } from "#cli/options.ts";
-import { search } from "#cli/search.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { formatAddress } from "#core/ref.ts";
 import { scopeName } from "#core/store/paths.ts";

@@ -2,7 +2,7 @@ import { stripVTControlCharacters } from "node:util";
 import { render } from "ink";
 import { describe, expect, test } from "vitest";
 import type { ConsoleState } from "#core/console/model.ts";
-import { settingsView } from "./settings-view.ts";
+import { settingsView } from "./settings.ts";
 
 function drawn(state: Partial<ConsoleState>): string {
   const writes: string[] = [];

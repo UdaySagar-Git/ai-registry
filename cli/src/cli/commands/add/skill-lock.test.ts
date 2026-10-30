@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
-import { readSkillLock } from "./skill-locks.ts";
+import { readSkillLock } from "./skill-lock.ts";
 
 async function lockFile(dir: string, document: unknown): Promise<string> {
   const path = join(dir, "skills-lock.json");

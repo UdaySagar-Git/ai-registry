@@ -10,7 +10,7 @@ import { binaryName, releasePlatform } from "#core/release/platform.ts";
 import type { ReleaseStamp } from "#core/release/stamp.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { installedVersion } from "./install.ts";
-import { installRelease, probeRelease } from "./minimum.ts";
+import { installRelease, probeRelease } from "./minimum-update.ts";
 
 // The stamp is build-time only by design, so a test substitutes one here
 // rather than the code growing an environment override to let it in.

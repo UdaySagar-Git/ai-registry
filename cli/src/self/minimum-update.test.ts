@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { runningEntry } from "#core/release/launch.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { installTimeoutMs, isInstalledCli, skipMinimumUpdate } from "./minimum.ts";
+import { installTimeoutMs, isInstalledCli, skipMinimumUpdate } from "./minimum-update.ts";
 
 const home = { AIREG_HOME: "/tmp/aireg-home" };
 const installed = join("/tmp/aireg-home/cli/0.1.0/aireg");

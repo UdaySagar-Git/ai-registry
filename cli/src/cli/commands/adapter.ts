@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import { plural, quoted } from "#adapter/text.ts";
-import { initAdapter } from "#cli/commands/adapter/scaffold.ts";
+import { initAdapter } from "#cli/commands/adapter/init.ts";
 import { ADAPTER_COMMAND } from "#cli/commands/adapter/spec.ts";
 import { parse } from "#cli/options.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
 import { canceled } from "#cli/prompt/model.ts";
-import { defaultIo } from "#cli/prompt/prompt.ts";
 import { confirm } from "#cli/prompt/select.ts";
 import { underHome } from "#cli/render/home.ts";
 import { downloadAdapter, resolveAdapter } from "#core/adapter/installed/fetch.ts";

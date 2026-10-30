@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { updateCheckPath } from "#core/release/layout.ts";
 import { ensureHome } from "#core/store/paths.ts";
-import { downloadSize, type ResolvedRelease } from "./source.ts";
+import { downloadSize, type ResolvedRelease } from "./release.ts";
 
 export interface UpdateCache {
   /** When the channel was last asked, answered or not, so a dead origin costs one try per interval. */

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Styler } from "#core/term/printer.ts";
 import type { PromptIo } from "./model.ts";
-import { note, spinner } from "./report.ts";
+import { note, spinner } from "./spinner.ts";
 
 const style = new Styler({ isTTY: false }, {}, "always");
 // A clipboard write, a screen clear, a bell, a backspace and a hidden hyperlink.

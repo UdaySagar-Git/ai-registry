@@ -6,8 +6,8 @@ import { shimPath, versionBin } from "#core/release/layout.ts";
 import { VERSION } from "#core/version.ts";
 import { recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { installedVersion, previousInstalled, rollback } from "#self/install.ts";
-import { installRelease } from "#self/minimum.ts";
-import { resolveRelease } from "#self/source.ts";
+import { installRelease } from "#self/minimum-update.ts";
+import { resolveRelease } from "#self/release.ts";
 import { cacheFrom, writeUpdateCache } from "#self/update-cache.ts";
 import { SELF_COMMAND } from "./spec.ts";
 

@@ -1,6 +1,6 @@
 import { updateAdapters } from "#core/adapter/installed/update.ts";
 import { VERSION } from "#core/version.ts";
-import { skipMinimumUpdate } from "#self/minimum.ts";
+import { skipMinimumUpdate } from "#self/minimum-update.ts";
 import { type DaemonReplaceHooks, replaceWith } from "./cli-update.ts";
 
 export interface DaemonAdapterUpdateHooks extends DaemonReplaceHooks {

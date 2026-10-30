@@ -8,8 +8,13 @@ import { releaseStamp } from "#core/release/stamp.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { versionOnDisk } from "./install.ts";
-import { installRelease, isInstalledCli, probeRelease, type RecycleDaemon } from "./minimum.ts";
-import { describeSize } from "./source.ts";
+import {
+  installRelease,
+  isInstalledCli,
+  probeRelease,
+  type RecycleDaemon,
+} from "./minimum-update.ts";
+import { describeSize } from "./release.ts";
 import { readUpdateCache, writeUpdateCache } from "./update-cache.ts";
 
 /** Matches the daemon's check, so a machine with no daemon keeps the same pace. */

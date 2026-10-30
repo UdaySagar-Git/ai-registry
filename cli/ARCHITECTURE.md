@@ -19,7 +19,7 @@ targets/            one typed definition per target; imports only core/target/co
 adapter/            the public adapter contract; imports nothing else
 ```
 
-`self/` never reaches the daemon. The update code takes the daemon restart from its caller (`RecycleDaemon` in `self/minimum.ts`), and `aireg self uninstall` stops the daemon in its command module. `targets/` sits below `core/`, which loads the built-in list; the contract a target is written against is the one file of `core/` it imports.
+`self/` never reaches the daemon. The update code takes the daemon restart from its caller (`RecycleDaemon` in `self/minimum-update.ts`), and `aireg self uninstall` stops the daemon in its command module. `targets/` sits below `core/`, which loads the built-in list; the contract a target is written against is the one file of `core/` it imports.
 
 Three folders carry the word adapter. `adapter/` is the contract an adapter is written against, which the npm package exports; `adapters/` holds the adapters built into aireg; and `core/adapter/` is the host side, which finds the adapter for an address, loads it and talks to it.
 
@@ -61,7 +61,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 2. The command parses its options with `cli/options.ts` and reads the scope once: the project's or your user scope's `.registry/manifest.yml` and `manifest.lock.yml`.
 3. Installing commands call `engine/pipeline.ts`, which acquires each registry through its adapter (`core/adapter/`), builds a plan (`core/plan/build/build.ts`) and, through one guarded commit, applies it (`core/plan/apply.ts`) under the scope's lease (`core/lease.ts`). How the run is shown is the command's, through `cli/render/plan.ts`.
 4. Placement in each target folder follows the target's definition (`src/targets/`, applied by `core/target/`), including any config file the target needs edited, such as Codex's `config.toml`.
-5. A failure is an `AiregError`; `cli/report.ts` prints it, or its `--json` form, and returns its exit status.
+5. A failure is an `AiregError`; `cli/render/error.ts` prints it, or its `--json` form, and returns its exit status.
 
 Background jobs run the same engine from the daemon (`daemon/runs/runner.ts`), so a sync started by hand and one started by the scheduler behave the same: both write through the pipeline's `commit`, after the same recovery, refusals and hooks.
 

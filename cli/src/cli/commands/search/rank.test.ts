@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { type Searchable, search } from "./search.ts";
+import { type Searchable, search } from "./rank.ts";
 
 function item(name: string, extra: Partial<Searchable> = {}): Searchable {
   return { name, namespace: "engineering", description: undefined, labels: undefined, ...extra };

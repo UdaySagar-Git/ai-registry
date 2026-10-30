@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { shimPath } from "#core/release/layout.ts";
 import { test as base } from "#test/kit/fixtures.ts";
-import { addToPath, isOurs, onPathIn, removeFromPath } from "./path-setup.ts";
+import { addToPath, isOurs, onPathIn, removeFromPath } from "./shell-path.ts";
 
 /**
  * A home of startup files, with aireg's folder in its default place. The kit

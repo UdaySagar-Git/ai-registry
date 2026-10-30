@@ -171,7 +171,7 @@ describe("architecture", () => {
     // tsconfig.types.json builds the contract's declarations alone, where `#adapter/` does not resolve.
     const contract = join(SRC, "adapter");
     // Its template text holds the import lines of the package it writes.
-    const scaffold = join(SRC, "cli", "commands", "adapter", "scaffold.ts");
+    const scaffold = join(SRC, "cli", "commands", "adapter", "init.ts");
     const allowed = (file: string, specifier: string) =>
       file === scaffold ||
       (file.startsWith(contract) && resolve(dirname(file), specifier).startsWith(contract));

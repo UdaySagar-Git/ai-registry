@@ -18,8 +18,8 @@ import { NAME } from "#core/product.ts";
 import { runningEntry } from "#core/release/launch.ts";
 import { type Roots, roots, toolHome, userScopeDir } from "#core/store/paths.ts";
 import { resolveTargets } from "#core/target/index.ts";
-import { onPathIn } from "./path-setup.ts";
-import { REMOVE_AFTER_FLAG, removeTree } from "./remove-after.ts";
+import { REMOVE_AFTER_FLAG, removeTree } from "./remove-after-exit.ts";
+import { onPathIn } from "./shell-path.ts";
 
 /** The files aireg put on this machine outside projects, as `aireg self uninstall` finds them. */
 export interface Footprint {

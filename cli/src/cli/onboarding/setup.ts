@@ -3,9 +3,9 @@ import { appendFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { list } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
+import { defaultIo, quietly } from "#cli/prompt/ask.ts";
 import { blocker, explain } from "#cli/prompt/caller.ts";
-import { defaultIo, quietly } from "#cli/prompt/prompt.ts";
-import { canAnimate, spinner } from "#cli/prompt/report.ts";
+import { canAnimate, spinner } from "#cli/prompt/spinner.ts";
 import { underHome } from "#cli/render/home.ts";
 import { inGitHubActions, isCI, isSet } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -29,7 +29,7 @@ import { VERSION } from "#core/version.ts";
 import { probeDaemon, recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { withScope } from "#engine/pipeline.ts";
 import { installBinaryFrom } from "#self/install.ts";
-import { addToPath, isOurs, resolvedOnPath, restartCommand } from "#self/path-setup.ts";
+import { addToPath, isOurs, resolvedOnPath, restartCommand } from "#self/shell-path.ts";
 
 /**
  * One line from the terminal, read with blocking reads: macOS cannot watch a reopened

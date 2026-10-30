@@ -4,8 +4,10 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isReadOnlyLayout, type LayoutId } from "#adapter/layouts/ids.ts";
 import { expandHome } from "#adapter/paths.ts";
 import { list, plural, quoted, sanitizeName, withoutCredentials } from "#adapter/text.ts";
+import { type LockedSkill, readSkillLock } from "#cli/commands/add/skill-lock.ts";
 import { ADD_COMMAND } from "#cli/commands/add/spec.ts";
 import { parse } from "#cli/options.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
 import { chooseRegistry } from "#cli/prompt/choose-registry.ts";
 import {
   cancel,
@@ -24,12 +26,10 @@ import {
   preparing,
 } from "#cli/prompt/flow.ts";
 import { canceled } from "#cli/prompt/model.ts";
-import { defaultIo } from "#cli/prompt/prompt.ts";
-import { canAnimate, spinner } from "#cli/prompt/report.ts";
+import { canAnimate, spinner } from "#cli/prompt/spinner.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, type Ran, summarize } from "#cli/render/plan.ts";
 import { noteUserScope } from "#cli/render/where.ts";
-import { type LockedSkill, readSkillLock } from "#cli/skill-locks.ts";
 import { expandLocation, recordedLocation } from "#core/adapter/location.ts";
 import { type Entry, withoutCoveredLeaves } from "#core/catalog/catalog.ts";
 import { withheldAt, withheldMessage } from "#core/catalog/withheld.ts";

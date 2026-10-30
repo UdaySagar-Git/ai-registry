@@ -1,7 +1,7 @@
 import { INSTALL_COMMAND } from "#cli/commands/install/spec.ts";
 import { noArguments, parse } from "#cli/options.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
 import { cancel, confirmIfDestructive, interaction } from "#cli/prompt/flow.ts";
-import { defaultIo } from "#cli/prompt/prompt.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, summarize } from "#cli/render/plan.ts";
 import { load, run as runPipeline } from "#engine/pipeline.ts";

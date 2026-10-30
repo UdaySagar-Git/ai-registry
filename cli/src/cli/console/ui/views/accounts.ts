@@ -1,10 +1,10 @@
 import type { ReactElement } from "react";
 import { plural } from "#adapter/text.ts";
+import { box, dim, faint, heading, plain, text } from "#cli/console/ui/elements.ts";
 import { underHome } from "#cli/render/home.ts";
 import type { AccountRow, ConsoleState } from "#core/console/model.ts";
 import { pad } from "#core/term/format.ts";
 import { COLOR, GLYPH } from "#core/term/theme.ts";
-import { box, dim, faint, heading, plain, text } from "./elements.ts";
 
 function accountBlock(account: AccountRow, selected: boolean, active: boolean): ReactElement {
   return box(

@@ -1,12 +1,12 @@
 import type { ReactElement } from "react";
-import { windowAround } from "#cli/console/model/list.ts";
+import { windowAround } from "#cli/console/data/list.ts";
+import { summaryStrip } from "#cli/console/ui/chrome.ts";
+import { action, box, dim, faint, heading, plain, text } from "#cli/console/ui/elements.ts";
 import { failureWords } from "#cli/render/run.ts";
 import type { ConsoleState, JobRow, RunRow } from "#core/console/model.ts";
 import { isFailed } from "#core/run/model.ts";
 import { ago, clock, interval, pad, truncate } from "#core/term/format.ts";
 import { COLOR, GLYPH, runColor, runGlyph } from "#core/term/theme.ts";
-import { summaryStrip } from "./chrome.ts";
-import { action, box, dim, faint, heading, plain, text } from "./elements.ts";
 
 // A failed run's reason comes from the daemon log: the run record carries only a code.
 

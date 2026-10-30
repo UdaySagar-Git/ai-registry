@@ -5,7 +5,7 @@ import { decodeTrustedKeys } from "#core/release/keyring.ts";
 import { canonicalPayload, type ReleaseManifest } from "#core/release/manifest.ts";
 import { binaryName, releasePlatform } from "#core/release/platform.ts";
 import type { ReleaseStamp } from "#core/release/stamp.ts";
-import { downloadRelease, resolveRelease } from "./source.ts";
+import { downloadRelease, resolveRelease } from "./release.ts";
 
 // The stamp is build-time only by design, so a test substitutes one here
 // rather than the code growing an environment override to let it in.

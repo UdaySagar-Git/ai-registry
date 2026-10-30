@@ -16,7 +16,7 @@ import {
   downloadSize,
   type ResolvedRelease,
   resolveRelease,
-} from "./source.ts";
+} from "./release.ts";
 import { cacheFrom, readUpdateCache, writeUpdateCache } from "./update-cache.ts";
 
 /** 0.15 MB/s, a slow link that still works; a forced update that times out stays below the floor. */

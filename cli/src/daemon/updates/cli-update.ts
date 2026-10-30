@@ -4,7 +4,12 @@ import { versionBin } from "#core/release/layout.ts";
 import { needsMinimumUpdate } from "#core/release/minimum.ts";
 import { isSourceVersion, VERSION } from "#core/version.ts";
 import { installedVersion, versionOnDisk } from "#self/install.ts";
-import { installRelease, isInstalledCli, probeRelease, skipMinimumUpdate } from "#self/minimum.ts";
+import {
+  installRelease,
+  isInstalledCli,
+  probeRelease,
+  skipMinimumUpdate,
+} from "#self/minimum-update.ts";
 
 export const MIN_UPDATE_INTERVAL_MS = 15 * 60 * 1000;
 /** A local readlink, so it can run far more often than the network floor check. */

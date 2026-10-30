@@ -15,7 +15,7 @@ import type { Command, CommandContext } from "#cli/commands/command.ts";
 import { lookup, warnHidden } from "#cli/commands/index.ts";
 import { printHelp, printShortHelp, unknownCommand } from "#cli/help.ts";
 import { findMapFormat, runMap } from "#cli/map.ts";
-import { reportError } from "#cli/report.ts";
+import { reportError } from "#cli/render/error.ts";
 import { closest, didYouMean } from "#cli/suggest.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { releaseLeasesOnInterrupt } from "#core/lease.ts";
@@ -25,9 +25,14 @@ import { Printer } from "#core/term/printer.ts";
 import { NODE_REQUIREMENT, nodeTooOld, VERSION, versionInfo } from "#core/version.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
 import { recycleDaemon } from "#daemon/process/lifecycle.ts";
-import { hintUpdate, refreshUpdates, scheduleUpdateCheck, UPDATE_CHECK_FLAG } from "#self/check.ts";
-import { applyMinimumUpdate } from "#self/minimum.ts";
-import { REMOVE_AFTER_FLAG, removeAfterExit } from "#self/remove-after.ts";
+import { applyMinimumUpdate } from "#self/minimum-update.ts";
+import { REMOVE_AFTER_FLAG, removeAfterExit } from "#self/remove-after-exit.ts";
+import {
+  hintUpdate,
+  refreshUpdates,
+  scheduleUpdateCheck,
+  UPDATE_CHECK_FLAG,
+} from "#self/update-check.ts";
 
 registerBuiltinAdapters();
 

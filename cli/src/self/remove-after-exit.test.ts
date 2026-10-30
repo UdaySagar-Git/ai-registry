@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
-import { removeAfterExit } from "./remove-after.ts";
+import { removeAfterExit } from "./remove-after-exit.ts";
 
 // A pid no process has, so nothing is waited on.
 const GONE = 2 ** 22 + 1;

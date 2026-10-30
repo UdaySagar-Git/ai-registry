@@ -11,9 +11,9 @@ import {
 import { plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { AUTH_COMMAND } from "#cli/commands/auth/spec.ts";
 import { parse } from "#cli/options.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
 import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
 import { canceled } from "#cli/prompt/model.ts";
-import { defaultIo } from "#cli/prompt/prompt.ts";
 import { confirm } from "#cli/prompt/select.ts";
 import { comparableLocation } from "#core/adapter/identity.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/load.ts";

@@ -1,5 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
-import { windowAround } from "#cli/console/model/list.ts";
+import { windowAround } from "#cli/console/data/list.ts";
+import { summaryStrip } from "#cli/console/ui/chrome.ts";
+import { action, box, dim, faint, plain, text } from "#cli/console/ui/elements.ts";
 import { publishable } from "#core/console/artifacts.ts";
 import type { Line } from "#core/console/flatten.ts";
 import { lineKey } from "#core/console/flatten.ts";
@@ -7,8 +9,6 @@ import type { ArtifactGroup, ArtifactRow, ConsoleState } from "#core/console/mod
 import { stateStyle } from "#core/console/state-style.ts";
 import { ago, pad, shortDigest, truncate } from "#core/term/format.ts";
 import { COLOR, GLYPH } from "#core/term/theme.ts";
-import { summaryStrip } from "./chrome.ts";
-import { action, box, dim, faint, plain, text } from "./elements.ts";
 
 // The detail is a strip under the list rather than a side pane, so the columns keep
 // their width at any terminal size.

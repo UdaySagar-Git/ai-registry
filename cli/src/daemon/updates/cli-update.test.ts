@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { executableFile } from "#core/product.ts";
-import type { ResolvedRelease } from "#self/source.ts";
+import type { ResolvedRelease } from "#self/release.ts";
 import {
   applyDaemonCliUpdate,
   applyDaemonFollowInstalled,

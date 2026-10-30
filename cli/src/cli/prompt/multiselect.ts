@@ -1,8 +1,9 @@
 import { plural } from "#adapter/text.ts";
-import { windowAround } from "#cli/console/model/list.ts";
+import { windowAround } from "#cli/console/data/list.ts";
 import { displayWidth } from "#core/term/format.ts";
 import type { Styler } from "#core/term/printer.ts";
 import { GLYPH } from "#core/term/theme.ts";
+import { ask } from "./ask.ts";
 import { fitLines, footerLines, heightOf, type Mark, railLine, titleLine } from "./layout.ts";
 import {
   CANCEL,
@@ -12,7 +13,6 @@ import {
   type PromptIo,
   type Size,
 } from "./model.ts";
-import { ask } from "./prompt.ts";
 import { type Fill, type Node, outline, plant, Selection } from "./tree.ts";
 
 export interface Choice<T> {

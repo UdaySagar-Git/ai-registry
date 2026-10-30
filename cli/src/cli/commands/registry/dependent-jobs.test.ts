@@ -4,7 +4,7 @@ import { afterEach, describe, expect, vi } from "vitest";
 import { emptyRegistryConfig, type Job, type Step } from "#core/config/model.ts";
 import { roots } from "#core/store/paths.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { registryJobs } from "./jobs.ts";
+import { registryJobs } from "./dependent-jobs.ts";
 
 const step = (kind: string, more: Partial<Step> = {}): Step => ({
   name: kind,

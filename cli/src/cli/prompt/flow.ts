@@ -20,10 +20,10 @@ import {
 } from "#core/target/index.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { tableLines } from "#core/term/table.ts";
+import { prepare } from "./ask.ts";
 import { blocker, explain } from "./caller.ts";
 import { type Canceled, canceled, type PromptIo } from "./model.ts";
 import { type Choice, multiselect } from "./multiselect.ts";
-import { prepare } from "./prompt.ts";
 import { confirm, select } from "./select.ts";
 
 /** Shared prompt state for commands that gather missing choices. */

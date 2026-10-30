@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
+import { box, dim, faint, heading, text } from "#cli/console/ui/elements.ts";
 import { underHome } from "#cli/render/home.ts";
 import { STEP_POLICIES } from "#core/config/model.ts";
 import { configPath } from "#core/config/repository.ts";
@@ -6,7 +7,6 @@ import type { ConsoleState } from "#core/console/model.ts";
 import { POLICY_AXES, type PolicyAxis, type SyncPolicy } from "#core/sync/policy.ts";
 import { interval, pad } from "#core/term/format.ts";
 import { COLOR } from "#core/term/theme.ts";
-import { box, dim, faint, heading, text } from "./elements.ts";
 
 // Read-only deliberately: every axis here is written into config.yml, and a write from
 // a list you are scrolling is how a policy changes by accident.

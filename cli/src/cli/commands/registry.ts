@@ -23,17 +23,17 @@ import {
   withoutCredentials,
 } from "#adapter/text.ts";
 import { parseSource } from "#adapters/git/api.ts";
-import { jobsClause, registryJobs, removeJobs } from "#cli/commands/registry/jobs.ts";
+import { jobsClause, registryJobs, removeJobs } from "#cli/commands/registry/dependent-jobs.ts";
 import { type Move, moveOf, recordMove, signInLeftBehind } from "#cli/commands/registry/move.ts";
 import { REGISTRY_COMMAND } from "#cli/commands/registry/spec.ts";
 import { parse } from "#cli/options.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
 import { cancel, type Interaction, interaction, interactive } from "#cli/prompt/flow.ts";
 import { canceled } from "#cli/prompt/model.ts";
-import { defaultIo } from "#cli/prompt/prompt.ts";
 import { text } from "#cli/prompt/text.ts";
 import { underHome } from "#cli/render/home.ts";
 import { noteUserScope } from "#cli/render/where.ts";
-import { workflowCommand } from "#cli/workflow-command.ts";
+import { workflowCommand } from "#cli/render/workflow-command.ts";
 import { loadAdapter } from "#core/adapter/load.ts";
 import { expandLocation, recordedLocation } from "#core/adapter/location.ts";
 import type { Entry } from "#core/catalog/catalog.ts";

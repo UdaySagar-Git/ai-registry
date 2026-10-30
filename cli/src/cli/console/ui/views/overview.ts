@@ -1,10 +1,10 @@
 import type { ReactElement, ReactNode } from "react";
 import { plural } from "#adapter/text.ts";
+import { box, dim, faint, heading, plain, text } from "#cli/console/ui/elements.ts";
 import { health } from "#core/console/artifacts.ts";
 import type { ConsoleState } from "#core/console/model.ts";
 import { bar, clock, interval, pad, truncate } from "#core/term/format.ts";
 import { COLOR, GLYPH, runColor, runGlyph } from "#core/term/theme.ts";
-import { box, dim, faint, heading, plain, text } from "./elements.ts";
 
 // The one screen that answers "is this machine in a good state" without scrolling.
 

@@ -1,11 +1,11 @@
 import { list, plural, quoted } from "#adapter/text.ts";
 import { actionOf, type CommandContext } from "#cli/commands/command.ts";
 import { parse } from "#cli/options.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
 import { cancel, interaction, interactive, silence } from "#cli/prompt/flow.ts";
 import { canceled } from "#cli/prompt/model.ts";
-import { defaultIo } from "#cli/prompt/prompt.ts";
-import { note } from "#cli/prompt/report.ts";
 import { confirm } from "#cli/prompt/select.ts";
+import { note } from "#cli/prompt/spinner.ts";
 import { underHome } from "#cli/render/home.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { pad } from "#core/term/format.ts";
@@ -13,7 +13,7 @@ import type { Styler } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { autostartState, disableAutostart } from "#daemon/autostart/index.ts";
 import { probeDaemon, stopDaemon } from "#daemon/process/lifecycle.ts";
-import { removeFromPath } from "#self/path-setup.ts";
+import { removeFromPath } from "#self/shell-path.ts";
 import { deleteFolders, type Footprint, footprint, unlinkUserScope } from "#self/uninstall.ts";
 import { SELF_COMMAND } from "./spec.ts";
 

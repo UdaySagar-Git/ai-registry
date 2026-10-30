@@ -71,6 +71,21 @@ describe("summarize", () => {
     expect(printed(actions, applied, {}, ["universal"])).toEqual(["✓ Installed lint for .agents."]);
   });
 
+  it("names the tool whose own folder in a project is the shared folder", () => {
+    const actions = [link("lint", "universal")];
+    const lock = { artifacts: { lint: { kind: "skill", links: [at("universal")] } } };
+    const applied = {
+      performed: { link: 1 } as never,
+      installed: ["lint"],
+      added: ["lint"],
+      lock: lock as never,
+    };
+    expect(printed(actions, applied, {}, ["antigravity"])).toEqual([
+      "✓ Installed lint for Google Antigravity.",
+      "hint: Start a new conversation in Antigravity, or run `/skills reload` in its CLI, to load the change.",
+    ]);
+  });
+
   it("names every member of a new namespace as installed, though one link carries them", () => {
     const clone = (name: string) => ({ kind: "clone", name, from: "f", to: `c/${name}` }) as Action;
     const row = (target: string) => ({ links: [{ target, path: "p", mode: "symlink" }] });

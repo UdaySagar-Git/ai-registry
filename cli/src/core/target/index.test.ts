@@ -34,6 +34,7 @@ describe("resolveTargets", () => {
     expect(
       Object.fromEntries(Object.values(table).map((each) => [each.name, each.aliases])),
     ).toEqual({
+      antigravity: [],
       "claude-code": ["claude"],
       codex: [],
       cursor: [],
@@ -79,7 +80,18 @@ describe("earlierTable", () => {
     const claude = Object.values(table).find((target) => target.name === "claude");
     expect(claude?.displayName).toBe("Claude Code");
     expect(Object.keys(table).sort()).toEqual(
-      ["agents", "claude", "codex", "copilot", "cursor", "gemini", "grok", "opencode", "pi"].sort(),
+      [
+        "agents",
+        "antigravity",
+        "claude",
+        "codex",
+        "copilot",
+        "cursor",
+        "gemini",
+        "grok",
+        "opencode",
+        "pi",
+      ].sort(),
     );
     expect(table.agents?.kind).toBe("shared");
     expect(table.codex?.reads).toEqual({ skill: ["agents"] });

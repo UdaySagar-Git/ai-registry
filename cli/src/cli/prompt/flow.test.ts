@@ -331,6 +331,8 @@ describe("chooseTargets", () => {
     group: "engineering",
   });
   const BOTH = [item("skill", "pr-review"), item("agent", "reviewer")];
+  // Google Antigravity sorts first.
+  const TO_CLAUDE = [KEY.down];
 
   async function pick(
     preselected: string[],
@@ -364,38 +366,44 @@ describe("chooseTargets", () => {
   });
 
   it("shows where the highlighted tool loads what was picked, and nothing on other rows", async () => {
-    const { shown } = await pick([], []);
+    const { shown } = await pick([], TO_CLAUDE);
     expect(shown).toMatch(/Claude Code\s+\.claude[\\/]skills, \.claude[\\/]agents/);
     expect(shown).not.toMatch(/Codex\s+\.agents/);
     expect(shown).not.toContain("Found");
   });
 
   it("follows the cursor: Codex reads skills from .agents, Cursor from .agents and .claude", async () => {
-    expect((await pick([], [KEY.down])).shown).toMatch(
+    expect((await pick([], [...TO_CLAUDE, KEY.down])).shown).toMatch(
       /Codex\s+\.agents[\\/]skills, \.codex[\\/]agents$/m,
     );
-    expect((await pick([], [KEY.down, KEY.down])).shown).toMatch(
+    expect((await pick([], [...TO_CLAUDE, KEY.down, KEY.down])).shown).toMatch(
       /Cursor\s+\.agents[\\/]skills, \.claude[\\/]agents$/m,
     );
   });
 
   it("leaves a tool that loads none of it unpicked, with a dash", async () => {
     const agent = [item("agent", "reviewer")];
-    const { picked, shown } = await pick([], [KEY.down], agent, "project", noCodexAgents);
+    const { picked, shown } = await pick(
+      [],
+      [...TO_CLAUDE, KEY.down],
+      agent,
+      "project",
+      noCodexAgents,
+    );
     expect(shown).toMatch(/Codex\s+-$/m);
     expect(picked).toEqual(["claude-code"]);
   });
 
   it("shows a user scope's folders under ~, never as absolute paths", async () => {
     const tools = resolveTargets({ HOME: homedir() });
-    const { shown } = await pick([], [], BOTH, "user", tools);
+    const { shown } = await pick([], TO_CLAUDE, BOTH, "user", tools);
     expect(shown).toContain("~/.claude/skills, ~/.claude/agents");
     expect(shown).not.toContain(homedir());
   });
 
   it("shows the plugin folder for a source that installs its namespaces as plugins", async () => {
     const tools = resolveTargets({ HOME: homedir() });
-    const { shown } = await pick([], [], BOTH, "user", tools, true);
+    const { shown } = await pick([], TO_CLAUDE, BOTH, "user", tools, true);
     expect(shown).toContain("~/.claude/skills/engineering");
   });
 

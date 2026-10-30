@@ -218,10 +218,47 @@ export function names(targetTable: Targets): string[] {
 }
 
 /** The folders a target reads a kind from, most preferred first. */
-export function readsFor(targetTable: Targets, name: string, kind: ArtifactKind): string[] {
+export function readsFor(
+  targetTable: Targets,
+  name: string,
+  kind: ArtifactKind,
+  scope?: Scope,
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
   const target = targetTable[name];
   if (target === undefined) return [];
-  return target.reads[kind] ?? (target.kinds[kind] === undefined ? [] : [name]);
+  const reads = target.reads[kind] ?? (target.kinds[kind] === undefined ? [] : [name]);
+  // A summary passes no scope; a project's shared folder still counts as the target's own there.
+  const shared = sharedOwnFolder(targetTable, target, kind, scope ?? "project", env);
+  return shared === undefined
+    ? reads
+    : [...new Set(reads.map((read) => (read === name ? shared : read)))];
+}
+
+/** The shared folder that is this target's own folder for a kind in this scope, by its target. */
+function sharedOwnFolder(
+  targetTable: Targets,
+  target: Target,
+  kind: ArtifactKind,
+  scope: Scope,
+  env: NodeJS.ProcessEnv,
+): string | undefined {
+  const own = target.kinds[kind];
+  if (target.shared || own === undefined || !placeable(target, kind, scope)) return undefined;
+  const root = (each: Target) =>
+    scope === "project" ? each.projectRoot : targetRoot(each, "user", "", env);
+  return Object.values(targetTable).find((other) => {
+    const theirs = other.kinds[kind];
+    return (
+      other.shared &&
+      theirs !== undefined &&
+      placeable(other, kind, scope) &&
+      theirs.shape === own.shape &&
+      theirs.subdir === own.subdir &&
+      theirs.extension === own.extension &&
+      resolve(root(other)) === resolve(root(target))
+    );
+  })?.name;
 }
 
 function placeable(target: Target | undefined, kind: ArtifactKind, scope: Scope): boolean {
@@ -247,13 +284,14 @@ export function placementFor(
   targetTable: Targets,
   scope: Scope,
   wrapped = false,
+  env: NodeJS.ProcessEnv = process.env,
 ): KindTargets {
   const needs: string[][] = [];
   const unreadable: string[] = [];
   for (const name of new Set(selected)) {
     if (targetTable[name] === undefined) continue;
     // Another tool's plugin folder nests each item a level deeper than this one looks.
-    const reads = readsFor(targetTable, name, kind).filter(
+    const reads = readsFor(targetTable, name, kind, scope, env).filter(
       (read) =>
         placeable(targetTable[read], kind, scope) &&
         (read === name || !wrapped || !takesPlugin(targetTable[read] as Target, scope)),

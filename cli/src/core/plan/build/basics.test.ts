@@ -564,6 +564,37 @@ describe("build", () => {
     expect(plan.warnings.some((w) => /Codex cannot load agents/.test(w.message))).toBe(true);
   });
 
+  test("copies into a shared folder when a target reading it takes copies", () => {
+    const plan = build(
+      kitManifest(),
+      emptyLock(),
+      acquired([entry()]),
+      { artifacts: {} },
+      {
+        ...PLAN_OPTIONS,
+        targets: ["antigravity", "codex"],
+      },
+    );
+    const links = plan.actions.filter((a) => a.kind === "link");
+    expect(links.map((a) => a.kind === "link" && [a.target, a.copy])).toEqual([
+      ["universal", true],
+    ]);
+  });
+
+  test("says which scope a target loads the kind in when it takes none here", () => {
+    const plan = build(
+      kitManifest(["kit/agent/lint"]),
+      emptyLock(),
+      acquired([entry({ kind: "agent" })]),
+      { artifacts: {} },
+      { ...PLAN_OPTIONS, targets: ["antigravity"] },
+    );
+    expect(plan.actions.filter((a) => a.kind === "link")).toHaveLength(0);
+    expect(plan.warnings.map((w) => w.message)).toContain(
+      '"lint" was fetched but installed into no target: Google Antigravity loads agents only in your user scope.',
+    );
+  });
+
   test("reports a reference that matches nothing", () => {
     const plan = build(
       kitManifest(["kit/skill/ghost"]),

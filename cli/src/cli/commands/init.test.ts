@@ -46,6 +46,7 @@ describe("init", () => {
     await run(context(cwd, ["--for", "*"], writes));
     const payload = JSON.parse(writes.join("")) as { data: { targets: string[] } };
     expect(payload.data.targets).toEqual([
+      "antigravity",
       "claude-code",
       "codex",
       "cursor",

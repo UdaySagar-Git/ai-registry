@@ -1,0 +1,29 @@
+{
+  "id": "antigravity",
+  "displayName": "Google Antigravity",
+  "overrides": true,
+  "roots": { "project": ".agents", "user": { "default": "~/.gemini/config" } },
+  "detect": {
+    "binary": ["agy"],
+    "paths": ["~/.gemini/antigravity", "~/.gemini/antigravity-ide"],
+    "projectRoot": false
+  },
+  "kinds": {
+    "plugin": { "shape": "contents" },
+    "skill": {
+      "shape": "directory",
+      "subdir": "skills",
+      "place": "copy",
+      "keys": { "disable-model-invocation": false }
+    },
+    "agent": {
+      "shape": "file",
+      "subdir": "agents",
+      "extension": ".md",
+      "scope": "user",
+      "codec": { "id": "frontmatter-strict", "keep": ["name", "description"] }
+    }
+  },
+  "verified": { "command": ["agy", "--version"], "range": "1.4.5" },
+  "reload": "Start a new conversation in Antigravity, or run `/skills reload` in its CLI, to load the change."
+}

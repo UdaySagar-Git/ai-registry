@@ -1,3 +1,4 @@
+import { antigravity } from "./antigravity.ts";
 import { claudeCode } from "./claude-code.ts";
 import { codex } from "./codex.ts";
 import { cursor } from "./cursor.ts";
@@ -18,5 +19,6 @@ export const BUILTIN_TARGETS = [
   opencode,
   grok,
   pi,
+  antigravity,
   universal,
 ] as const;

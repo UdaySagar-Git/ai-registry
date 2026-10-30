@@ -12,6 +12,8 @@ import { type Places, redact, redactPlaces, serializer } from "./redact.ts";
 import { exec, type Ran, runCli } from "./run.ts";
 import { tempDir } from "./temp.ts";
 
+export type { Home } from "./home.ts";
+
 interface AiregOptions {
   /** Defaults to the project. */
   cwd?: string;
@@ -57,8 +59,6 @@ const GIT_CONFIG = [
 ].join("\n");
 
 expect.addSnapshotSerializer(serializer);
-
-export type { Home };
 
 async function makeGit(home: Home): Promise<Git> {
   // The spawned CLI authors commits too, so the identity lives in the test home.
@@ -173,6 +173,7 @@ export const test = base
   .extend("git", ({ home }) => makeGit(home));
 
 /** `test`, with every test in its own home and aireg folder: for code that reads HOME or AIREG_* itself. */
+// biome-ignore lint/suspicious/useExpect: this defines a fixture; it is not a test.
 export const homeTest = test.extend("inHome", { auto: true }, async ({ home }) => {
   await mkdir(home.aireg, { recursive: true, mode: 0o700 });
   return home;

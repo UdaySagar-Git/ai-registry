@@ -34,45 +34,113 @@
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noUnusedFunctionParameters": "error",
-        "noUnusedPrivateClassMembers": "error"
+        "noUnusedPrivateClassMembers": "error",
+        "useImportExtensions": "error",
+        "useSingleJsDocAsterisk": "error"
       },
       "suspicious": {
-        "noConsole": { "level": "error", "options": { "allow": ["error"] } },
-        "noExplicitAny": "error"
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": ["error"]
+          }
+        },
+        "noExplicitAny": "error",
+        "noFocusedTests": "error",
+        "noSkippedTests": "error",
+        "noIdenticalTestTitle": "error",
+        "noExportsInTest": "error",
+        "useExpect": "error",
+        "noConditionalExpect": "error",
+        "noImportCycles": {
+          "level": "error",
+          "options": {
+            "ignoreTypes": true
+          }
+        },
+        "noShadow": "error"
       },
       "complexity": {
         "noExcessiveCognitiveComplexity": {
-          "level": "warn",
-          "options": { "maxAllowedComplexity": 25 }
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 25
+          }
         },
         "noExcessiveLinesPerFunction": {
           "level": "warn",
-          "options": { "maxLines": 100, "skipBlankLines": true }
-        }
+          "options": {
+            "maxLines": 100,
+            "skipBlankLines": true
+          }
+        },
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 6
+          }
+        },
+        "noExcessiveNestedTestSuites": "error"
       },
       "style": {
         "noExcessiveLinesPerFile": {
           "level": "warn",
-          "options": { "maxLines": 1000, "skipBlankLines": true }
+          "options": {
+            "maxLines": 1000,
+            "skipBlankLines": true
+          }
         },
         "noNonNullAssertion": "error",
         "noParameterAssign": "warn",
-        "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } },
+        "useConsistentArrayType": {
+          "level": "error",
+          "options": {
+            "syntax": "shorthand"
+          }
+        },
         "useImportType": "error",
         "useNodejsImportProtocol": "error",
-        "useThrowOnlyError": "error"
+        "useThrowOnlyError": "error",
+        "useImportsFirst": "error",
+        "noExportedImports": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": {
+            "filenameCases": ["kebab-case"]
+          }
+        },
+        "noShoutyConstants": "error",
+        "noNestedTernary": "error",
+        "useTestHooksInOrder": "error",
+        "useConsistentTestIt": {
+          "level": "error",
+          "options": {
+            "function": "test",
+            "withinDescribe": "test"
+          }
+        }
       },
       "performance": {
-        "noDelete": "error"
+        "noDelete": "error",
+        "noBarrelFile": "error",
+        "noReExportAll": "error"
       },
       "nursery": {
-        "noFloatingPromises": "error"
+        "noFloatingPromises": "error",
+        "useExhaustiveSwitchCases": {
+          "level": "error",
+          "options": {
+            "requireExplicitCase": true
+          }
+        }
       }
     }
   },
   "assist": {
     "actions": {
-      "source": { "organizeImports": "on" }
+      "source": {
+        "organizeImports": "on"
+      }
     }
   },
   "overrides": [
@@ -80,9 +148,285 @@
       "includes": ["**/*.test.ts", "test/**"],
       "linter": {
         "rules": {
-          "complexity": { "noExcessiveLinesPerFunction": "off" },
-          "suspicious": { "noConsole": "off" },
-          "style": { "noExcessiveLinesPerFile": "off", "noNonNullAssertion": "off" }
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
+          "suspicious": {
+            "noConsole": "off"
+          },
+          "style": {
+            "noExcessiveLinesPerFile": "off",
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/cli/commands/add.ts",
+        "src/cli/commands/kind.ts",
+        "src/cli/commands/publish.ts",
+        "src/cli/publish/target.ts",
+        "src/cli/render/sync.ts",
+        "src/core/log/redact.ts",
+        "src/core/plan/select.ts",
+        "src/core/sync/adopt.ts",
+        "src/core/target/register/index.ts",
+        "src/daemon/runner.ts",
+        "src/engine/decide.ts",
+        "src/engine/execute.ts",
+        "src/engine/local.ts",
+        "src/engine/pipeline.ts",
+        "src/engine/remote.ts"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "useMaxParams": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/adapter/filespec/names.ts",
+        "src/adapter/index.ts",
+        "src/adapters/git/api.ts",
+        "src/adapters/local/api.ts",
+        "src/adapters/well-known/api.ts",
+        "src/cli/prompt/index.ts",
+        "src/core/filespec/write/kinds.ts",
+        "src/core/fs/mode.ts",
+        "src/core/kinds.ts",
+        "src/core/log/index.ts",
+        "src/core/manifest.ts",
+        "src/daemon/autostart/index.ts",
+        "src/daemon/rpc/protocol.ts"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/daemon/rpc/protocol.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noReExportAll": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "scripts/notices/generate.ts",
+        "src/adapter/layouts/folder.ts",
+        "src/adapter/layouts/tree.ts",
+        "src/adapter/semver.ts",
+        "src/adapter/spec/canonical.ts",
+        "src/adapter/spec/envelope.ts",
+        "src/cli/commands/auth.ts",
+        "src/cli/commands/doctor.ts",
+        "src/cli/commands/init.ts",
+        "src/cli/commands/kind.ts",
+        "src/cli/commands/list.ts",
+        "src/cli/commands/logs.ts",
+        "src/cli/commands/publish.ts",
+        "src/cli/commands/registry.ts",
+        "src/cli/commands/self/update.ts",
+        "src/cli/console/ui/app.ts",
+        "src/cli/console/ui/artifacts-view.ts",
+        "src/cli/console/ui/overview-view.ts",
+        "src/cli/options.ts",
+        "src/cli/prompt/flow.ts",
+        "src/cli/prompt/layout.ts",
+        "src/cli/prompt/multiselect.ts",
+        "src/cli/prompt/tree.ts",
+        "src/cli/publish/files.ts",
+        "src/cli/publish/target.ts",
+        "src/cli/publish/work.ts",
+        "src/cli/render/plan.ts",
+        "src/cli/render/run.ts",
+        "src/cli/suggest.ts",
+        "src/core/adapter/content.ts",
+        "src/core/filespec/write/kinds.ts",
+        "src/core/filespec/write/schema.ts",
+        "src/core/filespec/write/validate.ts",
+        "src/core/fs/digest.ts",
+        "src/core/plan/acquire.ts",
+        "src/core/plan/apply.ts",
+        "src/core/plan/build/restage.ts",
+        "src/core/sync/index.ts",
+        "src/core/sync/scan.ts",
+        "src/core/target/check.ts",
+        "src/core/target/register/index.ts",
+        "src/core/target/register/toml.ts",
+        "src/core/term/format.ts",
+        "src/daemon/rpc/errors.ts",
+        "src/engine/publish-settle.ts",
+        "src/main.ts",
+        "test/conformance/kit.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNestedTernary": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/adapter/files.test.ts",
+        "src/cli/argv.test.ts",
+        "src/cli/commands/daemon.test.ts",
+        "src/cli/console/actions.test.ts",
+        "src/core/fs/tree.test.ts",
+        "src/core/kinds.test.ts",
+        "src/core/plan/link-guard.test.ts",
+        "src/daemon/process-info.test.ts",
+        "src/daemon/rpc/endpoint.test.ts",
+        "src/engine/scope.test.ts",
+        "src/self/minimum-flow.test.ts",
+        "test/e2e/publish.test.ts",
+        "test/e2e/registry-catalog.test.ts",
+        "test/e2e/surface-argv.test.ts",
+        "test/e2e/watch-jobs.test.ts",
+        "test/kit/scenario.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConditionalExpect": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/cli/commands/adapter.ts",
+        "src/cli/commands/add.ts",
+        "src/cli/commands/auth.ts",
+        "src/cli/commands/config.ts",
+        "src/cli/commands/console.ts",
+        "src/cli/commands/daemon.ts",
+        "src/cli/commands/doctor.ts",
+        "src/cli/commands/index.ts",
+        "src/cli/commands/init.ts",
+        "src/cli/commands/install.ts",
+        "src/cli/commands/job.ts",
+        "src/cli/commands/kind.ts",
+        "src/cli/commands/list.ts",
+        "src/cli/commands/logs.ts",
+        "src/cli/commands/outdated.ts",
+        "src/cli/commands/publish.ts",
+        "src/cli/commands/registry.ts",
+        "src/cli/commands/remove.ts",
+        "src/cli/commands/search.ts",
+        "src/cli/commands/self.ts",
+        "src/cli/commands/self/uninstall.ts",
+        "src/cli/commands/self/update.ts",
+        "src/cli/commands/show.ts",
+        "src/cli/commands/status.ts",
+        "src/cli/commands/sync.ts",
+        "src/cli/commands/sync/resolve.ts",
+        "src/cli/commands/table.ts",
+        "src/cli/commands/targets.ts",
+        "src/cli/commands/unlock.ts",
+        "src/cli/commands/update.ts",
+        "src/cli/commands/watch.ts",
+        "src/cli/onboarding/flow.ts",
+        "src/cli/prompt/mount.ts",
+        "src/cli/prompt/prompt.ts",
+        "src/self/check.ts",
+        "src/self/minimum.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noImportCycles": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/accounts/service.test.ts",
+        "src/adapter/files.ts",
+        "src/adapter/filespec/write.ts",
+        "src/adapters/local/connect.test.ts",
+        "src/cli/commands/adapter.test.ts",
+        "src/cli/commands/add.ts",
+        "src/cli/commands/daemon.ts",
+        "src/cli/commands/job.ts",
+        "src/cli/commands/job/runs.test.ts",
+        "src/cli/commands/job/runs.ts",
+        "src/cli/commands/list.ts",
+        "src/cli/commands/publish.ts",
+        "src/cli/commands/registry.ts",
+        "src/cli/commands/remove.ts",
+        "src/cli/commands/status.ts",
+        "src/cli/commands/sync.ts",
+        "src/cli/commands/watch.ts",
+        "src/cli/console/ui/app.ts",
+        "src/cli/onboarding/import.test.ts",
+        "src/cli/publish/files.ts",
+        "src/cli/publish/target.test.ts",
+        "src/cli/publish/target.ts",
+        "src/cli/render/status.ts",
+        "src/cli/render/tools.ts",
+        "src/core/adapter/registry.ts",
+        "src/core/console/artifacts.ts",
+        "src/core/console/failure-reasons.test.ts",
+        "src/core/credentials/store.test.ts",
+        "src/core/env.ts",
+        "src/core/filespec/write/indexer.test.ts",
+        "src/core/filespec/write/kinds.ts",
+        "src/core/filespec/write/offer.ts",
+        "src/core/filespec/write/validate.test.ts",
+        "src/core/filespec/write/validate.ts",
+        "src/core/fs/digest.ts",
+        "src/core/fs/tree.test.ts",
+        "src/core/fs/tree.ts",
+        "src/core/hook/run.test.ts",
+        "src/core/lease-release.test.ts",
+        "src/core/lock.test.ts",
+        "src/core/manifest.ts",
+        "src/core/plan/apply.ts",
+        "src/core/plan/build.ts",
+        "src/core/plan/build/carry.ts",
+        "src/core/plan/carries.ts",
+        "src/core/plan/status.ts",
+        "src/core/store/paths.ts",
+        "src/core/target/index.ts",
+        "src/core/target/register/document.ts",
+        "src/core/target/register/index.test.ts",
+        "src/core/target/register/index.ts",
+        "src/core/target/register/toml.ts",
+        "src/daemon/autostart/index.ts",
+        "src/daemon/run-store.ts",
+        "src/engine/decide.ts",
+        "src/engine/execute.test.ts",
+        "src/engine/execute.ts",
+        "src/engine/local.ts",
+        "src/engine/pipeline.ts",
+        "src/engine/scan.ts",
+        "test/architecture.test.ts",
+        "test/e2e/marketplace-layout.test.ts",
+        "test/e2e/short-name.test.ts",
+        "test/e2e/target-edits.test.ts",
+        "test/e2e/target-ids.test.ts",
+        "test/kit/scenario.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noShadow": "off"
+          }
         }
       }
     }

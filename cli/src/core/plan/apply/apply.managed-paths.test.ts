@@ -6,10 +6,11 @@ import { buildEnvelope, contentDigest } from "#adapter/index.ts";
 import { sha256 } from "#adapter/spec/canonical.ts";
 import { exists } from "#core/fs/tree.ts";
 import { emptyLock } from "#core/lock.ts";
-import { apply, recover } from "#core/plan/apply.ts";
 import { roots as makeRoots, type Roots, stagingDir } from "#core/store/paths.ts";
 import { emptyPlan } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { apply } from "./apply.ts";
+import { recover } from "./journal.ts";
 
 let home: string;
 let roots: Roots;

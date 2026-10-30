@@ -3,11 +3,11 @@ import { mkdir, readdir, symlink } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { describe, expect } from "vitest";
 import { emptyLock } from "#core/lock.ts";
+import type { Action } from "#core/plan/model.ts";
 import { roots as makeRoots, type Roots } from "#core/store/paths.ts";
 import { emptyPlan } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { apply } from "./apply.ts";
-import type { Action } from "./model.ts";
 
 let roots: Roots;
 

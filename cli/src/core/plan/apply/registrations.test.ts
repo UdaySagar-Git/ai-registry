@@ -2,11 +2,11 @@ import { lstat, mkdir, readFile, realpath, symlink, writeFile } from "node:fs/pr
 import { join, relative } from "node:path";
 import { describe, expect } from "vitest";
 import { emptyLock, type Lock } from "#core/lock.ts";
+import type { Action, Plan } from "#core/plan/model.ts";
 import { roots as makeRoots, type Roots } from "#core/store/paths.ts";
 import { emptyPlan } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { apply } from "./apply.ts";
-import type { Action, Plan } from "./model.ts";
 
 let home: string;
 let roots: Roots;

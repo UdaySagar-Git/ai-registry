@@ -4,9 +4,9 @@ import { assertUnredirected, readRegular } from "#adapter/files.ts";
 import { isRecord } from "#core/fields.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { exists } from "#core/fs/tree.ts";
+import type { PluginDocument } from "#core/plan/model.ts";
 import { resolveTargets } from "#core/target/table.ts";
 import { expandValue } from "#core/target/template.ts";
-import type { PluginDocument } from "./model.ts";
 
 /** Folders a target reads under another name; one folder serves every target, as it ignores the rest. */
 const ALIASES: Readonly<Record<string, readonly string[]>> = {

@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import type { Lock } from "#core/lock.ts";
-import type { ApplyResult } from "#core/plan/apply.ts";
+import type { ApplyResult } from "#core/plan/apply/run.ts";
 import { type Action, emptyPlan } from "#core/plan/model.ts";
 import { resolveTargets } from "#core/target/table.ts";
 import { Printer } from "#core/term/printer.ts";

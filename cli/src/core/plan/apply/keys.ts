@@ -5,8 +5,8 @@ import { list } from "#adapter/text.ts";
 import { frontmatterRecord } from "#core/frontmatter.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";
+import type { Action } from "#core/plan/model.ts";
 import type { KeyFile } from "#core/target/contract.ts";
-import type { Action } from "./model.ts";
 
 type KeyNeeds = { files: KeyFile[] } | { refused: string };
 

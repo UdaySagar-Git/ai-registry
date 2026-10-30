@@ -21,8 +21,8 @@ test.beforeEach(({ tmp }) => {
 
 const failure = vi.hoisted(() => ({ afterRecord: false }));
 
-vi.mock("#core/plan/apply.ts", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("#core/plan/apply.ts")>()),
+vi.mock("#core/plan/apply/apply.ts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("#core/plan/apply/apply.ts")>()),
   apply: vi.fn(async (plan: Plan, at: Roots) => {
     const record = plan.actions.find((action) => action.kind === "record");
     if (failure.afterRecord && record?.kind === "record") {

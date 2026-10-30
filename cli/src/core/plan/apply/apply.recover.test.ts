@@ -5,7 +5,7 @@ import { exists } from "#core/fs/tree.ts";
 import { emptyLock, type Lock } from "#core/lock.ts";
 import { roots as makeRoots, type Roots, stagingDir } from "#core/store/paths.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { recover } from "./apply.ts";
+import { recover } from "./journal.ts";
 
 let home: string;
 let roots: Roots;

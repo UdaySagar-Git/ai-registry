@@ -4,8 +4,8 @@ import { isWithin } from "#adapter/paths.ts";
 import { inspect } from "#core/fs/link.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import type { LinkMode } from "#core/lock.ts";
+import { assertRemovable, type RemovableRoots, removal } from "#core/plan/removable.ts";
 import { moveToBackup } from "#core/store/backups.ts";
-import { assertRemovable, type RemovableRoots, removal } from "./removable.ts";
 
 /**
  * What may happen to whatever sits where a link is about to go. Only what aireg

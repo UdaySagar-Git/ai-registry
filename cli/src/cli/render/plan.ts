@@ -3,7 +3,7 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, plural } from "#adapter/text.ts";
 import { olderThan } from "#core/engines.ts";
 import type { Lock } from "#core/lock.ts";
-import type { ApplyResult } from "#core/plan/apply.ts";
+import type { ApplyResult } from "#core/plan/apply/run.ts";
 import { describeCarried } from "#core/plan/carries.ts";
 import type { Action, Plan } from "#core/plan/model.ts";
 import type { Roots } from "#core/store/paths.ts";

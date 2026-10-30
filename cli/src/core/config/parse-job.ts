@@ -3,7 +3,9 @@ import { isKind } from "#adapter/kinds.ts";
 import { expandHome } from "#adapter/paths.ts";
 import { quoted } from "#adapter/text.ts";
 import { parseDuration, type Readers } from "#core/fields.ts";
-import { canonicalIds, earlierId, resolveTargets, type Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { canonicalIds, earlierId } from "#core/target/ids.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import {
   DEFAULT_INTERVAL_SECONDS,
   isBuiltinStepKind,

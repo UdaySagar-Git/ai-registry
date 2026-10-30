@@ -328,7 +328,7 @@
         "src/core/plan/carries.ts",
         "src/core/plan/status.ts",
         "src/core/store/paths.ts",
-        "src/core/target/index.ts",
+        "src/core/target/placement.ts",
         "src/core/target/register/document.ts",
         "src/core/target/register/register.test.ts",
         "src/core/target/register/register.ts",

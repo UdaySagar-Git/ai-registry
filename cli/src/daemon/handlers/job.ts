@@ -27,7 +27,7 @@ import { formatAddress, formatRef, parseRef, type Ref } from "#core/ref.ts";
 import { type Roots, roots, type Scope, scopeFor } from "#core/store/paths.ts";
 import type { SyncPolicy } from "#core/sync/policy.ts";
 import { OPTIONAL_AXES } from "#core/sync/policy.ts";
-import { DEFAULT_TARGETS } from "#core/target/index.ts";
+import { DEFAULT_TARGETS } from "#core/target/ids.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import { forgetOrigins } from "#engine/sync/origins.ts";

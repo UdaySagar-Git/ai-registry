@@ -8,18 +8,11 @@ import { parse } from "#cli/options.ts";
 import { underHome } from "#cli/render/home.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { targetsDir } from "#core/store/paths.ts";
-import {
-  canonicalId,
-  type Detection,
-  detectAll,
-  type EarlierTarget,
-  earlierId,
-  earlierTable,
-  resolveTargets,
-  type Target,
-  type Targets,
-} from "#core/target/index.ts";
+import type { EarlierTarget, Target, Targets } from "#core/target/contract.ts";
+import { type Detection, detectAll } from "#core/target/detect.ts";
+import { canonicalId, earlierId, earlierTable } from "#core/target/ids.ts";
 import { BUILT_IN, checkTargetText, loadTargetFiles } from "#core/target/load.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { table } from "#core/term/table.ts";
 import { BUILTIN_TARGETS } from "#targets/index.ts";
 import { type CommandContext, runAction } from "./command.ts";

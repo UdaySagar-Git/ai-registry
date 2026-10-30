@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { LockArtifact } from "#core/lock.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { watchedFrom } from "./installed.ts";
 
 describe("watchedFrom", () => {

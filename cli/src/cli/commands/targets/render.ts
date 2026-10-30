@@ -1,4 +1,4 @@
-import type { DetectionRule } from "#core/target/index.ts";
+import type { DetectionRule } from "#core/target/detect.ts";
 
 /** Where detection found a target, in a person's words. */
 export function foundBy(by: DetectionRule | undefined): string {

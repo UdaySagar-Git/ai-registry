@@ -5,15 +5,9 @@ import { posixRelative } from "#core/fs/path.ts";
 import { SKILL_ENTRY } from "#core/kinds.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { namespaceDir, projectionDir, type Scope } from "#core/store/paths.ts";
-import type { Codec } from "#core/target/contract.ts";
-import {
-  placementFor,
-  pluginProjection,
-  projectionPath,
-  readsFor,
-  type Targets,
-  takesPlugin,
-} from "#core/target/index.ts";
+import type { Codec, Targets } from "#core/target/contract.ts";
+import { placementFor, readsFor, takesPlugin } from "#core/target/placement.ts";
+import { pluginProjection, projectionPath } from "#core/target/roots.ts";
 import type { KeyRule, PluginDocument, Selected } from "./model.ts";
 
 export interface ProjectionOptions {

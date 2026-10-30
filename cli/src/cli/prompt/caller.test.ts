@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { CALLER_SIGNALS } from "#core/target/index.ts";
+import { CALLER_SIGNALS } from "#core/target/detect.ts";
 import { blocker, callingAgent, explain, SIGNALS } from "./caller.ts";
 
 const DOCS = readFileSync(

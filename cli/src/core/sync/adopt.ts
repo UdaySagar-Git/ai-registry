@@ -10,7 +10,8 @@ import { KIND_SPECS, SCANNED_KINDS } from "#core/kinds.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { entriesIn } from "#core/sync/scan.ts";
-import { type KindMapping, type Targets, targetRoot } from "#core/target/index.ts";
+import type { KindMapping, Targets } from "#core/target/contract.ts";
+import { targetRoot } from "#core/target/roots.ts";
 
 export interface Candidate {
   name: string;

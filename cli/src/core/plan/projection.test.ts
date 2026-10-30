@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import { roots } from "#core/store/paths.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { movedPluginLinks } from "./projection.ts";
 
 describe("movedPluginLinks", () => {

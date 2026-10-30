@@ -3,7 +3,7 @@ import type { Lock } from "#core/lock.ts";
 import type { Acquired, Action, Clash, Rewritten, Survey, Warning } from "#core/plan/model.ts";
 import type { PlannedLink } from "#core/plan/projection.ts";
 import type { Roots } from "#core/store/paths.ts";
-import type { Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
 
 export interface BuildOptions {
   roots: Roots;

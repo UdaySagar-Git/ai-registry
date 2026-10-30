@@ -16,7 +16,7 @@ import { listedAt } from "#core/plan/model.ts";
 import { excluded } from "#core/plan/select.ts";
 import type { Ref } from "#core/ref.ts";
 import { scopeName } from "#core/store/paths.ts";
-import type { Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
 import { abbreviate, type Printer, sentence } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
 import { shownNames } from "#engine/installed-names.ts";

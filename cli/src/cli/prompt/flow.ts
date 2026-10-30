@@ -10,14 +10,11 @@ import type { Plan, Selected } from "#core/plan/model.ts";
 import { loadsFrom, type ProjectionOptions } from "#core/plan/projection.ts";
 import { NAME } from "#core/product.ts";
 import type { Scope } from "#core/store/paths.ts";
-import {
-  DEFAULT_TARGETS,
-  detectAll,
-  readsFor,
-  type Target,
-  type Targets,
-  targetRoot,
-} from "#core/target/index.ts";
+import type { Target, Targets } from "#core/target/contract.ts";
+import { detectAll } from "#core/target/detect.ts";
+import { DEFAULT_TARGETS } from "#core/target/ids.ts";
+import { readsFor } from "#core/target/placement.ts";
+import { targetRoot } from "#core/target/roots.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { tableLines } from "#core/term/table.ts";
 import { prepare } from "./ask.ts";

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, vi } from "vitest";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
 import type { TrustedKeys } from "#core/release/keyring.ts";
 import type { ReleaseStamp } from "#core/release/stamp.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { Printer } from "#core/term/printer.ts";
 import { test } from "#test/kit/fixtures.ts";
 import type { CommandContext } from "./command.ts";

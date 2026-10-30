@@ -40,8 +40,10 @@ import {
   userScopeDir,
 } from "#core/store/paths.ts";
 import { displayPath } from "#core/sync/adopt.ts";
-import { DEFAULT_TARGETS, names, resolveTargets, type Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { DEFAULT_TARGETS, names } from "#core/target/ids.ts";
 import { loadTargetFiles } from "#core/target/load.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import type { CommonOptions } from "./options.ts";

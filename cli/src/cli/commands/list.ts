@@ -11,7 +11,8 @@ import {
 import { chosenFor, loadedBy, scopeTargets, toolName } from "#cli/render/tools.ts";
 import type { LockArtifact, readLock } from "#core/lock.ts";
 import { artifactPath, copyLeaf, scopeName } from "#core/store/paths.ts";
-import { earlierId, type Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { earlierId } from "#core/target/ids.ts";
 import { fields, table } from "#core/term/table.ts";
 import { rowsNamed } from "#engine/installed-names.ts";
 import { load } from "#engine/pipeline.ts";

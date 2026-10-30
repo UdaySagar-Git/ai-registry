@@ -5,7 +5,7 @@ import type { Roots } from "#core/store/paths.ts";
 import { type Candidate, candidates } from "#core/sync/adopt.ts";
 import { reconcile } from "#core/sync/index.ts";
 import type { SyncItem } from "#core/sync/model.ts";
-import { readTargets } from "#core/target/index.ts";
+import { readTargets } from "#core/target/placement.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, selectTargets } from "#engine/pipeline.ts";
 

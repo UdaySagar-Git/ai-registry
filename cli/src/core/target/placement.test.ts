@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { placementFor, readsFor, resolveTargets } from "./index.ts";
+import { placementFor, readsFor } from "./placement.ts";
+import { resolveTargets } from "./table.ts";
 
 describe("placementFor", () => {
   const targetTable = resolveTargets({ HOME: "/tmp/home" });

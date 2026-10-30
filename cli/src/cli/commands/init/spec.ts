@@ -1,7 +1,7 @@
 import { list } from "#adapter/text.ts";
 import type { CommandSpec } from "#cli/commands/command.ts";
 import { ADAPTER, AS, FOR, FORCE, TOKEN_STDIN } from "#cli/options.ts";
-import { IMPORTABLE_TARGETS } from "#core/target/index.ts";
+import { IMPORTABLE_TARGETS } from "#core/target/ids.ts";
 
 export const INIT_COMMAND: CommandSpec = {
   name: "init",

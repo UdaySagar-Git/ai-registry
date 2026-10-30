@@ -16,12 +16,9 @@ import { emptyManifest, formatManifest, readManifest } from "#core/manifest.ts";
 import { ensureScopeIgnore } from "#core/store/ignore.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { roots as makeRoots, userScopeDir } from "#core/store/paths.ts";
-import {
-  canonicalIds,
-  IMPORTABLE_TARGETS,
-  placementFor,
-  resolveTargets,
-} from "#core/target/index.ts";
+import { canonicalIds, IMPORTABLE_TARGETS } from "#core/target/ids.ts";
+import { placementFor } from "#core/target/placement.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { table } from "#core/term/table.ts";
 import { selectTargets } from "#engine/pipeline.ts";
 import type { CommandContext } from "./command.ts";

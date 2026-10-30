@@ -11,7 +11,7 @@ import type {
   Survey,
 } from "#core/plan/model.ts";
 import { roots } from "#core/store/paths.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { lock } from "./lock.ts";
 import { manifest } from "./manifest.ts";
 

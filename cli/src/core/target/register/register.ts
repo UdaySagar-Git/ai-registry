@@ -10,7 +10,7 @@ import { canonical } from "#core/fs/realpath.ts";
 import { pruneEmptyParent } from "#core/fs/tree.ts";
 import type { Scope } from "#core/store/paths.ts";
 import type { ConfigValue, KindMapping, RegisterEntry, Targets } from "#core/target/contract.ts";
-import { targetRoot } from "#core/target/index.ts";
+import { targetRoot } from "#core/target/roots.ts";
 import {
   expand,
   expandValue,

@@ -17,7 +17,7 @@ import { spawnDetached } from "#core/process.ts";
 import { NAME } from "#core/product.ts";
 import { runningEntry } from "#core/release/launch.ts";
 import { type Roots, roots, toolHome, userScopeDir } from "#core/store/paths.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { REMOVE_AFTER_FLAG, removeTree } from "./remove-after-exit.ts";
 import { onPathIn } from "./shell-path.ts";
 

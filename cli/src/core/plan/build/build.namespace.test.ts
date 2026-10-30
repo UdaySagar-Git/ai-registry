@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import type { Action } from "#core/plan/model.ts";
 import { artifactPath, projectionDir, roots, stagingPath } from "#core/store/paths.ts";
-import type { Target } from "#core/target/index.ts";
+import type { Target } from "#core/target/contract.ts";
 import { acquired, entry, kitManifest, PLAN_OPTIONS, wrapping } from "#test/kit/builders/plan.ts";
 import { build } from "./build.ts";
 

@@ -1,7 +1,8 @@
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import type { Target } from "./contract.ts";
-import { canonicalId, canonicalIds, earlierId, earlierTable, resolveTargets } from "./index.ts";
+import { canonicalId, canonicalIds, earlierId, earlierTable } from "./ids.ts";
+import { resolveTargets } from "./table.ts";
 
 describe("resolveTargets", () => {
   test("expands each user root against HOME", () => {

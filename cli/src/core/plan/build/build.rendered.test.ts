@@ -2,7 +2,8 @@ import { relative } from "node:path";
 import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import { roots } from "#core/store/paths.ts";
-import { type KindMapping, resolveTargets, type Target } from "#core/target/index.ts";
+import type { KindMapping, Target } from "#core/target/contract.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { acquired, entry, kitManifest, PLAN_OPTIONS, wrapping } from "#test/kit/builders/plan.ts";
 import { build } from "./build.ts";
 

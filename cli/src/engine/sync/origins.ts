@@ -15,7 +15,8 @@ import { listedAt } from "#core/plan/model.ts";
 import { removeContained } from "#core/plan/removable.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { artifactPath, type Roots } from "#core/store/paths.ts";
-import { canonicalId, resolveTargets } from "#core/target/index.ts";
+import { canonicalId } from "#core/target/ids.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { moveAside } from "./claim.ts";
 import type { Scan } from "./scan.ts";
 

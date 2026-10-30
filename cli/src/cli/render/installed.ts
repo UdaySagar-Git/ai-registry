@@ -1,7 +1,8 @@
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { asksFor, type Manifest, pinOf } from "#core/manifest.ts";
 import { type Scope, scopeName } from "#core/store/paths.ts";
-import { earlierId, type Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { earlierId } from "#core/target/ids.ts";
 import { abbreviate, type Printer } from "#core/term/printer.ts";
 import type { Column } from "#core/term/table.ts";
 import { shownNames } from "#engine/installed-names.ts";

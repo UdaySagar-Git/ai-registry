@@ -44,7 +44,7 @@ import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { indexRoot } from "#core/filespec/indexer.ts";
 import { findRegistry, requireRegistry, writeRoot } from "#core/filespec/init.ts";
 import { kindsOf } from "#core/filespec/kind-manifests.ts";
-import { validateRoot } from "#core/filespec/validate.ts";
+import { validateRoot } from "#core/filespec/validate/validate.ts";
 import { gitIn } from "#core/git.ts";
 import type { Lock } from "#core/lock.ts";
 import { unknownRegistry } from "#core/manifest/errors.ts";

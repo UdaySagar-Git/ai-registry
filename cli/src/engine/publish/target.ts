@@ -30,7 +30,7 @@ import {
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { kindsOf } from "#core/filespec/kind-manifests.ts";
 import { type OfferTarget, offerFrom } from "#core/filespec/offer.ts";
-import { versionProblems } from "#core/filespec/validate.ts";
+import { versionProblems } from "#core/filespec/validate/folders.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";
 import { parseRef, type Ref, RefParseError } from "#core/ref.ts";

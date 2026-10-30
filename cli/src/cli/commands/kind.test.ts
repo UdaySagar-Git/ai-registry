@@ -4,7 +4,7 @@ import { describe, expect } from "vitest";
 import { ErrorCode } from "#core/errors.ts";
 import { indexRoot } from "#core/filespec/indexer.ts";
 import { writeRoot } from "#core/filespec/init.ts";
-import { validateRoot } from "#core/filespec/validate.ts";
+import { validateRoot } from "#core/filespec/validate/validate.ts";
 import { Printer } from "#core/term/printer.ts";
 import { test } from "#test/kit/fixtures.ts";
 import type { CommandContext } from "./command.ts";

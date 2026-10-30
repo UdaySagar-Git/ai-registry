@@ -4,9 +4,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, vi } from "vitest";
 import { contentDigest } from "#adapter/spec/canonical.ts";
+import { validateRoot } from "#core/filespec/validate/validate.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { indexRoot } from "./indexer.ts";
-import { validateRoot } from "./validate.ts";
 
 const held = vi.hoisted(() => ({ paths: [] as string[] }));
 

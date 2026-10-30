@@ -11,20 +11,11 @@ import type { Target, Targets } from "#core/target/contract.ts";
 import { detectAll } from "#core/target/detect.ts";
 import { DEFAULT_TARGETS } from "#core/target/ids.ts";
 import { targetRoot } from "#core/target/roots.ts";
+import { namespaceChoice } from "#engine/address/qualify.ts";
 import type { Interaction } from "./interaction.ts";
 import { type Canceled, canceled } from "./model.ts";
 import { type Choice, multiselect } from "./multiselect.ts";
 import { select } from "./select.ts";
-
-/** Picking a whole namespace answers with this, which no artifact name can be. */
-function namespaceChoice(namespace: string): string {
-  return `${namespace}/`;
-}
-
-/** The namespace a picked value stands for, when it stands for one. */
-export function pickedNamespace(value: string): string | undefined {
-  return value.endsWith("/") ? value.slice(0, -1) : undefined;
-}
 
 /**
  * Groups by plugin where the source publishes plugins, and by namespace where

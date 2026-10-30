@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 import { list as listOf, plural, quoted } from "#adapter/text.ts";
-import { qualify } from "#cli/commands/add.ts";
 import { addContributedJob } from "#cli/commands/job/contributed.ts";
 import { existing, jobNamed, needsJob, noJob, typedFolder } from "#cli/commands/job/find.ts";
 import type { RunsOptions } from "#cli/commands/job/runs.ts";
@@ -33,6 +32,7 @@ import { table } from "#core/term/table.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
 import { probeAddress, throughManifest } from "#engine/address/probe.ts";
+import { qualify } from "#engine/address/qualify.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { cannotPublish } from "#engine/publish/target.ts";
 import { type CommandContext, runAction } from "./command.ts";

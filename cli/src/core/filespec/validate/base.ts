@@ -3,7 +3,7 @@ import { VERSIONS_DOCUMENT, versionsPath } from "#adapter/filespec/names.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { exists } from "#core/fs/tree.ts";
-import { gitIn } from "#core/git.ts";
+import { gitIn } from "#core/process.ts";
 import { sentence } from "#core/term/printer.ts";
 import { type Problem, parsed, readDocument, rowsOf } from "./read.ts";
 

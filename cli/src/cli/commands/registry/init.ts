@@ -14,7 +14,7 @@ import { canceled } from "#cli/prompt/model.ts";
 import { text } from "#cli/prompt/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeRoot } from "#core/filespec/init.ts";
-import { gitIn } from "#core/git.ts";
+import { gitIn } from "#core/process.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import type { Flags } from "./options.ts";
 

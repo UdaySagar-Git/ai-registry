@@ -2,7 +2,7 @@ import { list, plural, quoted } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { underHome } from "#cli/render/home.ts";
 import { eventLine, failureWords } from "#cli/render/run.ts";
-import { findJob } from "#core/config/model.ts";
+import { findJob } from "#core/config/jobs.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { failureReasons } from "#core/console/runs.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";

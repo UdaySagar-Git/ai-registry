@@ -2,12 +2,11 @@ import { randomUUID } from "node:crypto";
 import { AccountService } from "#accounts/service.ts";
 import { quoted } from "#adapter/text.ts";
 import { stopGit } from "#adapters/git/api.ts";
+import { expandSteps, orderSteps } from "#core/config/jobs.ts";
 import {
   type Account,
-  expandSteps,
   isScopeStep,
   type Job,
-  orderSteps,
   type RegistryConfig,
   type Step,
 } from "#core/config/model.ts";

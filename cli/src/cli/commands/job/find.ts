@@ -1,7 +1,8 @@
 import { isAbsolute, resolve } from "node:path";
 import { quoted } from "#adapter/text.ts";
 import { underHome } from "#cli/render/home.ts";
-import { findJob, type Job, jobRoot, type RegistryConfig } from "#core/config/model.ts";
+import { findJob, jobRoot } from "#core/config/jobs.ts";
+import type { Job, RegistryConfig } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { expandUserPath } from "#core/fs/path.ts";

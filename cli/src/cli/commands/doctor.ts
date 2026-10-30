@@ -6,6 +6,11 @@ import { advertisedCapabilities } from "#adapter/contract.ts";
 import { gte } from "#adapter/semver.ts";
 import { plural, sanitizeText } from "#adapter/text.ts";
 import { DOCTOR_COMMAND } from "#cli/commands/doctor/spec.ts";
+import {
+  ownSkillsCommand,
+  ownSkillsInstalled,
+  staleOwnSkillsPin,
+} from "#cli/onboarding/own-skills.ts";
 import { noArguments, parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { loadAdapters } from "#core/adapter/load.ts";
@@ -13,7 +18,6 @@ import { fileExposure } from "#core/credentials/store.ts";
 import { ExitCode } from "#core/errors.ts";
 import { WRITABLE_BY_OTHERS } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { ownSkillsCommand, ownSkillsInstalled, staleOwnSkillsPin } from "#core/own-skills.ts";
 import { NAME } from "#core/product.ts";
 import { type ReleaseStamp, releaseStamp } from "#core/release/stamp.ts";
 import { cacheDir, credentialsPath, toolHome, userScopeDir } from "#core/store/paths.ts";

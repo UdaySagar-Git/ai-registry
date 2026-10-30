@@ -1,7 +1,8 @@
 import type { CommandContext } from "#cli/commands/command.ts";
 import { existing, folderKey, jobNamed, needsJob, scopeLabel } from "#cli/commands/job/find.ts";
 import { underHome } from "#cli/render/home.ts";
-import { type Job, type RegistryConfig, watchedFolders } from "#core/config/model.ts";
+import { watchedFolders } from "#core/config/jobs.ts";
+import type { Job, RegistryConfig } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { readManifest } from "#core/manifest/repository.ts";
 import { roots, scopeFor } from "#core/store/paths.ts";

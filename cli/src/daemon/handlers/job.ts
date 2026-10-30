@@ -3,13 +3,13 @@ import { expandHome } from "#adapter/paths.ts";
 import { list, quoted } from "#adapter/text.ts";
 import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
 import { expandLocation } from "#core/adapter/location.ts";
+import { unwatchCommand } from "#core/config/jobs.ts";
 import {
   type Account,
   DEFAULT_INTERVAL_SECONDS,
   type Job,
   type RegistryConfig,
   type Step,
-  unwatchCommand,
 } from "#core/config/model.ts";
 import { readConfig, writeConfig } from "#core/config/repository.ts";
 import { tokenVariable } from "#core/env.ts";

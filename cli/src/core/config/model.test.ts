@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { expandSteps, isNamespaceAddress, isStepPolicy, orderSteps, type Step } from "./model.ts";
+import { expandSteps, orderSteps } from "./jobs.ts";
+import { isNamespaceAddress, isStepPolicy, type Step } from "./model.ts";
 
 function step(over: Partial<Step> = {}): Step {
   return {

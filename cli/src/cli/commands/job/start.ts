@@ -1,7 +1,7 @@
 import { list as listOf, quoted } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { needsJob, noJob } from "#cli/commands/job/find.ts";
-import { findJob } from "#core/config/model.ts";
+import { findJob } from "#core/config/jobs.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isRunMode, RUN_MODES } from "#core/run/model.ts";

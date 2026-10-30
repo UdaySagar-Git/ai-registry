@@ -11,14 +11,6 @@ import { inGitHubActions, isCI, isSet } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import { readManifest, writeManifest } from "#core/manifest/repository.ts";
-import {
-  OWN_SKILLS_ALIAS,
-  OWN_SKILLS_NAMESPACE,
-  OWN_SKILLS_PATH,
-  OWN_SKILLS_SOURCE,
-  ownSkillsCommand,
-  ownSkillsRef,
-} from "#core/own-skills.ts";
 import { handOff } from "#core/process.ts";
 import { binDir, shimPath } from "#core/release/layout.ts";
 import { BINARY_NAME } from "#core/release/platform.ts";
@@ -31,6 +23,14 @@ import { probeDaemon, recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { withScope } from "#engine/scope/load.ts";
 import { installBinaryFrom } from "#self/install.ts";
 import { addToPath, isOurs, resolvedOnPath, restartCommand } from "#self/shell-path.ts";
+import {
+  OWN_SKILLS_ALIAS,
+  OWN_SKILLS_NAMESPACE,
+  OWN_SKILLS_PATH,
+  OWN_SKILLS_SOURCE,
+  ownSkillsCommand,
+  ownSkillsRef,
+} from "./own-skills.ts";
 
 /**
  * One line from the terminal, read with blocking reads: macOS cannot watch a reopened

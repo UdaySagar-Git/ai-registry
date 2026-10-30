@@ -1,9 +1,9 @@
+import { readLock } from "#core/lock.ts";
 import { readManifest } from "#core/manifest/repository.ts";
+import { NAME, REPOSITORY, REPOSITORY_NAME, releaseTag } from "#core/product.ts";
 import { roots } from "#core/store/paths.ts";
 import { shellWord } from "#core/term/format.ts";
-import { readLock } from "./lock.ts";
-import { NAME, REPOSITORY, REPOSITORY_NAME, releaseTag } from "./product.ts";
-import { VERSION } from "./version.ts";
+import { VERSION } from "#core/version.ts";
 
 /** The repository holding the skills that teach an agent to install from and publish to registries. */
 export const OWN_SKILLS_SOURCE = REPOSITORY;

@@ -1,13 +1,8 @@
 import { list as listOf } from "#adapter/text.ts";
 import { jobScope } from "#cli/commands/job/find.ts";
 import { underHome } from "#cli/render/home.ts";
-import {
-  isScopeStep,
-  type Job,
-  type RegistryConfig,
-  unwatchCommand,
-  watchedFolders,
-} from "#core/config/model.ts";
+import { unwatchCommand, watchedFolders } from "#core/config/jobs.ts";
+import { isScopeStep, type Job, type RegistryConfig } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import type { Roots } from "#core/store/paths.ts";

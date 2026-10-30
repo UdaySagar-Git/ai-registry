@@ -4,13 +4,8 @@ import { folderKey, jobNamed, jobScope, scopeLabel, typedFolder } from "#cli/com
 import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
 import { parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
-import {
-  type Job,
-  jobRoot,
-  type Step,
-  unwatchCommand,
-  watchedFolders,
-} from "#core/config/model.ts";
+import { jobRoot, unwatchCommand, watchedFolders } from "#core/config/jobs.ts";
+import type { Job, Step } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { canonical } from "#core/fs/realpath.ts";

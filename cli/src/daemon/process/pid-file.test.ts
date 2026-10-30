@@ -9,7 +9,7 @@ import {
   readDaemonPid,
   releaseDaemonPid,
   writeDaemonPid,
-} from "./pidfile.ts";
+} from "./pid-file.ts";
 
 describe("daemon pidfile", () => {
   test("round-trips a pid and clears it", async ({ home }) => {

@@ -30,8 +30,8 @@ import { isRunMode, RUN_MODES } from "#core/run/model.ts";
 import { roots, userScopeDir } from "#core/store/paths.ts";
 import { shortDuration } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type CommandContext, runAction } from "./command.ts";
 

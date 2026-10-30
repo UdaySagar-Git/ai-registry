@@ -7,7 +7,7 @@ import { test } from "#test/kit/fixtures.ts";
 import { run } from "./resolve.ts";
 
 const daemon = vi.hoisted(() => ({ withDaemon: vi.fn() }));
-vi.mock("#daemon/service.ts", () => daemon);
+vi.mock("#daemon/process/lifecycle.ts", () => daemon);
 
 afterEach(() => {
   vi.unstubAllEnvs();

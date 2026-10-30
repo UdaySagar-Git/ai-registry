@@ -24,7 +24,7 @@ import { type LogBootstrap, openCliLog } from "#core/log/open.ts";
 import { Printer } from "#core/term/printer.ts";
 import { NODE_REQUIREMENT, nodeTooOld, VERSION, versionInfo } from "#core/version.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
-import { recycleDaemon } from "#daemon/service.ts";
+import { recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { hintUpdate, refreshUpdates, scheduleUpdateCheck, UPDATE_CHECK_FLAG } from "#self/check.ts";
 import { applyMinimumUpdate } from "#self/minimum.ts";
 import { REMOVE_AFTER_FLAG, removeAfterExit } from "#self/remove-after.ts";

@@ -5,19 +5,19 @@ import { describe, expect, onTestFinished, vi } from "vitest";
 import { carriedPaths, upstreamFacts } from "#core/console/runs.ts";
 import { ITEM_EVENT } from "#core/run/model.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { SqliteRunStore } from "./store.ts";
 import {
   RUN_EVENTS_PER_JOB,
   RUN_HISTORY_PER_JOB,
   RUN_SCHEMA,
   RUN_SCHEMA_VERSION,
   RUN_TABLES,
-} from "./run-schema.ts";
-import { SqliteRunStore } from "./run-store.ts";
+} from "./store-schema.ts";
 
 // The real budget takes 75,000 writes to cross; the pruning is the same at any size, as
 // long as a full run history of a few events each still fits inside it.
-vi.mock("./run-schema.ts", async (actual) => ({
-  ...(await actual<typeof import("./run-schema.ts")>()),
+vi.mock("./store-schema.ts", async (actual) => ({
+  ...(await actual<typeof import("./store-schema.ts")>()),
   RUN_EVENTS_PER_JOB: 1_000,
 }));
 

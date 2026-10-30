@@ -13,7 +13,7 @@ import { VERSION } from "#core/version.ts";
 import { NO_EXECUTABLE, startManaged } from "#daemon/autostart/index.ts";
 import { cliClient, RpcClient, UnprovenDaemonError } from "#daemon/rpc/client.ts";
 import { assertOwnSocket, listening, privateDirectory, rpcEndpoint } from "#daemon/rpc/endpoint.ts";
-import { clearDaemonPid, liveDaemonPid, readDaemonPid } from "./pidfile.ts";
+import { clearDaemonPid, liveDaemonPid, readDaemonPid } from "./pid-file.ts";
 import { isDaemonProcess, socketPids } from "./process-info.ts";
 
 const START_MS = 5_000;

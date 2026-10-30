@@ -71,8 +71,8 @@ import {
 import { MANIFEST_FILE, SCOPE_DIR, type Scope, scopeFor, userScopeDir } from "#core/store/paths.ts";
 import { abbreviate } from "#core/term/printer.ts";
 import { autostartState } from "#daemon/autostart/index.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import {
   type Loaded,

@@ -8,7 +8,7 @@ import type { CommandContext } from "./command.ts";
 import { run } from "./watch.ts";
 
 const daemon = vi.hoisted(() => ({ withDaemon: vi.fn() }));
-vi.mock("#daemon/service.ts", () => daemon);
+vi.mock("#daemon/process/lifecycle.ts", () => daemon);
 
 let home: string;
 let scope: string;

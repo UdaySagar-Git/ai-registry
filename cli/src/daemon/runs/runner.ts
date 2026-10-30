@@ -32,15 +32,15 @@ import type { CreateRun, RunStore } from "#core/run/store.ts";
 import { scopeFor, userScopeDir } from "#core/store/paths.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
 import { policyOf } from "#core/sync/policy.ts";
+import { extensionHost } from "#daemon/extension-host.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
+import { settledWithin } from "#daemon/settled.ts";
 import type { SyncExecutionHooks } from "#engine/decide.ts";
 import { executeSync } from "#engine/execute.ts";
 import type { RunScope } from "#engine/inspect.ts";
 import type { ScopeWork } from "#engine/work.ts";
-import { extensionHost } from "./extension-host.ts";
-import { CANCELED, classifyFailure, SHUTDOWN, TIMED_OUT } from "./run-failure.ts";
-import { settledWithin } from "./settled.ts";
+import { CANCELED, classifyFailure, SHUTDOWN, TIMED_OUT } from "./failure.ts";
 
 /** Which terminal state wins when steps disagree. */
 const WORSE: Readonly<Record<string, number>> = {

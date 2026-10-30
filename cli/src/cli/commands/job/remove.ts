@@ -5,8 +5,8 @@ import { type Job, type RegistryConfig, watchedFolders } from "#core/config/mode
 import { readConfig } from "#core/config/repository.ts";
 import { readManifest } from "#core/manifest.ts";
 import { roots, scopeFor } from "#core/store/paths.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
 
 /** The folder a job keeps up to date from its registry: enabled, and pulling there. */
 function pulledInto(job: Job): string | undefined {

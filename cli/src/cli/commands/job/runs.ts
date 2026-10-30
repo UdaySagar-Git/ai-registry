@@ -17,10 +17,10 @@ import {
 import { scopeFor } from "#core/store/paths.ts";
 import { ago, duration } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { followRun, type RpcClient, runEvents } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
-import { withDaemon } from "#daemon/service.ts";
 
 /** `run_` plus a v4 uuid, as `runner.ts` mints them. */
 const RUN_ID = /^run_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

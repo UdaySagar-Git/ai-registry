@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { createInterface } from "node:readline";
 import { afterEach, describe, expect, vi } from "vitest";
 import { type OutputFormat, Printer } from "#core/term/printer.ts";
-import { writeDaemonPid } from "#daemon/pidfile.ts";
+import { writeDaemonPid } from "#daemon/process/pid-file.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
 import { PROTOCOL_VERSION } from "#daemon/rpc/methods.ts";
 import { test } from "#test/kit/fixtures.ts";

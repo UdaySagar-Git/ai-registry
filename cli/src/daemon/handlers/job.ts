@@ -32,9 +32,9 @@ import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import { forgetOrigins } from "#engine/origins.ts";
-import { committed, staleSettings } from "./config-write.ts";
-import * as inputs from "./inputs.ts";
-import { contributedJobId, skillsJobId } from "./job-ids.ts";
+import { contributedJobId, skillsJobId } from "./job-id.ts";
+import * as inputs from "./params.ts";
+import { committed, staleSettings } from "./settings-write.ts";
 
 function accountFor(config: RegistryConfig, accountId: string): Account {
   const account = config.accounts.find(({ id }) => id === accountId);

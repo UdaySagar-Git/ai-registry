@@ -7,7 +7,7 @@ import {
   applyDaemonFollowInstalled,
   DaemonMinUpdate,
   MIN_UPDATE_INTERVAL_MS,
-} from "./min-update.ts";
+} from "./cli-update.ts";
 
 const home = { AIREG_HOME: "/tmp/aireg-home" };
 const release: ResolvedRelease = {

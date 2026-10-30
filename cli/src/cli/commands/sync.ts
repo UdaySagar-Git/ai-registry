@@ -22,7 +22,7 @@ import { scopeName } from "#core/store/paths.ts";
 import { type Candidate, displayPath } from "#core/sync/adopt.ts";
 import { UNSETTLED } from "#core/sync/model.ts";
 import { POLICY_AXES, type PolicyAxis, type SyncPolicy } from "#core/sync/policy.ts";
-import { withDaemon } from "#daemon/service.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { shadowedByYours, surveyClaims } from "#engine/claim.ts";
 import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import type { CommonOptions } from "#engine/options.ts";

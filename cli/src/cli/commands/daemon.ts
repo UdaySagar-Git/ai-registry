@@ -7,8 +7,8 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { VERSION } from "#core/version.ts";
 import { autostartState, disableAutostart, enableAutostart } from "#daemon/autostart/index.ts";
 import type { AutostartState } from "#daemon/autostart/model.ts";
-import { readDaemonPid } from "#daemon/pidfile.ts";
-import { ensureDaemon, probeDaemon, stopDaemon } from "#daemon/service.ts";
+import { ensureDaemon, probeDaemon, stopDaemon } from "#daemon/process/lifecycle.ts";
+import { readDaemonPid } from "#daemon/process/pid-file.ts";
 import { type CommandContext, runAction } from "./command.ts";
 
 export function daemonAction(argv: readonly string[]): string {

@@ -12,7 +12,7 @@ import { pad } from "#core/term/format.ts";
 import type { Styler } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { autostartState, disableAutostart } from "#daemon/autostart/index.ts";
-import { probeDaemon, stopDaemon } from "#daemon/service.ts";
+import { probeDaemon, stopDaemon } from "#daemon/process/lifecycle.ts";
 import { removeFromPath } from "#self/path-setup.ts";
 import { deleteFolders, type Footprint, footprint, unlinkUserScope } from "#self/uninstall.ts";
 import { SELF_COMMAND } from "./spec.ts";

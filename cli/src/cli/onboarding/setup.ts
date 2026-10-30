@@ -26,7 +26,7 @@ import { roots } from "#core/store/paths.ts";
 import { detectAll, resolveTargets } from "#core/target/index.ts";
 import { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
-import { probeDaemon, recycleDaemon } from "#daemon/service.ts";
+import { probeDaemon, recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { withScope } from "#engine/pipeline.ts";
 import { installBinaryFrom } from "#self/install.ts";
 import { addToPath, isOurs, resolvedOnPath, restartCommand } from "#self/path-setup.ts";

@@ -5,7 +5,7 @@ import { canonical } from "#core/fs/realpath.ts";
 import type { Scope } from "#core/store/paths.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
-import * as inputs from "./inputs.ts";
+import * as inputs from "./params.ts";
 
 function productJobId(kind: string, label: string): string {
   const id = `job_${kind}_${sanitizeName(label)}`;

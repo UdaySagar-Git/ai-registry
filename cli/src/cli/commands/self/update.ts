@@ -4,7 +4,7 @@ import { parse } from "#cli/options.ts";
 import { withReleaseHint } from "#core/release/errors.ts";
 import { shimPath, versionBin } from "#core/release/layout.ts";
 import { VERSION } from "#core/version.ts";
-import { recycleDaemon } from "#daemon/service.ts";
+import { recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { installedVersion, previousInstalled, rollback } from "#self/install.ts";
 import { installRelease } from "#self/minimum.ts";
 import { resolveRelease } from "#self/source.ts";

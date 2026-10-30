@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { emptyRegistryConfig, type RegistryConfig, type Step } from "#core/config/model.ts";
-import { contributedJobId, skillsJobId } from "./job-ids.ts";
+import { contributedJobId, skillsJobId } from "./job-id.ts";
 
 describe("a job's default id", () => {
   test("slugifies the registry name so spaces are legal", () => {

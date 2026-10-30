@@ -8,13 +8,13 @@ import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import type { ConflictResolution } from "#daemon/rpc/methods.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import type { RpcContext } from "#daemon/rpc/server.ts";
+import type { SyncRunner } from "#daemon/runs/runner.ts";
 import { artifactKey } from "#engine/decide.ts";
 import { kindAddress } from "#engine/scope.ts";
 import { watchStatus } from "#engine/status.ts";
 import { jobOfWork, type ScopeWork, workOf } from "#engine/work.ts";
-import * as inputs from "./inputs.ts";
-import { accountOf, artifactsJobFor } from "./job-methods.ts";
-import type { SyncRunner } from "./runner.ts";
+import { accountOf, artifactsJobFor } from "./job.ts";
+import * as inputs from "./params.ts";
 
 /** The editor owns the content, so `mine` becomes the next version rather than a side copy. */
 const RESOLUTION_OPERATION: Record<ConflictResolution, SyncOperation> = {

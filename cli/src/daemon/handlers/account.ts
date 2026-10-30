@@ -2,8 +2,8 @@ import type { AccountService } from "#accounts/service.ts";
 import type { Identity } from "#adapter/index.ts";
 import type { Account } from "#core/config/model.ts";
 import type { RpcContext } from "#daemon/rpc/server.ts";
-import { committed } from "./config-write.ts";
-import * as inputs from "./inputs.ts";
+import * as inputs from "./params.ts";
+import { committed } from "./settings-write.ts";
 
 export async function loginAccount(
   raw: unknown,

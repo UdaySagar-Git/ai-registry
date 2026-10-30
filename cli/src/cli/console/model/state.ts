@@ -26,7 +26,7 @@ import { isActive, type RunMode } from "#core/run/model.ts";
 import { roots as makeRoots, type Roots, scopeFor } from "#core/store/paths.ts";
 import { policyOf } from "#core/sync/policy.ts";
 import { earlierTable, resolveTargets } from "#core/target/index.ts";
-import { readDaemonPid } from "#daemon/pidfile.ts";
+import { readDaemonPid } from "#daemon/process/pid-file.ts";
 import { readAccounts } from "./accounts.ts";
 import { localWork } from "./local.ts";
 

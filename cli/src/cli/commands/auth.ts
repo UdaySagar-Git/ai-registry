@@ -28,7 +28,7 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { type RegistrySource, readManifest } from "#core/manifest.ts";
 import { roots } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
-import { withDaemon } from "#daemon/service.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { locate } from "#engine/pipeline.ts";
 import { type CommandContext, runAction } from "./command.ts";
 

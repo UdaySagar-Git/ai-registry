@@ -63,7 +63,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 4. Placement in each target folder follows the target's definition (`src/targets/`, applied by `core/target/`), including any config file the target needs edited, such as Codex's `config.toml`.
 5. A failure is an `AiregError`; `cli/report.ts` prints it, or its `--json` form, and returns its exit status.
 
-Background jobs run the same engine from the daemon (`daemon/runner.ts`), so a sync started by hand and one started by the scheduler behave the same: both write through the pipeline's `commit`, after the same recovery, refusals and hooks.
+Background jobs run the same engine from the daemon (`daemon/runs/runner.ts`), so a sync started by hand and one started by the scheduler behave the same: both write through the pipeline's `commit`, after the same recovery, refusals and hooks.
 
 ## Extending aireg
 

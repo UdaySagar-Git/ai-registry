@@ -5,11 +5,11 @@ import { afterEach, describe, expect, vi } from "vitest";
 import { logPath } from "#core/log/sink.ts";
 import { cliClient, RpcClient } from "#daemon/rpc/client.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
+import { SyncRunner } from "#daemon/runs/runner.ts";
+import { DaemonRuntime } from "#daemon/runtime.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { readDaemonPid } from "./pidfile.ts";
-import { SyncRunner } from "./runner.ts";
-import { DaemonRuntime } from "./runtime.ts";
-import { daemonEnv, ensureDaemon, probeDaemon, stderrCapture, stopDaemon } from "./service.ts";
+import { daemonEnv, ensureDaemon, probeDaemon, stderrCapture, stopDaemon } from "./lifecycle.ts";
+import { readDaemonPid } from "./pid-file.ts";
 
 const unix = describe.skipIf(process.platform === "win32");
 

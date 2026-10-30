@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
-import { job, scope, syncPolicy } from "./inputs.ts";
+import { job, scope, syncPolicy } from "./params.ts";
 
 const STEP = {
   name: "pull",

@@ -1,7 +1,7 @@
 import { updateAdapters } from "#core/adapter/installed/update.ts";
 import { VERSION } from "#core/version.ts";
 import { skipMinimumUpdate } from "#self/minimum.ts";
-import { type DaemonReplaceHooks, replaceWith } from "./min-update.ts";
+import { type DaemonReplaceHooks, replaceWith } from "./cli-update.ts";
 
 export interface DaemonAdapterUpdateHooks extends DaemonReplaceHooks {
   skip?: (env: NodeJS.ProcessEnv) => boolean;

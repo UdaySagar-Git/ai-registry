@@ -14,7 +14,7 @@ import { test } from "#test/kit/fixtures.ts";
 import { runs } from "./runs.ts";
 
 // The test serves the socket itself, so no daemon is started or stopped.
-vi.mock("#daemon/service.ts", async () => {
+vi.mock("#daemon/process/lifecycle.ts", async () => {
   const { cliClient, RpcClient } = await import("#daemon/rpc/client.ts");
   return {
     withDaemon: async <T>(work: (client: RpcClient) => Promise<T>) => {

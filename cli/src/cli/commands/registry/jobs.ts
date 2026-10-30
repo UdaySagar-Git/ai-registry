@@ -11,8 +11,8 @@ import {
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import type { Roots } from "#core/store/paths.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
 
 const jobName = (job: Job) => job.name ?? job.id;
 

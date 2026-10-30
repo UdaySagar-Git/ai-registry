@@ -17,7 +17,7 @@ import {
 import type { AppendRunEvent, CreateRun, FinishRun, RunQuery, RunStore } from "#core/run/store.ts";
 import { toolHome } from "#core/store/paths.ts";
 import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
-import { toCounts, toEvent, toRun } from "./run-rows.ts";
+import { toCounts, toEvent, toRun } from "./store-rows.ts";
 import {
   RUN_EVENTS_PER_JOB,
   RUN_HISTORY_PER_ACCOUNT,
@@ -25,7 +25,7 @@ import {
   RUN_SCHEMA,
   RUN_SCHEMA_VERSION,
   RUN_TABLES,
-} from "./run-schema.ts";
+} from "./store-schema.ts";
 
 type Row = Record<string, unknown>;
 const SQLITE_BUILTIN = ["node", "sqlite"].join(":");

@@ -20,7 +20,7 @@ import { releaseStamp } from "#core/release/stamp.ts";
 import { toolHome } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
 import { VERSION } from "#core/version.ts";
-import { recycleDaemon } from "#daemon/service.ts";
+import { recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { type CommandContext, runAction } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {

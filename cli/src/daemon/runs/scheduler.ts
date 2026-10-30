@@ -6,7 +6,7 @@ import { nullLogger } from "#core/log/logger.ts";
 import type { Logger } from "#core/log/model.ts";
 import { isActive } from "#core/run/model.ts";
 import type { RunStore } from "#core/run/store.ts";
-import { dueAt, QUIET_LOOKBACK, retryBackoff } from "./run-failure.ts";
+import { dueAt, QUIET_LOOKBACK, retryBackoff } from "./failure.ts";
 import type { SyncRunner } from "./runner.ts";
 
 const TICK_MS = 1_000;

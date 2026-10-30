@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Account } from "#core/config/model.ts";
 import { jobOfWork, type ScopeWork } from "#engine/work.ts";
-import { SqliteRunStore } from "./run-store.ts";
 import { SyncRunner } from "./runner.ts";
+import { SqliteRunStore } from "./store.ts";
 
 const sync = vi.hoisted(() => ({
   waiting: [] as (() => void)[],

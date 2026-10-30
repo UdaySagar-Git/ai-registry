@@ -4,7 +4,7 @@ import { sanitizeText } from "#adapter/text.ts";
 import type { Lock } from "#core/lock.ts";
 import { NAME } from "#core/product.ts";
 import { type Roots, scopeName } from "#core/store/paths.ts";
-import { copyEdited, editedHere, type Survey } from "./model.ts";
+import { copyEdited, editedHere, type Survey } from "./survey.ts";
 
 /** Worst state wins per artifact, and the worst across all of them is the exit code. */
 const STATES = ["ok", "missing", "dangling", "edited"] as const;

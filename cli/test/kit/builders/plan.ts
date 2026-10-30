@@ -2,14 +2,8 @@ import type { Entry } from "#core/catalog/catalog.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest/model.ts";
 import type { BuildOptions } from "#core/plan/build/build.ts";
-import type {
-  Acquired,
-  Action,
-  ArtifactSurvey,
-  Placement,
-  Plan,
-  Survey,
-} from "#core/plan/model.ts";
+import type { Acquired, Action, Placement, Plan } from "#core/plan/model.ts";
+import type { ArtifactSurvey, Survey } from "#core/plan/survey.ts";
 import { roots } from "#core/store/paths.ts";
 import { resolveTargets } from "#core/target/table.ts";
 import { lock } from "./lock.ts";

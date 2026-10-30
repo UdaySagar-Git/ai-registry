@@ -3,8 +3,8 @@ import { describe, expect, test } from "vitest";
 import type { Lock } from "#core/lock.ts";
 import { LOCK_VERSION } from "#core/lock.ts";
 import { artifactPath, projectionDir, roots } from "#core/store/paths.ts";
-import type { Survey } from "./model.ts";
 import { status, worstState } from "./status.ts";
+import type { Survey } from "./survey.ts";
 
 const base = roots("project", "/work");
 // Derived, so a change to either layout cannot silently break these.

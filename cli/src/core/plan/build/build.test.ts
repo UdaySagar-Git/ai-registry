@@ -3,7 +3,8 @@ import { join, relative, resolve } from "node:path";
 import { describe, expect } from "vitest";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { emptyLock } from "#core/lock.ts";
-import type { Action, Survey } from "#core/plan/model.ts";
+import type { Action } from "#core/plan/model.ts";
+import type { Survey } from "#core/plan/survey.ts";
 import { parseRef, withLocalName } from "#core/ref.ts";
 import { artifactPath, roots } from "#core/store/paths.ts";
 import {

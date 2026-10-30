@@ -1,12 +1,10 @@
 import type { AdapterError, Envelope } from "#adapter/index.ts";
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { LayoutId } from "#adapter/layouts/ids.ts";
-import { quoted } from "#adapter/text.ts";
 import type { SourceConfig } from "#core/adapter/identity.ts";
-import { type Catalog, type Entry, entryFor } from "#core/catalog/catalog.ts";
+import type { Catalog } from "#core/catalog/catalog.ts";
 import type { Withheld } from "#core/catalog/withheld.ts";
-import { AiregError, ErrorCode } from "#core/errors.ts";
-import type { LinkMode, Lock, LockArtifact, LockRegistry } from "#core/lock.ts";
+import type { LinkMode, Lock } from "#core/lock.ts";
 import type { Codec, KeyFile } from "#core/target/contract.ts";
 import type { Carried } from "./carries.ts";
 import type { Conflict, Need, Unresolved } from "./depends.ts";
@@ -82,44 +80,6 @@ export interface Staged {
 }
 
 export type Fetch = (source: string, path: string) => Promise<Staged>;
-
-/** Resolve content through the registry that produced the catalog entry. */
-export function fetchFrom(acquired: readonly Acquired[]): Fetch {
-  const byAlias = new Map(acquired.map((entry) => [entry.alias, entry]));
-  return (source, path) => {
-    const found = byAlias.get(source);
-    return found === undefined
-      ? Promise.reject(
-          new AiregError(`Registry ${quoted(source)} is no longer available.`, {
-            code: ErrorCode.NotFound,
-          }),
-        )
-      : found.content(path);
-  };
-}
-
-/** Where a registry lists a lock row; one of yours has no address until a publish of it is recorded. */
-export function listedAt(row: LockArtifact, entries: readonly Entry[]): string | undefined {
-  if (row.address !== undefined || row.origin === undefined) return row.address;
-  return entryFor(entries, row.namespace, row.kind, row.name)?.path;
-}
-
-export function lockSourceOf(origin: Origin): LockRegistry {
-  return {
-    location: origin.declared,
-    adapter: origin.adapter,
-    key: origin.key,
-    config: origin.config,
-    revision: origin.revision,
-  };
-}
-
-export function dropUnusedSources(lock: Lock): void {
-  for (const alias of Object.keys(lock.registries)) {
-    const used = Object.values(lock.artifacts).some((entry) => entry.registry === alias);
-    if (!used) delete lock.registries[alias];
-  }
-}
 
 /** For one front-matter key: the files its readers take it from, and who cannot keep it. */
 export interface KeyRule {
@@ -240,64 +200,6 @@ export function emptyPlan(): Plan {
     unlisted: [],
     untrusted: [],
   };
-}
-
-/** What survey found for one locked artifact. */
-export interface ArtifactSurvey {
-  /** Present in the project's writable copy. */
-  staged: boolean;
-  /** Undefined when nothing is staged. */
-  digest: string | undefined;
-  links: Record<
-    string,
-    {
-      present: boolean;
-      isLink: boolean;
-      target: string | undefined;
-      mode: LinkMode;
-      /** A copy's digest now, compared with the one the lock recorded. */
-      digest?: string | undefined;
-    }
-  >;
-}
-
-export interface Survey {
-  artifacts: Record<string, ArtifactSurvey>;
-}
-
-/** A target's copy that no longer matches what was written there. */
-export function copyEdited(
-  link: { path: string; mode: LinkMode; digest?: string | undefined },
-  state: ArtifactSurvey | undefined,
-): boolean {
-  const seen = state?.links[link.path];
-  return (
-    link.mode === "copy" &&
-    link.digest !== undefined &&
-    seen?.digest !== undefined &&
-    seen.digest !== link.digest
-  );
-}
-
-/** The copy here no longer matches what the lock says was installed. */
-export function editedHere(
-  entry: LockArtifact | undefined,
-  state: ArtifactSurvey | undefined,
-): boolean {
-  return (
-    state?.staged === true &&
-    entry !== undefined &&
-    entry.digest !== "" &&
-    state.digest !== entry.digest
-  );
-}
-
-/** Edited in this scope's copy or in a target's own copy, so not ours to replace unasked. */
-export function editedAnywhere(
-  entry: LockArtifact | undefined,
-  state: ArtifactSurvey | undefined,
-): boolean {
-  return editedHere(entry, state) || (entry?.links ?? []).some((link) => copyEdited(link, state));
 }
 
 /** One artifact inside a plugin, as the plugin's own directory holds it. */

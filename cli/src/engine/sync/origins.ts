@@ -11,7 +11,7 @@ import { canonical, canonicalAsync } from "#core/fs/realpath.ts";
 import { authoredArtifact, copyAuthored, exists, type Irregular, refusal } from "#core/fs/tree.ts";
 import { KIND_SPECS } from "#core/kinds.ts";
 import { type Lock, type LockArtifact, readLock, writeLock } from "#core/lock.ts";
-import { listedAt } from "#core/plan/model.ts";
+import { listedAt } from "#core/plan/acquire/sources.ts";
 import { removeContained } from "#core/plan/removable.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { artifactPath, type Roots } from "#core/store/paths.ts";

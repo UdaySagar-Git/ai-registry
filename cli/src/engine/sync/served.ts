@@ -1,6 +1,7 @@
 import { compareVersion, parseVersion } from "#adapter/semver.ts";
 import type { LockArtifact } from "#core/lock.ts";
-import { listedAt, type Placement } from "#core/plan/model.ts";
+import { listedAt } from "#core/plan/acquire/sources.ts";
+import type { Placement } from "#core/plan/model.ts";
 import type { Scan } from "./scan.ts";
 
 /**

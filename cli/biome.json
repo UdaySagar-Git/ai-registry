@@ -230,7 +230,7 @@
         "src/core/filespec/schema.ts",
         "src/core/filespec/validate.ts",
         "src/core/fs/digest.ts",
-        "src/core/plan/acquire.ts",
+        "src/core/plan/acquire/acquire.ts",
         "src/core/plan/apply/link.ts",
         "src/core/plan/build/restage.ts",
         "src/core/sync/index.ts",

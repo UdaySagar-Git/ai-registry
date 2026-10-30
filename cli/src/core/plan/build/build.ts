@@ -4,19 +4,12 @@ import { statusWarning } from "#core/catalog/withheld.ts";
 import { dict } from "#core/fields.ts";
 import { emptyLock, type Lock, type LockArtifact } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest/model.ts";
+import { dropUnusedSources, lockSourceOf } from "#core/plan/acquire/sources.ts";
 import { closure, dependentsByName, nameClashes } from "#core/plan/depends.ts";
-import type {
-  Acquired,
-  Clash,
-  Incompatible,
-  Plan,
-  Selected,
-  Survey,
-  Warning,
-} from "#core/plan/model.ts";
-import { dropUnusedSources, lockSourceOf } from "#core/plan/model.ts";
+import type { Acquired, Clash, Incompatible, Plan, Selected, Warning } from "#core/plan/model.ts";
 import { crowdedContainers } from "#core/plan/projection.ts";
 import { addressOf, select, type Untrusted } from "#core/plan/select.ts";
+import type { Survey } from "#core/plan/survey.ts";
 import { artifactPath, copyLeaf } from "#core/store/paths.ts";
 import {
   carryUnlisted,

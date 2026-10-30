@@ -1,6 +1,6 @@
 import type { Artifact, Credential, Want } from "#adapter/index.ts";
 import { cloneLock, type Lock } from "#core/lock.ts";
-import { acquire } from "#core/plan/acquire.ts";
+import { acquire } from "#core/plan/acquire/acquire.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { type Candidate, candidates } from "#core/sync/adopt.ts";
 import { reconcile } from "#core/sync/index.ts";

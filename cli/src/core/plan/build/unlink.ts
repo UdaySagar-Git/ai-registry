@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import { quoted, sanitizeText } from "#adapter/text.ts";
 import type { LockArtifact } from "#core/lock.ts";
-import { editedAnywhere } from "#core/plan/model.ts";
 import { removal } from "#core/plan/removable.ts";
+import { editedAnywhere } from "#core/plan/survey.ts";
 import { artifactPath, copyLeaf } from "#core/store/paths.ts";
 import { keep } from "./carry.ts";
 import type { BuildState } from "./state.ts";

@@ -4,7 +4,10 @@ import { emptyLock, type Lock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest/model.ts";
 import { parseManifest } from "#core/manifest/parse.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { type AcquireOptions, acquire, answers, lockView, newlyYanked, wanted } from "./acquire.ts";
+import { type AcquireOptions, acquire } from "./acquire.ts";
+import { answers, lockView } from "./lock-view.ts";
+import { newlyYanked } from "./placement.ts";
+import { wanted } from "./request.ts";
 
 /** What the fake adapter was asked and closed, and the artifacts it lists. */
 const fake = vi.hoisted(() => ({

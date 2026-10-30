@@ -37,7 +37,7 @@ import { DEFAULT_INTERVAL_WORDS } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { coveredByWhole } from "#core/manifest/match.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";
-import { reached } from "#core/plan/acquire.ts";
+import { reached } from "#core/plan/acquire/lock-view.ts";
 import { describeCarried } from "#core/plan/carries.ts";
 import type { Selected } from "#core/plan/model.ts";
 import {

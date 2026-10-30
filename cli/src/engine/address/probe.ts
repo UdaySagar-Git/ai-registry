@@ -34,7 +34,7 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { findRegistry } from "#core/filespec/init.ts";
 import { dotRelative, posixRelative } from "#core/fs/path.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";
-import { manifestOf } from "#core/plan/acquire.ts";
+import { manifestOf } from "#core/plan/acquire/placement.ts";
 import { type Carried, carriedIn } from "#core/plan/carries.ts";
 import { wrapsNamespaces } from "#core/plan/namespaces.ts";
 import { unmatched } from "#core/plan/select.ts";

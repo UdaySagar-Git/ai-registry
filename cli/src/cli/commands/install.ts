@@ -4,7 +4,8 @@ import { defaultIo } from "#cli/prompt/ask.ts";
 import { cancel, confirmIfDestructive, interaction } from "#cli/prompt/flow.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, summarize } from "#cli/render/plan.ts";
-import { load, run as runPipeline } from "#engine/pipeline.ts";
+import { run as runPipeline } from "#engine/install/pipeline.ts";
+import { load } from "#engine/scope/load.ts";
 import type { CommandContext } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {

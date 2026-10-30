@@ -28,7 +28,7 @@ import { resolveTargets } from "#core/target/table.ts";
 import { Printer } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { probeDaemon, recycleDaemon } from "#daemon/process/lifecycle.ts";
-import { withScope } from "#engine/pipeline.ts";
+import { withScope } from "#engine/scope/load.ts";
 import { installBinaryFrom } from "#self/install.ts";
 import { addToPath, isOurs, resolvedOnPath, restartCommand } from "#self/shell-path.ts";
 

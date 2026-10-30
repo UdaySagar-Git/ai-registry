@@ -64,8 +64,8 @@ import {
 } from "#engine/address/probe.ts";
 import { knownRegistries, undeclaredRegistry } from "#engine/address/registries.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { type Loaded, load, withScope } from "#engine/pipeline.ts";
 import { commitAndPush, releaseSubject } from "#engine/publish/target.ts";
+import { type Loaded, load, withScope } from "#engine/scope/load.ts";
 import { type Hidden, hiddenKind, printHidden, RESERVED } from "./builtins.ts";
 import { type CommandContext, runAction } from "./command.ts";
 

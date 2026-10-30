@@ -24,7 +24,7 @@ import { UNSETTLED } from "#core/sync/model.ts";
 import { POLICY_AXES, type PolicyAxis, type SyncPolicy } from "#core/sync/policy.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { load } from "#engine/pipeline.ts";
+import { load } from "#engine/scope/load.ts";
 import { shadowedByYours, surveyClaims } from "#engine/sync/claim.ts";
 import { closeScan, scan } from "#engine/sync/scan.ts";
 import { FOREGROUND_POLICY } from "#engine/sync/work.ts";

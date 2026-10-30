@@ -7,11 +7,12 @@ import type { Plan } from "#core/plan/model.ts";
 import { parseRef } from "#core/ref.ts";
 import { type Roots, roots } from "#core/store/paths.ts";
 import { Printer } from "#core/term/printer.ts";
+import type { CommonOptions } from "#engine/options.ts";
+import { locate } from "#engine/scope/locate.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { manifestPath, writeManifestIn } from "#test/kit/scope.ts";
 import { skillBody, writeSpecRoot } from "#test/kit/spec-root.ts";
-import type { CommonOptions } from "./options.ts";
-import { locate, run } from "./pipeline.ts";
+import { run } from "./pipeline.ts";
 
 /** This test's folder, which the kit removes after it. */
 let scratch: string;

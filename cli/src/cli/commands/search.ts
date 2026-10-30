@@ -10,7 +10,7 @@ import { truncate } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
 import { probe, type Resolved, throughManifest } from "#engine/address/probe.ts";
 import { knownRegistries, undeclaredRegistry } from "#engine/address/registries.ts";
-import { scopeRoots } from "#engine/pipeline.ts";
+import { scopeRoots } from "#engine/scope/locate.ts";
 import type { CommandContext } from "./command.ts";
 
 /** Room for the description once the other columns are printed. */

@@ -22,7 +22,7 @@ import { canonicalIds, IMPORTABLE_TARGETS } from "#core/target/ids.ts";
 import { placementFor } from "#core/target/placement.ts";
 import { resolveTargets } from "#core/target/table.ts";
 import { table } from "#core/term/table.ts";
-import { selectTargets } from "#engine/pipeline.ts";
+import { selectTargets } from "#engine/install/targets.ts";
 import type { CommandContext } from "./command.ts";
 
 /**

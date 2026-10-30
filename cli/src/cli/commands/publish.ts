@@ -28,7 +28,6 @@ import type { Export, Manifest, RegistrySource } from "#core/manifest/model.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { knownIn, knownRegistries } from "#engine/address/registries.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { type Loaded, load, withScope } from "#engine/pipeline.ts";
 import { changeLines, changesJson } from "#engine/publish/changes.ts";
 import {
   chooseTarget,
@@ -57,6 +56,7 @@ import {
   writableRegistries,
 } from "#engine/publish/target.ts";
 import { changedSince, type Exported, edited, fromArgs, type Work } from "#engine/publish/work.ts";
+import { type Loaded, load, withScope } from "#engine/scope/load.ts";
 import { applyLocal } from "#engine/sync/local.ts";
 import { closeScan, scan } from "#engine/sync/scan.ts";
 import { moved, pinnedNote, unservedNote } from "#engine/sync/served.ts";

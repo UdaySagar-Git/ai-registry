@@ -12,7 +12,7 @@ import { trustFor } from "#core/target/placement.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
 import { GLYPH } from "#core/term/theme.ts";
-import type { Chosen, PlanReport, RunResult } from "#engine/pipeline.ts";
+import type { Chosen, PlanReport, RunResult } from "#engine/install/pipeline.ts";
 import { collisionFields } from "./collisions.ts";
 import { underHome } from "./home.ts";
 import { linkLoadedBy, loadedBy, toolName } from "./tools.ts";

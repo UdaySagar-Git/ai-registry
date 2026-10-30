@@ -22,9 +22,11 @@ import { reaches } from "#core/manifest/match.ts";
 import { editedAnywhere, survey } from "#core/plan/survey.ts";
 import { formatAddress, parseRef, type Ref, relativeTo, withExclusions } from "#core/ref.ts";
 import { type Roots, scopeName } from "#core/store/paths.ts";
+import { run as runPipeline } from "#engine/install/pipeline.ts";
+import { selectTargets } from "#engine/install/targets.ts";
 import { matchInstalled, rowsNamed, shownNames } from "#engine/installed-names.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { type Loaded, load, run as runPipeline, selectTargets } from "#engine/pipeline.ts";
+import { type Loaded, load } from "#engine/scope/load.ts";
 import type { CommandContext } from "./command.ts";
 
 /**

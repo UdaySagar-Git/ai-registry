@@ -2,7 +2,7 @@ import { mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "vitest";
 import { roots as makeRoots } from "#core/store/paths.ts";
-import type { Loaded } from "#engine/pipeline.ts";
+import type { Loaded } from "#engine/scope/load.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { fromArgs } from "./work.ts";
 

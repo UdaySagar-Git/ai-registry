@@ -8,8 +8,9 @@ import { outcome, planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
 import { asksFor } from "#core/manifest/match.ts";
 import { lockView } from "#core/plan/acquire/lock-view.ts";
 import { formatRef, refName } from "#core/ref.ts";
+import { run as runPipeline } from "#engine/install/pipeline.ts";
 import { rowsNamed } from "#engine/installed-names.ts";
-import { load, run as runPipeline } from "#engine/pipeline.ts";
+import { load } from "#engine/scope/load.ts";
 import type { CommandContext } from "./command.ts";
 
 /**

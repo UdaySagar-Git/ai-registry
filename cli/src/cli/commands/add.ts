@@ -74,16 +74,11 @@ import {
   sameLocation,
   undeclaredRegistry,
 } from "#engine/address/registries.ts";
+import { type RunResult, run as runPipeline } from "#engine/install/pipeline.ts";
+import { selectTargets } from "#engine/install/targets.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import {
-  type Loaded,
-  load,
-  locate,
-  type RunResult,
-  resolveScope,
-  run as runPipeline,
-  selectTargets,
-} from "#engine/pipeline.ts";
+import { type Loaded, load } from "#engine/scope/load.ts";
+import { locate, resolveScope } from "#engine/scope/locate.ts";
 import type { CommandContext } from "./command.ts";
 
 /** Require explicit confirmation before a large implicit selection. */

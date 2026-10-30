@@ -17,7 +17,7 @@ import { refuseRedirectedCopy } from "#core/store/managed-paths.ts";
 import { artifactPath, copyLeaf } from "#core/store/paths.ts";
 import { matchInstalled, rowsNamed } from "#engine/installed-names.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import type { Loaded } from "#engine/pipeline.ts";
+import type { Loaded } from "#engine/scope/load.ts";
 import { closeScan, scan } from "#engine/sync/scan.ts";
 
 /** One artifact to publish: what it is, and where its bytes are. */

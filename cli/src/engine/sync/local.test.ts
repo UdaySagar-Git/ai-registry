@@ -6,7 +6,7 @@ import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { exists } from "#core/fs/tree.ts";
 import { roots as makeRoots, type Roots, stagingDir } from "#core/store/paths.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { load } from "#engine/pipeline.ts";
+import { load } from "#engine/scope/load.ts";
 import { writeManifestIn } from "#test/kit/scope.ts";
 import { skillBody, writeSpecRoot } from "#test/kit/spec-root.ts";
 import { applyLocal } from "./local.ts";

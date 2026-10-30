@@ -19,7 +19,7 @@ import type { Targets } from "#core/target/contract.ts";
 import { byEarlierIds, earlierId, names } from "#core/target/ids.ts";
 import { trustFor } from "#core/target/placement.ts";
 import { table } from "#core/term/table.ts";
-import { load } from "#engine/pipeline.ts";
+import { load } from "#engine/scope/load.ts";
 import type { CommandContext } from "./command.ts";
 
 /**

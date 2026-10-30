@@ -295,3 +295,11 @@ export interface Rewritten {
   /** The one the registry serves now. */
   served: string;
 }
+
+export function recordOf(plan: Plan): Lock {
+  const record = plan.actions.find(
+    (action): action is Extract<Action, { kind: "record" }> => action.kind === "record",
+  );
+  if (record === undefined) throw new Error("The plan has no lockfile record.");
+  return record.lock;
+}

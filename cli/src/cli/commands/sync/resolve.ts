@@ -11,8 +11,8 @@ import { roots, scopeFor } from "#core/store/paths.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
 import { matchInstalled, rowsNamed } from "#engine/installed-names.ts";
-import { load } from "#engine/pipeline.ts";
 import { cannotPublish } from "#engine/publish/target.ts";
+import { load } from "#engine/scope/load.ts";
 import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
 import { SYNC_COMMAND } from "./spec.ts";
 

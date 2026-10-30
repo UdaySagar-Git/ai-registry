@@ -15,7 +15,7 @@ import type { Targets } from "#core/target/contract.ts";
 import { earlierId } from "#core/target/ids.ts";
 import { fields, table } from "#core/term/table.ts";
 import { rowsNamed } from "#engine/installed-names.ts";
-import { load } from "#engine/pipeline.ts";
+import { load } from "#engine/scope/load.ts";
 import type { CommandContext } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {

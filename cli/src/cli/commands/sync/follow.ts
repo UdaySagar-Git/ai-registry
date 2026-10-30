@@ -13,8 +13,8 @@ import {
   WARNING_EVENT,
 } from "#core/run/model.ts";
 import { followRun, type RpcClient } from "#daemon/rpc/client.ts";
-import type { load } from "#engine/pipeline.ts";
 import { publishInstead } from "#engine/publish/target.ts";
+import type { load } from "#engine/scope/load.ts";
 
 type Loaded = Awaited<ReturnType<typeof load>>;
 

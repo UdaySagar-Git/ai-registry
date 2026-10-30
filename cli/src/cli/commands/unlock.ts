@@ -6,7 +6,7 @@ import { LeaseError } from "#core/lease/errors.ts";
 import { breakLease, readLease } from "#core/lease/lease.ts";
 import { scopeName } from "#core/store/paths.ts";
 import { ago } from "#core/term/format.ts";
-import { scopeRoots } from "#engine/pipeline.ts";
+import { scopeRoots } from "#engine/scope/locate.ts";
 import type { CommandContext } from "./command.ts";
 
 /** Breaking a lease while its holder still writes corrupts the scope. */

@@ -30,7 +30,7 @@ import { readManifest } from "#core/manifest/repository.ts";
 import { roots } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
-import { locate } from "#engine/pipeline.ts";
+import { locate } from "#engine/scope/locate.ts";
 import { type CommandContext, runAction } from "./command.ts";
 
 /** Accepts either handle, because the id is what a job stores and the alias is what a person types. */

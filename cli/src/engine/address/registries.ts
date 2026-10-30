@@ -12,7 +12,7 @@ import type { RegistrySource } from "#core/manifest/model.ts";
 import { readManifest } from "#core/manifest/repository.ts";
 import { roots as makeRoots, type Scope, scopeName } from "#core/store/paths.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { load } from "#engine/pipeline.ts";
+import { load } from "#engine/scope/load.ts";
 import type { Probed } from "./probe.ts";
 
 /** The alias a location is already declared under, so a second spelling of it reuses the name. */

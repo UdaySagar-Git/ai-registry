@@ -4,24 +4,22 @@ import { cloneLock, type Lock } from "#core/lock.ts";
 import { pinOf } from "#core/manifest/match.ts";
 import { build } from "#core/plan/build/build.ts";
 import type { Action, Plan } from "#core/plan/model.ts";
+import { recordOf } from "#core/plan/model.ts";
 import { movedPluginLinks } from "#core/plan/projection.ts";
 import { survey } from "#core/plan/survey.ts";
 import { artifactPath, copyLeaf } from "#core/store/paths.ts";
 import { VERSION } from "#core/version.ts";
-import type { CommonOptions } from "#engine/options.ts";
+import { commit, prepareWrite } from "#engine/install/commit.ts";
 import {
   type ApplyNotice,
   appliedNotices,
-  commit,
-  type Loaded,
-  prepareWrite,
-  recordOf,
   recoveredNotices,
-  refuseBlocked,
-  refusePlan,
-  selectTargets,
   unstagedNotices,
-} from "#engine/pipeline.ts";
+} from "#engine/install/notices.ts";
+import { refuseBlocked, refusePlan } from "#engine/install/refusals.ts";
+import { selectTargets } from "#engine/install/targets.ts";
+import type { CommonOptions } from "#engine/options.ts";
+import type { Loaded } from "#engine/scope/load.ts";
 import { recordServed } from "./origins.ts";
 import { narrowToRelinks, relinksIn } from "./relink.ts";
 import type { Scan } from "./scan.ts";

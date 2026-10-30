@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import type { PublishInput } from "#adapter/index.ts";
 import type { Account } from "#core/config/model.ts";
 import type { SyncItem } from "#core/sync/model.ts";
-import type { Loaded } from "#engine/pipeline.ts";
+import type { Loaded } from "#engine/scope/load.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { executeSync } from "./execute.ts";
 import { RunScopeError } from "./narrow.ts";
@@ -87,7 +87,7 @@ vi.mock("./scan.ts", async (importOriginal) => ({
 vi.mock("./remote.ts", () => ({ mutateRemote, partialMutation }));
 vi.mock("./local.ts", () => ({ applyLocal }));
 const load = vi.hoisted(() => vi.fn());
-vi.mock("#engine/pipeline.ts", () => ({ load }));
+vi.mock("#engine/scope/load.ts", () => ({ load }));
 // A token named after the place it was released for, so a test can see where each one went.
 const releaseCredentials = vi.hoisted(() =>
   vi.fn(

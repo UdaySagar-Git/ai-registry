@@ -11,7 +11,7 @@ import { type RunMode, WARNING_EVENT } from "#core/run/model.ts";
 import { backupStamp } from "#core/store/backups.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { type Loaded, load } from "#engine/pipeline.ts";
+import { type Loaded, load } from "#engine/scope/load.ts";
 import { type Claim, moveAside, surveyClaims } from "./claim.ts";
 import {
   artifactKey,

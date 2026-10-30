@@ -202,3 +202,13 @@ describe("architecture", () => {
     expect(descending).toEqual([]);
   });
 });
+
+// The CLI writes escape sequences, so a literal control byte can hide in a template literal.
+test("no source file holds a literal control byte", () => {
+  const found = sources(SRC).filter((file) =>
+    [...readFileSync(file, "utf8")].some(
+      (char) => char.charCodeAt(0) < 32 && char !== "\n" && char !== "\t",
+    ),
+  );
+  expect(found.map((file) => relative(PACKAGE, file))).toEqual([]);
+});

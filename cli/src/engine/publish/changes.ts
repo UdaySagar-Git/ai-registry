@@ -1,16 +1,11 @@
 import type { PublishRelationship, Relationship } from "#adapter/index.ts";
 import { sanitizeText } from "#adapter/text.ts";
 
-// What a publish changes against the version a registry holds now, so a reviewer sees before it
-// is sent which files the registry replaces, archives or gains, and which dependencies move.
-
-/** One file as a version stores it: its path in the artifact, and its digest. */
 export interface StoredFile {
   path: string;
   digest: string;
 }
 
-/** One version's side of the comparison: its files, and the edges it carries. */
 export interface Side {
   files: readonly StoredFile[];
   relationships?: readonly (Relationship | PublishRelationship)[] | undefined;

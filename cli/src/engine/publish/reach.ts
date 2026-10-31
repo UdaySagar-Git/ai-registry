@@ -19,8 +19,6 @@ import { formatAddress } from "#core/ref.ts";
 import { chooseFiles } from "./files.ts";
 import { type Exported, expand } from "./work.ts";
 
-// Which artifacts `exports:` reaches in this project, and the entry whose rules apply to each.
-
 /** A folder artifact is its folder, however an entry reaches it, so one path names one export. */
 export function artifactRoot(path: string): string {
   const name = basename(path);
@@ -458,8 +456,8 @@ function exportNeeded(
       if (other?.publish === false) throw keptHere(needing, other);
       if (other !== undefined) continue;
       refuseUnreached(needing, path, entries, reading);
+      // `neededBy` read every local dependency, and kept its kind.
       exports.set(path, {
-        // `neededBy` read every local dependency, and kept its kind.
         kind: kinds.get(path) as ArtifactKind,
         exported: { path: need.path, version: undefined, dependsOn: [], publish: undefined },
       });

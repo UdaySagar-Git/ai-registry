@@ -23,8 +23,8 @@ export interface Located {
 export type Outside = "user" | "fail";
 
 /**
- * Like git finding its repository: the closest folder with a `.registry/` manifest,
- * else the repository root. Undefined outside both.
+ * Like git finding its repository: the closest folder holding a `.registry/` manifest or
+ * `.git`. Undefined outside both, unless a scope was named.
  */
 export function locate(explicit: Scope | undefined, cwd: string): Located | undefined {
   if (explicit === "user") return { scope: "user", base: cwd };

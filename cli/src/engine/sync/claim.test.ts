@@ -33,7 +33,6 @@ function candidate(name: string, from: string, elsewhere: Candidate["elsewhere"]
   };
 }
 
-/** One registry publishing `name` with the bytes at `served`. */
 function registry(alias: string, name: string, served: string): Acquired {
   return {
     alias,

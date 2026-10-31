@@ -36,7 +36,7 @@ function privateAlready(dir: string): boolean {
   }
 }
 
-/** Missing, so `privateDirectory` makes it this user's, or already theirs alone. */
+/** Usable when missing, as `privateDirectory` then makes it this user's, or already private. */
 function usable(dir: string): boolean {
   try {
     return isPrivate(lstatSync(dir));
@@ -171,7 +171,6 @@ export async function assertOwnSocket(endpoint: string): Promise<void> {
   }
 }
 
-/** True when something accepts connections on this endpoint. */
 export function listening(endpoint: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const probe = createConnection(endpoint);

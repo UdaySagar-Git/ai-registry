@@ -15,7 +15,7 @@ export interface Loaded {
   roots: Roots;
   manifest: Manifest;
   lock: Lock;
-  /** The built-in table; nothing a project or user writes changes it. */
+  /** Built-in targets plus your own target files; nothing in a project changes it. */
   targetTable: Targets;
   /** The manifest as loaded, so a run that did not edit it leaves the file alone. */
   manifestAsRead: string;

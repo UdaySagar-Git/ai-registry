@@ -110,14 +110,13 @@ export function refuseUnstaged(
   const rest = landed
     ? "Everything else installed, and the lockfile keeps the versions it held for these."
     : "Nothing was installed.";
+  // The adapter's code, as the cause, is what `--json` reports.
   throw new AiregError(`Did not install ${names}.`, {
     hint: `Run the command again once the registry serves them intact. ${rest}`,
-    // The adapter's code is what `--json` reports.
     cause: unstaged.find((item) => isAdapterError(item.error))?.error,
   });
 }
 
-/** Why each kept copy stays: `pr-review 1.2.0 is blocked (...), so pr-review stays at 1.1.0`. */
 export function keptLines(kept: readonly Kept[]): string[] {
   return kept.map(({ name, installed, withheld }) => {
     const at = installed === undefined ? "as installed" : `at ${installed}`;
@@ -182,7 +181,6 @@ export function refuseUnlisted(
   });
 }
 
-/** `"deploy-kit", which carries hooks and MCP servers`, for what was left out for want of trust. */
 export function untrustedLine(untrusted: readonly Untrusted[]): string {
   const carries = [...new Set(untrusted.flatMap((item) => item.carries))];
   const names = list(untrusted.map((item) => quoted(item.name)));

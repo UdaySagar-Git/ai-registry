@@ -32,7 +32,7 @@ export interface Work {
   row: string | undefined;
   /** The version an installed copy was edited from, so a newer one is not written over. */
   base: string | undefined;
-  /** The manifest's `exports:` entries for this path, merged, whose version, dependencies and targets apply. */
+  /** This path's `exports:` entries merged, whose version, dependencies and targets apply. */
   exported?: Exported | undefined;
 }
 
@@ -46,13 +46,13 @@ const SHAPE_HINT =
   "Name a skill folder that holds SKILL.md, an agent's folder that holds AGENT.md, or an agent's .md file.";
 
 function copyPath(key: string, entry: LockArtifact, loaded: Loaded): string {
+  // A watched row has no address yet; its recorded path still carries the extension.
   return artifactPath(
     loaded.roots,
     entry.registry,
     entry.namespace,
     entry.kind,
     copyLeaf(key, entry.name),
-    // A watched row has no address yet; its recorded path still carries the extension.
     entry.address ?? entry.path,
   );
 }

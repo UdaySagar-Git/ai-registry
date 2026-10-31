@@ -14,7 +14,6 @@ export interface ResolvedRelease {
   readonly plan: ManifestPlan;
 }
 
-/** Said the same way wherever an unstamped build reaches for an update. */
 function unstamped(): AiregError {
   return new AiregError("This build does not update itself.", {
     code: ErrorCode.Unavailable,

@@ -6,7 +6,6 @@ import { displayPath } from "#core/sync/adopt.ts";
 import type { Targets } from "#core/target/contract.ts";
 import type { Printer } from "#core/term/printer.ts";
 
-/** What every writing run settles before it plans: an engine this CLI meets, and a crashed run's leftovers. */
 /** Something an apply did to a person's files, or left undone, worded once for every caller. */
 export interface ApplyNotice {
   message: string;

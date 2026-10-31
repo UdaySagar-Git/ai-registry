@@ -24,7 +24,7 @@ export interface Choosing {
   tracked: readonly string[] | undefined;
   /** Every artifact that is exported, so one inside this one publishes its own files. */
   exported: Iterable<string>;
-  /** The patterns of each entry that left something out, keyed by entry path and pattern. */
+  /** Filled with each entry's patterns that left something out, keyed by entry path and pattern. */
   matched: Set<string>;
 }
 
@@ -99,7 +99,7 @@ function refuseShared(files: readonly ExportFile[], shown: string): void {
   }
 }
 
-/** Select mapped publication files, keeping the entry first and applying include/ignore rules. */
+/** The files to publish after `include` and `ignore`: the entry first, the rest sorted by stored path. */
 export async function chooseFiles(choosing: Choosing, base: string): Promise<ExportFile[]> {
   const { root, kind, entries, tracked } = choosing;
   const shown = posixRelative(base, root);

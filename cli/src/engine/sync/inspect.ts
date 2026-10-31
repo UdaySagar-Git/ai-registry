@@ -8,7 +8,6 @@ import type { RunScope } from "./narrow.ts";
 import { type Scan, scan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
 
-/** The flags a job implies, for every command a job drives. */
 export function syncOptions(job: ScopeWork, refs: RunScope): CommonOptions {
   return {
     scope: job.scope,

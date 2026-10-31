@@ -12,6 +12,7 @@ import type { Roots } from "#core/store/paths.ts";
 import type { Loaded } from "#engine/scope/load.ts";
 import { refuseOldCli } from "./refusals.ts";
 
+/** What every writing run settles before it plans: an engine this CLI meets, and a crashed run's leftovers. */
 export async function prepareWrite(
   { manifest, roots, lock }: Loaded,
   dryRun = false,

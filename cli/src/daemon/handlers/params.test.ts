@@ -57,6 +57,8 @@ describe("job input", () => {
     expect(parsed.steps[0]?.extra).toEqual({ content: "store" });
   });
 
+  // A relative root would resolve against the daemon's directory, and config refuses the
+  // other bad steps on its next read, so the daemon must store neither.
   test.each([
     ["a job with no steps", { steps: [] }, "steps"],
     ["an interval below the scheduler's floor", { schedule: { every: 30 } }, "every"],
@@ -66,9 +68,7 @@ describe("job input", () => {
       { schedule: { every: 300, enabled: "yes" } },
       "enabled",
     ],
-    // A relative root would resolve against the daemon's directory.
     ["a relative root", { steps: [{ ...STEP, root: "project" }] }, "absolute path"],
-    // Config refuses these on the next read, so the daemon must not store them.
     ["a scope step with no root", { steps: [{ ...STEP, root: undefined }] }, "needs a `root`"],
     ["a typo in a built-in step", { steps: [{ ...STEP, polcy: "off" }] }, 'does not take "polcy"'],
     ["a step that needs one it does not have", { steps: [{ ...STEP, needs: ["x"] }] }, "needs"],

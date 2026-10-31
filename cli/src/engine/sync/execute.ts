@@ -329,6 +329,7 @@ async function takeTheirs(
 }
 
 function reportOutcome(outcome: SyncOutcome, hooks: SyncExecutionHooks): void {
+  // An error code alone cannot say which artifact the registry lost.
   hooks.item(
     outcome.artifact,
     "classifying",
@@ -341,7 +342,6 @@ function reportOutcome(outcome: SyncOutcome, hooks: SyncExecutionHooks): void {
         ? {}
         : { errorCode: outcome.failure.code, retryable: outcome.failure.retryable }),
     },
-    // An error code alone cannot say which artifact the registry lost.
     outcome.detail === undefined ? undefined : { detail: outcome.detail },
   );
 }

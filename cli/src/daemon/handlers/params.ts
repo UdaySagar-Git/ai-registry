@@ -36,7 +36,7 @@ export function optionalNames(entry: Fields, key: string): readonly string[] | u
   return value;
 }
 
-/** Entries are rebuilt one by one by the caller; absent and empty differ. */
+/** Absent is undefined and an empty list is refused; the caller checks each entry. */
 export function list(entry: Fields, key: string): readonly unknown[] | undefined {
   const value = entry[key];
   if (value === undefined) return undefined;

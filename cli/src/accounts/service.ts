@@ -30,7 +30,6 @@ import {
   resolveRegistry,
 } from "./registry.ts";
 
-/** A login either minted an account or replaced the credential on one. */
 export interface LoginResult {
   account: Account;
   /** False means an existing row kept its id, so every job naming it keeps working. */

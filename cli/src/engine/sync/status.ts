@@ -8,7 +8,6 @@ import { inspect } from "./inspect.ts";
 import { closeScan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
 
-/** What a job would do to one artifact, without doing any of it. */
 interface WatchArtifactStatus {
   name: string;
   kind: ArtifactKind;

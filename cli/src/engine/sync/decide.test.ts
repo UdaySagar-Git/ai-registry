@@ -12,7 +12,6 @@ const job: ScopeWork = {
   steps: [],
 };
 
-/** What classify settled for one artifact, found by its kind and name. */
 function outcomeFor(outcomes: ReadonlyMap<string, SyncOutcome>, kind: string, artifact: string) {
   return [...outcomes.values()].find((item) => item.kind === kind && item.artifact === artifact);
 }

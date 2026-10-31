@@ -59,6 +59,7 @@ export function jobOfWork(work: ScopeWork): Job {
     policy,
     extra: {},
   });
+  // Adopt and claim only when asked for: an absent axis is what keeps the defaults.
   return {
     id: work.id,
     account: work.account,
@@ -67,7 +68,6 @@ export function jobOfWork(work: ScopeWork): Job {
       leaf("pull", "pull", [], work.policy.pull),
       leaf("publish", "publish", ["pull"], work.policy.publish),
       leaf("prune", "prune", ["pull"], work.policy.delete),
-      // Only when asked for: an absent axis is what keeps the defaults.
       ...(work.policy.adopt === undefined
         ? []
         : [leaf("adopt", "adopt", ["pull"], work.policy.adopt)]),

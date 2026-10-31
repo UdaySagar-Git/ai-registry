@@ -186,13 +186,13 @@ async function stageMutations(
   for (const candidate of scan.local) {
     if (operations.get(artifactKey(candidate.kind, candidate.name)) !== "publish") continue;
     hooks.event("publishing", candidate.name);
+    // New local work has no row yet, so the account's own corner of the
+    // registry is where it goes.
     staged.publishing.push(
       await publishInput(
         candidate.from,
         candidate.name,
         candidate.kind,
-        // New local work has no row yet, so the account's own corner of the
-        // registry is where it goes.
         namespace === undefined ? undefined : { id: "", name: candidate.name, namespace },
         candidate.description,
       ),

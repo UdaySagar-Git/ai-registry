@@ -46,15 +46,6 @@ export interface Destination {
   version: string | undefined;
 }
 
-/** Renamed silently, it would no longer match the name in its own front matter. */
-function refuseName(name: string | undefined): void {
-  if (name === undefined || isArtifactName(name)) return;
-  throw new AiregError(`${quoted(name)} is not a valid artifact name.`, {
-    code: ErrorCode.Usage,
-    hint: `Use lowercase letters, digits and hyphens, such as ${sanitizeName(name)}.`,
-  });
-}
-
 export function parseTo(to: string): Destination {
   const ref = parseRef(to);
   if (ref.namespace === undefined) {
@@ -70,6 +61,15 @@ export function parseTo(to: string): Destination {
     name: ref.name,
     version: ref.version,
   };
+}
+
+/** Renamed silently, it would no longer match the name in its own front matter. */
+function refuseName(name: string | undefined): void {
+  if (name === undefined || isArtifactName(name)) return;
+  throw new AiregError(`${quoted(name)} is not a valid artifact name.`, {
+    code: ErrorCode.Usage,
+    hint: `Use lowercase letters, digits and hyphens, such as ${sanitizeName(name)}.`,
+  });
 }
 
 /** Another way to publish, in the words of an adapter that does not, as a lowercase clause. */
@@ -214,15 +214,22 @@ export interface Published {
 
 const keyOf = (namespace: string, kind: string, name: string) => `${namespace}/${kind}/${name}`;
 
-function heldOf(artifact: Artifact, version: string | undefined): Current {
-  const { files, relationships } = artifact.envelope;
-  return {
-    id: artifact.id,
-    version,
-    digests: files.map((file) => file.digest).sort(),
-    files: files.map(({ path, digest }) => ({ path, digest })),
-    relationships,
-  };
+/** The namespaces a registry lists, to choose one from: the one whole listing a publish reads. */
+export async function namespacesIn(
+  alias: string,
+  declared: RegistrySource,
+  aliases: readonly string[],
+  cwd: string,
+  how?: string,
+): Promise<string[]> {
+  const { source } = await connectToPublish(alias, declared, aliases, cwd, how);
+  try {
+    const { listed } = await resolveArtifacts(source, [], { all: true });
+    const namespaces = listed.flatMap(({ artifact }) => artifact.envelope.metadata.namespace ?? []);
+    return [...new Set(namespaces)].sort();
+  } finally {
+    await source.handle.close();
+  }
 }
 
 async function connectToPublish(
@@ -253,24 +260,6 @@ async function connectToPublish(
     throw cannotPublish(source.adapter, alias, how);
   }
   return { location, source };
-}
-
-/** The namespaces a registry lists, to choose one from: the one whole listing a publish reads. */
-export async function namespacesIn(
-  alias: string,
-  declared: RegistrySource,
-  aliases: readonly string[],
-  cwd: string,
-  how?: string,
-): Promise<string[]> {
-  const { source } = await connectToPublish(alias, declared, aliases, cwd, how);
-  try {
-    const { listed } = await resolveArtifacts(source, [], { all: true });
-    const namespaces = listed.flatMap(({ artifact }) => artifact.envelope.metadata.namespace ?? []);
-    return [...new Set(namespaces)].sort();
-  } finally {
-    await source.handle.close();
-  }
 }
 
 export async function readPublished(
@@ -320,6 +309,17 @@ export async function readPublished(
   };
 }
 
+function heldOf(artifact: Artifact, version: string | undefined): Current {
+  const { files, relationships } = artifact.envelope;
+  return {
+    id: artifact.id,
+    version,
+    digests: files.map((file) => file.digest).sort(),
+    files: files.map(({ path, digest }) => ({ path, digest })),
+    relationships,
+  };
+}
+
 /** One artifact's outcome: a first version, the next one, or already there. */
 export interface Planned {
   work: Work;
@@ -332,119 +332,6 @@ export interface Planned {
   input: PublishInput;
   /** Changes against the latest version, when files are available and a publish is needed. */
   changes?: Changes | undefined;
-}
-
-async function heldAt(
-  published: Published,
-  namespace: string,
-  work: Work,
-  version: string,
-): Promise<Current | undefined> {
-  const { name, kind } = work;
-  const found = await published.source.handle
-    .resolve([{ name, namespace, kind, version }])
-    .catch(() => undefined);
-  const artifact = found?.artifacts.find(
-    (each) => each.envelope.metadata.version === version && each.kind === kind,
-  );
-  if (artifact !== undefined) return heldOf(artifact, version);
-
-  const kept = withheldFrom(found?.withheld).find(
-    (item) =>
-      item.name === name &&
-      item.kind === kind &&
-      item.version === version &&
-      (item.group === undefined || item.group === namespace),
-  );
-  return kept === undefined ? undefined : { id: undefined, version, digests: [], withheld: kept };
-}
-
-/**
- * Refused before anything is sent. Only a registry folder lays an agent out as the
- * spec's agent kind does; another source takes it as one `<name>.md`.
- */
-async function refuseInvalid(
-  work: Work,
-  namespace: string,
-  input: PublishInput,
-  folder: boolean,
-): Promise<void> {
-  if (work.kind !== "skill" && !(work.kind === "agent" && folder)) return;
-  const manifest = (await kindsOf(undefined))[work.kind];
-  if (manifest === undefined) return;
-  const decoder = new TextDecoder();
-  // Only a Markdown or JSON file can hold the spec, so a binary is never decoded.
-  const texts = input.files.filter((file) => /\.(md|json)$/.test(file.path));
-  const problems = versionProblems(
-    manifest,
-    work,
-    new Set(input.files.map((file) => file.path)),
-    new Map(texts.map((file) => [file.path, decoder.decode(file.content)])),
-  );
-  if (problems.length === 0) return;
-  throw new AiregError(
-    `${namespace}/${work.kind}/${work.name} would not pass \`aireg registry validate\`: ${problems.join("; ")}.`,
-    { code: ErrorCode.Invalid, hint: `Fix it in ${work.path}, then publish again.` },
-  );
-}
-
-function refuseRelationships(
-  work: Work,
-  published: Published,
-  relationships: readonly PublishRelationship[] | undefined,
-): void {
-  if (relationships === undefined || relationships.length === 0) return;
-  if (published.source.adapter.capabilities.relationships === true) return;
-  throw new AiregError(
-    `${work.name} has dependencies, but ${published.alias} does not store them with a published version.`,
-    {
-      code: ErrorCode.Usage,
-      hint: "Publish it to a registry folder, which does: `aireg publish <path> --to <folder>/<namespace>`.",
-    },
-  );
-}
-
-function refuseAgentFolder(work: Work, published: Published, input: PublishInput): void {
-  if (work.kind !== "agent" || input.files.length <= 1) return;
-  if (published.source.adapter.capabilities.agentFolders === true) return;
-  throw new AiregError(
-    `${work.name} has files beyond its AGENT.md, but ${published.alias} keeps only an agent's AGENT.md.`,
-    {
-      code: ErrorCode.Usage,
-      hint: "Publish it to a registry folder, which keeps them: `aireg publish <path> --to <folder>/<namespace>`.",
-    },
-  );
-}
-
-function refuseBehind(work: Work, current: Current | undefined): void {
-  if (work.base === undefined || current?.version === undefined || work.base === current.version)
-    return;
-  throw new AiregError(
-    `${work.name} was edited from ${work.base}, but ${current.version} was published since, so publishing would drop the changes in ${current.version}.`,
-    {
-      code: ErrorCode.Changed,
-      hint: `Install ${current.version} first and redo the edit there, or pass \`--force\` to publish over it.`,
-    },
-  );
-}
-
-function alreadyPublished(
-  work: Work,
-  namespace: string,
-  held: Current,
-  fixed: string | undefined,
-): AiregError {
-  const status = held.withheld === undefined ? "" : `, and ${statusClause(held.withheld)}`;
-  return new AiregError(
-    `${namespace}/${work.name}@${held.version} is already published${status}.`,
-    {
-      code: ErrorCode.Conflict,
-      hint:
-        fixed === undefined
-          ? "Choose a new version, or leave the version off; a published version is never rewritten."
-          : `Change the \`version\` of export ${quoted(work.exported?.path ?? work.name)}, or remove it to take the next one; a published version is never rewritten.`,
-    },
-  );
 }
 
 /** Explain an immutable-version conflict, including versions hidden from the listing. */
@@ -467,25 +354,6 @@ export function heldUnlisted(error: unknown, alias: string, items: readonly Plan
     hint,
     cause: error,
   });
-}
-
-function sameFiles(held: Current, offered: Awaited<ReturnType<typeof offerFrom>>): boolean {
-  const sameDigests = held.digests.join() === offered.digests.join();
-  if (held.files === undefined) return sameDigests;
-  // A target may name an agent's sole entry <name>.md while a registry calls it AGENT.md.
-  if (offered.input.kind === "agent" && held.files.length === 1 && offered.files.length === 1) {
-    return sameDigests;
-  }
-  const records = (files: readonly StoredFile[]) =>
-    files.map(({ path, digest }) => canonicalize({ path, digest })).sort();
-  return canonicalize(records(held.files)) === canonicalize(records(offered.files));
-}
-
-function sameEdges(
-  current: readonly Relationship[] | undefined,
-  offered: readonly PublishRelationship[] | undefined,
-): boolean {
-  return canonicalize(current ?? []) === canonicalize(offered ?? []);
 }
 
 export async function plan(
@@ -582,6 +450,144 @@ export async function plan(
   };
 }
 
+function refuseRelationships(
+  work: Work,
+  published: Published,
+  relationships: readonly PublishRelationship[] | undefined,
+): void {
+  if (relationships === undefined || relationships.length === 0) return;
+  if (published.source.adapter.capabilities.relationships === true) return;
+  throw new AiregError(
+    `${work.name} has dependencies, but ${published.alias} does not store them with a published version.`,
+    {
+      code: ErrorCode.Usage,
+      hint: "Publish it to a registry folder, which does: `aireg publish <path> --to <folder>/<namespace>`.",
+    },
+  );
+}
+
+function refuseBehind(work: Work, current: Current | undefined): void {
+  if (work.base === undefined || current?.version === undefined || work.base === current.version)
+    return;
+  throw new AiregError(
+    `${work.name} was edited from ${work.base}, but ${current.version} was published since, so publishing would drop the changes in ${current.version}.`,
+    {
+      code: ErrorCode.Changed,
+      hint: `Install ${current.version} first and redo the edit there, or pass \`--force\` to publish over it.`,
+    },
+  );
+}
+
+function refuseAgentFolder(work: Work, published: Published, input: PublishInput): void {
+  if (work.kind !== "agent" || input.files.length <= 1) return;
+  if (published.source.adapter.capabilities.agentFolders === true) return;
+  throw new AiregError(
+    `${work.name} has files beyond its AGENT.md, but ${published.alias} keeps only an agent's AGENT.md.`,
+    {
+      code: ErrorCode.Usage,
+      hint: "Publish it to a registry folder, which keeps them: `aireg publish <path> --to <folder>/<namespace>`.",
+    },
+  );
+}
+
+function sameFiles(held: Current, offered: Awaited<ReturnType<typeof offerFrom>>): boolean {
+  const sameDigests = held.digests.join() === offered.digests.join();
+  if (held.files === undefined) return sameDigests;
+  // A target may name an agent's sole entry <name>.md while a registry calls it AGENT.md.
+  if (offered.input.kind === "agent" && held.files.length === 1 && offered.files.length === 1) {
+    return sameDigests;
+  }
+  const records = (files: readonly StoredFile[]) =>
+    files.map(({ path, digest }) => canonicalize({ path, digest })).sort();
+  return canonicalize(records(held.files)) === canonicalize(records(offered.files));
+}
+
+function sameEdges(
+  current: readonly Relationship[] | undefined,
+  offered: readonly PublishRelationship[] | undefined,
+): boolean {
+  return canonicalize(current ?? []) === canonicalize(offered ?? []);
+}
+
+async function heldAt(
+  published: Published,
+  namespace: string,
+  work: Work,
+  version: string,
+): Promise<Current | undefined> {
+  const { name, kind } = work;
+  const found = await published.source.handle
+    .resolve([{ name, namespace, kind, version }])
+    .catch(() => undefined);
+  const artifact = found?.artifacts.find(
+    (each) => each.envelope.metadata.version === version && each.kind === kind,
+  );
+  if (artifact !== undefined) return heldOf(artifact, version);
+
+  const kept = withheldFrom(found?.withheld).find(
+    (item) =>
+      item.name === name &&
+      item.kind === kind &&
+      item.version === version &&
+      (item.group === undefined || item.group === namespace),
+  );
+  return kept === undefined ? undefined : { id: undefined, version, digests: [], withheld: kept };
+}
+
+function alreadyPublished(
+  work: Work,
+  namespace: string,
+  held: Current,
+  fixed: string | undefined,
+): AiregError {
+  const status = held.withheld === undefined ? "" : `, and ${statusClause(held.withheld)}`;
+  return new AiregError(
+    `${namespace}/${work.name}@${held.version} is already published${status}.`,
+    {
+      code: ErrorCode.Conflict,
+      hint:
+        fixed === undefined
+          ? "Choose a new version, or leave the version off; a published version is never rewritten."
+          : `Change the \`version\` of export ${quoted(work.exported?.path ?? work.name)}, or remove it to take the next one; a published version is never rewritten.`,
+    },
+  );
+}
+
+/**
+ * Refused before anything is sent. Only a registry folder lays an agent out as the
+ * spec's agent kind does; another source takes it as one `<name>.md`.
+ */
+async function refuseInvalid(
+  work: Work,
+  namespace: string,
+  input: PublishInput,
+  folder: boolean,
+): Promise<void> {
+  if (work.kind !== "skill" && !(work.kind === "agent" && folder)) return;
+  const manifest = (await kindsOf(undefined))[work.kind];
+  if (manifest === undefined) return;
+  const decoder = new TextDecoder();
+  // Only a Markdown or JSON file can hold the spec, so a binary is never decoded.
+  const texts = input.files.filter((file) => /\.(md|json)$/.test(file.path));
+  const problems = versionProblems(
+    manifest,
+    work,
+    new Set(input.files.map((file) => file.path)),
+    new Map(texts.map((file) => [file.path, decoder.decode(file.content)])),
+  );
+  if (problems.length === 0) return;
+  throw new AiregError(
+    `${namespace}/${work.kind}/${work.name} would not pass \`aireg registry validate\`: ${problems.join("; ")}.`,
+    { code: ErrorCode.Invalid, hint: `Fix it in ${work.path}, then publish again.` },
+  );
+}
+
+function below(version: string, latest: string | undefined): boolean {
+  const left = parseVersion(version);
+  const right = latest === undefined ? undefined : parseVersion(latest);
+  return left !== undefined && right !== undefined && compareVersion(left, right) < 0;
+}
+
 function changesAgainst(
   at: { same: boolean; current: Current | undefined; from: string | undefined },
   sent: Side,
@@ -592,12 +598,6 @@ function changesAgainst(
     return from === undefined ? { changes: changesFrom(undefined, sent) } : {};
   const { files, relationships } = current;
   return files === undefined ? {} : { changes: changesFrom({ files, relationships }, sent) };
-}
-
-function below(version: string, latest: string | undefined): boolean {
-  const left = parseVersion(version);
-  const right = latest === undefined ? undefined : parseVersion(latest);
-  return left !== undefined && right !== undefined && compareVersion(left, right) < 0;
 }
 
 /** The commit subject for releasing these versions: `add` for one artifact's first, else `release`. */

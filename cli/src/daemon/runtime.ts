@@ -87,7 +87,7 @@ export class DaemonRuntime {
     this.#version = version;
     this.#log = log;
     this.#server = new RpcServer(log);
-    this.#runner = new SyncRunner(runs, (event) => this.#emit(event), version, log);
+    this.#runner = new SyncRunner(runs, (event) => this.#emit(event), { version, log });
     this.#scheduler = new JobScheduler(runs, this.#runner, log);
     this.#register();
   }

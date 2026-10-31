@@ -12,7 +12,6 @@ import type { Logger } from "#core/log/model.ts";
 import {
   addCounts,
   EMPTY_RUN_COUNTS,
-  type ItemSettled,
   isActive,
   type RunCounts,
   type RunEvent,
@@ -22,7 +21,7 @@ import {
   type RunTrigger,
   type TerminalRunState,
 } from "#core/run/model.ts";
-import type { CreateRun, RunStore } from "#core/run/store.ts";
+import type { AppendRunEvent, CreateRun, RunStore } from "#core/run/store.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
 import { settledWithin } from "#core/wait.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
@@ -77,38 +76,24 @@ interface RunOptions {
   ephemeral?: Target;
 }
 
-/**
- * What a one-off run was asked to do, without the id made up for it, so the
- * same request made twice is recognized as one.
- */
-function oneOffKey(
-  { job, account }: Target,
-  mode: RunMode,
-  refs: RunScope,
-  overrides: ReadonlyMap<string, SyncOperation> | undefined,
-): string {
-  return JSON.stringify([
-    account.id,
-    mode,
-    job.steps,
-    refs === undefined ? null : [...refs].sort(),
-    [...(overrides ?? [])].sort(),
-  ]);
+export interface SyncRunnerOptions {
+  /** The aireg version an adapter's step is told it runs under. */
+  version?: string;
+  log?: Logger;
 }
 
-function resolveTarget(config: RegistryConfig, jobId: string): Target {
-  const job = config.jobs.find(({ id }) => id === jobId);
-  if (job === undefined) {
-    throw new ProtocolError(RpcErrorCode.NotFound, `No job named ${quoted(jobId)}.`);
-  }
-  const account = config.accounts.find(({ id }) => id === job.account);
-  if (account === undefined) {
-    throw new ProtocolError(
-      RpcErrorCode.NotFound,
-      `Job ${quoted(job.id)} signs in with account ${quoted(job.account)}, which no longer exists.`,
-    );
-  }
-  return { job, account };
+/** One run and what it runs, as the worker that carries it out holds them. */
+interface RunRequest extends Target {
+  run: RunRecord;
+  refs: RunScope;
+  overrides: ReadonlyMap<string, SyncOperation> | undefined;
+}
+
+/** How a run that did not finish on its own ended. */
+interface RunEnd {
+  signal: AbortSignal;
+  error: unknown;
+  counts: RunCounts;
 }
 
 export class SyncRunner {
@@ -124,8 +109,7 @@ export class SyncRunner {
   constructor(
     store: RunStore,
     emit: (event: RunEvent) => void,
-    version = "0.0.0-dev",
-    log: Logger = nullLogger(),
+    { version = "0.0.0-dev", log = nullLogger() }: SyncRunnerOptions = {},
   ) {
     this.#store = store;
     this.#emit = emit;
@@ -168,9 +152,9 @@ export class SyncRunner {
       deadlineAtMs: now + RUN_TIMEOUT_MS,
     };
     const run = this.#store.create(input);
-    this.emitLast(run.id);
+    this.#emitLast(run.id);
     if (asked !== undefined) this.#oneOff.set(asked, run.id);
-    const worker = this.execute(run, job, account, refs, overrides);
+    const worker = this.#execute({ run, job, account, refs, overrides });
     this.#workers.set(run.id, worker);
     void worker
       .finally(() => {
@@ -195,65 +179,21 @@ export class SyncRunner {
     await settledWithin(this.#workers.values(), STOP_GRACE_MS);
   }
 
-  private event(
-    runId: string,
-    type: RunEventType,
-    step: string,
-    artifact?: string,
-    data?: unknown,
-  ): void {
-    const recorded = this.#store.progress(runId, step, {
-      occurredAtMs: Date.now(),
-      eventType: type,
-      step,
-      ...(artifact === undefined ? {} : { artifact }),
-      ...(data === undefined ? {} : { data }),
-    });
-    if (recorded !== undefined) this.#emit(recorded);
-  }
-
-  private item(
-    runId: string,
-    artifact: string,
-    step: string,
-    settled: ItemSettled,
-    data?: unknown,
-  ): void {
-    const recorded = this.#store.progress(runId, step, {
-      occurredAtMs: Date.now(),
-      eventType: RunEventType.ItemSettled,
-      step,
-      artifact,
-      ...settled,
-      ...(data === undefined ? {} : { data }),
-    });
-    if (recorded !== undefined) this.#emit(recorded);
-  }
-
-  private emitLast(runId: string): void {
-    const last = this.#store.lastEvent(runId);
-    if (last !== undefined) this.#emit(last);
-  }
-
-  private async execute(
-    run: RunRecord,
-    job: Job,
-    account: Account,
-    refs: RunScope,
-    overrides: ReadonlyMap<string, SyncOperation> | undefined,
-  ): Promise<void> {
+  async #execute(request: RunRequest): Promise<void> {
+    const { run, job } = request;
     const controller = new AbortController();
     this.#controllers.set(run.id, controller);
     const tally: Tally = { step: "starting", changed: 0 };
+    const { signal } = controller;
     let watchdog: NodeJS.Timeout | undefined;
     const timer = setTimeout(
       () => {
         controller.abort(TIMED_OUT);
         watchdog = setTimeout(() => {
-          this.finishFailure(run, job, controller.signal, TIMED_OUT, {
-            ...EMPTY_RUN_COUNTS,
-            changed: tally.changed,
-            failed: 1,
+          this.#finishFailure(request, {
+            signal,
+            error: TIMED_OUT,
+            counts: { ...EMPTY_RUN_COUNTS, changed: tally.changed, failed: 1 },
           });
           // Forgotten, not awaited: whatever ignored the abort may never return.
           this.#controllers.delete(run.id);
@@ -273,13 +213,13 @@ export class SyncRunner {
     try {
       this.#store.start(run.id, "starting", startedAtMs);
       log.info("run started");
-      this.emitLast(run.id);
-      const result = await this.run(run, job, account, refs, overrides, controller, tally);
-      if (controller.signal.aborted) {
-        this.finishFailure(run, job, controller.signal, controller.signal.reason, result.counts);
+      this.#emitLast(run.id);
+      const result = await this.#run(request, signal, tally);
+      if (signal.aborted) {
+        this.#finishFailure(request, { signal, error: signal.reason, counts: result.counts });
         return;
       }
-      if (!this.running(run.id)) return;
+      if (!this.#running(run.id)) return;
       const settled = Date.now();
       this.#store.finish(run.id, {
         state: result.state,
@@ -288,12 +228,12 @@ export class SyncRunner {
         ...(result.retryable === undefined ? {} : { retryable: result.retryable }),
       });
       log.info("run finished", { state: result.state, durationMs: settled - startedAtMs });
-      this.emitLast(run.id);
+      this.#emitLast(run.id);
     } catch (error) {
-      this.finishFailure(run, job, controller.signal, error, {
-        ...EMPTY_RUN_COUNTS,
-        changed: tally.changed,
-        failed: 1,
+      this.#finishFailure(request, {
+        signal,
+        error,
+        counts: { ...EMPTY_RUN_COUNTS, changed: tally.changed, failed: 1 },
       });
     } finally {
       clearTimeout(timer);
@@ -302,16 +242,12 @@ export class SyncRunner {
     }
   }
 
-  private async run(
-    run: RunRecord,
-    job: Job,
-    account: Account,
-    refs: RunScope,
-    overrides: ReadonlyMap<string, SyncOperation> | undefined,
-    controller: AbortController,
+  async #run(
+    { run, job, account, refs, overrides }: RunRequest,
+    signal: AbortSignal,
     tally: Tally,
   ): Promise<StepRunResult> {
-    const hooks = this.hooks(run.id, tally);
+    const hooks = this.#hooks(run.id, tally);
     const ordered = orderSteps(expandSteps(job.steps));
     if ("cycle" in ordered) {
       throw new Error(
@@ -335,7 +271,7 @@ export class SyncRunner {
         account,
         mode: run.mode,
         refs,
-        signal: controller.signal,
+        signal,
         hooks,
         overrides,
       });
@@ -346,7 +282,7 @@ export class SyncRunner {
     }
 
     for (const step of adapters) {
-      if (controller.signal.aborted) break;
+      if (signal.aborted) break;
       const accounts = new AccountService();
       const resolved = await accounts.resolve(account, work.scope, work.root);
       const handler = stepOn(resolved.adapter, step.kind) ?? (await stepContribution(step.kind));
@@ -361,7 +297,7 @@ export class SyncRunner {
         store: this.#store,
         runId: run.id,
         version: this.#version,
-        signal: controller.signal,
+        signal,
         hooks,
         host: extensionHost(this.#version),
       });
@@ -381,37 +317,54 @@ export class SyncRunner {
     };
   }
 
-  private hooks(runId: string, tally: Tally): SyncExecutionHooks {
+  #hooks(runId: string, tally: Tally): SyncExecutionHooks {
     return {
       event: (type, nextPhase, artifact, data) => {
         tally.step = nextPhase;
         // The run store keeps these as rows; at debug they also narrate the
         // run in the log, beside the failure that ended it.
         this.#log.debug("sync event", { runId, type, phase: nextPhase, artifact });
-        this.event(runId, type, nextPhase, artifact, data);
+        this.#record(runId, {
+          occurredAtMs: Date.now(),
+          eventType: type,
+          step: nextPhase,
+          ...(artifact === undefined ? {} : { artifact }),
+          ...(data === undefined ? {} : { data }),
+        });
       },
       item: (artifact, phase, settled, data) => {
         tally.step = phase;
         if (settled.outcome === "changed") tally.changed += 1;
-        this.item(runId, artifact, phase, settled, data);
+        this.#record(runId, {
+          occurredAtMs: Date.now(),
+          eventType: RunEventType.ItemSettled,
+          step: phase,
+          artifact,
+          ...settled,
+          ...(data === undefined ? {} : { data }),
+        });
       },
     };
   }
 
+  #record(runId: string, event: AppendRunEvent & { step: string }): void {
+    const recorded = this.#store.progress(runId, event.step, event);
+    if (recorded !== undefined) this.#emit(recorded);
+  }
+
+  #emitLast(runId: string): void {
+    const last = this.#store.lastEvent(runId);
+    if (last !== undefined) this.#emit(last);
+  }
+
   /** A run someone canceled must not be written again by the worker still in flight. */
-  private running(runId: string): boolean {
+  #running(runId: string): boolean {
     const current = this.#store.get(runId);
     return current !== undefined && isActive(current.state);
   }
 
-  private finishFailure(
-    run: RunRecord,
-    job: Job,
-    signal: AbortSignal,
-    error: unknown,
-    counts: RunCounts,
-  ): void {
-    if (!this.running(run.id)) return;
+  #finishFailure({ run, job }: RunRequest, { signal, error, counts }: RunEnd): void {
+    if (!this.#running(run.id)) return;
     const failure = classifyFailure(error, signal.reason, counts.changed);
     // The store keeps `errorCode` and nothing else, so unless the cause is
     // written here it is gone the moment this returns.
@@ -431,6 +384,40 @@ export class SyncRunner {
       errorCode: failure.errorCode,
       retryable: failure.retryable,
     });
-    this.emitLast(run.id);
+    this.#emitLast(run.id);
   }
+}
+
+/**
+ * What a one-off run was asked to do, without the id made up for it, so the
+ * same request made twice is recognized as one.
+ */
+function oneOffKey(
+  { job, account }: Target,
+  mode: RunMode,
+  refs: RunScope,
+  overrides: ReadonlyMap<string, SyncOperation> | undefined,
+): string {
+  return JSON.stringify([
+    account.id,
+    mode,
+    job.steps,
+    refs === undefined ? null : [...refs].sort(),
+    [...(overrides ?? [])].sort(),
+  ]);
+}
+
+function resolveTarget(config: RegistryConfig, jobId: string): Target {
+  const job = config.jobs.find(({ id }) => id === jobId);
+  if (job === undefined) {
+    throw new ProtocolError(RpcErrorCode.NotFound, `No job named ${quoted(jobId)}.`);
+  }
+  const account = config.accounts.find(({ id }) => id === job.account);
+  if (account === undefined) {
+    throw new ProtocolError(
+      RpcErrorCode.NotFound,
+      `Job ${quoted(job.id)} signs in with account ${quoted(job.account)}, which no longer exists.`,
+    );
+  }
+  return { job, account };
 }

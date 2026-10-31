@@ -41,14 +41,6 @@ export function kindDir(kind: ArtifactKind): string {
   return KIND_SPECS[kind].dir;
 }
 
-/**
- * Spec-shaped and singular: what a file spec root addresses a kind by, so a
- * mirror is readable by anything that speaks the spec.
- */
-export function specKindDir(kind: ArtifactKind): string {
-  return kind;
-}
-
 /** Anything stranger than a short alphanumeric suffix is not an extension. */
 const EXTENSION = /^\.[A-Za-z0-9]{1,16}$/;
 

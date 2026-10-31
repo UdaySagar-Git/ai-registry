@@ -246,25 +246,6 @@ function firstFatal(stderr: string): string {
   return (fatal ?? lines[0] ?? "git failed").replace(/^(fatal|error):\s*/, "");
 }
 
-export interface GitAttempt {
-  code: number;
-  stdout: string;
-  stderr: string;
-}
-
-/** Run git when a non-zero exit is data rather than an exception. */
-export async function gitTry(args: readonly string[], options: GitOptions): Promise<GitAttempt> {
-  let ran: Ran;
-  try {
-    ran = await spawnTool(args, options, options.timeoutMs);
-  } catch (error) {
-    if (options.signal?.aborted === true) throw error;
-    throw notInstalled(error) ?? error;
-  }
-  if (ran.timedOut) throw new GitError("unavailable", "git timed out.", ran.stderr);
-  return { code: ran.code ?? 1, stdout: ran.stdout, stderr: ran.stderr };
-}
-
 export async function gitVersion(): Promise<string | undefined> {
   try {
     return (await git(["--version"], { timeoutMs: 5000 })).trim();

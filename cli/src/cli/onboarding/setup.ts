@@ -13,8 +13,8 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { canonical } from "#core/fs/realpath.ts";
 import { readManifest, writeManifest } from "#core/manifest/repository.ts";
 import { handOff } from "#core/process.ts";
+import { NAME } from "#core/product.ts";
 import { binDir, shimPath } from "#core/release/layout.ts";
-import { BINARY_NAME } from "#core/release/platform.ts";
 import { roots } from "#core/store/paths.ts";
 import { detectAll } from "#core/target/detect.ts";
 import { resolveTargets } from "#core/target/table.ts";
@@ -44,7 +44,7 @@ export async function install(
 ): Promise<number> {
   const { printer } = context;
   // Under Node, execPath is the interpreter, which must never be copied into place.
-  if (basename(process.execPath).replace(/\.exe$/i, "") !== BINARY_NAME) {
+  if (basename(process.execPath).replace(/\.exe$/i, "") !== NAME) {
     throw new AiregError("Only a standalone aireg build installs itself.", {
       code: ErrorCode.Usage,
       hint: "Run it from a release build of aireg, not from source.",

@@ -175,17 +175,14 @@
       "includes": [
         "src/cli/commands/add/choose.ts",
         "src/cli/commands/kind/place.ts",
-        "src/cli/commands/publish/plan.ts",
         "src/cli/commands/publish/review.ts",
         "src/cli/commands/sync/render.ts",
         "src/core/log/redact.ts",
         "src/core/plan/select.ts",
         "src/core/sync/adopt.ts",
         "src/core/target/register/register.ts",
-        "src/daemon/runs/runner.ts",
         "src/engine/sync/decide.ts",
         "src/engine/sync/execute.ts",
-        "src/engine/sync/local.ts",
         "src/engine/sync/remote.ts"
       ],
       "linter": {
@@ -284,16 +281,13 @@
     {
       "includes": [
         "src/accounts/service.test.ts",
-        "src/adapter/files.ts",
         "src/adapter/filespec/merge.ts",
         "src/adapters/local/connect.test.ts",
         "src/cli/commands/adapter.test.ts",
         "src/cli/commands/add/choose.ts",
         "src/cli/commands/add/keep-current.ts",
-        "src/cli/commands/daemon.ts",
         "src/cli/commands/job/runs.test.ts",
         "src/cli/commands/job/runs.ts",
-        "src/cli/commands/list.ts",
         "src/cli/commands/publish/choose.ts",
         "src/cli/commands/publish/render.ts",
         "src/cli/commands/remove.ts",

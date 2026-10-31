@@ -10,9 +10,10 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
-import { emptyLock, type LinkMode, type Lock } from "#core/lock.ts";
+import type { LinkMode, Lock } from "#core/lock.ts";
 import type { Plan } from "#core/plan/model.ts";
 import { roots as makeRoots, type Roots } from "#core/store/paths.ts";
+import { lock as lockOf } from "#test/kit/builders/lock.ts";
 import { emptyPlan } from "#test/kit/builders/plan.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { apply } from "./apply.ts";
@@ -38,27 +39,20 @@ async function folder(path: string, body: string): Promise<void> {
   await writeFile(join(path, "SKILL.md"), body);
 }
 
-function lockWith(): Lock {
-  const lock = emptyLock();
-  lock.artifacts["ws/hello"] = {
-    registry: "mkt",
-    id: "skill_1",
-    name: "hello",
-    kind: "skill",
-    namespace: "ws",
-    address: "ws/skills/hello",
-    path: ".registry/artifacts/mkt/ws/skills/hello",
-    origin: undefined,
-    content: "sha256:c",
-    version: "1",
-    digest: "sha256:d",
-    links: [{ target: "universal", path: ".agents/skills/hello", mode: "symlink" }],
-  };
-  return lock;
-}
-
 function linkPlan(recorded?: LinkMode, copy = false): { plan: Plan; lock: Lock } {
-  const lock = lockWith();
+  const lock = lockOf()
+    .artifact("ws/hello", {
+      registry: "mkt",
+      id: "skill_1",
+      namespace: "ws",
+      address: "ws/skills/hello",
+      path: ".registry/artifacts/mkt/ws/skills/hello",
+      content: "sha256:c",
+      version: "1",
+      digest: "sha256:d",
+      links: [{ target: "universal", path: ".agents/skills/hello", mode: "symlink" }],
+    })
+    .build();
   return {
     lock,
     plan: {

@@ -2,11 +2,12 @@ import { homedir } from "node:os";
 import { PassThrough } from "node:stream";
 import { describe, expect, test } from "vitest";
 import { unhandled } from "#cli/render/tools.ts";
-import { emptyLock, type LockArtifact } from "#core/lock.ts";
+import { emptyLock } from "#core/lock.ts";
 import type { Plan, Selected } from "#core/plan/model.ts";
 import { roots, type Scope } from "#core/store/paths.ts";
 import { resolveTargets } from "#core/target/table.ts";
 import { Printer } from "#core/term/printer.ts";
+import { lock } from "#test/kit/builders/lock.ts";
 import { emptyPlan } from "#test/kit/builders/plan.ts";
 import { KEY, terminal } from "#test/kit/fake-terminal.ts";
 import { withoutKind } from "#test/kit/target.ts";
@@ -202,8 +203,6 @@ describe("confirmPlan", () => {
   }
 
   test("names the tools each artifact reaches, and what a tool skips", async () => {
-    const row = (kind: "skill" | "agent") =>
-      ({ kind, version: "0.1.0", links: [] }) as unknown as LockArtifact;
     const plan: Plan = {
       ...emptyPlan(),
       actions: [
@@ -235,10 +234,10 @@ describe("confirmPlan", () => {
         },
         {
           kind: "record",
-          lock: {
-            ...emptyLock(),
-            artifacts: { "pr-review": row("skill"), reviewer: row("agent") },
-          },
+          lock: lock()
+            .artifact("pr-review", { registry: "acme", version: "0.1.0" })
+            .artifact("reviewer", { registry: "acme", kind: "agent", version: "0.1.0" })
+            .build(),
         },
       ],
     };
@@ -256,12 +255,8 @@ describe("confirmPlan", () => {
   });
 
   test("places a plugin's members where the lock records them", async () => {
-    const row = (kind: "skill" | "agent", targets: string[]) =>
-      ({
-        kind,
-        version: "0.1.0",
-        links: targets.map((target) => ({ target, path: "p", mode: "symlink" })),
-      }) as unknown as LockArtifact;
+    const linked = (targets: string[]) =>
+      targets.map((target) => ({ target, path: "p", mode: "symlink" as const }));
     // One link per plugin, named for its first member.
     const plan: Plan = {
       ...emptyPlan(),
@@ -279,13 +274,19 @@ describe("confirmPlan", () => {
         { kind: "link", name: "pr-review", target: "codex", from: "/f", to: "/t2", copy: false },
         {
           kind: "record",
-          lock: {
-            ...emptyLock(),
-            artifacts: {
-              "pr-review": row("skill", ["claude-code", "codex"]),
-              reviewer: row("agent", ["claude-code"]),
-            },
-          },
+          lock: lock()
+            .artifact("pr-review", {
+              registry: "acme",
+              version: "0.1.0",
+              links: linked(["claude-code", "codex"]),
+            })
+            .artifact("reviewer", {
+              registry: "acme",
+              kind: "agent",
+              version: "0.1.0",
+              links: linked(["claude-code"]),
+            })
+            .build(),
         },
       ],
     };

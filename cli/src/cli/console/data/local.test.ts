@@ -5,6 +5,7 @@ import type { Carrier } from "#core/console/runs.ts";
 import { emptyLock, type Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/contract.ts";
+import { lock } from "#test/kit/builders/lock.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { type Carried, localWork } from "./local.ts";
 
@@ -50,15 +51,7 @@ function scope(): Roots {
 }
 
 function locked(name: string, source = "acme"): Lock {
-  const lock = emptyLock();
-  lock.artifacts[`my-team/${name}`] = {
-    name,
-    kind: "skill",
-    registry: source,
-    namespace: "my-team",
-    links: [],
-  } as unknown as Lock["artifacts"][string];
-  return lock;
+  return lock().artifact(`my-team/${name}`, { registry: source, namespace: "my-team" }).build();
 }
 
 function carried(name: string, over: Partial<Carrier> = {}): Carried {

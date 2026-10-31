@@ -5,9 +5,9 @@ import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { exists } from "#core/fs/tree.ts";
 import { roots as makeRoots, type Roots, stagingDir } from "#core/store/paths.ts";
 import { load } from "#engine/scope/load.ts";
+import { manifest } from "#test/kit/builders/manifest.ts";
 import { commonOptions } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { writeManifestIn } from "#test/kit/scope.ts";
 import { skillBody, writeSpecRoot } from "#test/kit/spec-root.ts";
 import { applyLocal } from "./local.ts";
 import { scan } from "./scan.ts";
@@ -34,10 +34,7 @@ test.beforeEach(async ({ tmp }) => {
     },
   ]);
   project = join(dir, "project");
-  await writeManifestIn(
-    project,
-    `registries:\n  kit: ${kit}\nartifacts:\n  - kit/kit/skill/lint\n`,
-  );
+  await manifest().registry("kit", kit).artifacts("kit/kit/skill/lint").write(project);
   roots = makeRoots("project", project);
 });
 

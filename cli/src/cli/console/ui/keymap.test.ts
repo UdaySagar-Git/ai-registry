@@ -2,6 +2,7 @@ import type { Key } from "ink";
 import { describe, expect, test } from "vitest";
 import { BUILT_IN_SCREENS } from "#cli/console/ui/views/built-in.ts";
 import type { AccountRow, ConsoleState } from "#core/console/model.ts";
+import { BUILT_IN_VIEWS } from "#core/console/model.ts";
 import {
   type Footer,
   footerKeys,
@@ -12,7 +13,6 @@ import {
   type KeyCommand,
   viewCommandFor,
 } from "./keymap.ts";
-import { BUILT_IN_VIEWS } from "./view.ts";
 
 const COMMANDS = Object.keys(KEYMAP) as KeyCommand[];
 const FOOTERS: readonly Footer[] = [...BUILT_IN_VIEWS, "panel"];

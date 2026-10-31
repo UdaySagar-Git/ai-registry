@@ -1,10 +1,11 @@
 import type { ReactElement, ReactNode } from "react";
 import type { AccountRow } from "#core/console/model.ts";
+import { BUILT_IN_VIEWS } from "#core/console/model.ts";
 import type { HintKey } from "#core/host/panel.ts";
 import { clock, displayWidth, truncate, truncateStart } from "#core/term/format.ts";
 import { COLOR, GLYPH } from "#core/term/theme.ts";
 import { box, faint, hints, plain, rule, text } from "./elements.ts";
-import { BUILT_IN_VIEWS, VIEW_LABELS } from "./view.ts";
+import { VIEW_LABELS } from "./view.ts";
 
 export interface Tab {
   id: string;

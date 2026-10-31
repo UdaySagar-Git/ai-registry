@@ -1,7 +1,6 @@
 import type { Key } from "ink";
-import type { ConsoleState } from "#core/console/model.ts";
+import type { BuiltInView, ConsoleState } from "#core/console/model.ts";
 import type { HintKey } from "#core/host/panel.ts";
-import type { BuiltInView } from "./view.ts";
 
 /** Each built-in view has its own footer; every contributed panel shares one. */
 export type Footer = BuiltInView | "panel";

@@ -1,5 +1,5 @@
 import type { BuiltInScreen } from "#cli/console/ui/screen.ts";
-import type { BuiltInView } from "#cli/console/ui/view.ts";
+import type { BuiltInView } from "#core/console/model.ts";
 import { ACCOUNTS_VIEW } from "./accounts.ts";
 import { ARTIFACTS_VIEW } from "./artifacts.ts";
 import { JOBS_VIEW } from "./jobs.ts";

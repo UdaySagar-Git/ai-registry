@@ -1,12 +1,11 @@
 import type { Key } from "ink";
 import type { Dispatch, ReactNode } from "react";
 import { step } from "#cli/console/data/list.ts";
-import type { ConsoleState } from "#core/console/model.ts";
+import type { BuiltInView, ConsoleState } from "#core/console/model.ts";
 import type { HintKey, LinkFacts, UpstreamContribution } from "#core/host/panel.ts";
 import { type Footer, type ViewCommand, viewCommandFor } from "./keymap.ts";
 import type { UiAction, UiState } from "./reducer.ts";
 import type { RunCommand } from "./use-commands.ts";
-import type { BuiltInView } from "./view.ts";
 
 /** Everything a view draws from in one render. */
 export interface ViewFrame {

@@ -2,6 +2,7 @@ import { messageOf } from "#adapter/errors.ts";
 import { list as listOf, plural } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { jobsClause, registryJobs, removeJobs } from "#cli/commands/registry/dependent-jobs.ts";
+import { needsInput } from "#cli/options/parse.ts";
 import { noteUserScope } from "#cli/render/where.ts";
 import { emptyRegistryConfig, type RegistryConfig } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
@@ -20,10 +21,11 @@ export async function remove(
   common: CommonOptions,
 ): Promise<void> {
   if (alias === undefined) {
-    throw new AiregError("`aireg registry remove` needs a registry name.", {
-      code: ErrorCode.Usage,
-      hint: "Name the registry: `aireg registry remove <registry>`.",
-    });
+    throw needsInput(
+      "registry remove",
+      "a registry name",
+      "Name the registry: `aireg registry remove <registry>`.",
+    );
   }
 
   const loaded = await load(common, context.cwd, "user");

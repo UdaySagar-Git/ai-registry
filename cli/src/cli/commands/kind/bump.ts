@@ -6,6 +6,7 @@ import { isVersion } from "#adapter/spec/ref.ts";
 import { plural, quoted } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import type { Own } from "#cli/commands/kind.ts";
+import { needsInput } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { requireRegistry } from "#core/filespec/init.ts";
 import { present } from "#core/fs/tree.ts";
@@ -22,10 +23,11 @@ export async function version(
   own: Own,
 ): Promise<void> {
   if (input === undefined) {
-    throw new AiregError(`\`aireg ${kind} bump\` needs a name.`, {
-      code: ErrorCode.Usage,
-      hint: `Name the ${kind}: \`aireg ${kind} bump <name> [patch | minor | major | <version>]\`.`,
-    });
+    throw needsInput(
+      `${kind} bump`,
+      "a name",
+      `Name the ${kind}: \`aireg ${kind} bump <name> [patch | minor | major | <version>]\`.`,
+    );
   }
   const root = requireRegistry(context.cwd);
   const namespace = own.namespace === undefined ? undefined : valid(own.namespace);

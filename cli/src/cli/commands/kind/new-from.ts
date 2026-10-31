@@ -8,6 +8,7 @@ import { ENVELOPE } from "#adapter/filespec/names.ts";
 import { list, sanitizeName } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import type { Own } from "#cli/commands/kind.ts";
+import { needsInput } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { inBlobStore } from "#core/filespec/indexer.ts";
 import { requireRegistry } from "#core/filespec/init.ts";
@@ -45,10 +46,11 @@ export async function newFrom(
   yes: boolean,
 ): Promise<void> {
   if (paths.length === 0) {
-    throw new AiregError(`\`aireg ${kind} new --from\` needs a folder.`, {
-      code: ErrorCode.Usage,
-      hint: `Name the folder: \`aireg ${kind} new --from <path>\`.`,
-    });
+    throw needsInput(
+      `${kind} new --from`,
+      "a folder",
+      `Name the folder: \`aireg ${kind} new --from <path>\`.`,
+    );
   }
   if (own.name !== undefined && paths.length > 1) {
     throw new AiregError("--name renames one folder, and more than one was given.", {

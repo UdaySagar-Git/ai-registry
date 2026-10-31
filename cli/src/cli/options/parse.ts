@@ -48,6 +48,11 @@ export function noArguments(
   );
 }
 
+/** A required argument or option is missing; `hint` shows the command with it filled in. */
+export function needsInput(command: string, what: string, hint: string): AiregError {
+  return new AiregError(`\`aireg ${command}\` needs ${what}.`, { code: ErrorCode.Usage, hint });
+}
+
 export function parse<T extends Record<string, unknown>>(
   argv: string[],
   accepts: Accepts,

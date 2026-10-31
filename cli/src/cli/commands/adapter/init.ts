@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { redirection } from "#adapter/files.ts";
 import { parseVersion } from "#adapter/semver.ts";
 import { plural, quoted } from "#adapter/text.ts";
+import { needsInput } from "#cli/options/parse.ts";
 import { parseAdapterId } from "#core/adapter/installed/want.ts";
 import { isBuiltinAdapter } from "#core/adapter/load.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -22,10 +23,7 @@ export async function initAdapter(
   own: Own,
 ): Promise<void> {
   if (raw === undefined) {
-    throw new AiregError("`aireg adapter init` needs an id.", {
-      code: ErrorCode.Usage,
-      hint: "Name the adapter: `aireg adapter init <id>`.",
-    });
+    throw needsInput("adapter init", "an id", "Name the adapter: `aireg adapter init <id>`.");
   }
   const id = parseAdapterId(raw);
   if (isBuiltinAdapter(id)) {

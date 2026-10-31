@@ -15,9 +15,10 @@ describe.skipIf(process.platform === "win32")("exec", () => {
 
   test("reports a timeout as 124, not as a missing binary", async () => {
     const [command, args] = node("console.error('started'); setTimeout(() => {}, 10_000)");
-    const ran = await exec(command, args, { timeoutMs: 200 });
+    // Long enough for node to start and print under a loaded machine, so the race is only the kill.
+    const ran = await exec(command, args, { timeoutMs: 2_000 });
     expect(ran.code).toBe(124);
-    expect(ran.stderr).toBe(`started\n${command} did not finish within 200 ms.`);
+    expect(ran.stderr).toBe(`started\n${command} did not finish within 2000 ms.`);
   });
 
   test("reports a signal as 128 plus its number", async () => {

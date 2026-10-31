@@ -3,13 +3,7 @@ import { AccountService } from "#accounts/service.ts";
 import { quoted } from "#adapter/text.ts";
 import { stopGit } from "#adapters/git/api.ts";
 import { expandSteps, orderSteps } from "#core/config/jobs.ts";
-import {
-  type Account,
-  isScopeStep,
-  type Job,
-  type RegistryConfig,
-  type Step,
-} from "#core/config/model.ts";
+import { type Account, isScopeStep, type Job, type RegistryConfig } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import type { StepRunResult } from "#core/host/extend.ts";
 import { stepContribution, stepOn } from "#core/host/load.ts";
@@ -29,9 +23,7 @@ import {
   type TerminalRunState,
 } from "#core/run/model.ts";
 import type { CreateRun, RunStore } from "#core/run/store.ts";
-import { scopeFor, userScopeDir } from "#core/store/paths.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
-import { policyOf } from "#core/sync/policy.ts";
 import { settledWithin } from "#core/wait.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
@@ -39,7 +31,7 @@ import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import type { SyncExecutionHooks } from "#engine/sync/decide.ts";
 import { executeSync } from "#engine/sync/execute.ts";
 import type { RunScope } from "#engine/sync/narrow.ts";
-import type { ScopeWork } from "#engine/sync/work.ts";
+import { workOf } from "#engine/sync/work.ts";
 import { CANCELED, classifyFailure, SHUTDOWN, TIMED_OUT } from "./failure.ts";
 
 /** Which terminal state wins when steps disagree. */
@@ -329,7 +321,7 @@ export class SyncRunner {
 
     // One pass rather than three: a publish that followed a separate pull would
     // read a tree the pull had already moved.
-    const scoped = ordered.order.filter(isScopeStep);
+    const work = workOf({ id: job.id, account: account.id, steps: ordered.order });
     const adapters = ordered.order.filter((step) => !isScopeStep(step));
 
     let counts = { ...EMPTY_RUN_COUNTS };
@@ -337,17 +329,7 @@ export class SyncRunner {
     let errorCode: string | undefined;
     let retryable: boolean | undefined;
 
-    const root = scoped.find((step: Step) => step.root !== undefined)?.root ?? userScopeDir();
-    const scope = scopeFor(root);
-    if (scoped.length > 0) {
-      const work: ScopeWork = {
-        id: job.id,
-        root,
-        scope,
-        account: account.id,
-        policy: policyOf(scoped),
-        steps: scoped,
-      };
+    if (work.steps.length > 0) {
       const result = await executeSync(
         work,
         account,
@@ -366,7 +348,7 @@ export class SyncRunner {
     for (const step of adapters) {
       if (controller.signal.aborted) break;
       const accounts = new AccountService();
-      const resolved = await accounts.resolve(account, scope, root);
+      const resolved = await accounts.resolve(account, work.scope, work.root);
       const handler = stepOn(resolved.adapter, step.kind) ?? (await stepContribution(step.kind));
       if (handler === undefined) {
         throw new Error(

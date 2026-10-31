@@ -33,7 +33,7 @@ export async function addAddress(
     cancel(step);
     return undefined;
   }
-  const { known, input, within, resolved, asked, partial, asking, source, alias } = opened;
+  const { declared, input, within, resolved, asked, partial, asking, source, alias } = opened;
   const { catalogAlias, entries } = opened;
 
   const gathered = await gather(
@@ -79,7 +79,7 @@ export async function addAddress(
     edit: (fresh) => {
       const { manifest } = fresh;
       let recorded: RegistrySource;
-      ({ introduced, copied, recorded } = recordRegistry(fresh, alias, known, source, resolved));
+      ({ introduced, copied, recorded } = recordRegistry(fresh, alias, declared, source, resolved));
       ({ location, config } = recorded);
 
       const narrowed = narrowedTargets(fresh, asked, choices.targets);

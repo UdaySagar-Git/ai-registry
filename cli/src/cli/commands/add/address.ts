@@ -75,7 +75,8 @@ export async function openAddress(
     : (own.as ?? aliasFor(input, false, known, source));
   return {
     alias,
-    known,
+    // Not `known`: for an undeclared repository that holds a stand-in the scope never declared.
+    declared,
     input,
     within,
     resolved,

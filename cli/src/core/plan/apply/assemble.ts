@@ -2,6 +2,7 @@ import { copyFile, mkdir, readdir, rm, stat, symlink } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
 import { isRecord } from "#adapter/fields.ts";
 import { assertUnredirected, readRegular } from "#adapter/files.ts";
+import { PLUGIN_MANIFESTS } from "#adapter/kinds.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { exists } from "#core/fs/tree.ts";
 import type { PluginDocument } from "#core/plan/model.ts";
@@ -14,7 +15,7 @@ const ALIASES: Readonly<Record<string, readonly string[]>> = {
 };
 
 /** Where targets read a plugin's manifest: written into the projection, never linked from content. */
-const MANIFESTS = new Set([".claude-plugin", ".codex-plugin", "plugin.json"]);
+const MANIFESTS = new Set(PLUGIN_MANIFESTS.map((path) => path.split("/")[0]));
 
 /** The manifest Claude Code reads, which a plugin's own document fills when it has none of its own. */
 const CLAUDE_MANIFEST = ".claude-plugin/plugin.json";

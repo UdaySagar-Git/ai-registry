@@ -11,3 +11,10 @@ export function isKind(value: string): value is ArtifactKind {
 
 /** The file that makes a directory a skill and holds its front matter. */
 export const SKILL_ENTRY = "SKILL.md";
+
+/** Where a plugin keeps its own manifest, in the order aireg reads them. */
+export const PLUGIN_MANIFESTS = [
+  ".claude-plugin/plugin.json",
+  ".codex-plugin/plugin.json",
+  "plugin.json",
+] as const;

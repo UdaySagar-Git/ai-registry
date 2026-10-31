@@ -3,14 +3,11 @@ import type { Artifact } from "../contract.ts";
 import { type Fields, isRecord, trimmedText } from "../fields.ts";
 import { SpecError } from "../filespec/documents.ts";
 import { isArtifactName } from "../filespec/names.ts";
-import { SKILL_ENTRY } from "../kinds.ts";
+import { PLUGIN_MANIFESTS, SKILL_ENTRY } from "../kinds.ts";
 import { quoted } from "../text.ts";
 import { contentArtifact } from "./content-artifact.ts";
 import { artifactOf, ROOT_ID, skipped } from "./folder.ts";
 import type { Tree } from "./tree.ts";
-
-/** Where a plugin keeps its own manifest, in the order aireg reads them. */
-const PLUGIN_MANIFESTS = [".claude-plugin/plugin.json", ".codex-plugin/plugin.json", "plugin.json"];
 
 /** A root `plugin.json` is an Agent Plugins manifest only under this schema. */
 const AGENT_PLUGINS_SCHEMA = /^https:\/\/agent-plugins\.org\/schemas\/[^/]+\/plugin\.schema\.json$/;

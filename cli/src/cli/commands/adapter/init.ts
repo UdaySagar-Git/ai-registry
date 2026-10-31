@@ -1,5 +1,6 @@
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
+import { ifPresent } from "#adapter/files.ts";
 import { parseVersion } from "#adapter/semver.ts";
 import { plural, quoted } from "#adapter/text.ts";
 import type { AdapterInit } from "#cli/commands/adapter/result.ts";
@@ -38,7 +39,7 @@ export async function initAdapter(
   for (const path of Object.keys(planned))
     refuseRedirect(dir, join(dir, path), "Remove it, or choose another folder with `--dir`.");
   if (!options.force) {
-    const existing = await readdir(dir).catch(() => undefined);
+    const existing = await ifPresent(readdir(dir));
     if (existing !== undefined && existing.length > 0) {
       throw new AiregError(`${dir} already exists.`, {
         code: ErrorCode.Conflict,

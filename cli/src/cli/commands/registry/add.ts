@@ -106,7 +106,9 @@ export const add = action({
     return {
       data: {
         ...described(alias, declared),
-        ...(move === undefined ? {} : { movedFrom: move.from, kept: move.kept }),
+        ...(move === undefined
+          ? {}
+          : { movedFrom: withoutCredentials(move.from), kept: move.kept }),
         readable,
         dryRun: common.dryRun,
       },
@@ -180,7 +182,7 @@ async function settle(
 /** Reports a move. Nothing installed is touched, since the new address was checked to serve it. */
 function moved(printer: Printer, result: Added, from: string, kept: number): void {
   const { data } = result;
-  const what = `registry ${data.registry} from ${withoutCredentials(from)} to ${data.address}`;
+  const what = `registry ${data.registry} from ${from} to ${data.address}`;
   const count = plural(kept, "installed artifact");
   if (data.dryRun) {
     printer.info(`Would move ${what}, keeping ${count}.`);

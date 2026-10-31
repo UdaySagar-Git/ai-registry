@@ -234,8 +234,7 @@ async function assertOwned(dir: string, id: string, scope: Scope): Promise<void>
   if ((await readHolder(dir))?.id === id) return;
   throw new LeaseError(
     `Another aireg process took over ${scopeName(scope)}, so this command stopped.`,
-    "lease_lost",
-    "Run the command again.",
+    { reason: "lease_lost", hint: "Run the command again." },
   );
 }
 
@@ -260,11 +259,11 @@ export async function breakLease(
   const again = `Run ${unlockCommand(roots.scope)} to see the current one.`;
   if (holder === undefined) throw new LeaseError("Nothing is locked.");
   if (holder.id !== id) {
-    throw new LeaseError(`No lock with id ${quoted(id)}.`, undefined, again);
+    throw new LeaseError(`No lock with id ${quoted(id)}.`, { hint: again });
   }
   await withCoordination(dirname(dir), guard, async () => {
     const current = await readHolder(dir);
-    if (current?.id !== id) throw new LeaseError("That lock changed.", undefined, again);
+    if (current?.id !== id) throw new LeaseError("That lock changed.", { hint: again });
     await guard(dir);
     await rm(dir, { recursive: true, force: true });
   });

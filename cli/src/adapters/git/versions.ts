@@ -148,10 +148,12 @@ export class GitVersions {
       throw new GitError(
         "not_found",
         `${this.#context.spec.location} has no tag for ${name} ${version}.`,
-        "",
-        offered.length === 0
-          ? "Leave off the version to install what the repository holds now."
-          : `Use ${offered.slice(0, 5).join(", ")}, or leave off the version for the newest.`,
+        {
+          hint:
+            offered.length === 0
+              ? "Leave off the version to install what the repository holds now."
+              : `Use ${offered.slice(0, 5).join(", ")}, or leave off the version for the newest.`,
+        },
       );
     }
     return found.tag.commit;
@@ -205,8 +207,7 @@ export class GitVersions {
       throw new GitError(
         "not_found",
         `${this.#context.spec.location} has no commit for the version ${quoted(version)}.`,
-        "",
-        "Leave off the version to install what the repository holds now.",
+        { hint: "Leave off the version to install what the repository holds now." },
       );
     }
     return found.toLowerCase();

@@ -44,10 +44,9 @@ export function cloneLock(lock: Lock): Lock {
  */
 export function parseLock(text: string, path = "The lockfile", scope: Scope = "project"): Lock {
   if (CONFLICT_MARKER.test(text)) {
-    throw new LockError(
-      `${path} has unresolved merge conflict markers.`,
-      "Resolve the conflict, then run `aireg install`.",
-    );
+    throw new LockError(`${path} has unresolved merge conflict markers.`, {
+      hint: "Resolve the conflict, then run `aireg install`.",
+    });
   }
   let doc: unknown;
   try {
@@ -63,7 +62,7 @@ export function parseLock(text: string, path = "The lockfile", scope: Scope = "p
   if (typeof root.version === "number" && root.version > LOCK_VERSION) {
     throw new LockError(
       `${path} is lockfile version ${root.version}; this aireg reads version ${LOCK_VERSION}.`,
-      "Run `aireg self update`.",
+      { hint: "Run `aireg self update`." },
     );
   }
   if (root.version !== LOCK_VERSION) throw unreadable(path, "has no lockfile version aireg reads");
@@ -172,10 +171,9 @@ export interface Lock {
 }
 
 function unreadable(path: string, why: string): LockError {
-  return new LockError(
-    `${path} ${why}.`,
-    "Restore it from version control, or delete it and run `aireg install` to write it again.",
-  );
+  return new LockError(`${path} ${why}.`, {
+    hint: "Restore it from version control, or delete it and run `aireg install` to write it again.",
+  });
 }
 
 /** A section left out is empty; one that is there but not a mapping is refused. */
@@ -298,8 +296,8 @@ function optional<K extends string>(key: K, value: string | undefined): { [P in 
 
 /** A lockfile that is there but cannot be read. */
 export class LockError extends AiregError {
-  constructor(message: string, hint: string) {
-    super(message, { code: ErrorCode.Invalid, hint });
+  constructor(message: string, options: { hint: string }) {
+    super(message, { code: ErrorCode.Invalid, hint: options.hint });
     this.name = "LockError";
   }
 }
@@ -462,10 +460,9 @@ export async function readLock(roots: Pick<Roots, "scope" | "lock">): Promise<Lo
   } catch (error) {
     if (isMissing(error)) return emptyLock();
     const code = (error as NodeJS.ErrnoException).code;
-    throw new LockError(
-      `Cannot read ${path} (${code ?? "unknown error"}).`,
-      "Check that it is a file you can read.",
-    );
+    throw new LockError(`Cannot read ${path} (${code ?? "unknown error"}).`, {
+      hint: "Check that it is a file you can read.",
+    });
   }
   return canonicalTargets(parseLock(text, path, roots.scope));
 }

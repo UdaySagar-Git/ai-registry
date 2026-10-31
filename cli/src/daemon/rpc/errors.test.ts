@@ -102,7 +102,9 @@ describe("rpcError", () => {
   });
 
   test("names a lease failure instead of calling it internal", () => {
-    expect(rpcError(new LeaseError("Another process took over", "lease_lost"))).toMatchObject({
+    expect(
+      rpcError(new LeaseError("Another process took over", { reason: "lease_lost" })),
+    ).toMatchObject({
       code: RpcErrorCode.Server,
       message: "Another process took over",
     });

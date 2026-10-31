@@ -104,7 +104,7 @@ export const { run } = defineCommand({
       });
     }
 
-    const path = await source.content(entry);
+    const path = await source.stage(entry);
     const file = (await isDirectory(path)) ? await markdownIn(path) : path;
     const body = file === undefined ? undefined : await ifPresent(readFile(file, "utf8"));
     if (body === undefined) {

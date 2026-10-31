@@ -1,7 +1,7 @@
 import { join, posix, win32 } from "node:path";
 import type { Artifact, FileRef, Resolution, Want } from "../contract.ts";
 import { messageOf } from "../errors.ts";
-import { assertUnredirected, readRegular } from "../files.ts";
+import { assertUnredirected, isAbsent, readRegular } from "../files.ts";
 import { setRecent } from "../lru.ts";
 import { isSafePath } from "../paths.ts";
 import { identityOf, type ReadPath, readRegistry, SpecError } from "./documents.ts";
@@ -36,8 +36,7 @@ export function rootReader(root: string, verified?: Set<string>): ReadPath {
     try {
       read = await readRegular(root, path, verified);
     } catch (cause) {
-      const code = (cause as NodeJS.ErrnoException).code;
-      if (code === "ENOENT" || code === "ENOTDIR") return undefined;
+      if (isAbsent(cause)) return undefined;
       throw new SpecError(`${path}: ${messageOf(cause)}`, { path, cause });
     }
     if (read.kind === "missing") return undefined;

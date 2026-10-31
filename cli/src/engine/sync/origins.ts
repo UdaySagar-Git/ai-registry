@@ -111,7 +111,10 @@ async function found(step: Step, selector: Selector): Promise<Origin[]> {
 
   const shape = KIND_SPECS[kind].shape;
   // A selector's id, or a folder's name such as `claude` from `.claude`, may be an alias.
-  const target = canonicalId(resolveTargets(), selector.target?.[0] ?? targetOf(selector.from));
+  const target = canonicalId(
+    resolveTargets(process.env),
+    selector.target?.[0] ?? targetOf(selector.from),
+  );
   const origins: Origin[] = [];
   for (const entry of entries) {
     if (entry.startsWith(".")) continue;

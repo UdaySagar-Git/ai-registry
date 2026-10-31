@@ -111,7 +111,7 @@ function kindDirs(
   for (const name of targets) {
     const target = targetTable[name];
     if (target === undefined) continue;
-    const root = targetRoot(target, roots.scope, roots.cwd);
+    const root = targetRoot(target, { scope: roots.scope, cwd: roots.cwd, env: process.env });
     // `SCANNED_KINDS`, not every kind: a target may keep plugins and skills in
     // one folder, so walking both would report every skill twice.
     for (const kind of SCANNED_KINDS) {

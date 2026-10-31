@@ -157,7 +157,7 @@ function adapterPins(value: unknown): Readonly<Record<string, string>> {
 }
 
 export function formatConfig(config: RegistryConfig): string {
-  const targetTable = resolveTargets();
+  const targetTable = resolveTargets(process.env);
   const document = {
     ...config,
     accounts: config.accounts.map(({ id, registry, ...rest }) => ({

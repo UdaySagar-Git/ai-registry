@@ -22,7 +22,7 @@ export function selectTargets(
   if (unknown.length > 0) {
     // From --for it is the command line; from the manifest it is file content.
     // A file of yours that would define one, but was skipped, is the likelier story.
-    const skipped = loadTargetFiles().skipped.filter((file) =>
+    const skipped = loadTargetFiles(process.env).skipped.filter((file) =>
       unknown.some((name) => basename(file.path) === `${name}.json`),
     );
     throw new AiregError(`No target named ${list(unknown.map(quoted), "or")}.`, {

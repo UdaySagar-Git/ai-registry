@@ -329,7 +329,7 @@ function parseBlocked(raw: unknown, scope: Scope): LockArtifact["blocked"] {
  * about to be restaged has no digest until its copy lands, so that is no change.
  */
 export function lockChanges(before: Lock, after: Lock): string[] {
-  const table = resolveTargets();
+  const table = resolveTargets(process.env);
   const changed = new Set<string>();
   const differ = (a: object | undefined, b: object | undefined) =>
     JSON.stringify(a) !== JSON.stringify(b);
@@ -423,7 +423,7 @@ function blockedDoc(
 }
 
 export function formatLock(lock: Lock): string {
-  const table = resolveTargets();
+  const table = resolveTargets(process.env);
   const registries = dict(
     Object.keys(lock.registries)
       .sort()
@@ -472,7 +472,7 @@ export async function readLock(roots: Pick<Roots, "scope" | "lock">): Promise<Lo
 
 /** Each target by its canonical id, so a lock aireg 0.1 wrote reads as this one writes it. */
 function canonicalTargets(lock: Lock): Lock {
-  const table = resolveTargets();
+  const table = resolveTargets(process.env);
   for (const row of Object.values(lock.artifacts)) {
     for (const item of [
       ...row.links,

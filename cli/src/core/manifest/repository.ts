@@ -21,7 +21,7 @@ export async function readManifest(path: string): Promise<Manifest> {
 
 /** Each target by its canonical id, so a command never writes an alias back. */
 function canonicalTargets(manifest: Manifest): Manifest {
-  const table = resolveTargets();
+  const table = resolveTargets(process.env);
   return {
     ...manifest,
     targets: canonicalIds(table, manifest.targets),

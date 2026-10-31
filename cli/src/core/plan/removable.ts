@@ -64,7 +64,7 @@ function boundaries(roots: RemovableRoots, env: NodeJS.ProcessEnv): Boundary[] {
     { anchor: home, dir: relative(toolHome(env), stagingDir(env)) },
   ];
   for (const target of Object.values(resolveTargets(env))) {
-    const root = targetRoot(target, roots.scope, roots.cwd, env);
+    const root = targetRoot(target, { scope: roots.scope, cwd: roots.cwd, env });
     const anchor = project ? roots.cwd : root;
     for (const mapping of Object.values(target.kinds)) {
       if (mapping?.subdir === undefined) continue;

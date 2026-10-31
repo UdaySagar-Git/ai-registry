@@ -156,8 +156,8 @@ async function offerSkills(
   const manifest = await readManifest(user.manifest);
   if (manifest.registries[OWN_SKILLS_ALIAS] !== undefined) return;
 
-  const targetTable = resolveTargets();
-  const found = detectAll(targetTable, context.cwd).filter(
+  const targetTable = resolveTargets(process.env);
+  const found = detectAll(targetTable, { cwd: context.cwd, env: process.env }).filter(
     (item) => item.detected && !item.target.shared,
   );
   const names = list(found.map((item) => item.target.displayName));

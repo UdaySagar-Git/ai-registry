@@ -1,9 +1,10 @@
 import { chmod, lstat, mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
+import type { Where } from "#core/store/paths.ts";
 import type { RegisterEntry, Target, Targets } from "#core/target/contract.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { applyRegister, type Where } from "./register.ts";
+import { applyRegister } from "./register.ts";
 
 let dir: string;
 let home: string;
@@ -48,9 +49,9 @@ function target(register: RegisterEntry[], place?: "copy", scope?: "user"): Targ
 const placement = (source: string, name: string) => join(root, "plugins", source, name);
 
 /** The user scope, where `target()` keeps its root. */
-const user = (): Where => ({ scope: "user", cwd: dir });
+const user = (): Where => ({ scope: "user", cwd: dir, env: {} });
 /** The project in `dir`, whose `.tool` folder is the same root. */
-const project = (): Where => ({ scope: "project", cwd: dir });
+const project = (): Where => ({ scope: "project", cwd: dir, env: {} });
 
 /** A placement of ours: a link into the scope's folder. */
 async function place(source: string, name: string): Promise<string> {

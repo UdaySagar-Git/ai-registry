@@ -65,6 +65,7 @@ export async function applyLocal({
     await survey(scan.pinned, loaded.roots),
     {
       roots: loaded.roots,
+      env: loaded.env,
       targets,
       targetTable: loaded.targetTable,
       force,

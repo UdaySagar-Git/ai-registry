@@ -101,7 +101,7 @@ export const { run } = defineCommand({
 
     // Detection is the default, not the rule: someone who names targets is saying
     // what this project projects into, and writing something else hides that.
-    const chosen = selectTargets(emptyManifest(), resolveTargets(), common);
+    const chosen = selectTargets(emptyManifest(), resolveTargets(process.env), common);
 
     const imports = requestedImports(own.import);
     const namespace = publishTarget(own["publish-to"]);
@@ -191,7 +191,9 @@ export const { run } = defineCommand({
 function requestedImports(value: string | undefined): string[] {
   if (value === undefined) return [];
   const requested =
-    value === "all" ? [...IMPORTABLE_TARGETS] : canonicalIds(resolveTargets(), value.split(","));
+    value === "all"
+      ? [...IMPORTABLE_TARGETS]
+      : canonicalIds(resolveTargets(process.env), value.split(","));
   const allowed = new Set<string>(IMPORTABLE_TARGETS);
   if (requested.length === 0 || requested.some((name) => !allowed.has(name))) {
     throw new AiregError(`Unknown --import value ${quoted(value)}.`, {
@@ -267,9 +269,10 @@ function shownFrom(cwd: string, manifest: string): string {
  * a shared one such as `.agents` stands in for every target that reads it.
  */
 function foldersFor(chosen: readonly string[]): string[] {
-  const targetTable = resolveTargets();
+  const targetTable = resolveTargets(process.env);
+  const where = { scope: "project", env: process.env } as const;
   const placed = new Set(
-    KINDS.flatMap((kind) => placementFor(kind, chosen, targetTable, "project").targets),
+    KINDS.flatMap((kind) => placementFor(kind, chosen, { targetTable, where }).targets),
   );
   return [...placed].sort().map((name) => targetTable[name]?.projectRoot ?? name);
 }

@@ -30,6 +30,12 @@ export async function applyRegistrations(
         .map((link) => resolve(roots.base, link.path)),
     ),
   );
-  const where = { scope: roots.scope, cwd: roots.cwd };
-  return applyRegister(touched, resolveTargets(), where, resolve(dirname(roots.artifacts)), copies);
+  const where = { scope: roots.scope, cwd: roots.cwd, env: process.env };
+  return applyRegister(
+    touched,
+    resolveTargets(where.env),
+    where,
+    resolve(dirname(roots.artifacts)),
+    copies,
+  );
 }

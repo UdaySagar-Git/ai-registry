@@ -110,6 +110,22 @@ export function parse<T extends Record<string, unknown>>(
   };
 }
 
+/** What one option hands over: a number, one of its choices, text, a list of text, or a switch. */
+type ValueOf<O extends OptionSpec> = O extends { integer: object }
+  ? number
+  : O extends { choices: readonly (infer C)[] }
+    ? C
+    : O extends { value: string }
+      ? O extends { multiple: true }
+        ? string[]
+        : string
+      : boolean;
+
+/** A command's options as its spec declares them, keyed by flag without the dashes. */
+export type OptionsOf<T extends readonly OptionSpec[]> = {
+  [O in T[number] as O["flag"] extends `--${infer Name}` ? Name : never]?: ValueOf<O>;
+};
+
 export interface Parsed<T> {
   positionals: string[];
   common: CommonOptions;

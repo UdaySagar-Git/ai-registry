@@ -1,7 +1,7 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
 import { LEVELS } from "#core/log/model.ts";
 
-export const LOGS_COMMAND: CommandSpec = {
+export const LOGS_COMMAND = {
   name: "logs",
   summary: "Read aireg's diagnostic logs",
   group: "Maintain",
@@ -38,4 +38,4 @@ export const LOGS_COMMAND: CommandSpec = {
     { flag: "--stderr", describe: "Read the daemon's stderr" },
     { flag: "--previous", describe: "Read the last rotated copy instead" },
   ],
-};
+} satisfies CommandSpec;

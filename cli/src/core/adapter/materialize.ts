@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { chmod, mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
 import type { CliCode } from "#adapter/codes.ts";
+import { CONCURRENCY, limiter, weighted } from "#adapter/concurrency.ts";
 import { adapterProblem, failureOf, messageOf } from "#adapter/errors.ts";
 import { assertUnredirected, copyRegular, EXECUTABLE, hashRegular } from "#adapter/files.ts";
 import {
@@ -18,7 +19,6 @@ import {
 import { assertWithin } from "#adapter/paths.ts";
 import { sha256 } from "#adapter/spec/canonical.ts";
 import { plural } from "#adapter/text.ts";
-import { CONCURRENCY, limiter, weighted } from "#core/concurrency.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { exists } from "#core/fs/tree.ts";
 import { KIND_SPECS } from "#core/kinds.ts";

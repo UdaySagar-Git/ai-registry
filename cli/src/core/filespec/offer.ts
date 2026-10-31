@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { CONCURRENCY, limiter } from "#adapter/concurrency.ts";
 import { isArtifactName, isKindSegment, isNamespace } from "#adapter/filespec/names.ts";
 import {
   type ArtifactKind,
@@ -13,7 +14,6 @@ import {
 import { describeFile } from "#adapter/spec/envelope.ts";
 import { isVersion } from "#adapter/spec/ref.ts";
 import { quoted } from "#adapter/text.ts";
-import { CONCURRENCY, limiter } from "#core/concurrency.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { frontmatterRecord, ownDescription } from "#core/frontmatter.ts";
 import { authoredArtifact, isDirectory, refusal } from "#core/fs/tree.ts";

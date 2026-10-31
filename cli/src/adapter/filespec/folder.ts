@@ -2,6 +2,7 @@ import { join, posix, win32 } from "node:path";
 import type { Artifact, FileRef, Resolution, Want } from "../contract.ts";
 import { messageOf } from "../errors.ts";
 import { assertUnredirected, readRegular } from "../files.ts";
+import { setRecent } from "../lru.ts";
 import { isSafePath } from "../paths.ts";
 import { identityOf, type ReadPath, readRegistry, SpecError } from "./documents.ts";
 import { besideEnvelope, resolveFromRoot } from "./resolve.ts";
@@ -98,10 +99,7 @@ export function openFolderRegistry(
         const found = await resolveFromRoot(read, { blobUrl: registry.blobUrl, wanted, all });
         resolution = { ...found, registry: identityOf(registry) };
         if (options.immutable === true) {
-          SETTLED.delete(key);
-          SETTLED.set(key, structuredClone(resolution));
-          const [oldest] = SETTLED.keys();
-          if (SETTLED.size > SETTLED_LIMIT && oldest !== undefined) SETTLED.delete(oldest);
+          setRecent(SETTLED, key, structuredClone(resolution), SETTLED_LIMIT);
         }
       }
       root = at;

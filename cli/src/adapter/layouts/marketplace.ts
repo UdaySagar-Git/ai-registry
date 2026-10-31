@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { limiter } from "../concurrency.ts";
 import type { Artifact } from "../contract.ts";
 import { messageOf } from "../errors.ts";
 import { type Fields, isRecord, trimmedText } from "../fields.ts";
@@ -69,19 +70,7 @@ type Located = { dir: string } | { remote: RemotePlugin } | { skip: string };
 
 /** Starts fetching every remote entry, each with its own warnings, to be read in entry order. */
 function prefetch(marketplace: Marketplace, context: LayoutContext): Map<Fields, Promise<Fetched>> {
-  let free = FETCHES_AT_ONCE;
-  const waiting: (() => void)[] = [];
-  // A finished fetch hands its slot to the next one waiting, so no more than the limit run.
-  const slot = (): Promise<void> => {
-    if (free === 0) return new Promise((go) => waiting.push(go));
-    free -= 1;
-    return Promise.resolve();
-  };
-  const release = () => {
-    const next = waiting.shift();
-    if (next === undefined) free += 1;
-    else next();
-  };
+  const slot = limiter(FETCHES_AT_ONCE);
   const turns = new Map<string, Promise<unknown>>();
   const started = new Map<Fields, Promise<Fetched>>();
   for (const entry of marketplace.entries) {
@@ -91,14 +80,12 @@ function prefetch(marketplace: Marketplace, context: LayoutContext): Map<Fields,
       continue;
     const warnings: string[] = [];
     const repository = repositoryOf(at.remote);
-    const fetched = (turns.get(repository) ?? Promise.resolve()).then(async () => {
-      await slot();
-      try {
-        return { plugin: await fetchedPlugin(at.remote, entry, context, warnings), warnings };
-      } finally {
-        release();
-      }
-    });
+    const fetched = (turns.get(repository) ?? Promise.resolve()).then(() =>
+      slot(async () => ({
+        plugin: await fetchedPlugin(at.remote, entry, context, warnings),
+        warnings,
+      })),
+    );
     turns.set(
       repository,
       fetched.catch(() => undefined),

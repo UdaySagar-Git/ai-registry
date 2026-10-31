@@ -1,31 +1,16 @@
 import { spawn } from "node:child_process";
-import { tmpdir } from "node:os";
 import { createInterface } from "node:readline";
 import { afterEach, describe, expect, vi } from "vitest";
-import { type OutputFormat, Printer } from "#core/term/printer.ts";
+import type { OutputFormat } from "#core/term/printer.ts";
 import { writeDaemonPid } from "#daemon/process/pid-file.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
 import { PROTOCOL_VERSION } from "#daemon/rpc/methods.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
-import type { CommandContext } from "./command.ts";
 import { daemonAction, run } from "./daemon.ts";
 
-function context(argv: string[], writes: string[], format: OutputFormat = "json"): CommandContext {
-  const writer = { write: (chunk: string) => writes.push(chunk), isTTY: false };
-  return {
-    argv,
-    cwd: tmpdir(),
-    printer: new Printer({ format, out: writer, err: writer }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  };
+function context(argv: string[], printed: string[], format: OutputFormat = "json") {
+  return commandContext(argv, { format, printed, errors: printed });
 }
 
 describe("daemonAction", () => {

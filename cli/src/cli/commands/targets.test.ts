@@ -1,38 +1,19 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
-import { Printer } from "#core/term/printer.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { RESERVED } from "./builtins.ts";
-import type { CommandContext } from "./command.ts";
 import { allCommands, lookup } from "./index.ts";
 import { foundSummary, run } from "./targets.ts";
 
 function context(
   cwd: string,
-  writes: string[],
+  printed: string[],
   format: "json" | "text" = "json",
   argv: string[] = [],
-): CommandContext {
-  return {
-    argv,
-    cwd,
-    printer: new Printer({
-      format,
-      color: "never",
-      out: { write: (chunk: string) => writes.push(chunk), isTTY: false },
-      err: { write: (chunk: string) => writes.push(chunk), isTTY: false },
-    }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  };
+) {
+  return commandContext(argv, { cwd, format, printed, errors: printed });
 }
 
 const TOOL = {

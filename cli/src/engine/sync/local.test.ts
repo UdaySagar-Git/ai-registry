@@ -1,28 +1,18 @@
-import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, vi } from "vitest";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { exists } from "#core/fs/tree.ts";
 import { roots as makeRoots, type Roots, stagingDir } from "#core/store/paths.ts";
-import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/scope/load.ts";
+import { commonOptions } from "#test/kit/command.ts";
+import { test } from "#test/kit/fixtures.ts";
 import { writeManifestIn } from "#test/kit/scope.ts";
 import { skillBody, writeSpecRoot } from "#test/kit/spec-root.ts";
 import { applyLocal } from "./local.ts";
 import { scan } from "./scan.ts";
 
-const COMMON: CommonOptions = {
-  scope: "project",
-  targets: ["claude-code"],
-  select: undefined,
-  yes: true,
-  all: false,
-  dryRun: false,
-  frozen: false,
-  force: false,
-  copy: false,
-};
+const COMMON = commonOptions({ scope: "project", targets: ["claude-code"], yes: true });
 
 let dir: string;
 let project: string;
@@ -30,8 +20,8 @@ let roots: Roots;
 
 beforeAll(() => registerBuiltinAdapters());
 
-beforeEach(async () => {
-  dir = await realpath(await mkdtemp(join(tmpdir(), "aireg-local-")));
+test.beforeEach(async ({ tmp }) => {
+  dir = tmp;
   vi.stubEnv("AIREG_HOME", join(dir, "aireg"));
   vi.stubEnv("AIREG_USER_SCOPE", join(dir, "user"));
   const kit = join(dir, "kit");
@@ -53,8 +43,8 @@ beforeEach(async () => {
 
 afterEach(async () => {
   vi.unstubAllEnvs();
+  // Writable again, so the kit can remove the folder.
   await chmod(join(project, ".claude"), 0o755).catch(() => {});
-  await rm(dir, { recursive: true, force: true });
 });
 
 async function sync() {

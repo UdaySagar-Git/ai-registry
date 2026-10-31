@@ -6,10 +6,10 @@ import { formatLock } from "#core/lock.ts";
 import type { Plan } from "#core/plan/model.ts";
 import { parseRef } from "#core/ref.ts";
 import { type Roots, roots } from "#core/store/paths.ts";
-import { Printer } from "#core/term/printer.ts";
 import { locate } from "#engine/scope/locate.ts";
 import { commonOptions } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { capturedPrinter } from "#test/kit/printer.ts";
 import { manifestPath, writeManifestIn } from "#test/kit/scope.ts";
 import { skillBody, writeSpecRoot } from "#test/kit/spec-root.ts";
 import { runPipeline } from "./pipeline.ts";
@@ -51,8 +51,7 @@ describe("runPipeline", () => {
     const project = join(dir, "project");
     const before = `# ours\nregistries:\n  kit: ${kit}\nartifacts: []\n`;
     await writeManifestIn(project, before);
-    const quiet = { write: () => true, isTTY: false };
-    const printer = new Printer({ format: "json", out: quiet, err: quiet });
+    const { printer } = capturedPrinter({ format: "json" });
 
     await expect(
       runPipeline({

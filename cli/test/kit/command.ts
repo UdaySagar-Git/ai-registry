@@ -1,6 +1,7 @@
 import type { CommandContext } from "#cli/commands/command.ts";
-import { type OutputFormat, Printer } from "#core/term/printer.ts";
+import type { OutputFormat } from "#core/term/printer.ts";
 import type { CommonOptions } from "#engine/options.ts";
+import { capturedPrinter } from "./printer.ts";
 
 export interface CommandContextOptions {
   cwd?: string;
@@ -16,17 +17,11 @@ export function commandContext(
   argv: string[],
   options: CommandContextOptions = {},
 ): CommandContext {
-  const printed = options.printed ?? [];
-  const errors = options.errors ?? [];
+  const { cwd = process.cwd(), ...capture } = options;
   return {
     argv,
-    cwd: options.cwd ?? process.cwd(),
-    printer: new Printer({
-      format: options.format ?? "json",
-      color: "never",
-      out: { write: (chunk: string) => printed.push(chunk) > 0, isTTY: false },
-      err: { write: (chunk: string) => errors.push(chunk) > 0, isTTY: false },
-    }),
+    cwd,
+    printer: capturedPrinter({ format: "json", ...capture }).printer,
     host: {
       version: "test",
       connectAccount: async () => {

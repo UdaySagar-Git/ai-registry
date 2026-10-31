@@ -51,7 +51,8 @@ export class JobScheduler {
     this.#timer = undefined;
   }
 
-  private async tick(): Promise<void> {
+  /** One pass over the jobs; `start` runs one at once and then one every second. */
+  async tick(): Promise<void> {
     if (this.#ticking) return;
     this.#ticking = true;
     try {
@@ -69,7 +70,7 @@ export class JobScheduler {
         if (!job.schedule.enabled) continue;
         // Resuming leaves every held-back job overdue at once, so a started run
         // ends the tick. A failed start does not, or one broken job spends it.
-        if (await this.consider(job, steady)) break;
+        if (await this.#consider(job, steady)) break;
       }
     } catch (error) {
       this.#log.error("scheduler tick failed", { error });
@@ -91,7 +92,7 @@ export class JobScheduler {
   }
 
   /** True when a run actually started, which is what ends the tick. */
-  private async consider(job: Job, steady: ReadonlySet<string>): Promise<boolean> {
+  async #consider(job: Job, steady: ReadonlySet<string>): Promise<boolean> {
     const jobId = job.id;
     const now = Date.now();
     if ((this.#deferred.get(jobId)?.nextAttemptAtMs ?? 0) > now) return false;
@@ -113,12 +114,12 @@ export class JobScheduler {
         attempts: (this.#deferred.get(jobId)?.attempts ?? 0) + 1,
         error,
       });
-      this.defer(jobId, now);
+      this.#defer(jobId, now);
       return false;
     }
   }
 
-  private defer(jobId: string, now: number): void {
+  #defer(jobId: string, now: number): void {
     const attempts = (this.#deferred.get(jobId)?.attempts ?? 0) + 1;
     this.#deferred.set(jobId, { attempts, nextAttemptAtMs: now + retryBackoff(attempts) });
   }

@@ -5,6 +5,7 @@ import { unhandled } from "#cli/render/tools.ts";
 import { emptyLock } from "#core/lock.ts";
 import type { Plan, Selected } from "#core/plan/model.ts";
 import { roots, type Scope } from "#core/store/paths.ts";
+import { names } from "#core/target/ids.ts";
 import { resolveTargets } from "#core/target/table.ts";
 import { Printer } from "#core/term/printer.ts";
 import { lock } from "#test/kit/builders/lock.ts";
@@ -332,8 +333,9 @@ describe("chooseTargets", () => {
     group: "engineering",
   });
   const BOTH = [item("skill", "pr-review"), item("agent", "reviewer")];
-  // Google Antigravity sorts first.
-  const TO_CLAUDE = [KEY.down];
+  // The tools are offered by id, without the shared folder.
+  const offered = names(targetTable).filter((name) => targetTable[name]?.shared === false);
+  const to = (name: string) => offered.slice(0, offered.indexOf(name)).map(() => KEY.down);
 
   async function pick(
     preselected: string[],
@@ -367,44 +369,38 @@ describe("chooseTargets", () => {
   });
 
   test("shows where the highlighted tool loads what was picked, and nothing on other rows", async () => {
-    const { shown } = await pick([], TO_CLAUDE);
+    const { shown } = await pick([], to("claude-code"));
     expect(shown).toMatch(/Claude Code\s+\.claude[\\/]skills, \.claude[\\/]agents/);
     expect(shown).not.toMatch(/Codex\s+\.agents/);
     expect(shown).not.toContain("Found");
   });
 
   test("follows the cursor: Codex reads skills from .agents, Cursor from .agents and .claude", async () => {
-    expect((await pick([], [...TO_CLAUDE, KEY.down])).shown).toMatch(
+    expect((await pick([], to("codex"))).shown).toMatch(
       /Codex\s+\.agents[\\/]skills, \.codex[\\/]agents$/m,
     );
-    expect((await pick([], [...TO_CLAUDE, KEY.down, KEY.down])).shown).toMatch(
+    expect((await pick([], to("cursor"))).shown).toMatch(
       /Cursor\s+\.agents[\\/]skills, \.claude[\\/]agents$/m,
     );
   });
 
   test("leaves a tool that loads none of it unpicked, with a dash", async () => {
     const agent = [item("agent", "reviewer")];
-    const { picked, shown } = await pick(
-      [],
-      [...TO_CLAUDE, KEY.down],
-      agent,
-      "project",
-      noCodexAgents,
-    );
+    const { picked, shown } = await pick([], to("codex"), agent, "project", noCodexAgents);
     expect(shown).toMatch(/Codex\s+-$/m);
     expect(picked).toEqual(["claude-code"]);
   });
 
   test("shows a user scope's folders under ~, never as absolute paths", async () => {
     const tools = resolveTargets({ HOME: homedir() });
-    const { shown } = await pick([], TO_CLAUDE, BOTH, "user", tools);
+    const { shown } = await pick([], to("claude-code"), BOTH, "user", tools);
     expect(shown).toContain("~/.claude/skills, ~/.claude/agents");
     expect(shown).not.toContain(homedir());
   });
 
   test("shows the plugin folder for a source that installs its namespaces as plugins", async () => {
     const tools = resolveTargets({ HOME: homedir() });
-    const { shown } = await pick([], TO_CLAUDE, BOTH, "user", tools, true);
+    const { shown } = await pick([], to("claude-code"), BOTH, "user", tools, true);
     expect(shown).toContain("~/.claude/skills/engineering");
   });
 

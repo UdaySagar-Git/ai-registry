@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import { ErrorCode } from "#core/errors.ts";
+import { BUILTIN_TARGETS } from "#targets/index.ts";
 import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { run } from "./init.ts";
@@ -26,18 +27,7 @@ describe("init", () => {
     const writes: string[] = [];
     await run(context(cwd, ["--for", "*"], writes));
     const payload = JSON.parse(writes.join("")) as { data: { targets: string[] } };
-    expect(payload.data.targets).toEqual([
-      "antigravity",
-      "claude-code",
-      "codex",
-      "cursor",
-      "gemini-cli",
-      "github-copilot",
-      "grok",
-      "opencode",
-      "pi",
-      "universal",
-    ]);
+    expect(payload.data.targets).toEqual(BUILTIN_TARGETS.map((target) => target.id).sort());
   });
 
   test("names the folders it installs into, as list and status name them", async ({ tmp: cwd }) => {

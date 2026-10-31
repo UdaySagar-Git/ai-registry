@@ -12,7 +12,7 @@ import type { Targets } from "#core/target/contract.ts";
 import type { Printer } from "#core/term/printer.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, read, withScope } from "#engine/scope/load.ts";
-import { commit, prepareWrite, restore, unrecorded } from "./commit.ts";
+import { commit, lockUnchanged, prepareWrite, restore } from "./commit.ts";
 import { appliedNotices, keptMessage, recoveredNotices, warn } from "./notices.ts";
 import { closeAll, plan } from "./plan.ts";
 import {
@@ -182,7 +182,7 @@ async function write(
       onStep: (action) => report.step(action, planned, chosen),
       undo: async () => {
         // Nothing was recorded, so the manifest must not ask for it.
-        if (edited && (await unrecorded(roots, lock)))
+        if (edited && (await lockUnchanged(roots, lock)))
           await restore(roots.manifest, before, written);
       },
     });

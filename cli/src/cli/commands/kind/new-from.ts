@@ -7,6 +7,8 @@ import { rootReader } from "#adapter/filespec/folder.ts";
 import { ARTIFACTS_DIR, ENVELOPE } from "#adapter/filespec/names.ts";
 import { list, sanitizeName } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
+import { STREAMED } from "#cli/commands/define.ts";
+import type { KindNewFrom } from "#cli/commands/kind/result.ts";
 import type { Own } from "#cli/commands/kind.ts";
 import { needsInput } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -23,6 +25,7 @@ import { withName } from "#core/frontmatter.ts";
 import { refuseRedirect } from "#core/fs/fresh.ts";
 import { expandUserPath } from "#core/fs/path.ts";
 import { authored, type Irregular, refusal } from "#core/fs/tree.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { nameOf } from "./fields.ts";
 import { FRESH } from "./files.ts";
 import { namespaceFor } from "./place.ts";
@@ -37,6 +40,11 @@ interface Incoming {
   front: { file: string; name: string } | undefined;
 }
 
+/** A person reads each copy's folder from where they are, not from the registry's root. */
+export interface Copied extends KindNewFrom {
+  shown: { name: string; at: string }[];
+}
+
 /** Starts new artifacts from folders that already exist; the originals stay where they are. */
 export async function newFrom(
   kind: string,
@@ -45,7 +53,7 @@ export async function newFrom(
   paths: readonly string[],
   own: Own,
   yes: boolean,
-): Promise<void> {
+): Promise<Copied | typeof STREAMED> {
   if (paths.length === 0) {
     throw needsInput(
       `${kind} new --from`,
@@ -74,7 +82,7 @@ export async function newFrom(
   }
 
   const namespace = await namespaceFor(root, context.cwd, own, context, yes);
-  if (namespace === undefined) return;
+  if (namespace === undefined) return STREAMED;
   for (const item of found) {
     refuseRedirect(root, join(root, ARTIFACTS_DIR, namespace, kind, item.name, "0.1.0"));
     if (existsSync(join(root, ARTIFACTS_DIR, namespace, kind, item.name))) {
@@ -101,21 +109,17 @@ export async function newFrom(
     copied.push({ name: item.name, at });
   }
 
-  if (context.printer.format === "json") {
-    context.printer.json({
-      ok: true,
-      data: {
-        kind,
-        namespace,
-        created: copied.map((item) => ({ name: item.name, at: relative(root, item.at) })),
-      },
-    });
-    return;
-  }
-  for (const item of copied) {
-    context.printer.success(`Copied ${item.name} into ${relative(context.cwd, item.at) || "."}/.`);
-  }
-  context.printer.note("next", "aireg registry index");
+  return {
+    kind,
+    namespace,
+    created: copied.map((item) => ({ name: item.name, at: relative(root, item.at) })),
+    shown: copied.map((item) => ({ name: item.name, at: relative(context.cwd, item.at) || "." })),
+  };
+}
+
+export function printCopied(result: Copied, printer: Printer): void {
+  for (const item of result.shown) printer.success(`Copied ${item.name} into ${item.at}/.`);
+  printer.note("next", "aireg registry index");
 }
 
 async function incoming(

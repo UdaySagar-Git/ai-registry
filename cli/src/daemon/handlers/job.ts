@@ -1,4 +1,5 @@
-import { AccountService } from "#accounts/service.ts";
+import type { ResolvedRegistry } from "#accounts/registry.ts";
+import { adoptAccount, resolveAccount } from "#accounts/service.ts";
 import { messageOf } from "#adapter/errors.ts";
 import { expandHome } from "#adapter/paths.ts";
 import { list, quoted } from "#adapter/text.ts";
@@ -186,7 +187,7 @@ async function createAdapterJob(
   const account = accountFor(config, inputs.text(params, "account"));
   let handler = await stepContribution(type);
   try {
-    const resolved = await new AccountService().resolve(account);
+    const resolved = await resolveAccount(account);
     handler = stepOn(resolved.adapter, type) ?? handler;
   } catch {
     // The job still runs if any installed adapter registered this type.
@@ -303,11 +304,10 @@ async function declareForAccounts(
 async function bindAccount(config: RegistryConfig, alias: string): Promise<Account> {
   const existing = config.accounts.find((account) => account.registry === alias);
   if (existing !== undefined) return existing;
-  const service = new AccountService();
   // Resolved before anything is written: a refusal must leave no row behind.
-  let resolved: Awaited<ReturnType<AccountService["resolve"]>>;
+  let resolved: ResolvedRegistry;
   try {
-    resolved = await service.resolve({ id: "", registry: alias });
+    resolved = await resolveAccount({ id: "", registry: alias });
   } catch (cause) {
     throw invalidParams(messageOf(cause));
   }
@@ -317,7 +317,7 @@ async function bindAccount(config: RegistryConfig, alias: string): Promise<Accou
       hint: `Run \`aireg auth login ${alias}\`. A job never sees ${tokenVariable(alias)}, since the daemon does not inherit it.`,
     });
   }
-  return service.adopt(alias);
+  return adoptAccount(alias);
 }
 
 /** An existing entry is never rewritten, only given settings it had none of. */

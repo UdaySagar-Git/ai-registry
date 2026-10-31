@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { AccountService } from "#accounts/service.ts";
+import { resolveAccount } from "#accounts/service.ts";
 import { quoted } from "#adapter/text.ts";
 import { stopGit } from "#adapters/git/api.ts";
 import { expandSteps, orderSteps } from "#core/config/jobs.ts";
@@ -283,8 +283,7 @@ export class SyncRunner {
 
     for (const step of adapters) {
       if (signal.aborted) break;
-      const accounts = new AccountService();
-      const resolved = await accounts.resolve(account, work.scope, work.root);
+      const resolved = await resolveAccount(account, { scope: work.scope, cwd: work.root });
       const handler = stepOn(resolved.adapter, step.kind) ?? (await stepContribution(step.kind));
       if (handler === undefined) {
         throw new Error(

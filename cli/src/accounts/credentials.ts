@@ -11,7 +11,7 @@ import { registryToken, tokenVariable } from "#core/env.ts";
 import { ErrorCode } from "#core/errors.ts";
 import type { RegistrySource } from "#core/manifest/model.ts";
 import { readRootManifest } from "./registry.ts";
-import { AccountService } from "./service.ts";
+import { credentialIssuedFor, signedInCredential } from "./service.ts";
 
 /**
  * The user's own files, which no project's manifest can change. credentials.json is not
@@ -45,15 +45,15 @@ async function release(
   source: Source,
   location: string,
   declared: boolean,
-  { found, aliases, service, signal }: Lookup,
+  { found, aliases, signal }: Lookup,
 ): Promise<Credential | undefined> {
   const account = found.accounts.find(({ registry }) => registry === alias);
   if (account === undefined && registryToken(alias) === undefined) return undefined;
   if (!(await signsIn(source, location))) return undefined;
   const fromEnv = fromEnvironment(alias, location, declared, aliases);
   if (fromEnv !== undefined || account === undefined) return fromEnv;
-  if (!declared && !(await service.issuedFor(account, location))) return undefined;
-  return service.signedInCredential(account, location, signal);
+  if (!declared && !(await credentialIssuedFor(account, location))) return undefined;
+  return signedInCredential(account, location, signal);
 }
 
 type Source = Pick<RegistrySource, "adapter"> & Partial<Pick<RegistrySource, "config">>;
@@ -68,7 +68,6 @@ async function signsIn(source: Source, location: string) {
 interface Lookup {
   found: Bindings;
   aliases: readonly string[];
-  service: AccountService;
   signal: AbortSignal;
 }
 
@@ -112,7 +111,6 @@ async function lookup(signal: AbortSignal, aliases: readonly string[] = []): Pro
   return {
     found,
     aliases: [...aliases, ...Object.keys(found.declared)],
-    service: new AccountService(),
     signal,
   };
 }
@@ -167,7 +165,7 @@ export async function credentialForLocation(
   });
   const declared = account === undefined ? undefined : found.declared[account.registry];
   if (account !== undefined && declared !== undefined && (await signsIn(declared, location))) {
-    const credential = await shared.service.signedInCredential(account, location, signal);
+    const credential = await signedInCredential(account, location, signal);
     if (credential !== undefined) return credential;
   }
   return release(alias, source, location, false, shared);

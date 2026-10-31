@@ -1,4 +1,4 @@
-import type { AccountService } from "#accounts/service.ts";
+import { resolveAccount } from "#accounts/service.ts";
 import type { Credential } from "#adapter/index.ts";
 import { quoted } from "#adapter/text.ts";
 import { needsInput } from "#cli/options/parse.ts";
@@ -14,9 +14,9 @@ export function findAccount(accounts: readonly Account[], wanted: string): Accou
  * A job keeps an account for a folder or git registry too, which has nothing to sign in
  * to. One whose registry cannot be read now is taken to need a sign-in.
  */
-export async function needsSignIn(service: AccountService, account: Account): Promise<boolean> {
+export async function needsSignIn(account: Account): Promise<boolean> {
   try {
-    return (await service.resolve(account)).adapter.auth?.login !== undefined;
+    return (await resolveAccount(account)).adapter.auth?.login !== undefined;
   } catch {
     return true;
   }

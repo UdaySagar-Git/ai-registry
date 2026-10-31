@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
-import { AccountService } from "#accounts/service.ts";
 import type { Fields } from "#adapter/fields.ts";
 import { list, quoted } from "#adapter/text.ts";
 import { updateAdapters } from "#core/adapter/installed/update.ts";
@@ -57,7 +56,6 @@ export class DaemonRuntime {
   readonly #server: RpcServer;
   readonly #runs: SqliteRunStore;
   readonly #version: string;
-  readonly #accounts = new AccountService();
   readonly #runner: SyncRunner;
   readonly #scheduler: JobScheduler;
   readonly #minUpdate = new DaemonMinUpdate(() => this.#applyMinUpdate());
@@ -116,17 +114,17 @@ export class DaemonRuntime {
       "conflict.resolve": (raw, context) => resolveConflict(raw, context, this.#runner),
       "account.login": async (raw, context) => {
         // Never the credential, only that one was written: enough to answer "am I signed in".
-        const result = await loginAccount(raw, context, this.#accounts);
+        const result = await loginAccount(raw, context);
         this.#log.info("account authenticated", { accountId: result.account.id });
         return result;
       },
       "account.logout": async (raw, context) => {
-        const result = await logoutAccount(raw, context, this.#accounts);
+        const result = await logoutAccount(raw, context);
         this.#log.info("account signed out");
         return result;
       },
       "account.remove": async (raw, context) => {
-        const result = await removeAccount(raw, context, this.#accounts);
+        const result = await removeAccount(raw, context);
         this.#log.info("account removed");
         return result;
       },

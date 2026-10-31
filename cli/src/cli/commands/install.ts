@@ -28,23 +28,17 @@ export const { run } = defineCommand({
     const loaded = await load(common, context.cwd);
 
     let approved = true;
-    const result = await runPipeline(
-      loaded.roots,
+    const result = await runPipeline({
+      roots: loaded.roots,
       common,
-      context.printer,
-      context.cwd,
-      planReport(context.printer),
-      () => ({
-        approve: async (plan, targets) => {
-          approved = await confirmIfDestructive(step, plan, {
-            verb: "Update",
-            targets,
-            targetTable: loaded.targetTable,
-          });
-          return approved;
-        },
-      }),
-    );
+      printer: context.printer,
+      cwd: context.cwd,
+      report: planReport(context.printer),
+      approve: async (plan, chosen) => {
+        approved = await confirmIfDestructive(step, plan, { verb: "Update", ...chosen });
+        return approved;
+      },
+    });
 
     if (!approved) {
       cancel(step);

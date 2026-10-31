@@ -14,14 +14,16 @@ import { RpcErrorCode } from "./codes.ts";
 import { daemonProof, listening } from "./endpoint.ts";
 import { rpcError } from "./errors.ts";
 import { FrameDecoder, MAX_RPC_FRAME_BYTES, MAX_RPC_FRAME_SHOWN } from "./frames.ts";
-import { type DaemonNotification, type DaemonNotifications, PROTOCOL_VERSION } from "./methods.ts";
+import {
+  type DaemonHandlers,
+  type DaemonNotification,
+  type DaemonNotifications,
+  PROTOCOL_VERSION,
+  type RpcContext,
+} from "./methods.ts";
 import { encodeMessage, type RpcFailure, type RpcId, type RpcIncoming } from "./protocol.ts";
 
-export interface RpcContext {
-  signal: AbortSignal;
-}
-
-export type RpcHandler = (params: unknown, context: RpcContext) => Promise<unknown>;
+type RpcHandler = (params: unknown, context: RpcContext) => Promise<unknown>;
 type Sender = (message: Parameters<typeof encodeMessage>[0]) => boolean;
 const MAX_CLIENTS = 32;
 const MAX_REQUESTS_PER_SECOND = 200;
@@ -155,10 +157,15 @@ export class RpcServer {
     this.#log = log;
   }
 
+  /** The transport alone; the daemon registers through `methods`, which checks each against its type. */
   method(name: string, handler: RpcHandler): void {
     if (this.#handlers.has(name))
       throw new Error(`JSON-RPC method "${name}" is already registered.`);
     this.#handlers.set(name, handler);
+  }
+
+  methods(handlers: DaemonHandlers): void {
+    for (const [name, handler] of Object.entries(handlers)) this.method(name, handler);
   }
 
   async listen(endpoint: string): Promise<void> {

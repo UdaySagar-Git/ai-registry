@@ -6,6 +6,7 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import { PRIVATE_FILE } from "#core/fs/mode.ts";
 import { withLease } from "#core/lease/lease.ts";
 import { DAEMON_STDERR_FILE, logPath } from "#core/log/sink.ts";
+import { pollUntil } from "#core/poll.ts";
 import { spawnDetached } from "#core/process.ts";
 import { launchArgv, runningEntry } from "#core/release/launch.ts";
 import { ensureHome } from "#core/store/paths.ts";
@@ -96,12 +97,8 @@ async function askShutdown(endpoint: string): Promise<boolean> {
 }
 
 async function waitUntilDown(endpoint: string, timeoutMs: number): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (!(await listening(endpoint))) return true;
-    await sleep(50);
-  }
-  return !(await listening(endpoint));
+  const down = async () => !(await listening(endpoint));
+  return (await pollUntil(down, timeoutMs, 50)) || (await down());
 }
 
 async function signalListener(endpoint: string): Promise<void> {
@@ -165,14 +162,15 @@ export async function startDaemon(entry: string, version: string): Promise<void>
   }
 }
 
-async function waitFor(version: string, timeoutMs: number): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const found = await probeDaemon(version);
-    if (found.status === "ready" && found.version === version) return true;
-    await sleep(50);
-  }
-  return false;
+function waitFor(version: string, timeoutMs: number): Promise<boolean> {
+  return pollUntil(
+    async () => {
+      const found = await probeDaemon(version);
+      return found.status === "ready" && found.version === version;
+    },
+    timeoutMs,
+    50,
+  );
 }
 
 /**

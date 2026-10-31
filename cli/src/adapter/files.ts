@@ -3,6 +3,7 @@ import { constants, createWriteStream, lstatSync, type Stats } from "node:fs";
 import { type FileHandle, lstat, mkdir, open, rename, rm } from "node:fs/promises";
 import { dirname, join, posix, relative, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
+import { setTimeout as sleep } from "node:timers/promises";
 import { assertWithin } from "./paths.ts";
 import { hashStream } from "./spec/canonical.ts";
 
@@ -227,7 +228,7 @@ export async function replaceFile(
       const code = (error as NodeJS.ErrnoException).code ?? "";
       if (platform !== "win32" || !HELD.has(code) || Date.now() >= deadline) throw error;
     }
-    await new Promise((resolve) => setTimeout(resolve, wait));
+    await sleep(wait);
   }
 }
 

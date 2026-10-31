@@ -1,9 +1,8 @@
 import { resolveAccount } from "#accounts/service.ts";
 import type { Credential } from "#adapter/index.ts";
-import { quoted } from "#adapter/text.ts";
 import { needsInput } from "#cli/options/parse.ts";
 import type { Account } from "#core/config/model.ts";
-import { AiregError, ErrorCode } from "#core/errors.ts";
+import { AiregError } from "#core/errors.ts";
 
 /** Accepts either handle: a job stores the id, and a person types the alias. */
 export function findAccount(accounts: readonly Account[], wanted: string): Account | undefined {
@@ -42,11 +41,4 @@ export function needsRegistry(action: string): AiregError {
     "a registry name",
     `Name the registry: \`aireg auth ${action} <registry>\`.`,
   );
-}
-
-export function noAccount(wanted: string): AiregError {
-  return new AiregError(`No account named ${quoted(wanted)}.`, {
-    code: ErrorCode.NotFound,
-    hint: "Run `aireg auth list` to see the accounts.",
-  });
 }

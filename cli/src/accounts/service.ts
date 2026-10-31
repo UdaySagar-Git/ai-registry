@@ -257,7 +257,7 @@ export async function signOut(accountId: string, signal: AbortSignal): Promise<R
   return config;
 }
 
-function unknownAccount(accountId: string): AiregError {
+export function unknownAccount(accountId: string): AiregError {
   return new AiregError(`No account named ${quoted(accountId)}.`, {
     code: ErrorCode.NotFound,
     hint: "Run `aireg auth list` to see the accounts.",

@@ -16,6 +16,7 @@ import { stepContribution, stepOn } from "#core/host/load.ts";
 import { nullLogger } from "#core/log/logger.ts";
 import type { Logger } from "#core/log/model.ts";
 import {
+  addCounts,
   EMPTY_RUN_COUNTS,
   type ItemSettled,
   isActive,
@@ -382,13 +383,7 @@ export class SyncRunner {
         hooks,
         host: extensionHost(this.#version),
       });
-      counts = {
-        examined: counts.examined + result.counts.examined,
-        changed: counts.changed + result.counts.changed,
-        skipped: counts.skipped + result.counts.skipped,
-        attention: counts.attention + result.counts.attention,
-        failed: counts.failed + result.counts.failed,
-      };
+      counts = addCounts(counts, result.counts);
       if (WORSE[result.state] > WORSE[state]) {
         state = result.state;
         errorCode = result.errorCode;

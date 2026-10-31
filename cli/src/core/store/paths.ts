@@ -47,6 +47,14 @@ export function toolHomeRoot(env: NodeJS.ProcessEnv = process.env): string {
   return setting("HOME", env) ?? join(homeDir(env), HOME_DIR);
 }
 
+/** What the CLI and the daemon keep between runs: the run database, pid, keys and update check. */
+export function stateDir(env: NodeJS.ProcessEnv = process.env): string {
+  return join(toolHome(env), "state");
+}
+
+/** Under the project's `.registry/`, or for the user scope under the home. */
+export const LEASES_DIR = "leases";
+
 /**
  * Creates the home owner-only before anything goes in it, whatever the umask: stored
  * credentials are refused under a home other users can write to. An existing one keeps its mode.
@@ -104,7 +112,7 @@ export function adapterModulePath(
 
 /** The user scope's leases, outside its tree so they survive that tree being replaced. */
 export function leasesDir(env: NodeJS.ProcessEnv = process.env): string {
-  return join(toolHome(env), "leases");
+  return join(toolHome(env), LEASES_DIR);
 }
 
 export function roots(scope: Scope, cwd: string, env: NodeJS.ProcessEnv = process.env): Roots {

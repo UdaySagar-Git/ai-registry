@@ -90,11 +90,17 @@ Vitest runs five projects. `pnpm test` runs them all, and `pnpm run test:unit`, 
 
 A scenario in `test/scenarios/*.md` is a CLI session: `$ aireg ...` lines with the output expected, `? <code>` for an exit status, and `file` blocks for what should be on disk. `UPDATE_SCENARIOS=1` rewrites the expected output after a deliberate change.
 
-`pnpm run verify` runs the typecheck, lint, dead-code check, third-party notices check, build, package check and tests.
+`pnpm run verify` runs the typecheck, lint, comment check, dead-code check, third-party notices check, build, package check and tests.
 
 Lint fails on a function whose cognitive complexity is over 25, a function with more than six parameters, an import cycle, a barrel or `export *` module, an import below other code, a shadowed name, a nested ternary, a switch over a union that misses a case, a file name that is not kebab-case, and a test that asserts nothing, asserts conditionally or is named `it`. A rule that existing files break lists them in an override at the end of `biome.json`; that list only shrinks, so fix a file and take it off rather than add one.
 
 Lint also warns about a function over 100 lines or a file over 1000, blank lines aside and outside tests, and a reassigned parameter. These prompt a look, not a split: split a file when it holds more than one concern. Existing code may carry these warnings, but a pull request must leave every file it adds or edits free of them: CI runs `pnpm run lint:changed --since=<base>`, which fails on any warning in those files. Run it before you push, with `--since=origin/main`.
+
+## Comments
+
+A comment says why: a constraint, an invariant, an ordering, a platform quirk, a compatibility reason or a link. What the code does, the name and the type already say; when they do not, rename. JSDoc is for the published contract in `adapter/`, `core/target/contract.ts`, `core/product.ts`, the settings in `core/env.ts` and the command specs, one line where it fits. Elsewhere a doc comment on a declaration or field is at most two lines, and only for what its name and type cannot say, such as what an absent value means. A `//` above a statement is at most two lines.
+
+`pnpm run check:comments` (`scripts/comments/check.ts`) fails on a doc comment stacked on another or separated from its declaration by a blank line, a comment trailing code, a doc comment inside a value, an internal doc comment or `//` run over two lines, and a `biome-ignore` with no reason. A `//` note on one entry of a table or an expected value is fine.
 
 ## Messages
 

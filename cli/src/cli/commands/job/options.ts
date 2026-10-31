@@ -22,6 +22,13 @@ export interface Own extends Record<string, unknown>, RunsOptions {
   to?: string;
 }
 
+/** What every `job` action is handed: its one word after the action, and the flags. */
+export interface JobOptions {
+  argument: string | undefined;
+  own: Own;
+  common: CommonOptions;
+}
+
 /** Only what the flags asked for; each leaf step takes its own. */
 export function policy(own: Own): Record<string, StepPolicy> {
   const chosen = {

@@ -1,7 +1,9 @@
 import { resolve } from "node:path";
 import { list as listOf } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
+import { action } from "#cli/commands/define.ts";
 import { addContributedJob } from "#cli/commands/job/contributed.ts";
+import type { JobSaved } from "#cli/commands/job/result.ts";
 import { needsInput } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
@@ -14,25 +16,52 @@ import { stepForFlags } from "#core/host/load.ts";
 import { unknownRegistry } from "#core/manifest/errors.ts";
 import { readManifest } from "#core/manifest/repository.ts";
 import { roots, userScopeDir } from "#core/store/paths.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { cannotPublish } from "#engine/publish/target.ts";
 import { originsOf, target } from "./list.ts";
-import { type Own, policy, refsFrom } from "./options.ts";
+import { type JobOptions, type Own, policy, refsFrom } from "./options.ts";
 
-/** `aireg job add`, and `aireg watch add`, which is the same with only its folders. */
+/** `aireg job add`. */
+export const addJob = action({
+  run: ({ argument, own, common }: JobOptions, context): Promise<Saved> =>
+    saveJob(context, argument, own, common),
+  data: savedData,
+  text: savedText,
+});
+
+/** `aireg watch add`, which is `job add` with only its folders, printing what it saved. */
 export async function add(
   context: CommandContext,
   root: string | undefined,
   own: Own,
   common: CommonOptions,
 ): Promise<void> {
+  const result = await saveJob(context, root, own, common);
+  context.printer.format === "json"
+    ? context.printer.json({ ok: true, data: savedData(result) })
+    : savedText(result, context.printer);
+}
+
+/** The job saved, and what its line says: an adapter's type, or whether it replaced one. */
+type Saved = JobSaved & ({ kind: string } | { existed: boolean });
+
+async function saveJob(
+  context: CommandContext,
+  root: string | undefined,
+  own: Own,
+  common: CommonOptions,
+): Promise<Saved> {
   const contribution = await stepForFlags(own);
   const seconds = own.interval ?? DEFAULT_INTERVAL_SECONDS;
   if (contribution !== undefined) {
     const flags = { ...own, targets: common.targets };
-    return withDaemon((client) => addContributedJob(context, client, contribution, flags, seconds));
+    const made = await withDaemon((client) =>
+      addContributedJob(client, contribution, flags, seconds),
+    );
+    return { ...made, kind: contribution.kind };
   }
   const planned = await plannedJob(context, root, own, common);
   const { origins, refs } = planned;
@@ -61,10 +90,20 @@ export async function add(
       });
       return { ...made, existed: config.jobs.some((item) => item.id === made.job.id) };
     });
-    context.printer.format === "json"
-      ? context.printer.json({ ok: true, data: { job, revision: updated.revision } })
-      : context.printer.success(saved(job, existed));
+    return { job, revision: updated.revision, existed };
   });
+}
+
+function savedData({ job, revision }: Saved): JobSaved {
+  return { job, revision };
+}
+
+function savedText(result: Saved, printer: Printer): void {
+  printer.success(
+    "kind" in result
+      ? `Added ${result.kind} job ${result.job.id}.`
+      : saved(result.job, result.existed),
+  );
 }
 
 /** What `job add` checks on its own, so a command that fails it never starts the daemon. */

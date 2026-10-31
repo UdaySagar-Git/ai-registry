@@ -239,12 +239,7 @@ export async function signIn(
 export async function signOut(accountId: string, signal: AbortSignal): Promise<RegistryConfig> {
   const config = await readConfig();
   const account = config.accounts.find(({ id }) => id === accountId);
-  if (account === undefined) {
-    throw new AiregError(`No account named ${quoted(accountId)}.`, {
-      code: ErrorCode.NotFound,
-      hint: "Run `aireg auth list` to see the accounts.",
-    });
-  }
+  if (account === undefined) throw unknownAccount(accountId);
   const resolved = await resolveAccount(account).catch(() => undefined);
   const stored = await changing(account.id, async () => {
     const held = await readCredential(account.id);
@@ -262,6 +257,13 @@ export async function signOut(accountId: string, signal: AbortSignal): Promise<R
   return config;
 }
 
+function unknownAccount(accountId: string): AiregError {
+  return new AiregError(`No account named ${quoted(accountId)}.`, {
+    code: ErrorCode.NotFound,
+    hint: "Run `aireg auth list` to see the accounts.",
+  });
+}
+
 /** Explicit and separate from signing out, because a job may still name it. */
 export async function removeAccount(
   accountId: string,
@@ -269,12 +271,7 @@ export async function removeAccount(
 ): Promise<RegistryConfig> {
   const config = await readConfig();
   const account = config.accounts.find(({ id }) => id === accountId);
-  if (account === undefined) {
-    throw new AiregError(`No account named ${quoted(accountId)}.`, {
-      code: ErrorCode.NotFound,
-      hint: "Run `aireg auth list` to see the accounts.",
-    });
-  }
+  if (account === undefined) throw unknownAccount(accountId);
   const used = config.jobs.filter((job) => job.account === accountId).map(({ id }) => id);
   if (used.length > 0) {
     throw new AiregError(`The account is used by ${plural(used.length, "job")}: ${list(used)}.`, {

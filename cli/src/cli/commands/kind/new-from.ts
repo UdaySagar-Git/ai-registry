@@ -4,7 +4,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { isRecord } from "#adapter/fields.ts";
 import { readJson } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
-import { ENVELOPE } from "#adapter/filespec/names.ts";
+import { ARTIFACTS_DIR, ENVELOPE } from "#adapter/filespec/names.ts";
 import { list, sanitizeName } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import type { Own } from "#cli/commands/kind.ts";
@@ -76,8 +76,8 @@ export async function newFrom(
   const namespace = await namespaceFor(root, context.cwd, own, context, yes);
   if (namespace === undefined) return;
   for (const item of found) {
-    refuseRedirect(root, join(root, "artifacts", namespace, kind, item.name, "0.1.0"));
-    if (existsSync(join(root, "artifacts", namespace, kind, item.name))) {
+    refuseRedirect(root, join(root, ARTIFACTS_DIR, namespace, kind, item.name, "0.1.0"));
+    if (existsSync(join(root, ARTIFACTS_DIR, namespace, kind, item.name))) {
       throw new AiregError(`${namespace}/${kind}/${item.name} already exists.`, {
         code: ErrorCode.Conflict,
         hint: `Start its next version with \`aireg ${kind} bump ${item.name}\`.`,
@@ -87,7 +87,7 @@ export async function newFrom(
 
   const copied: { name: string; at: string }[] = [];
   for (const item of found) {
-    const at = join(root, "artifacts", namespace, kind, item.name, "0.1.0");
+    const at = join(root, ARTIFACTS_DIR, namespace, kind, item.name, "0.1.0");
     await mkdir(at, { recursive: true });
     for (const path of item.entries) {
       await cp(join(item.dir, path), join(at, path), FRESH);

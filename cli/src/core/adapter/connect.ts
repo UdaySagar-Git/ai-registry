@@ -1,4 +1,5 @@
 import { extname, join } from "node:path";
+import { artifactDir } from "#adapter/filespec/names.ts";
 import {
   AdapterError,
   type Artifact,
@@ -277,7 +278,7 @@ function entryPath(artifact: Artifact): string | undefined {
       : (artifact.group ?? artifact.envelope.metadata.namespace ?? artifact.envelope.metadata.name),
   );
   const name = sanitizeName(artifact.envelope.metadata.name);
-  const address = `artifacts/${namespace}/${artifact.kind}/${name}`;
+  const address = artifactDir(namespace, artifact.kind, name);
   if (KIND_SPECS[artifact.kind].shape === "directory") return address;
 
   const only = artifact.files.length === 1 ? artifact.files[0] : undefined;

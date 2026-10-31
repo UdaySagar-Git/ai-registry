@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { readRegistry } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
-import { isNamespace, REGISTRY_DOCUMENT } from "#adapter/filespec/names.ts";
+import { ARTIFACTS_DIR, isNamespace, REGISTRY_DOCUMENT } from "#adapter/filespec/names.ts";
 import { list as listOf, plural, quoted, sanitizeName } from "#adapter/text.ts";
 import { parseSource } from "#adapters/git/api.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
@@ -68,17 +68,15 @@ export async function init(
   if (listed === undefined) return cancel(step);
   const namespaces = namespacesOf(listed);
 
-  for (const folder of ["artifacts", ...namespaces.map((item) => `artifacts/${item}`)]) {
-    refuseRedirect(root, join(root, folder));
-  }
-  await mkdir(join(root, "artifacts"), { recursive: true });
+  for (const folder of ["", ...namespaces]) refuseRedirect(root, join(root, ARTIFACTS_DIR, folder));
+  await mkdir(join(root, ARTIFACTS_DIR), { recursive: true });
   const written = await writeRoot(
     root,
     { name, ...(description === "" ? {} : { description }) },
     new Date().toISOString(),
   );
   for (const namespace of namespaces) {
-    await mkdir(join(root, "artifacts", namespace), { recursive: true });
+    await mkdir(join(root, ARTIFACTS_DIR, namespace), { recursive: true });
   }
   const slug = sanitizeName(name);
 
@@ -108,10 +106,10 @@ async function extend(
   shown: string,
   namespaces: readonly string[],
 ): Promise<void> {
-  const added = namespaces.filter((item) => !existsSync(join(root, "artifacts", item)));
-  for (const item of added) refuseRedirect(root, join(root, "artifacts", item));
+  const added = namespaces.filter((item) => !existsSync(join(root, ARTIFACTS_DIR, item)));
+  for (const item of added) refuseRedirect(root, join(root, ARTIFACTS_DIR, item));
   for (const namespace of added) {
-    await mkdir(join(root, "artifacts", namespace), { recursive: true });
+    await mkdir(join(root, ARTIFACTS_DIR, namespace), { recursive: true });
   }
   if (context.printer.format === "json") {
     const registry = await readRegistry(rootReader(root));

@@ -16,6 +16,7 @@ import {
   specJson,
 } from "#adapter/filespec/merge.ts";
 import {
+  ARTIFACTS_DIR,
   ENVELOPE,
   INDEX_DOCUMENT,
   isArtifactName,
@@ -64,7 +65,7 @@ export interface Indexed {
 /** Every folder under `artifacts/` shaped like `<namespace>/<kind>/<name>/<version>`. */
 export async function versionFolders(root: string): Promise<VersionFolder[]> {
   const found: VersionFolder[] = [];
-  const base = join(root, "artifacts");
+  const base = join(root, ARTIFACTS_DIR);
   for (const namespace of (await subdirectories(base)).filter(isNamespace)) {
     for (const kind of (await subdirectories(join(base, namespace))).filter(isKindSegment)) {
       for (const name of (await subdirectories(join(base, namespace, kind))).filter(

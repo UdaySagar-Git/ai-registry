@@ -3,6 +3,7 @@ import { messageOf } from "#adapter/errors.ts";
 import { DEFAULT_BLOB_URL, readRegistry } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
 import {
+  ARTIFACTS_DIR,
   INDEX_DOCUMENT,
   isArtifactName,
   isDeviceName,
@@ -134,5 +135,5 @@ async function layout(root: string, problems: Problem[]): Promise<void> {
       await visit(join(dir, child), at, depth + 1);
     }
   }
-  await visit(join(root, "artifacts"), "artifacts", 0);
+  await visit(join(root, ARTIFACTS_DIR), ARTIFACTS_DIR, 0);
 }

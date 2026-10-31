@@ -1,6 +1,7 @@
 import { chmod, mkdir, rename } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { DatabaseSync, StatementSync } from "node:sqlite";
+import { isAbsent } from "#adapter/files.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { PRIVATE_DIR, PRIVATE_FILE } from "#core/fs/mode.ts";
@@ -277,7 +278,10 @@ export class SqliteRunStore implements RunStore {
       if (path === ":memory:" || !unreadable(error)) throw error;
       const to = `${path}.corrupt-${new Date().toISOString().replace(/[-:]|\.\d+/g, "")}`;
       for (const suffix of ["", "-wal", "-shm"]) {
-        await rename(`${path}${suffix}`, `${to}${suffix}`).catch(() => {});
+        // A database without a write-ahead log has no -wal or -shm to move.
+        await rename(`${path}${suffix}`, `${to}${suffix}`).catch((moving: unknown) => {
+          if (!isAbsent(moving)) throw moving;
+        });
       }
       movedAside(to);
       return SqliteRunStore.#openAt(path);

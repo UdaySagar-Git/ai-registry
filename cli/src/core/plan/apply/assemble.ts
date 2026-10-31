@@ -14,9 +14,6 @@ const ALIASES: Readonly<Record<string, readonly string[]>> = {
   commands: ["prompts"],
 };
 
-/** Where targets read a plugin's manifest: written into the projection, never linked from content. */
-const MANIFESTS = new Set(PLUGIN_MANIFESTS.map((path) => path.split("/")[0]));
-
 /** The manifest Claude Code reads, which a plugin's own document fills when it has none of its own. */
 const CLAUDE_MANIFEST = ".claude-plugin/plugin.json";
 
@@ -31,10 +28,11 @@ export async function assemble(
   document?: PluginDocument,
 ): Promise<void> {
   await mkdir(projection, { recursive: true });
-  const own = (await names(content)).filter((entry) => !MANIFESTS.has(entry));
+  const manifests = manifestFolders();
+  const own = (await names(content)).filter((entry) => !manifests.has(entry));
   const linked = new Set(own.flatMap((entry) => [entry, ...(ALIASES[entry] ?? [])]));
   for (const entry of await names(projection)) {
-    if (!MANIFESTS.has(entry) && !linked.has(entry)) {
+    if (!manifests.has(entry) && !linked.has(entry)) {
       await rm(join(projection, entry), { recursive: true, force: true });
     }
   }
@@ -44,6 +42,14 @@ export async function assemble(
     }
   }
   await writePluginManifest(projection, content, targets, document);
+}
+
+/** Where any target reads a plugin's manifest: written into the projection, never linked from content. */
+function manifestFolders(): Set<string> {
+  const written = Object.values(resolveTargets()).flatMap((target) =>
+    (target.kinds.plugin?.manifest ?? []).map((manifest) => manifest.path),
+  );
+  return new Set([...PLUGIN_MANIFESTS, ...written].map((path) => path.split("/")[0] as string));
 }
 
 /** What every target's plugin manifest says, before any keys of its own. */

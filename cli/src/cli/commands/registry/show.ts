@@ -26,18 +26,22 @@ export const show = action({
       if (unknown !== undefined) throw unknown;
     }
     const source = await probe(resolved.input, resolved.flags, context.cwd, [], resolved);
-    const catalog = source.catalog;
-    return {
-      registry: resolved.alias ?? source.alias,
-      address: withoutCredentials(source.location),
-      ...(source.revision === undefined ? {} : { revision: source.revision }),
-      ...(source.layout !== undefined && isReadOnlyLayout(source.layout)
-        ? { layout: source.layout }
-        : {}),
-      layouts: catalog.layouts,
-      entries: catalog.entries.map((entry) => published(entry, source.versionOf(entry))),
-      warnings: catalog.warnings,
-    };
+    try {
+      const catalog = source.catalog;
+      return {
+        registry: resolved.alias ?? source.alias,
+        address: withoutCredentials(source.location),
+        ...(source.revision === undefined ? {} : { revision: source.revision }),
+        ...(source.layout !== undefined && isReadOnlyLayout(source.layout)
+          ? { layout: source.layout }
+          : {}),
+        layouts: catalog.layouts,
+        entries: catalog.entries.map((entry) => published(entry, source.versionOf(entry))),
+        warnings: catalog.warnings,
+      };
+    } finally {
+      await source.close();
+    }
   },
   text(result, printer) {
     const style = printer.style;

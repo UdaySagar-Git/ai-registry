@@ -1,4 +1,5 @@
 import type { Scope } from "#core/store/paths.ts";
+import { scopeFlag } from "#core/store/paths.ts";
 import { shellWord } from "#core/term/format.ts";
 import { COMPOSITE_STEPS, isScopeStep, type Job, type RegistryConfig, type Step } from "./model.ts";
 
@@ -21,7 +22,7 @@ export function jobRoot(job: Pick<Job, "steps">): string | undefined {
 
 /** What stops publishing these folders, written so a shell runs it as printed. */
 export function unwatchCommand(folders: readonly string[], scope: Scope): string {
-  return `aireg watch remove ${folders.map(shellWord).join(" ")}${scope === "user" ? " -g" : ""}`;
+  return `aireg watch remove ${folders.map(shellWord).join(" ")}${scopeFlag(scope)}`;
 }
 
 /**

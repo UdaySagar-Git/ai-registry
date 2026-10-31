@@ -2,7 +2,7 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, plural } from "#adapter/text.ts";
 import { STATE_MEANING, stateTone } from "#core/console/state-style.ts";
 import type { ArtifactStatus, LinkState, State } from "#core/plan/status.ts";
-import { type Scope, scopeName } from "#core/store/paths.ts";
+import { type Scope, scopeFlag, scopeName } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/contract.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
@@ -155,7 +155,7 @@ function repairHint(
   chosen: Chosen,
   kindOf: (item: ArtifactStatus) => ArtifactKind | undefined,
 ): void {
-  const flag = scope === "user" ? " -g" : "";
+  const flag = scopeFlag(scope);
   // A copy aireg writes into a target's folder holds no edit sync could send back.
   const writtenFor = (item: ArtifactStatus): { tool: string; kind: string } | undefined => {
     const folder = item.detail?.split(": ")[0] ?? "";

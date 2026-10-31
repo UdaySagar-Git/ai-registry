@@ -229,3 +229,8 @@ export function stagingPath(
 export function scopeName(scope: Scope): string {
   return scope === "user" ? "your user scope" : "this project";
 }
+
+/** The flag a command takes to act on `scope`, with its leading space, for a hint to print. */
+export function scopeFlag(scope: Scope): string {
+  return scope === "user" ? " -g" : "";
+}

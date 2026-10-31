@@ -21,7 +21,7 @@ import { parseYaml } from "./yaml.ts";
 export const LOCK_VERSION = 1;
 
 /** `fanout` is a real directory of links, for a target that will not follow a linked one. */
-const LINK_MODES = ["symlink", "junction", "copy", "fanout"] as const;
+export const LINK_MODES = ["symlink", "junction", "copy", "fanout"] as const;
 export type LinkMode = (typeof LINK_MODES)[number];
 
 export function emptyLock(): Lock {

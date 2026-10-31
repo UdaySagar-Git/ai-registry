@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { pollUntil } from "#core/poll.ts";
 import { processAlive } from "#core/process.ts";
+import { pollUntil } from "#core/wait.ts";
 
 /** Retried, as Windows holds a file a moment after the process using it, such as the daemon, exits. */
 export function removeTree(dir: string): Promise<boolean> {

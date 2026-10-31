@@ -9,7 +9,7 @@ import { PRIVATE_FILE } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
 import { nullLogger } from "#core/log/logger.ts";
 import type { Logger } from "#core/log/model.ts";
-import { settledWithin } from "#daemon/settled.ts";
+import { settledWithin } from "#core/wait.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { daemonProof, listening } from "./endpoint.ts";
 import { rpcError } from "./errors.ts";

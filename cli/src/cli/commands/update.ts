@@ -4,7 +4,7 @@ import { parse } from "#cli/options/parse.ts";
 import { defaultIo } from "#cli/prompt/ask.ts";
 import { confirmIfDestructive } from "#cli/prompt/confirm-plan.ts";
 import { cancel, interaction } from "#cli/prompt/interaction.ts";
-import { settleCollisions } from "#cli/render/collisions.ts";
+import { exitOnClash, reportCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
 import { asksFor } from "#core/manifest/match.ts";
 import { lockView } from "#core/plan/acquire/lock-view.ts";
@@ -95,5 +95,6 @@ export async function run(context: CommandContext): Promise<void> {
   } else if (result.applied) {
     summarize(context.printer, { ...result, applied: result.applied });
   }
-  settleCollisions(context, result.plan);
+  exitOnClash(context, result.plan);
+  reportCollisions(context.printer, result.plan);
 }

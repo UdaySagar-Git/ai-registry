@@ -6,7 +6,7 @@ import { chooseRemovals } from "#cli/prompt/choose.ts";
 import { confirmPlan } from "#cli/prompt/confirm-plan.ts";
 import { cancel, interaction, interactive, preparing, silence } from "#cli/prompt/interaction.ts";
 import { canceled } from "#cli/prompt/model.ts";
-import { settleCollisions } from "#cli/render/collisions.ts";
+import { exitOnClash, reportCollisions } from "#cli/render/collisions.ts";
 import { planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
 import { loadedBy, toolName } from "#cli/render/tools.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -121,7 +121,8 @@ export async function run(context: CommandContext): Promise<void> {
         watched,
       },
     });
-    settleCollisions(context, plan);
+    exitOnClash(context, plan);
+    reportCollisions(context.printer, plan);
     return;
   }
   keptWatched(context, loaded.lock, watched);
@@ -143,7 +144,8 @@ export async function run(context: CommandContext): Promise<void> {
   ];
   if (result.applied)
     summarize(context.printer, { ...result, targets, plan, applied: result.applied }, told);
-  settleCollisions(context, plan);
+  exitOnClash(context, plan);
+  reportCollisions(context.printer, plan);
 }
 
 /** Asks which installed artifacts to remove; undefined when the person cancels. */

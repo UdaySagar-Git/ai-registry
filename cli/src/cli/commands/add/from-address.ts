@@ -4,7 +4,7 @@ import { defaultIo } from "#cli/prompt/ask.ts";
 import { confirmPlan, confirmTrust } from "#cli/prompt/confirm-plan.ts";
 import { equivalent } from "#cli/prompt/equivalent.ts";
 import { cancel, type Interaction, interaction, interactive } from "#cli/prompt/interaction.ts";
-import { settleCollisions } from "#cli/render/collisions.ts";
+import { exitOnClash, reportCollisions } from "#cli/render/collisions.ts";
 import { planReport } from "#cli/render/plan.ts";
 import { noteUserScope } from "#cli/render/where.ts";
 import type { Entry } from "#core/catalog/catalog.ts";
@@ -137,7 +137,8 @@ export async function addAddress(
     });
   } else {
     // An applied add says it with its summary; a dry run has none.
-    settleCollisions(context, result.plan);
+    exitOnClash(context, result.plan);
+    reportCollisions(context.printer, result.plan);
   }
   if (context.printer.format === "json") {
     printAdded(

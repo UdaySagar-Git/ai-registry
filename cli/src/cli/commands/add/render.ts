@@ -1,7 +1,7 @@
 import { isReadOnlyLayout, type LayoutId } from "#adapter/layouts/ids.ts";
 import { withoutCredentials } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
-import { settleCollisions } from "#cli/render/collisions.ts";
+import { exitOnClash, reportCollisions } from "#cli/render/collisions.ts";
 import { outcome, type Ran, summarize } from "#cli/render/plan.ts";
 import type { Scope } from "#core/store/paths.ts";
 import type { Probed } from "#engine/address/probe.ts";
@@ -74,7 +74,8 @@ export async function reportAdded(
   );
   const said = added.repinned.map((item) => item.name).filter((name) => !acted.has(name));
   summarize(printer, added.ran, new Set(said));
-  settleCollisions(context, added.ran.plan);
+  exitOnClash(context, added.ran.plan);
+  reportCollisions(context.printer, added.ran.plan);
   if (added.scope === "user" && added.autoUpdate) {
     return keepCurrent(context, alias, added.config, added.pinned);
   }

@@ -12,6 +12,7 @@ import { settingsView } from "#cli/console/ui/views/settings.ts";
 import { underHome } from "#cli/render/home.ts";
 import * as commands from "#core/console/actions.ts";
 import { publishable, selector } from "#core/console/artifacts.ts";
+import { changesSince, snapshot } from "#core/console/changes.ts";
 import { flatten, type Line } from "#core/console/flatten.ts";
 import type { ArtifactRow, ConsoleState } from "#core/console/model.ts";
 import type { HostCommandContext } from "#core/host/extend.ts";
@@ -338,7 +339,7 @@ function useCommands(context: ReturnType<typeof useViews>) {
         );
         const after = await reload();
         setActivity((current) =>
-          current === undefined ? current : { ...current, changed: difference(before, after) },
+          current === undefined ? current : { ...current, changed: changesSince(before, after) },
         );
       });
     },
@@ -406,15 +407,6 @@ function useCommands(context: ReturnType<typeof useViews>) {
   return { ...context, run, planForRow, importNow, publishPlan };
 }
 
-/** Every artifact's state, to compare the reload afterwards against. */
-function snapshot(state: ConsoleState): Map<string, string> {
-  return new Map(
-    state.groups.flatMap((group) =>
-      group.rows.map((row): [string, string] => [`${group.key}/${row.key}`, row.state]),
-    ),
-  );
-}
-
 export interface AppProps {
   context: HostCommandContext;
   initial: ConsoleState;
@@ -427,38 +419,6 @@ export interface AppProps {
 }
 
 type Key = Parameters<Parameters<typeof useInput>[0]>[1];
-
-/**
- * What moved between two reads. A command that exits 0 having changed nothing
- * is the case worth naming: it is what a refused re-publish looks like here.
- */
-function difference(before: Map<string, string>, after: ConsoleState): string[] {
-  const seen = snapshot(after);
-  const name = (key: string) => key.slice(key.indexOf("/") + 1);
-  const group = (key: string) => key.slice(0, key.indexOf("/"));
-  const gone = [...before.keys()].filter((key) => !seen.has(key));
-  const lines: string[] = [];
-
-  for (const [key, state] of seen) {
-    const was = before.get(key);
-    if (was !== undefined) {
-      if (was !== state) lines.push(`${name(key)}: ${was} \u2192 ${state}`);
-      continue;
-    }
-    // Approval moves an artifact from the local group into its namespace, and
-    // it keeps its key. Two lines would read as two artifacts.
-    const moved = gone.find((old) => name(old) === name(key));
-    if (moved !== undefined) {
-      gone.splice(gone.indexOf(moved), 1);
-      const from = before.get(moved);
-      lines.push(`${name(key)}: ${from} in ${group(moved)} \u2192 ${state} in ${group(key)}`);
-      continue;
-    }
-    lines.push(`${name(key)} is now here, ${state}`);
-  }
-  for (const key of gone) lines.push(`${name(key)} is gone`);
-  return lines;
-}
 
 function useLinks(context: ReturnType<typeof useCommands>) {
   const { props, view, facts, panel, panelView, selectedArtifact } = context;

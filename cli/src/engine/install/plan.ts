@@ -21,19 +21,29 @@ import type { CommonOptions } from "#engine/options.ts";
 import type { Loaded } from "#engine/scope/load.ts";
 import type { RunRequest } from "./pipeline.ts";
 
+export interface PlanOptions {
+  loaded: Loaded;
+  common: CommonOptions;
+  printer: Printer;
+  cwd: string;
+  request: RunRequest;
+  targets: readonly string[];
+  nameCollision: NameCollision;
+}
+
 /**
  * The lock is the source of truth: a registry it fully answers is planned
  * from it, and its registry is opened only for what the lock cannot supply.
  */
-export async function plan(
-  loaded: Loaded,
-  common: CommonOptions,
-  printer: Printer,
-  cwd: string,
-  request: RunRequest,
-  targets: readonly string[],
-  nameCollision: NameCollision,
-): Promise<{ planned: Plan; acquired: Acquired[] }> {
+export async function plan({
+  loaded,
+  common,
+  printer,
+  cwd,
+  request,
+  targets,
+  nameCollision,
+}: PlanOptions): Promise<{ planned: Plan; acquired: Acquired[] }> {
   const { roots, manifest, lock, targetTable } = loaded;
   const aliases = Object.keys(manifest.registries);
   // Carried rows are planned from the lock alone, so their copies are not hashed.

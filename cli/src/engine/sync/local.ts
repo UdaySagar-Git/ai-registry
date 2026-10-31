@@ -87,7 +87,7 @@ export async function applyLocal({
     relinks,
   );
   await refuseBlocked(narrowed);
-  const result = await commit(loaded, narrowed, scan.acquired, targets, onStep);
+  const result = await commit({ loaded, plan: narrowed, acquired: scan.acquired, targets, onStep });
   // What the plan said about a row this run wrote, such as a deprecated version it pulled.
   for (const { name, message, hint } of plan.warnings) {
     // A published row's own note says why its copy stayed; the plan only saw an edit.

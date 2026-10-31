@@ -22,15 +22,25 @@ export async function prepareWrite(
   return dryRun ? { removed: [], skipped: [] } : recover(roots, lock);
 }
 
-/** Applies a refused-clean plan between the user's apply hooks; `undo` runs when it fails. */
-export async function commit(
-  loaded: Loaded,
-  plan: Plan,
-  acquired: readonly Acquired[],
-  targets: readonly string[],
-  onStep: (action: Action) => void,
-  undo: () => Promise<void> = async () => {},
-): Promise<ApplyResult> {
+export interface CommitOptions {
+  loaded: Loaded;
+  plan: Plan;
+  acquired: readonly Acquired[];
+  targets: readonly string[];
+  onStep: (action: Action) => void;
+  /** Runs when the apply fails, before its error goes on. */
+  undo?: (() => Promise<void>) | undefined;
+}
+
+/** Applies a refused-clean plan between the user's apply hooks. */
+export async function commit({
+  loaded,
+  plan,
+  acquired,
+  targets,
+  onStep,
+  undo = async () => {},
+}: CommitOptions): Promise<ApplyResult> {
   const event = { targets: [...targets], aliases: Object.keys(loaded.manifest.registries) };
   let applied: ApplyResult;
   try {

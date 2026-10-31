@@ -117,7 +117,7 @@ async function write(
     targetTable,
   };
   const nameCollision = nameCollisionOf(await readConfig());
-  const { planned, acquired } = await plan(
+  const { planned, acquired } = await plan({
     loaded,
     common,
     printer,
@@ -125,7 +125,7 @@ async function write(
     request,
     targets,
     nameCollision,
-  );
+  });
   const result = (applied: ApplyResult | undefined): RunResult => ({
     plan: planned,
     applied,
@@ -174,18 +174,18 @@ async function write(
     // Read under the restore's lease, so only this run's edit is undone.
     const before = edited ? await readTextIfPresent(roots.manifest) : undefined;
     const written = edited ? await writeManifest(roots, manifest) : undefined;
-    const applied = await commit(
+    const applied = await commit({
       loaded,
-      planned,
+      plan: planned,
       acquired,
       targets,
-      (action) => report.step(action, planned, chosen),
-      async () => {
+      onStep: (action) => report.step(action, planned, chosen),
+      undo: async () => {
         // Nothing was recorded, so the manifest must not ask for it.
         if (edited && (await unrecorded(roots, lock)))
           await restore(roots.manifest, before, written);
       },
-    );
+    });
 
     warn(printer, appliedNotices(roots, applied, targetTable));
 

@@ -1,6 +1,7 @@
 import { readSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { basename } from "node:path";
+import { messageOf } from "#adapter/errors.ts";
 import { list } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { defaultIo, quietly } from "#cli/prompt/ask.ts";
@@ -65,7 +66,7 @@ export async function install(
       await appendFile(githubPath, `${binDir(env)}\n`);
       printer.success(`Added ${binDir(env)} to PATH for the steps that follow.`);
     } catch (error) {
-      printer.warning(`Could not add ${binDir(env)} to $GITHUB_PATH: ${(error as Error).message}`);
+      printer.warning(`Could not add ${binDir(env)} to $GITHUB_PATH: ${messageOf(error)}`);
     }
     return 0;
   }
@@ -255,7 +256,7 @@ async function offerSkills(
         .catch(() => undefined);
     }
     spin?.stop();
-    printer.warning(`The aireg skills were not installed: ${(error as Error).message}`);
+    printer.warning(`The aireg skills were not installed: ${messageOf(error)}`);
     printer.hint(`Run \`${ownSkillsCommand(aireg)}\` to install them later.`);
     return;
   }

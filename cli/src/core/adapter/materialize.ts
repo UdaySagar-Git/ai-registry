@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { chmod, mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
 import type { CliCode } from "#adapter/codes.ts";
-import { adapterProblem, failureOf } from "#adapter/errors.ts";
+import { adapterProblem, failureOf, messageOf } from "#adapter/errors.ts";
 import { assertUnredirected, copyRegular, EXECUTABLE, hashRegular } from "#adapter/files.ts";
 import {
   AdapterError,
@@ -40,7 +40,7 @@ type Fail = (file: FileRef, message: string, code?: Code) => AdapterError;
 /** Why something did not land, for a caller that names the artifact itself. */
 export function reasonOf(error: unknown): string {
   if (isAdapterError(error)) return adapterProblem(error).title;
-  return error instanceof Error ? error.message : String(error);
+  return messageOf(error);
 }
 
 /**

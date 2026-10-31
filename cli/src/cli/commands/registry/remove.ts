@@ -1,3 +1,4 @@
+import { messageOf } from "#adapter/errors.ts";
 import { list as listOf, plural } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { jobsClause, registryJobs, removeJobs } from "#cli/commands/registry/dependent-jobs.ts";
@@ -100,7 +101,7 @@ async function jobsConfig(context: CommandContext, alias: string): Promise<Regis
     return await readConfig();
   } catch (error) {
     context.printer.warning(
-      `Could not read your jobs, so any for registry ${alias} stays: ${(error as Error).message}`,
+      `Could not read your jobs, so any for registry ${alias} stays: ${messageOf(error)}`,
     );
     return emptyRegistryConfig();
   }

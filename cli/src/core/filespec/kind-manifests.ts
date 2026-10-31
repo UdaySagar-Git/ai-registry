@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { messageOf } from "#adapter/errors.ts";
 import { isRecord } from "#adapter/fields.ts";
 import { readJson, SpecError } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
@@ -120,7 +121,7 @@ async function served(root: string, url: string): Promise<Served> {
   try {
     await prepareManifest(root, raw);
   } catch (error) {
-    return { problem: `has an invalid kind schema: ${(error as Error).message}` };
+    return { problem: `has an invalid kind schema: ${messageOf(error)}` };
   }
   return { manifest: raw as unknown as KindManifest };
 }

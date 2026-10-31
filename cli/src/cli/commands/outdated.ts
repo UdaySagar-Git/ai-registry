@@ -1,4 +1,5 @@
 import { credentialFor } from "#accounts/credentials.ts";
+import { messageOf } from "#adapter/errors.ts";
 import { contentDigest, type ResolveOptions, type Want } from "#adapter/index.ts";
 import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
 import { noArguments, parse } from "#cli/options/parse.ts";
@@ -196,7 +197,7 @@ async function head(alias: string, manifest: Manifest, lock: Lock, base: string)
       await open.handle.close();
     }
   } catch (error) {
-    return { byAddress: new Map(), entries: [], why: (error as Error).message };
+    return { byAddress: new Map(), entries: [], why: messageOf(error) };
   }
 }
 

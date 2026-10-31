@@ -1,5 +1,6 @@
 import { posix } from "node:path";
 import type { Artifact } from "../contract.ts";
+import { messageOf } from "../errors.ts";
 import { type Fields, isRecord, trimmedText } from "../fields.ts";
 import { SpecError } from "../filespec/documents.ts";
 import { list, quoted } from "../text.ts";
@@ -197,7 +198,7 @@ async function fetchedPlugin(
   try {
     fetched = await context.fetch(remote);
   } catch (error) {
-    const reason = (error as Error).message.replace(/\.$/, "");
+    const reason = messageOf(error).replace(/\.$/, "");
     warnings.push(`Skipped ${quoted(remote.name)}: ${reason}.`);
     return undefined;
   }

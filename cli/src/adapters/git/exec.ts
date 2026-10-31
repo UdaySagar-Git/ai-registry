@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import { messageOf } from "#adapter/errors.ts";
 import { AdapterError, type Failure, programPath } from "#adapter/index.ts";
 import { gitEnv } from "./env.ts";
 import { ID } from "./errors.ts";
@@ -89,7 +90,7 @@ export async function git(args: readonly string[], options: GitOptions): Promise
     if (options.signal?.aborted === true) throw error;
     if (error instanceof GitError) throw error;
     const stderr = (error as { stderr?: string }).stderr ?? "";
-    throw notInstalled(error) ?? new GitError("unavailable", (error as Error).message, stderr);
+    throw notInstalled(error) ?? new GitError("unavailable", messageOf(error), stderr);
   }
   if (ran.timedOut) {
     throw new GitError(
@@ -126,7 +127,7 @@ function spawnOne(args: readonly string[], options: GitOptions, timeout: number)
       reject(
         new GitError(
           "invalid",
-          (error as Error).message,
+          messageOf(error),
           "",
           "Set PATH to the absolute folders that hold git, then run the command again.",
         ),

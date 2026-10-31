@@ -1,3 +1,4 @@
+import { messageOf } from "#adapter/errors.ts";
 import { isRecord } from "#adapter/fields.ts";
 import {
   type Artifact,
@@ -153,7 +154,7 @@ async function get(
     response = await fetch(url, { signal, credentials: "omit", redirect: "follow" });
   } catch (error) {
     if (context.signal.aborted) throw error;
-    throw fail("unavailable", `Could not read ${url.href}: ${(error as Error).message}.`);
+    throw fail("unavailable", `Could not read ${url.href}: ${messageOf(error)}.`);
   }
   const landed = new URL(response.url || url.href);
   if (!isSecure(landed)) {

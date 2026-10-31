@@ -1,3 +1,4 @@
+import { messageOf } from "#adapter/errors.ts";
 import { isRecord, textOf } from "#adapter/fields.ts";
 import { isNamespace } from "#adapter/filespec/names.ts";
 import { isLayoutId, LAYOUT_IDS } from "#adapter/layouts/ids.ts";
@@ -36,7 +37,7 @@ export function parseManifest(text: string, filename = "manifest.yml"): Manifest
   try {
     doc = parseYaml(text);
   } catch (cause) {
-    const first = (cause as Error).message.split("\n")[0]?.replace(/:$/, "");
+    const first = messageOf(cause).split("\n")[0]?.replace(/:$/, "");
     throw new ManifestError(`${filename} is not valid YAML: ${first}.`);
   }
 

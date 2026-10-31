@@ -1,4 +1,5 @@
 import { homedir } from "node:os";
+import { messageOf } from "#adapter/errors.ts";
 import { list, quoted, sanitizeBlock } from "#adapter/text.ts";
 import { stopGit } from "#adapters/git/api.ts";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
@@ -266,7 +267,7 @@ async function runCommand(
     log = openCliLog(VERSION, values["log-level"] as string | undefined);
   } catch (error) {
     // Reached before the logger exists, so this one is only ever printed.
-    const message = error instanceof Error ? error.message : String(error);
+    const message = messageOf(error);
     const code = error instanceof LogLevelError ? ErrorCode.Usage : ErrorCode.Error;
     return reportError(printer, new AiregError(message, { code, hint: GLOBALS_HINT }));
   }

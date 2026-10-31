@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { messageOf } from "#adapter/errors.ts";
 import { isRecord } from "#adapter/fields.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
@@ -48,7 +49,7 @@ export async function recover(
         ? verdict.reason
         : await guardManagedPath(path, roots, false, env).then(
             () => undefined,
-            (error: unknown) => (error as Error).message.replace(/\.$/, ""),
+            (error: unknown) => messageOf(error).replace(/\.$/, ""),
           );
     if (reason !== undefined) {
       if (await present(path)) recovered.skipped.push({ path, reason });

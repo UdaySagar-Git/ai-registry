@@ -1,3 +1,4 @@
+import { messageOf } from "#adapter/errors.ts";
 import { AdapterError, SpecError } from "#adapter/index.ts";
 
 export const ID = "local";
@@ -17,7 +18,7 @@ export function translated(error: unknown): AdapterError {
   if (error instanceof SpecError) {
     return fail(error.missing ? "not_found" : "invalid", error.message, error.artifact, error.hint);
   }
-  return fail("invalid", error instanceof Error ? error.message : String(error));
+  return fail("invalid", messageOf(error));
 }
 
 /** One boundary where a thrown failure becomes an `AdapterError`. */

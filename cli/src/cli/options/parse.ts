@@ -1,4 +1,5 @@
 import { type ParseArgsConfig, parseArgs } from "node:util";
+import { messageOf } from "#adapter/errors.ts";
 import { isNamespace } from "#adapter/filespec/names.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -168,7 +169,7 @@ function optionError(
           : undefined;
     if (problem !== undefined) return new AiregError(problem, { code: ErrorCode.Usage, hint });
   }
-  const message = cause instanceof Error ? cause.message : String(cause);
+  const message = messageOf(cause);
   return new AiregError(message.split("\n")[0] as string, {
     code: ErrorCode.Usage,
     hint,

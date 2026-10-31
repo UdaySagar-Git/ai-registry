@@ -1,5 +1,6 @@
 import { join, posix, win32 } from "node:path";
 import type { Artifact, FileRef, Resolution, Want } from "../contract.ts";
+import { messageOf } from "../errors.ts";
 import { assertUnredirected, readRegular } from "../files.ts";
 import { isSafePath } from "../paths.ts";
 import { identityOf, type ReadPath, readRegistry, SpecError } from "./documents.ts";
@@ -12,7 +13,7 @@ export async function registryPath(root: string, path: string, allowRoot = false
   try {
     await assertUnredirected(root, target);
   } catch (cause) {
-    throw new SpecError(`${path}: ${(cause as Error).message}`, { path, cause });
+    throw new SpecError(`${path}: ${messageOf(cause)}`, { path, cause });
   }
   return target;
 }
@@ -36,7 +37,7 @@ export function rootReader(root: string, verified?: Set<string>): ReadPath {
     } catch (cause) {
       const code = (cause as NodeJS.ErrnoException).code;
       if (code === "ENOENT" || code === "ENOTDIR") return undefined;
-      throw new SpecError(`${path}: ${(cause as Error).message}`, { path, cause });
+      throw new SpecError(`${path}: ${messageOf(cause)}`, { path, cause });
     }
     if (read.kind === "missing") return undefined;
     if (read.kind === "refused") throw new SpecError(`${path} ${read.reason}.`, { path });

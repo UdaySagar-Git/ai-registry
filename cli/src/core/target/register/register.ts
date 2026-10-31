@@ -93,17 +93,22 @@ interface Group {
   absent: Map<string, Vars>;
 }
 
+export interface RegisterOptions {
+  targetTable: Targets;
+  where: Where;
+  scopeDir: string;
+  copies?: ReadonlySet<string>;
+}
+
 /**
  * Writes a target's config entry while a placement of ours needs it, removing it with the last.
  * Ours is a link into `scopeDir` (the scope's `.registry`) or one of the lockfile's `copies`.
  */
 export async function applyRegister(
   touched: readonly Touched[],
-  targetTable: Targets,
-  where: Where,
-  scopeDir: string,
-  copies: ReadonlySet<string> = new Set(),
+  options: RegisterOptions,
 ): Promise<Kept[]> {
+  const { targetTable, where, scopeDir, copies = new Set() } = options;
   const files = new Files();
   const kept: Kept[] = [];
   const owned = { scopeDir, copies };

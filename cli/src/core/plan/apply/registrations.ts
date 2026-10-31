@@ -31,11 +31,10 @@ export async function applyRegistrations(
     ),
   );
   const where = { scope: roots.scope, cwd: roots.cwd, env: process.env };
-  return applyRegister(
-    touched,
-    resolveTargets(where.env),
+  return applyRegister(touched, {
+    targetTable: resolveTargets(where.env),
     where,
-    resolve(dirname(roots.artifacts)),
+    scopeDir: resolve(dirname(roots.artifacts)),
     copies,
-  );
+  });
 }

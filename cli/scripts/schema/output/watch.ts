@@ -1,6 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { WatchList, WatchRemoved } from "#cli/commands/watch/result.ts";
 import { SCOPES } from "#core/store/paths.ts";
+import { Saved } from "./job.ts";
 import { matching, outputDocument } from "./match.ts";
 
 const List = matching<WatchList>()(
@@ -35,5 +36,5 @@ const Removed = matching<WatchRemoved>()(
   ),
 );
 
-// `add` prints the data of `job add`, so the job command's schema describes it.
-export const OUTPUT = outputDocument("watch", { remove: Removed, list: List });
+// `add` saves the same job `job add` does, so it prints the same data.
+export const OUTPUT = outputDocument("watch", { add: Saved, remove: Removed, list: List });

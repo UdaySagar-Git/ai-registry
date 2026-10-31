@@ -32,23 +32,10 @@ export const addJob = action({
   text: savedText,
 });
 
-/** `aireg watch add`, which is `job add` with only its folders, printing what it saved. */
-export async function add(
-  context: CommandContext,
-  root: string | undefined,
-  own: Own,
-  common: CommonOptions,
-): Promise<void> {
-  const result = await saveJob(context, root, own, common);
-  context.printer.format === "json"
-    ? context.printer.json({ ok: true, data: savedData(result) })
-    : savedText(result, context.printer);
-}
-
 /** The job saved, and what its line says: an adapter's type, or whether it replaced one. */
-type Saved = JobSaved & ({ kind: string } | { existed: boolean });
+export type Saved = JobSaved & ({ kind: string } | { existed: boolean });
 
-async function saveJob(
+export async function saveJob(
   context: CommandContext,
   root: string | undefined,
   own: Own,
@@ -94,11 +81,11 @@ async function saveJob(
   });
 }
 
-function savedData({ job, revision }: Saved): JobSaved {
+export function savedData({ job, revision }: Saved): JobSaved {
   return { job, revision };
 }
 
-function savedText(result: Saved, printer: Printer): void {
+export function savedText(result: Saved, printer: Printer): void {
   printer.success(
     "kind" in result
       ? `Added ${result.kind} job ${result.job.id}.`

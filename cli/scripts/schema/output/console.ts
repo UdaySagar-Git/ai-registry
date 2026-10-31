@@ -4,8 +4,8 @@ import { STEP_POLICIES } from "#core/config/model.ts";
 import type { ConsoleState } from "#core/console/model.ts";
 import { RUN_MODES, RUN_STATES, RUN_TRIGGERS } from "#core/run/model.ts";
 import { SCOPES } from "#core/store/paths.ts";
-import { absent, oneOf, RunCounts, readonlyRecord } from "./job.ts";
-import { matching, outputDocument } from "./match.ts";
+import { RunCounts } from "./job.ts";
+import { absent, matching, oneOf, outputDocument, readonlyRecord } from "./match.ts";
 
 const ARTIFACT_STATES = [
   "ok",

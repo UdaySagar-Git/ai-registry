@@ -15,8 +15,8 @@ test("each watch action prints data its schema describes", async ({ aireg, home,
   const skills = join(home.dir, ".claude", "skills");
   await mkdir(join(skills, "notes"), { recursive: true });
   await writeFile(join(skills, "notes", "SKILL.md"), skillBody("notes"));
-  const added = await aireg(["watch", "add", skills, "--to", "team/personal", "-g"]);
-  expect(added.code, added.stderr).toBe(0);
+  const add = ["watch", "add", skills, "--to", "team/personal", "-g"];
+  expect(await contract.violations(aireg, add, "add")).toBe("");
 
   expect(await contract.violations(aireg, ["watch", "list"], "list")).toBe("");
   expect(await contract.violations(aireg, ["watch", "remove", skills, "-g"], "remove")).toBe("");

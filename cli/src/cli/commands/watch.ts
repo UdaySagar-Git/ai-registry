@@ -1,5 +1,5 @@
 import { list as listOf } from "#adapter/text.ts";
-import { add as addJob } from "#cli/commands/job/add.ts";
+import { type Saved, savedData, savedText, saveJob } from "#cli/commands/job/add.ts";
 import { folderKey, jobNamed, jobScope, scopeLabel, typedFolder } from "#cli/commands/job/find.ts";
 import type { WatchList, WatchRemoved } from "#cli/commands/watch/result.ts";
 import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
@@ -44,13 +44,15 @@ export const { run } = defineCommand<Options>({
     return { action: verb, options: { folders, own, common } };
   },
   actions: {
-    // `job add` prints the job it saved; a watch is that job, so its result is too.
+    // A watch is the scope's sync job publishing a folder too, so adding one is `job add --watch`.
     add: action({
-      run: async ({ folders, own, common }, context) => {
-        await add(context, folders, own, common);
-        return STREAMED;
+      run: ({ folders, own, common }, context): Promise<Saved> => {
+        if (folders.length === 0) throw needsFolder("add");
+        const watch = { watch: folders, ...(own.to === undefined ? {} : { to: own.to }) };
+        return saveJob(context, undefined, watch, common);
       },
-      text: () => {},
+      data: savedData,
+      text: savedText,
     }),
     // A folder per job, each saved on its own, so each job's result prints as it lands.
     remove: action({
@@ -101,22 +103,6 @@ function watches(jobs: readonly Job[]): Watch[] {
         : select.map(({ from }) => ({ folder: folderKey(from), to, jobId: job.id, scope, root })),
     );
   });
-}
-
-/** A watch is the scope's sync job publishing a folder too, so adding one is `job add --watch`. */
-async function add(
-  context: CommandContext,
-  folders: string[],
-  own: Own,
-  common: CommonOptions,
-): Promise<void> {
-  if (folders.length === 0) throw needsFolder("add");
-  await addJob(
-    context,
-    undefined,
-    { watch: folders, ...(own.to === undefined ? {} : { to: own.to }) },
-    common,
-  );
 }
 
 function needsFolder(action: string): AiregError {

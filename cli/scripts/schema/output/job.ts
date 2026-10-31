@@ -1,10 +1,4 @@
-import {
-  type SchemaOptions,
-  type Static,
-  type TLiteral,
-  type TSchema,
-  Type,
-} from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
 import { KINDS } from "#adapter/kinds.ts";
 import type {
   JobList,
@@ -20,28 +14,7 @@ import { STEP_POLICIES } from "#core/config/model.ts";
 import { ITEM_OUTCOMES, RUN_MODES, RUN_STATES, RUN_TRIGGERS } from "#core/run/model.ts";
 import { DISPOSITIONS } from "#core/sync/model.ts";
 import { SYNC_OPERATIONS } from "#core/sync/policy.ts";
-import { matching, outputDocument } from "./match.ts";
-
-/** A field a record types `| undefined`, which JSON leaves out: optional in the schema. */
-export function absent<T extends TSchema>(schema: T) {
-  return Type.Unsafe<Static<T> | undefined>(Type.Optional(schema));
-}
-
-/** JSON has no `readonly`; the schema still reads as the domain type it describes. */
-export function readonlyArray<T extends TSchema>(item: T) {
-  return Type.Unsafe<readonly Static<T>[]>(Type.Array(item));
-}
-
-export function readonlyRecord<T extends TSchema>(value: T) {
-  return Type.Unsafe<Readonly<Record<string, Static<T>>>>(Type.Record(Type.String(), value));
-}
-
-export function oneOf<T extends string>(values: readonly T[], options?: SchemaOptions) {
-  return Type.Union(
-    values.map((value): TLiteral<T> => Type.Literal(value)),
-    options,
-  );
-}
+import { absent, matching, oneOf, outputDocument, readonlyArray, readonlyRecord } from "./match.ts";
 
 const Selector = Type.Object(
   {
@@ -139,7 +112,7 @@ const RunEvent = Type.Object(
   { additionalProperties: false },
 );
 
-const Saved = matching<JobSaved>()(
+export const Saved = matching<JobSaved>()(
   Type.Object({ job: Job, revision: Type.Number() }, { additionalProperties: false }),
 );
 

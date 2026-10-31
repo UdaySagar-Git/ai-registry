@@ -1,7 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { DaemonAutostart, DaemonSettled, DaemonStatus } from "#cli/commands/daemon/result.ts";
-import { oneOf } from "./job.ts";
-import { matching, outputDocument } from "./match.ts";
+import { matching, oneOf, outputDocument } from "./match.ts";
 
 const State = oneOf(["down", "ready", "stopping", "outdated", "foreign"], {
   description:

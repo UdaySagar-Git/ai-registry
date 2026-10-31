@@ -127,9 +127,7 @@ export function throughManifest(
   registries: Readonly<Record<string, RegistrySource>>,
   flags: SourceFlags,
 ): Resolved {
-  // Split before the version, so `house@1.0.0` still finds the alias it names
-  // and is answered by the reference grammar rather than by the URL parser.
-  const alias = (input.split("@")[0] ?? input).split("/")[0] ?? input;
+  const alias = aliasIn(input);
   const source = registries[alias];
   if (source === undefined) {
     return {
@@ -171,6 +169,14 @@ export function throughManifest(
     alias,
     aliases: Object.keys(registries),
   };
+}
+
+/**
+ * The registry an address starts with. Split before the version, so `house@1.0.0` still names
+ * its alias and is answered by the reference grammar rather than by the URL parser.
+ */
+export function aliasIn(address: string): string {
+  return (address.split("@")[0] ?? address).split("/")[0] ?? address;
 }
 
 /** Flags win over the manifest, so `--ref` can override a pinned registry. */

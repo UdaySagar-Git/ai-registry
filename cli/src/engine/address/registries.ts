@@ -13,7 +13,7 @@ import { readManifest } from "#core/manifest/repository.ts";
 import { roots as makeRoots, type Scope, scopeName } from "#core/store/paths.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/scope/load.ts";
-import type { Probed } from "./probe.ts";
+import { aliasIn, type Probed } from "./probe.ts";
 
 export function sameLocation(a: string, b: string): boolean {
   return comparable(a) === comparable(b);
@@ -140,7 +140,7 @@ export async function undeclaredRegistry(
   cwd: string,
 ): Promise<AiregError | undefined> {
   if (namesHost(input)) return undefined;
-  const alias = (input.split("@")[0] ?? input).split("/")[0] ?? input;
+  const alias = aliasIn(input);
   const scope = (await load(common, cwd, "user")).roots.scope;
   const project =
     common.scope === "user" ? await load({ ...common, scope: undefined }, cwd, "user") : undefined;

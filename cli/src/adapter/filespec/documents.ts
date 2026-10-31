@@ -196,10 +196,7 @@ function entryOf(raw: unknown, at: string): IndexRow | undefined {
   };
 }
 
-/**
- * The catalog. One read answers "what does this publish", which is what
- * replaces walking a tree.
- */
+/** The catalog: one read answers what the root publishes, in place of walking a tree. */
 export async function readIndex(read: ReadPath): Promise<IndexRow[]> {
   const raw = await readJson(read, INDEX_DOCUMENT);
   if (raw === undefined) {
@@ -268,7 +265,7 @@ export async function readVersions(
 /** How many versions a refusal suggests; `versions.json` lists the newest first. */
 const SUGGESTED = 5;
 
-/** What a ref without `@<version>` resolves to: `latest`, skipping nothing. */
+/** The row `wanted` names, else `latest`'s, skipping nothing; an unlisted version throws. */
 export function resolveVersion(document: VersionsDocument, wanted: string | undefined): VersionRow {
   const version = wanted ?? document.latest;
   const found = document.versions.find((item) => item.version === version);
@@ -276,9 +273,9 @@ export function resolveVersion(document: VersionsDocument, wanted: string | unde
   const artifact = [document.namespace, document.name].filter(Boolean).join("/");
   const offered = document.versions.filter((item) => !item.yanked).map((item) => item.version);
   const more = offered.length > SUGGESTED ? `, or another of its ${offered.length} versions` : "";
+  // Asking for a version that was never released is a wrong name, not a broken registry.
   throw new SpecError(`${artifact} has no version ${version}.`, {
     path: versionsPath(document.namespace, document.kind, document.name),
-    // Asking for a version that was never released is a wrong name, not a broken registry.
     missing: wanted !== undefined,
     artifact,
     hint:

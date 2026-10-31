@@ -82,7 +82,7 @@ export interface GitOptions extends GitLimits {
 
 const MAX_BUFFER = 32 * 1024 * 1024;
 
-/** Its own process group, so a timeout also stops the helpers git starts, such as `git-remote-http`. */
+/** Its own process group, so a timeout also stops git's helpers, such as `git-remote-http`. */
 const GROUPED = process.platform !== "win32";
 
 /** Git runs still going, so an interrupted command can stop them on its way out. */
@@ -117,7 +117,7 @@ interface Ran {
   timedOut: boolean;
 }
 
-/** At most this many git network calls at once, so dozens of registries stay under a host's limits. */
+/** At most this many git network calls at once, keeping dozens of registries under host limits. */
 const NETWORK_AT_ONCE = 6;
 const NETWORK = new Set(["clone", "fetch", "ls-remote"]);
 let networking = 0;

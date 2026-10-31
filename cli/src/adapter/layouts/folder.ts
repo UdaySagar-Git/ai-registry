@@ -71,7 +71,7 @@ async function agentFiles(tree: Tree, warnings: string[]): Promise<string[]> {
   return found;
 }
 
-/** `skills/<group>/<name>` files a skill under `<group>`; anything else under the registry's name. */
+/** `skills/<group>/<name>` files a skill under `<group>`; others go under the registry's name. */
 function namespaceOf(folder: string, context: LayoutContext): string {
   const parts = folder.split("/");
   const group = parts.length === 3 && parts[0] === "skills" ? parts[1] : undefined;
@@ -133,7 +133,7 @@ async function frontOf(tree: Tree, path: string): Promise<Frontmatter | undefine
   return bytes === undefined ? undefined : readFrontmatter(new TextDecoder().decode(bytes));
 }
 
-/** Front matter names the artifact as well; the folder wins, since the folder is what is installed. */
+/** Front matter may name the artifact too; its folder or file wins, since that is what installs. */
 function checkName(candidate: Candidate, front: Frontmatter | undefined, warnings: string[]): void {
   const named = textField(front, "name");
   if (named === undefined || named === candidate.name) return;
@@ -178,7 +178,7 @@ export async function artifactOf(
   });
 }
 
-/** A plain folder of skills: `SKILL.md` folders and `agents/*.md` files, as a repository holds them. */
+/** A plain folder of skills: `SKILL.md` folders and `agents/*.md` files, as a repository has. */
 export const folderLayout: Layout = {
   id: "folder",
   looksFor: [SKILL_FILE, "agents/*.md"],

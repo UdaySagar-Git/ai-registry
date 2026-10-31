@@ -66,7 +66,7 @@ function checkDeclaration(adapter: SourceAdapter): void {
   }
 }
 
-/** The checks an adapter's own test runs: its declaration, then a live handle against a real registry. */
+/** For an adapter's own tests: its declaration, then a live handle against a real registry. */
 export async function assertAdapterCompliance(
   adapter: SourceAdapter,
   context: SourceContext,

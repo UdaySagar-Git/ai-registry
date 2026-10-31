@@ -63,6 +63,7 @@ function destination(change: PublishInput): { namespace: string; version: string
 }
 
 function envelopeFor(change: PublishInput, files: readonly FileDescriptor[]): Envelope {
+  // The envelope is where the file spec keeps a version's edges, so its digest covers them.
   return buildEnvelope({
     kind: change.kind,
     metadata: {
@@ -73,7 +74,6 @@ function envelopeFor(change: PublishInput, files: readonly FileDescriptor[]): En
     },
     files,
     spec: change.spec,
-    // The envelope is where the file spec keeps a version's edges, so its digest covers them.
     ...(change.relationships === undefined ? {} : { relationships: [...change.relationships] }),
   });
 }

@@ -28,7 +28,7 @@ export interface FetchedPlugin {
 
 /** What a layout is told about the source it reads. */
 export interface LayoutContext {
-  /** The namespace an artifact is listed under when the layout gives it none: the registry's name. */
+  /** The namespace for an artifact the layout gives none: the registry's name. */
   namespace: string;
   /** What to call the source when it is one artifact on its own, such as a lone SKILL.md. */
   rootName: string;
@@ -55,7 +55,7 @@ export interface Layout {
   id: LayoutId;
   /** The files it reads a source by, for a source where no layout matched. */
   looksFor: readonly string[];
-  /** "no" lets the next layout try. A manifest that is there but broken throws, which stops detection. */
+  /** "no" lets the next layout try; a present but broken manifest throws, stopping detection. */
   match(tree: Tree): Promise<"yes" | "no">;
   enumerate(tree: Tree, context: LayoutContext): Promise<Found>;
 }

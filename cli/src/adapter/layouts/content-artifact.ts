@@ -29,9 +29,8 @@ export interface ContentInput {
 }
 
 /**
- * An artifact whose identity is its content alone: kind, name, description, files and spec.
- * Nothing that varies by commit, clock, machine or path enters the envelope, so the same
- * bytes have the same digest wherever and whenever they are read.
+ * An artifact whose identity is its content alone: nothing that varies by commit, clock, machine or
+ * path enters the envelope, so the same bytes have the same digest wherever they are read.
  */
 export async function contentArtifact(tree: Tree, input: ContentInput): Promise<Artifact> {
   const described = [];

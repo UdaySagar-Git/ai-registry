@@ -99,7 +99,7 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
   const namespace = registryNameFromLocation(location, site.hostname.replace(/\./g, "-"));
   const held = new Map<string, Map<string, Uint8Array>>();
 
-  /** No credentials and no cookies: a site's index is public, whatever host an entry names. */
+  // No credentials and no cookies: a site's index is public, whatever host an entry names.
   const get = async (url: URL, limit: number): Promise<{ status: number; bytes: Uint8Array }> => {
     if (url.protocol !== "https:" && !(url.protocol === "http:" && isLoopback(url))) {
       throw fail("invalid", `${url.href} has no transport security.`);
@@ -171,7 +171,7 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
     return entries;
   };
 
-  /** Bytes that do not hash to the digest the index gives never land; the whole read fails. */
+  // Bytes that do not hash to the digest the index gives never land; the whole read fails.
   const filesOf = async (
     entry: Entry,
   ): Promise<Map<string, { bytes: Uint8Array; executable: boolean }>> => {

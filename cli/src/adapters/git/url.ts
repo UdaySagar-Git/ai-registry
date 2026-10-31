@@ -175,7 +175,7 @@ export function parseSource(input: string, cwd = process.cwd()): SourceSpec {
   };
 }
 
-// `cloneUrl` keeps a user only for ssh:, so elsewhere the user is not part of the address tried.
+/** `cloneUrl` keeps a user only for ssh:, so only there does a user make the address exact. */
 function namesSshUser(url: URL): boolean {
   return url.protocol === "ssh:" && url.username !== "" && url.username !== "git";
 }
@@ -183,7 +183,7 @@ function namesSshUser(url: URL): boolean {
 /** file:// is a git transport, not a directory read: `./dir` is the latter. */
 function cloneUrl(url: URL, path: string): string {
   if (url.protocol === "file:") return url.href;
-  // `origin` is "null" for a scheme the URL standard does not know, such as ssh:.
+  // Built by hand: `url.origin` is "null" for a scheme the URL standard does not know, like ssh:.
   const user = url.protocol === "ssh:" && url.username !== "" ? `${url.username}@` : "";
   return `${url.protocol}//${user}${url.host}/${path}.git`;
 }

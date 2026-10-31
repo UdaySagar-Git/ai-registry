@@ -156,12 +156,14 @@ interface Redirection {
   problem: "symlink" | "not-directory";
 }
 
-/** Synchronous so planning can ask; `assertUnredirected` asks again at write time. */
+/**
+ * Synchronous so planning can ask; `assertUnredirected` asks again at write time. `verified` holds
+ * folders already found real in this pass, which are not checked again.
+ */
 export function redirection(
   root: string,
   path: string,
   includeLeaf = true,
-  /** Folders already found to be real ones in this pass, which are not checked again. */
   verified?: Set<string>,
 ): Redirection | undefined {
   const base = resolve(root);

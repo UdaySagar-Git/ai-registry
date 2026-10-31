@@ -69,7 +69,7 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
     return { root: await registryPath(placed.root, folder, true), commit: placed.commit ?? commit };
   };
 
-  /** Not a registry: one commit, chosen by the versions asked for, the ref, or the newest release. */
+  // Not a registry: one commit, chosen by the versions asked for, the ref, or the newest release.
   const targetOf = async (want: readonly Want[]): Promise<string> => {
     // A want with its own revision is a fetched plugin's, whose version is its own repository's.
     const pinned = want.filter((item) => item.version !== undefined && item.revision === undefined);

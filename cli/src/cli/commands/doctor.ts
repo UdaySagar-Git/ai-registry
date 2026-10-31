@@ -31,7 +31,7 @@ interface Check {
   name: string;
   ok: boolean;
   detail: string;
-  /** The one command that fixes or improves it. */
+  /** What fixes or improves it; commands joined with ` && ` print one per line. */
   fix?: string;
   /** Worth knowing, with nothing to do. */
   info?: boolean;
@@ -108,7 +108,7 @@ async function home(): Promise<Check> {
   return { name: "home", ok: true, detail: shown };
 }
 
-/** What every command would refuse about the file, by the store's own rule; its contents are never read. */
+/** What every command would refuse about the file, by the store's rule; never reads its contents. */
 async function credentials(): Promise<Check> {
   const path = credentialsPath();
   const shown = underHome(path);
@@ -210,6 +210,7 @@ async function checksFor(
   }
   const cached = await readUpdateCache();
   const tooOld = nodeTooOld();
+  // The telemetry row: aireg itself sends none; an adapter reports its own through `ready()`.
   return [
     { name: "cli", ok: true, detail: VERSION },
     {
@@ -229,7 +230,6 @@ async function checksFor(
     await credentials(),
     userScope(),
     await ownSkills(cwd),
-    // aireg itself sends none; an installed adapter reports its own through `ready()`.
     {
       name: "telemetry",
       ok: true,
@@ -267,7 +267,6 @@ export async function run(context: CommandContext): Promise<void> {
   render(context, checks);
 }
 
-/** One line of versions, then a checklist: what passed, what to improve, what blocks installs. */
 function render(context: CommandContext, checks: readonly Check[]): void {
   const { style } = context.printer;
   const version = (name: string) => checks.find((check) => check.name === name);

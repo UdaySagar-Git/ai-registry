@@ -8,9 +8,6 @@ import { POLICY_AXES, type PolicyAxis, type SyncPolicy } from "#core/sync/policy
 import { interval, pad } from "#core/term/format.ts";
 import { COLOR } from "#core/term/theme.ts";
 
-// Read-only deliberately: every axis here is written into config.yml, and a write from
-// a list you are scrolling is how a policy changes by accident.
-
 /** What each of `STEP_POLICIES` means on an axis, in that order. */
 const MEANING: Record<PolicyAxis, readonly string[]> = {
   pull: ["take what changed in the registry", "say it changed, take nothing", "do not look"],
@@ -52,6 +49,10 @@ function axisRow(
   );
 }
 
+/**
+ * Read-only deliberately: every axis here is written into config.yml, and a write from
+ * a list you are scrolling is how a policy changes by accident.
+ */
 export function settingsView(props: {
   width: number;
   state: ConsoleState;

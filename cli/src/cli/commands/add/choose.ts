@@ -103,7 +103,7 @@ export async function gather(
   };
 }
 
-/** `undefined` names means the whole registry, matching the manifest shape. */
+/** Undefined when canceled. */
 async function pickArtifacts(
   step: Interaction,
   common: CommonOptions,
@@ -136,10 +136,11 @@ async function pickArtifacts(
 }
 
 interface Picked {
+  /** Undefined means the whole registry, matching the manifest shape. */
   addresses: string[] | undefined;
 }
 
-/** The kinds a selection covers; every kind when the whole registry is taken. */
+/** The entries a selection covers; every entry when the whole registry is taken. */
 export function chosenEntries(
   addresses: readonly string[] | undefined,
   all: readonly Entry[],

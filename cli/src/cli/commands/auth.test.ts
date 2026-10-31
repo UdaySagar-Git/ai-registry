@@ -12,7 +12,6 @@ import { test } from "#test/kit/fixtures.ts";
 import { run } from "./auth.ts";
 import type { CommandContext } from "./command.ts";
 
-/** This test's folder, which the kit removes after it. */
 let scratch: string;
 test.beforeEach(({ tmp }) => {
   scratch = tmp;

@@ -6,8 +6,6 @@ import type { ConsoleState } from "#core/console/model.ts";
 import { bar, clock, interval, pad, truncate } from "#core/term/format.ts";
 import { COLOR, GLYPH, runColor, runGlyph } from "#core/term/theme.ts";
 
-// The one screen that answers "is this machine in a good state" without scrolling.
-
 function statusLine(ok: boolean, label: string, value: ReactNode, extra: ReactNode): ReactElement {
   return box(
     null,
@@ -76,7 +74,6 @@ function namespaces(state: ConsoleState, width: number, cursor: number): ReactEl
             ? faint(pad("authored here", 16))
             : plain(" ".repeat(16)),
         text({ color: COLOR.white }, pad(String(group.rows.length), 12)),
-        // The share that is actually installed and intact.
         text(
           { color: settled === group.rows.length ? COLOR.green : COLOR.yellow },
           pad(bar(settled, group.rows.length, 12), 16),
@@ -151,6 +148,7 @@ function runs(state: ConsoleState, width: number): ReactElement[] {
   return lines;
 }
 
+/** The one screen that answers "is this machine in a good state" without scrolling. */
 export function overviewView(props: {
   width: number;
   state: ConsoleState;

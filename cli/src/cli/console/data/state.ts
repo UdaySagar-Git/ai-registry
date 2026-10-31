@@ -32,9 +32,6 @@ import { readDaemonPid } from "#daemon/process/pid-file.ts";
 import { readAccounts } from "./accounts.ts";
 import { localWork } from "./local.ts";
 
-// One typed answer to "what is on this machine". Opens no socket and takes no
-// lease, so it is safe to run while the daemon is mid-sync.
-
 /** Enough history to see the shape of a day without reading the whole run database. */
 const RUN_HISTORY = 40;
 
@@ -67,6 +64,10 @@ export interface CollectOptions {
   accountId?: string | undefined;
 }
 
+/**
+ * What is on this machine. Opens no socket and takes no lease, so it is safe to
+ * run while the daemon is mid-sync.
+ */
 export async function collect(
   context: HostCommandContext,
   options: CollectOptions = {},
@@ -175,6 +176,7 @@ export async function collect(
     );
     const pid = await readDaemonPid();
 
+    // The daemon counts take every job on the machine, whichever registry is on screen.
     return {
       version: context.host.version,
       account,
@@ -186,7 +188,6 @@ export async function collect(
       daemon: {
         running: alive(pid),
         pid,
-        // The daemon runs every job on the machine, whichever registry is on screen.
         jobsEnabled: config.jobs.filter((job) => job.schedule.enabled).length,
         jobsTotal: config.jobs.length,
       },
@@ -202,7 +203,7 @@ export async function collect(
   }
 }
 
-/** The lockfile narrowed to one registry. */
+/** The lockfile narrowed to one registry, or all of it when `alias` is undefined. */
 function scopedLock(lock: Lock, alias: string | undefined): Lock {
   if (alias === undefined) return lock;
   const artifacts: Lock["artifacts"] = dict();

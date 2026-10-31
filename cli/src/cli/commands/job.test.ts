@@ -114,7 +114,6 @@ describe("a job named by a name other than its id", () => {
   });
 });
 
-/** One step of a job, rooted at `root`. */
 const step = (kind: string, root = "/scope", policy: StepPolicy = "on", needs: string[] = []) => ({
   name: kind,
   kind,

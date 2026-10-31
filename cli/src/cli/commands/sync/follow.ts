@@ -77,11 +77,11 @@ export function runSummary(
   if (changed === 0 && attention === 0 && failed === 0 && skipped === 0) {
     return `In sync with ${named ?? "every registry"} (${plural(examined, "artifact")}).`;
   }
+  // Skipped means left alone by a policy that is off, or by a registry that takes no publishes.
   const parts = [
     changed > 0 ? `${changed} changed` : "",
     attention > 0 ? `${attention} ${attention === 1 ? "needs" : "need"} attention` : "",
     failed > 0 ? `${failed} failed` : "",
-    // Left alone by a policy that is off, or by a registry that takes no publishes: not in sync.
     skipped > 0 ? `${skipped} left as ${skipped === 1 ? "it is" : "they are"}` : "",
   ].filter((part) => part !== "");
   return `${prefix}Checked ${plural(examined, "artifact")}: ${list(parts)}.`;

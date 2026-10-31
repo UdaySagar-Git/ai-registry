@@ -4,7 +4,6 @@ import { ESC } from "#core/term/format.ts";
 
 // Mouse reporting, which Ink does not do. SGR events (1006) because the older encoding
 // cannot express a column past 223, and this console is meant to be full width.
-
 const ENABLE = `${ESC}[?1000h${ESC}[?1006h`;
 const DISABLE = `${ESC}[?1006l${ESC}[?1000l`;
 
@@ -60,11 +59,10 @@ export function useMouse(onEvent: (event: MouseEvent) => void): void {
 }
 
 /**
- * Constants rather than measurements: the views lay out in a fixed order, and a measured
- * layout would need Ink to report geometry it does not expose.
+ * Screen rows of the header, its rule, the registry tabs, their rule and the view tabs. Fixed,
+ * because a measured layout would need Ink to report geometry it does not expose.
  */
 export const LAYOUT = {
-  /** Header, its rule, the registry tabs, their rule, the view tabs. */
   accountTabs: 2,
   viewTabs: 4,
   body: 6,

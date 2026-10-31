@@ -5,10 +5,12 @@ import { Printer } from "#core/term/printer.ts";
 import { homeTest as test } from "#test/kit/fixtures.ts";
 import { printHelp } from "./print.ts";
 
-// The e2e suite checks the root page against the built CLI from the same folder.
 const SNAPSHOTS = "__snapshots__";
 
-/** The built-in commands, and the skill and agent commands every scope has outside a registry. */
+/**
+ * The built-in commands, and the skill and agent commands every scope has outside a registry.
+ * The root page is snapshotted by the e2e suite, against the built CLI.
+ */
 const PAGES: string[] = [
   ...COMMANDS.flatMap((command) => [
     command.name,
@@ -17,7 +19,7 @@ const PAGES: string[] = [
   ...["skill", "agent"].flatMap((kind) => [kind, `${kind} new`, `${kind} bump`]),
 ];
 
-// Regenerate with `vitest run src/cli/help.test.ts -u` after a deliberate change to help text.
+// Regenerate with `vitest run src/cli/help/print.test.ts -u` after a deliberate change to help text.
 describe("aireg <command> [<action>] --help", () => {
   test.for(PAGES)("%s", async (page, { tmp }) => {
     const out: string[] = [];

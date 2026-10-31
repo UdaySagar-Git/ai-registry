@@ -49,7 +49,7 @@ export const COMMANDS: readonly Command[] = BUILTIN_SPECS.map((spec) => {
   return { ...spec, load };
 });
 
-/** A built-in command by its name, for code that reads specs by name. */
+/** A built-in command by its name; throws when no built-in has it. */
 export function builtin(name: string): Command {
   const command = COMMANDS.find((c) => c.name === name);
   if (command === undefined) throw new Error(`No built-in command named ${name}`);

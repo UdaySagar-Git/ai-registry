@@ -5,10 +5,7 @@ import type { Styler } from "#core/term/printer.ts";
 import { GLYPH } from "#core/term/theme.ts";
 import type { PromptIo, PromptWriter } from "./model.ts";
 
-// The non-interactive parts of the prompt frame. Both write to the prompt's
-// stream, never to stdout, so a redirected stdout still holds only results.
-
-/** A framed block of already-formatted lines under a title. */
+/** A framed block under a title, on the prompt stream so a redirected stdout holds only results. */
 export function note(io: PromptIo, style: Styler, title: string, body: readonly string[]): void {
   const width = Math.max(
     displayWidth(title) + 2,

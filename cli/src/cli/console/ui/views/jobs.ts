@@ -8,8 +8,6 @@ import { isFailed } from "#core/run/model.ts";
 import { ago, clock, interval, pad, truncate } from "#core/term/format.ts";
 import { COLOR, GLYPH, runColor, runGlyph } from "#core/term/theme.ts";
 
-// A failed run's reason comes from the daemon log: the run record carries only a code.
-
 export type JobLine = { kind: "job"; job: JobRow } | { kind: "run"; run: RunRow };
 
 export function jobLines(state: ConsoleState): JobLine[] {

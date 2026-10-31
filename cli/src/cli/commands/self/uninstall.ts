@@ -114,9 +114,9 @@ export async function run(context: CommandContext): Promise<void> {
   }
   const path = await removeFromPath();
   const folders = await deleteFolders();
+  // Only what was on is reported as turned off.
   const done = {
     daemon: found.daemon,
-    // Only what was on is reported as turned off.
     autostart: found.autostart && stopped.autostart,
     links,
     startupFiles: path.removed,

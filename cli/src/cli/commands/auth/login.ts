@@ -224,10 +224,11 @@ export async function login(
 
   const where = flags.address ?? found?.location;
   const token = await resolveToken(registry, flags);
+  // CI has nobody at a browser. A terminal is not required: an agent's shell has none.
   const client =
-    // CI has nobody at a browser. A terminal is not required: an agent's shell has none.
     token === undefined && !isCI() ? await oauthClientFor(found, signsIn, flags) : undefined;
   let finishing = false;
+  // Signing in may switch orgs and end a replaced session, each a round trip of its own.
   const signIn = (oauth?: Credential) => {
     finishing = true;
     return withDaemon((daemon) =>
@@ -241,7 +242,6 @@ export async function login(
           ...(adapter === undefined ? {} : { adapter }),
           ...(Object.keys(config).length === 0 ? {} : { config }),
         },
-        // Signing in may switch orgs and end a replaced session, each a round trip of its own.
         { timeoutMs: LOGIN_TIMEOUT_MS },
       ),
     );

@@ -1,8 +1,5 @@
 import type { Choice } from "./multiselect.ts";
 
-// The picker's outline: groups hold sections or leaves, sections hold leaves.
-// A run of choices sharing a group (or a section within it) becomes one heading.
-
 interface Leaf<T> {
   kind: "leaf";
   choice: Choice<T>;
@@ -45,6 +42,10 @@ function adopt<T>(parent: Heading<T> | undefined, choice: Choice<T>, depth: numb
   return leaf;
 }
 
+/**
+ * The picker's outline: groups hold sections or leaves, sections hold leaves.
+ * A run of choices sharing a group, or a section within it, becomes one heading.
+ */
 export function plant<T>(
   choices: readonly Choice<T>[],
   grouped: boolean,

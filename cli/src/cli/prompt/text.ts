@@ -51,8 +51,8 @@ class Typing implements Machine<string> {
     if (this.ended === "submit") {
       return [titleLine(style, "submit", message, style.dim(this.value || initial))];
     }
+    // Ink hides the terminal's cursor, so the prompt draws one where typing goes.
     return [
-      // Ink hides the terminal's cursor, so the prompt draws one where typing goes.
       titleLine(
         style,
         "active",

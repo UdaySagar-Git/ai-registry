@@ -44,10 +44,10 @@ function classify(error: unknown): Classified {
   // A wrapper that names no code of its own keeps the adapter's, so not_found survives.
   const own = ownCode(error);
   const code = own === ErrorCode.Error && adapter !== undefined ? adapterCode(adapter) : own;
+  // A wrapper with no hint of its own keeps the adapter's, which says what to do.
   return {
     code,
     message: error instanceof Error ? error.message : String(error),
-    // A wrapper with no hint of its own keeps the adapter's, which says what to do.
     hint:
       (error instanceof AiregError || error instanceof SpecError ? error.hint : undefined) ??
       adapter?.hint ??

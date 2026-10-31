@@ -29,7 +29,7 @@ export interface ImportPlan {
   artifacts: readonly Found[];
 }
 
-/** Said before anything is copied, the way a publish would say it, so nothing is half imported. */
+/** Refuses an irregular entry: `found`, or else the first one under `from`. */
 async function refuseIrregular(roots: Roots, from: string, found?: Irregular): Promise<void> {
   const refused = found ?? (await authoredArtifact(from)).irregular[0];
   if (refused === undefined) return;
@@ -132,7 +132,6 @@ async function copyIn(
       }
     }
   }
-  // A later `origins` step keeps this row up to date from the folder it came from.
   const lock = loaded.lock;
   // What this run copied, so a refusal part way leaves nothing behind, as its hint says.
   const made: string[] = [];
@@ -166,6 +165,7 @@ async function copyAll(
     await guardManagedPath(copy, loaded.roots);
     if (!(await exists(copy))) made.push(copy);
     await refuseIrregular(loaded.roots, source.from, await copyAuthored(source.from, copy));
+    // A later `origins` step keeps this row up to date from the folder it came from.
     lock.artifacts[`${into.namespace}/${artifact.name}`] = {
       registry: into.registry,
       id: undefined,

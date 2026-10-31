@@ -17,7 +17,7 @@ import { type Destination, folderTo, parseTo, writableRegistries } from "#engine
 import type { Work } from "#engine/publish/work.ts";
 import type { Loaded } from "#engine/scope/load.ts";
 
-/** `--to`, else where it was installed from, else asked; a script must say. */
+/** `--to`, else where it came from, else the saved default, else asked; undefined when canceled. */
 export async function destinationOf(
   step: Interaction,
   works: readonly Work[],

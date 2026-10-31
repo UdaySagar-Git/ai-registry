@@ -54,7 +54,6 @@ function addressOf(entry: Lock["artifacts"][string]): string {
   return `${entry.registry}/${within}${entry.kind}/${entry.name}`;
 }
 
-/** What the row is, given what the lock and the manifest say about it. */
 function classify(
   tracked: Tracked | undefined,
   declared: boolean,
@@ -99,8 +98,7 @@ export async function localWork(
   roots: Roots,
   targetTable: Targets,
   lock: Lock,
-  /** The names the manifest asks for. */
-  declared: ReadonlySet<string> = new Set(),
+  manifestNames: ReadonlySet<string> = new Set(),
   carried: Carried = new Map(),
 ): Promise<ArtifactRow[]> {
   const carriers = new Map<string, Carrier>();
@@ -116,7 +114,7 @@ export async function localWork(
     const { changedAtMs, edited } = await editsOf(carrier, item.from);
     const { state, detail } = classify(
       tracked.get(item.name),
-      declared.has(item.name),
+      manifestNames.has(item.name),
       carrier,
       edited,
     );

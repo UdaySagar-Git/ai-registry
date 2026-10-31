@@ -31,8 +31,8 @@ export async function runKind(
       hint: `Use ${list(actions, "or")}.`,
     });
   }
+  // A shell glob after --from lands as more positionals, so `new` takes them as more paths.
   return runAction(spec, action, {
-    // A shell glob after --from lands as more positionals, so they are more paths.
     new: () =>
       own.from === undefined
         ? init(kind, manifest, context, argument, own, common.yes)

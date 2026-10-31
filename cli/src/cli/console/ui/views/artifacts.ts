@@ -10,9 +10,6 @@ import { stateStyle } from "#core/console/state-style.ts";
 import { ago, pad, shortDigest, truncate } from "#core/term/format.ts";
 import { COLOR, GLYPH } from "#core/term/theme.ts";
 
-// The detail is a strip under the list rather than a side pane, so the columns keep
-// their width at any terminal size.
-
 interface Columns {
   name: number;
   version: number;

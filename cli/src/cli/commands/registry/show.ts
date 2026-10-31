@@ -13,7 +13,7 @@ import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/scope/load.ts";
 import type { Flags } from "./options.ts";
 
-/** The pipeline stopping after its second stage: nothing is installed. */
+/** Reads what a registry publishes; nothing is installed. */
 export async function show(
   context: CommandContext,
   input: string | undefined,

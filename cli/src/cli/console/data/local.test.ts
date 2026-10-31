@@ -89,7 +89,6 @@ describe("localWork", () => {
     expect(row?.state).toBe("unpublished");
   });
 
-  // The state a push leaves behind.
   test("reads work the manifest declares as published and waiting to be tracked", async () => {
     await skill("mine");
     const [row] = await localWork(scope(), targetTable(), emptyLock(), new Set(["mine"]));

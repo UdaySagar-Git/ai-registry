@@ -155,8 +155,6 @@ function repairHint(
   chosen: Chosen,
   kindOf: (item: ArtifactStatus) => ArtifactKind | undefined,
 ): void {
-  // An edit is the one state `install` will not repair: it refuses to overwrite
-  // an edit, so point at `sync`, which reconciles one.
   const flag = scope === "user" ? " -g" : "";
   // A copy aireg writes into a target's folder holds no edit sync could send back.
   const writtenFor = (item: ArtifactStatus): { tool: string; kind: string } | undefined => {
@@ -182,6 +180,7 @@ function repairHint(
       `${list(tools)} read${tools.length === 1 ? "s" : ""} a copy aireg writes from the ${kind}: run \`aireg install${flag} --force\` to write it again, and change the ${kind} in its registry.`,
     );
   } else if (edited) {
+    // `install` refuses to overwrite an edit, so point at `sync`, which reconciles one.
     printer.hint(
       `Run \`aireg sync${flag}\` to compare the edits with the registry` +
         (absent ? `, and \`aireg install${flag}\` to restore what is missing.` : "."),

@@ -56,7 +56,7 @@ async function writeFresh(path: string, body: string): Promise<void> {
   }
 }
 
-// Everything below is generated code for a package outside this repository.
+/** The scaffolded package's files by path, for a package outside this repository. */
 function files(id: string): Record<string, string> {
   const name = displayName(id);
   const range = contractRange();

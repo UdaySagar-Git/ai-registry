@@ -58,10 +58,10 @@ function keypress(text: string, key: Key): Keypress {
 function Frame(props: { lines: readonly string[]; columns: number }): ReactElement {
   // Options carry registry text, and Ink passes hyperlinks and styling through.
   const rows = props.lines.flatMap((line) => wrapRows(ownStyleOnly(line), props.columns));
+  // An empty Text takes no height, so a blank row keeps one cell.
   return createElement(
     Box,
     { flexDirection: "column" },
-    // An empty Text takes no height, so a blank row keeps one cell.
     ...rows.map((row, index) => createElement(Text, { key: index }, row === "" ? " " : row)),
   );
 }

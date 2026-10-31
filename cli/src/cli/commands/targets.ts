@@ -48,7 +48,6 @@ function needed(argument: string | undefined, action: string, what: string, hint
   });
 }
 
-/** Where a target came from, as a person reads it. */
 function origin(path: string): string {
   return path === BUILT_IN ? "built in" : underHome(path);
 }
@@ -69,7 +68,6 @@ const lowered = (sentences: readonly string[]) => {
   return `${text.charAt(0).toLowerCase()}${text.slice(1)}`;
 };
 
-/** Each target and what detected it: env, binary, then directories. */
 async function list(context: CommandContext, all: boolean): Promise<void> {
   // Every name `--for` takes; a shared folder such as `.agents` is never detected.
   const targetTable = resolveTargets();
@@ -150,6 +148,7 @@ function sharedHint(target: Target): string {
 /** One row per coding agent; the shared folder is not a tool, so it has no row. */
 function printTargets(context: CommandContext, rows: readonly Detection[]): void {
   const { style } = context.printer;
+  // The `from` column appears only once a file of yours defines a target.
   const fromFiles = rows.some((item) => item.target.origin !== BUILT_IN);
   table(
     context.printer,
@@ -165,7 +164,6 @@ function printTargets(context: CommandContext, rows: readonly Detection[]): void
         header: "where",
         value: (item: Detection) => style.dim(item.detected ? foundBy(item.by) : ""),
       },
-      // Only once a file of yours defines one: with the built-ins alone it says nothing.
       ...(fromFiles
         ? [{ header: "from", value: (item: Detection) => style.dim(origin(item.target.origin)) }]
         : []),

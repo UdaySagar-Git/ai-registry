@@ -18,8 +18,7 @@ type EdgesFor = (
   planned: (path: string) => Promise<Planned | undefined>,
 ) => Promise<PublishRelationship[] | undefined>;
 
-/** Whether an existing changed artifact needs a version-bump choice rather than a fixed version. */
-function bumped(items: readonly Planned[]): boolean {
+function needsBumpChoice(items: readonly Planned[]): boolean {
   return items.some(
     (item) => item.from !== undefined && !item.same && item.work.exported?.version === undefined,
   );
@@ -62,7 +61,7 @@ export async function planAll(
     return Promise.all(pending.values());
   };
   const planned = await at(bump ?? "patch");
-  const moved = bumped(planned.map(({ item }) => item));
+  const moved = needsBumpChoice(planned.map(({ item }) => item));
   if (bump !== undefined || exact !== undefined || !moved || !interactive(step)) return planned;
   const picked = await select<Bump>(
     {
@@ -101,9 +100,7 @@ export function edgesOf(
 export function opener(
   known: Readonly<Record<string, RegistrySource>>,
   cwd: string,
-  /** The command that sends this work into a clone of a registry instead. */
-  how: (alias: string) => string,
-  /** What this run asks each registry for, by its alias. */
+  cloneCommand: (alias: string) => string,
   wants: ReadonlyMap<string, readonly Want[]>,
 ) {
   const opened = new Map<string, Published>();
@@ -117,7 +114,7 @@ export function opener(
       Object.keys(known),
       cwd,
       wants.get(alias) ?? [],
-      how(alias),
+      cloneCommand(alias),
     );
     opened.set(alias, read);
     return read;

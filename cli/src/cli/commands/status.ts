@@ -145,6 +145,7 @@ export async function run(context: CommandContext): Promise<void> {
   if (context.printer.format === "json") {
     const neededBy = new Map(rows.map((row) => [row.name, row.neededBy]));
     const approvals = needsApproval(lock, roots, targetTable);
+    // `dangling` is as aireg 0.1 printed it, where `target` is the destination the link names.
     context.printer.json({
       ok: true,
       data: {
@@ -160,7 +161,6 @@ export async function run(context: CommandContext): Promise<void> {
           ...item,
           harnesses: item.targets.map((id) => earlierId(targetTable, id)),
         })),
-        // As aireg 0.1 printed it, where `target` is the destination the link names.
         dangling: dangling.map(({ path, linksTo, target }) => ({
           path,
           target: linksTo,

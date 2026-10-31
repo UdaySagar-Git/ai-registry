@@ -96,7 +96,7 @@ async function jobKey(job: Job | undefined, name: string): Promise<string> {
   const root = job?.steps.find((step) => step.root !== undefined)?.root;
   if (root === undefined) return name;
   const lock = await readLock(roots(scopeFor(root), root));
-  // A name this scope doesn't know goes as typed: the daemon says which job it looked in.
+  // A name this scope does not know goes as typed: the daemon says which job it looked in.
   if (matchInstalled(name, lock).rows.length === 0) return name;
   return rowsNamed(name, lock)[0] as string;
 }

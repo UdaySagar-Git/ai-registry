@@ -25,7 +25,7 @@ export async function confirmIfDestructive(
 }
 
 export interface PlanContext {
-  /** What confirming does, which titles the question: `Install 2 artifacts?`. */
+  /** What confirming does, which titles the question. */
   verb?: "Install" | "Remove" | "Update" | undefined;
   /** Targets this run was asked to write to. */
   targets?: readonly string[] | undefined;
@@ -75,7 +75,7 @@ export async function confirmPlan(
   return !canceled(proceed) && proceed;
 }
 
-/** The question a plan asks, named by what it does and to how many: `Remove 1 artifact?`. */
+/** The question a plan asks, named by what it does and to how many. */
 function planQuestion(plan: Plan, verb: "Install" | "Remove" | "Update"): string {
   const placed = new Set<string>();
   const removed = new Set<string>();
@@ -129,6 +129,8 @@ function planLines(step: Interaction, plan: Plan, context: PlanContext): string[
   const edited = new Set<string>();
   let recorded: Lock | undefined;
 
+  // A clone is this scope's own copy, not a placement in a target's folder, and a link
+  // is summarized by target below, so neither gets its own line.
   for (const action of plan.actions) {
     if (action.kind === "stage") staged.add(action.name);
     else if (action.kind === "record") recorded = action.lock;
@@ -136,8 +138,6 @@ function planLines(step: Interaction, plan: Plan, context: PlanContext): string[
       removed.add(action.name);
       if (action.edited === true) edited.add(action.name);
     }
-    // A clone is this scope's own copy, not a placement in a target's folder,
-    // and a link is summarized by target below, so neither gets its own line.
   }
   const linked = linkedTargets(plan);
 

@@ -20,7 +20,7 @@ function filesOf(item: Planned): { files?: string[] } {
     : {};
 }
 
-/** Each artifact under `--json`: its versions, and where it went. */
+/** Prints the `--json` result; does nothing in other formats. */
 export function report(
   printer: Printer,
   planned: Sending,
@@ -32,6 +32,7 @@ export function report(
   const target = to === undefined ? null : { registry: to.registry, namespace: to.namespace };
   const artifacts = planned.map(({ alias, item }) => {
     const result = results.get(alias);
+    // `digest` leaves out the version, so two dry runs agree exactly when the content does.
     return {
       name: item.work.name,
       kind: item.work.kind,
@@ -39,7 +40,6 @@ export function report(
       namespace: item.namespace,
       from: item.from ?? null,
       version: item.version,
-      // Leaves out the version, so two dry runs agree exactly when the content does.
       digest: item.input.contentId,
       belowLatest: item.belowLatest,
       published: !item.same && results.has(alias) && result?.unchanged !== true,

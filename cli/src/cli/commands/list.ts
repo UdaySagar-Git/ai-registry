@@ -112,10 +112,13 @@ export const { run } = defineCommand({
   },
 });
 
-/** Where this came from, in one screen, without a network call. */
-function detail(lock: Lock, roots: Roots, targetTable: Targets, name: string): Detail {
-  const [key] = rowsNamed(name, lock);
-  const entry = lock.artifacts[key as string] as LockArtifact;
+/**
+ * Where one artifact came from, in one screen and without a network call, however it was
+ * named: it is reported under the name it is installed as.
+ */
+function detail(lock: Lock, roots: Roots, targetTable: Targets, input: string): Detail {
+  const [name = input] = rowsNamed(input, lock);
+  const entry = lock.artifacts[name] as LockArtifact;
   const copy = relative(
     roots.base,
     artifactPath(

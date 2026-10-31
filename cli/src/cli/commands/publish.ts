@@ -104,16 +104,14 @@ async function publish(
     const outcome = { dryRun: common.dryRun, to, skipped: [...skipped, ...taken.skipped] };
     if (taken.works.length === 0) return report([], new Map(), outcome);
 
-    const planned = await planAll(
-      step,
-      taken.works,
+    const planned = await planAll(step, taken.works, {
       where,
       open,
-      own.bump,
-      to?.version,
-      common.force,
-      edgesOf(loaded, found, known, taken.left),
-    );
+      bump: own.bump,
+      exact: to?.version,
+      force: common.force,
+      edgesFor: edgesOf(loaded, found, known, taken.left),
+    });
     if (planned === undefined) return canceled(printer);
     // Only a person at a terminal is asked, and only by a source that records a reason.
     const asks = async (alias: string) =>

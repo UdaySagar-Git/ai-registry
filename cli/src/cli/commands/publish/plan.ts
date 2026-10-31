@@ -19,16 +19,23 @@ type EdgesFor = (
 ) => Promise<PublishRelationship[] | undefined>;
 
 /** Planned at a patch first; asked how big only when something already published moved. */
+interface PlanAllOptions {
+  /** The registry and namespace each work goes to. */
+  where: Map<Work, { registry: string; namespace: string }>;
+  open: (alias: string) => Promise<Published>;
+  bump: Bump | undefined;
+  /** The one version `--to` named, which no bump moves. */
+  exact: string | undefined;
+  force: boolean;
+  edgesFor: EdgesFor | undefined;
+}
+
 export async function planAll(
   step: Interaction,
   works: readonly Work[],
-  where: Map<Work, { registry: string; namespace: string }>,
-  open: (alias: string) => Promise<Published>,
-  bump: Bump | undefined,
-  exact: string | undefined,
-  force: boolean,
-  edgesFor: EdgesFor | undefined,
+  options: PlanAllOptions,
 ): Promise<Sending | undefined> {
+  const { where, open, bump, exact, force, edgesFor } = options;
   const at = (how: Bump) => {
     const pending = new Map<Work, Promise<Sending[number]>>();
     for (const work of works) {

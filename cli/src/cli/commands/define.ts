@@ -7,8 +7,12 @@ export const STREAMED: unique symbol = Symbol("streamed");
 /** One action: what it does, as data, and how a person reads that data. */
 export interface Action<O, R extends object> {
   run(options: O, context: CommandContext): Promise<R | typeof STREAMED>;
-  /** Under `--json` the result itself is printed, so this never runs there. */
+  /** Under `--json` the data is printed instead, so this never runs there. */
   text(result: R, printer: Printer, options: O): void;
+  /** What `--json` prints, when the text needs facts the published data leaves out. */
+  data?(result: R): object;
+  /** False for a check that ran and found problems: its data still prints, under `ok: false`. */
+  ok?(result: R): boolean;
 }
 
 /** A command with no actions: argv to options, then its one result, printed once. */
@@ -65,17 +69,13 @@ async function perform<O>(
   context: CommandContext,
 ): Promise<void> {
   const result = await chosen.run(options, context);
-  if (result !== STREAMED) {
-    emit(context.printer, result, (shown, printer) => chosen.text(shown, printer, options));
+  if (result === STREAMED) return;
+  if (context.printer.format === "json") {
+    context.printer.json({
+      ok: chosen.ok?.(result) ?? true,
+      data: chosen.data?.(result) ?? result,
+    });
+  } else {
+    chosen.text(result, context.printer, options);
   }
-}
-
-/** The one place a result is printed: the `--json` envelope, or the text a person reads. */
-function emit<R extends object>(
-  printer: Printer,
-  result: R,
-  text: (result: R, printer: Printer) => void,
-): void {
-  if (printer.format === "json") printer.json({ ok: true, data: result });
-  else text(result, printer);
 }

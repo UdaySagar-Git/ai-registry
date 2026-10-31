@@ -50,7 +50,6 @@ const BUNDLED: Readonly<Record<string, KindManifest>> = dict([
   ["agent", agent as KindManifest],
 ]);
 
-/** A manifest a registry serves itself, or why it could not be used. */
 type Served = { manifest: KindManifest } | { problem: string };
 
 interface Listed {
@@ -154,7 +153,6 @@ async function served(root: string, url: string): Promise<Served> {
   return { manifest: raw as unknown as KindManifest };
 }
 
-/** Every exact `path` the file rules name, however the manifest nests them. */
 function filePaths(files: unknown): unknown[] {
   if (!isRecord(files)) return [];
   const rules = [
@@ -262,7 +260,7 @@ export function specOf(
   } catch {
     return undefined;
   }
-  // The card stays verbatim; the fields a kind requires are lifted beside it, as `kinds/agent.json` describes.
+  // The card stays verbatim, with the fields a kind requires lifted beside it (`kinds/agent.json`).
   const lifted: Record<string, unknown> = {};
   if (isRecord(card)) {
     for (const field of ["name", "description"]) {

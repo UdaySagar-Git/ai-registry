@@ -2,9 +2,8 @@ import { realpathSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 
 /**
- * Where a path actually resolves, so a link recorded under it compares equal to
- * one read back later. A path that does not exist yet is left as written. Native, as
- * `realpath` from fs/promises is, so a Windows short name such as `RUNNER~1` expands.
+ * Where a path resolves, so a link recorded under it compares equal later; a missing path stays as
+ * written. Native, as fs/promises `realpath` is, so a Windows short name like `RUNNER~1` expands.
  */
 export function canonical(path: string): string {
   try {

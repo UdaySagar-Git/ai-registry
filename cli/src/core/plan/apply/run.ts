@@ -35,7 +35,6 @@ export interface ApplyResult {
   backedUp: {
     path: string;
     to: string;
-    /** What it was, so the report can name it the way the person knows it. */
     what: "folder" | "file" | "link";
   }[];
   /** Plugins this run installed or updated that carry something a target starts on its own. */
@@ -60,8 +59,7 @@ export interface Run {
   measured: Set<string>;
   upstream: Map<string, string>;
   modes: Map<string, LinkMode>;
-  // A plugin directory is shared by its namespace's artifacts but linked once, for
-  // the first: every artifact linking that path takes the mode it got.
+  /** A plugin directory is linked once, for its first artifact; the others share its mode. */
   pathModes: Map<string, LinkMode>;
   /** What each copy-mode link wrote, recorded so a later edit to it is seen. */
   copies: Map<string, string>;
@@ -75,7 +73,7 @@ export interface Run {
   fanned: Map<string, string>;
   /** Plugin directories placed as copies, copied again once every member has landed. */
   copiedPlugins: Map<string, ActionOf<"link">>;
-  /** Links whose source the source never served. */
+  /** Links not made, by `linkKey`; the lock leaves them out. */
   skipped: Set<string>;
   unstaged: Map<string, { reason: string; error: unknown }>;
   performed: Performed;

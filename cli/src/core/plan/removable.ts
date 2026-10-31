@@ -53,8 +53,7 @@ function ownLink(target: string, roots: RemovableRoots): boolean {
   }
 }
 
-/** Relative to the folder it was found under, which is how a person knows it. */
-/** Spelled as the lock spells the path it is said beside, with forward slashes. */
+/** Relative to the folder it was found under, with forward slashes as the lock spells paths. */
 function shown(anchor: string, at: string): string {
   return isStrictlyWithin(anchor, at) ? posixRelative(anchor, at) : at;
 }

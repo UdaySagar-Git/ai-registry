@@ -220,7 +220,10 @@ async function save(path: string, entries: ReadonlyMap<string, StoredCredential>
 // One chain for the process, so its own writers queue here instead of polling the lease.
 let pending: Promise<unknown> = Promise.resolve();
 
-/** The CLI and the daemon both write the file, so every edit is one read-modify-write under its lease. */
+/**
+ * The CLI and the daemon both write the file, so every edit is one read-modify-write
+ * under its lease.
+ */
 function edit(
   env: NodeJS.ProcessEnv,
   change: (entries: Map<string, StoredCredential>) => boolean,

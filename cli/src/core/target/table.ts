@@ -80,10 +80,11 @@ function profilesOf(definition: TargetDefinition, env: NodeJS.ProcessEnv, origin
     const profile = folder.slice(prefix.length, folder.length - suffix.length);
     if (!PROFILE.test(profile)) return [];
     const base = toTarget(definition, env, origin);
+    // A profile is this machine's alone, so a project never installs into it. Its aliases stay
+    // empty: `<alias>:<profile>` reaches it through its definition's aliases.
     return [
       {
         ...base,
-        // A profile is this machine's alone, so a project never installs into it.
         kinds: Object.fromEntries(
           Object.entries(base.kinds).map(([kind, mapping]) => [
             kind,
@@ -91,7 +92,6 @@ function profilesOf(definition: TargetDefinition, env: NodeJS.ProcessEnv, origin
           ]),
         ),
         name: `${definition.id}:${profile}`,
-        // `<alias>:<profile>` reaches it through its definition's aliases.
         aliases: [],
         displayName: `${definition.displayName} (${profile})`,
         userRoot: join(dirname(pattern), folder),

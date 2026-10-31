@@ -107,7 +107,7 @@ async function linksTo(path: string, target: string): Promise<boolean> {
   return raw !== undefined && resolve(dirname(path), raw) === resolve(dirname(path), target);
 }
 
-/** A copied manifest file that already holds the source's bytes; a manifest folder is always copied again. */
+/** Whether a copied manifest file holds the source's bytes; a manifest folder is recopied. */
 async function sameFile(source: string, copy: string): Promise<boolean> {
   const info = await lstat(copy).catch(() => undefined);
   if (info === undefined || !info.isFile() || !(await stat(source)).isFile()) return false;

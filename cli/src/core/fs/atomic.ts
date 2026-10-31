@@ -6,20 +6,19 @@ import { PRIVATE_FILE } from "./mode.ts";
 import { isMissing } from "./path.ts";
 
 /**
- * A killed process leaves the old file or the new one, never half of either, and
- * a process that lost its scope's lease never lands one.
+ * A killed process leaves the old file or the new, and one that lost its scope's lease lands none.
+ * `durable` false skips the syncs, for a file a caller can simply write again after a crash.
  */
 export function writeAtomic(
   target: string,
   contents: string | Uint8Array,
   mode = PUBLIC_FILE,
-  /** False skips the syncs, for files a caller can simply write again after a crash. */
   durable = true,
 ): Promise<void> {
   return write(target, contents, { mode, durable, beforeRename: assertLeasesHeld });
 }
 
-/** The file a write to `path` should land in: what a link names, even one whose file is not there yet. */
+/** Where a write to `path` lands: what a link names, even one whose file is not there yet. */
 async function landing(path: string): Promise<string> {
   try {
     return await realpath(path);

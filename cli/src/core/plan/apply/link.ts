@@ -35,8 +35,7 @@ export async function preflight(plan: Plan, roots: Roots): Promise<Map<string, L
 }
 
 /**
- * Decided before the journal, so recovery never counts a person's folder as ours to remove. A
- * recorded link a person has since replaced with their own is theirs: moved aside, never deleted.
+ * Decided before the journal, so recovery never counts a person's folder as ours to remove.
  * Read-only, so a dry run shows the same verdicts.
  */
 export async function guardsOf(plan: Plan, roots: Roots): Promise<Map<string, LinkGuard>> {

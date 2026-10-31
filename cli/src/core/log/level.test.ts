@@ -6,7 +6,6 @@ describe("resolveLevel", () => {
     ["falls back when nothing asks for a level", {}, undefined, "info"],
     ["reads the environment", { AIREG_LOG_LEVEL: "debug" }, undefined, "debug"],
     ["lets the flag beat the environment", { AIREG_LOG_LEVEL: "warn" }, "trace", "trace"],
-    // So a daemon can be silenced without finding the sink.
     ["accepts off", { AIREG_LOG_LEVEL: "off" }, undefined, "off"],
     ["ignores case and whitespace", { AIREG_LOG_LEVEL: "  WARN " }, undefined, "warn"],
   ])("%s", (_, env, flag, level) => {

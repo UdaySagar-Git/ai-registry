@@ -2,7 +2,10 @@ import { compareVersion, formatVersion, gte, parseVersion } from "#adapter/semve
 import { isRecord } from "./fields.ts";
 import { NAME } from "./product.ts";
 
-/** `0.3.0`, `>=0.3.0` and `>=v0.3.0` all mean this version or newer. Ranges are refused. */
+/**
+ * `0.3.0`, `>=0.3.0` and `>=v0.3.0` all mean this version or newer; a range or a prerelease is
+ * refused as undefined.
+ */
 export function parseEngine(raw: string): string | undefined {
   const trimmed = raw.trim();
   const body = trimmed.startsWith(">=") ? trimmed.slice(2).trim() : trimmed;

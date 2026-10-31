@@ -64,9 +64,9 @@ function dependency(text: string, path: string, artifacts: readonly Ref[]): Expo
     );
   }
   if (artifactFor(artifacts, ref) === undefined) {
+    // The hint is not `aireg add`, which reads this manifest first and so stops here too.
     throw new ManifestError(
       `${of}, which is not listed under \`artifacts:\`.`,
-      // Not `aireg add`, which reads this manifest first and so stops here too.
       `List it under \`artifacts:\`, such as \`- ${address}\`.`,
     );
   }

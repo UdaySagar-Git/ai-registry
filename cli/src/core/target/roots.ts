@@ -36,7 +36,6 @@ export function projectionPath(
   return join(targetRoot(target, scope, cwd, env), mapping.subdir, leaf);
 }
 
-/** `{name}` and `{source}` in a kind `subdir`. */
 function expandPlacement(
   template: string,
   values: Readonly<{ name: string; source: string }>,
@@ -46,7 +45,6 @@ function expandPlacement(
   );
 }
 
-/** Where a target expects a whole plugin to sit. */
 export function pluginProjection(
   target: Target,
   namespace: string,

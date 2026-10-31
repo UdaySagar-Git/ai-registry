@@ -1,8 +1,3 @@
-/*
- * Every write the console performs is an `aireg` command, run as a child: the
- * CLI owns the lease, and two writers in one process would take it twice.
- */
-
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { spawnDetached } from "#core/process.ts";
@@ -38,12 +33,12 @@ function data(values: readonly string[]): string[] {
 }
 
 export function pullLatest(alias: string | undefined, scope: Scope): Command {
+  // A pull is a pull: nothing here may send or remove anything.
   const argv = [
     "sync",
     ...scoped(scope),
     "--pull",
     "on",
-    // A pull is a pull: nothing here may send or remove anything.
     "--publish",
     "off",
     "--delete",
@@ -83,13 +78,16 @@ export interface Running {
   cancel(): void;
 }
 
-/** `root` is the folder the console shows, so the child acts on that tree, not the caller's. */
+/**
+ * Every console write runs as a child CLI in `root`, the tree the console shows: the CLI owns
+ * the lease, and a second writer in this process would take it twice.
+ */
 export function start(command: Command, root: string, onLine: (line: string) => void): Running {
   // The same launcher self-update uses: a standalone build is its own interpreter.
   const launch = launchArgv(runningEntry() ?? NAME, command.argv);
+  // The console owns the terminal, so the child gets pipes and never stdin.
   const child = spawn(launch.command, [...launch.args], {
     cwd: root,
-    // The console owns the terminal, so the child gets pipes and never stdin.
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, NO_COLOR: "1" },
   });

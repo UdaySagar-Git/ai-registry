@@ -178,7 +178,7 @@ function onSite(dispatch: Dispatch, spec: string, scheme: string | undefined): b
   return !(sites.exceptSuffixes ?? []).some((suffix) => path.endsWith(suffix));
 }
 
-/** The layout a declared registry is read as. */
+/** The layout a declared registry is read as: `registry` unless its config names another. */
 export function declaredLayout(config: SourceConfig): string {
   return config.layout ?? "registry";
 }
@@ -221,7 +221,7 @@ function isLoopback(host: string): boolean {
   return /^127\.\d+\.\d+\.\d+$/.test(host);
 }
 
-/** A registry read in cleartext could be rewritten by anyone on the network before its commit is pinned. */
+/** Cleartext could be rewritten by anyone on the network before a registry's commit is pinned. */
 export function refuseInsecure(spec: string): void {
   const { scheme, host } = urlParts(spec);
   const shown = quoted(withoutCredentials(spec));

@@ -10,7 +10,7 @@ export interface AdapterUpdateDeps {
   download?: typeof downloadAdapter;
   install?: typeof writeInstalled;
   signal?: AbortSignal;
-  /** Told of each adapter that could not be updated, such as one whose release fails its signature. */
+  /** Told of each adapter that failed to update, such as one whose release fails its signature. */
   onFailure?: (id: string, error: unknown) => void;
 }
 

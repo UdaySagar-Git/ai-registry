@@ -12,7 +12,6 @@ import { artifactUrl, manifestUrl } from "./origin.ts";
 import { binaryName, requireReleasePlatform } from "./platform.ts";
 import type { ReleaseStamp } from "./stamp.ts";
 
-/** What the client will fetch, and what those bytes must hash to. */
 export interface ManifestPlan {
   readonly kind: "manifest";
   readonly url: string;

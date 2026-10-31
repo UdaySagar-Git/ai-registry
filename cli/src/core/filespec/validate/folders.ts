@@ -229,8 +229,8 @@ export async function folderProblems(
 
   const pinned = await listed(root, folder, listings);
   if (!pinned.has(folder.version)) return { problems, stale: true };
-  // Released: the envelope must still describe exactly the bytes it was released with.
   if (releasedHere !== undefined) return { problems, stale: false };
+  // Released: the envelope must still describe exactly the bytes it was released with.
   const drift = await drifted(root, where, blobUrl, present, pinned.get(folder.version));
   if (drift?.blobOf !== undefined) {
     problems.push({

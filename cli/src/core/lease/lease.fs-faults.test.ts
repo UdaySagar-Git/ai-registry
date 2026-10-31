@@ -167,7 +167,8 @@ describe("reclaiming a stale directory that cannot be removed", () => {
     const roots = scope(join(home, "manifest.lock.yml"));
     const lease = await acquire(roots, { env });
     failRm(".lease", "EPERM");
-    await lease.release(); // Stops the heartbeat, leaving the unremovable holder behind.
+    // Stops the heartbeat, leaving the unremovable holder behind.
+    await lease.release();
     await ageLease(roots.lock);
 
     await expect(acquire(roots, { env })).rejects.toThrow(LeaseBusyError);
@@ -195,7 +196,8 @@ describe("waiting on a stale directory that cannot be removed", () => {
     const roots = scope(join(home, "manifest.lock.yml"));
     const lease = await acquire(roots, { env });
     failRm(".lease", "EPERM");
-    await lease.release(); // Stops the heartbeat, leaving the unremovable holder behind.
+    // Stops the heartbeat, leaving the unremovable holder behind.
+    await lease.release();
     await ageLease(roots.lock);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
 

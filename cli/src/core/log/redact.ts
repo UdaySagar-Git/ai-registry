@@ -64,7 +64,7 @@ export function isSecretKey(key: string): boolean {
   return KEYED_SUFFIXES.some((suffix) => normalized.endsWith(suffix));
 }
 
-/** `--password=x`, `--token x`, `-p x` for the tools that take one. */
+/** `--password=x`, `--token x` or `-pass x`; a value starting with `-` is the next flag. */
 const FLAG_FORM =
   /(--?(?:password|passwd|pass|token|api-?key|secret|access-?key)(?:=|\s+))(?!-)([^\s"']+)/gi;
 
@@ -166,10 +166,7 @@ function walk(value: unknown, depth: number): unknown {
   return value;
 }
 
-/**
- * Walks a value with keyed semantics. A throwing getter withholds rather than
- * propagating: a log line must not be what takes a run down.
- */
+/** A throwing getter withholds the value: a log line must not be what takes a run down. */
 export function redactKeyedValue(value: unknown): unknown {
   try {
     return walk(value, 0);

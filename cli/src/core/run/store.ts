@@ -53,7 +53,7 @@ export interface RunQuery {
 export interface RunStore {
   create(input: CreateRun): RunRecord;
   start(id: string, step: string, atMs: number): RunRecord;
-  /** Moves a running run's step pointer and records the event, in one write; undefined once it stopped running. */
+  /** Moves the step pointer and records the event in one write; undefined once the run stopped. */
   progress(id: string, step: string, event: AppendRunEvent): RunEvent | undefined;
   forgetJobs(live: ReadonlySet<string>): number;
   finish(id: string, result: FinishRun): RunRecord;

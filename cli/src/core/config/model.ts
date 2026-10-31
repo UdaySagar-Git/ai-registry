@@ -12,7 +12,6 @@ export interface Account {
   id: string;
   /** Alias in the scope's `manifest.yml`, written as `registry:`. Unique across accounts. */
   registry: string;
-  /** The namespace this account publishes into. */
   defaultNamespace?: string;
 }
 
@@ -23,7 +22,7 @@ export interface Account {
 export interface Selector {
   /** A directory, or a glob when the step kind accepts one. */
   from: string;
-  /** Optional glob over the leaf name. */
+  /** A glob over the leaf name. */
   match?: string;
   /** Absent means every kind, including kinds added later. */
   kinds?: readonly ArtifactKind[];

@@ -45,7 +45,7 @@ export function artifactsUrl(origin: string): string | undefined {
   return base === undefined ? undefined : `${base}/artifacts`;
 }
 
-/** The directory one release's artifacts are stored under, named as published. */
+/** Undefined unless `version` is canonical, since it becomes a path segment. */
 export function artifactBaseUrl(origin: string, version: string): string | undefined {
   const root = artifactsUrl(origin);
   const parsed = parseVersion(version);

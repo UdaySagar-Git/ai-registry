@@ -128,13 +128,12 @@ export function candidates(ref: Ref, source: Acquired): Entry[] {
   if (isWholeRegistry(ref)) return kept(withoutCoveredLeaves(entries));
   if (isWholeNamespace(ref)) return kept(inNamespace(ref.namespace as string, entries));
   const wanted = address(ref.name);
+  // No kind means any kind but a plugin, which is addressed as its namespace. No namespace
+  // means "wherever it is", which only answers when there is one.
   return (wanted === undefined ? [] : entriesNamed(entries, wanted)).filter(
     (entry) =>
-      // No kind written means any kind but a plugin, which is addressed as its namespace.
       (ref.kind === undefined ? entry.kind !== "plugin" : entry.kind === ref.kind) &&
       entry.name === wanted &&
-      // An address that names no namespace means "wherever it is", which is
-      // only an answer when there is one.
       (ref.namespace === undefined || entry.group === address(ref.namespace)),
   );
 }

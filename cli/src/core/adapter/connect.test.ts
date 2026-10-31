@@ -135,8 +135,7 @@ describe("what the client refuses from an adapter", () => {
   test("accepts a well-formed listing", async () => {
     const listing = await resolveWith(serving([{ path: "SKILL.md" }]));
     expect(listing.listed).toHaveLength(1);
-    // A registry with no namespaces files an artifact under its own name;
-    // the mirror substitutes the alias, which only `stagedPath` knows.
+    // A registry with no namespaces files an artifact under its own name.
     expect(listing.listed[0]?.path).toBe("artifacts/lint/skill/lint");
   });
 });

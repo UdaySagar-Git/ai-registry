@@ -108,7 +108,6 @@ export function carriedIn(
   return { carries, fingerprint: sha256(JSON.stringify(parts)) };
 }
 
-/** `hooks and MCP servers`. */
 export function describeCarried(carried: readonly Carried[]): string {
   return list(carried.map((what) => WORDS[what]));
 }

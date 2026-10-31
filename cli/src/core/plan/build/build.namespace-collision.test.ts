@@ -248,7 +248,6 @@ describe("registries whose plugin names meet once qualified", () => {
   ];
 
   test("links one registry's plugin where two qualified names meet, and reports the other", () => {
-    // `six` is a second skill in `three`'s namespace.
     const sources = [
       ...SOURCES.filter((each) => each.alias !== "a"),
       source("a", "b-c", "three", "six"),

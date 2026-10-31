@@ -37,7 +37,8 @@ function bindHandle(
     },
   };
   if (localRoot !== undefined) wrapped.localRoot = (artifact) => localRoot(artifact);
-  // Unpublishing fires the publish stages, so a gate on publishing covers removals; `operation` tells them apart.
+  // Unpublishing fires the publish stages, so a gate on publishing covers removals;
+  // `operation` tells them apart.
   if (publish !== undefined) {
     wrapped.publish = async (changes: readonly PublishInput[], options: PublishOptions) => {
       await run("prePublish", { operation: "publish", changes, options });

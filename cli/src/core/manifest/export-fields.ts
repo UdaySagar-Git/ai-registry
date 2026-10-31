@@ -5,9 +5,6 @@ import { isRecord, textOf } from "#core/fields.ts";
 import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
 import { ManifestError } from "./errors.ts";
 
-// The fields of an `exports:` entry that say what it reaches and which files each artifact
-// publishes, and how a path below the project, or below an artifact, is checked.
-
 /** One file an export publishes, from its path in the artifact to the path it is stored at. */
 export interface ExportFile {
   from: string;
@@ -16,7 +13,6 @@ export interface ExportFile {
 
 const GLOB = /[*?[\]{}]/;
 
-/** Whether a path matches other paths rather than naming one. */
 export function isGlob(path: string): boolean {
   return GLOB.test(path);
 }

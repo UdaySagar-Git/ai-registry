@@ -56,7 +56,7 @@ export async function configuredHooks(): Promise<readonly PipelineHook[]> {
   return (await readConfig()).hooks;
 }
 
-/** Runs the hooks for `stage`: those given, read once for a whole connection, else the configured ones. */
+/** Runs the hooks for `stage`: `given` (read once per connection), else the configured ones. */
 export async function runPipelineHooks(
   stage: HookStage,
   event: Omit<HookEvent, "stage"> = {},

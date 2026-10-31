@@ -122,7 +122,7 @@ function selectionOf(entry: Record<string, unknown>, where: string): unknown {
   return current ?? legacy;
 }
 
-// Names are checked against the target table, which the parser does not load.
+/** Names are checked against the target table, which the parser does not load. */
 function parseSelection(raw: unknown, key: string): string[] {
   if (raw === undefined || raw === null) return [];
   if (!Array.isArray(raw)) throw new ManifestError(`\`${key}:\` must be a list of target names.`);

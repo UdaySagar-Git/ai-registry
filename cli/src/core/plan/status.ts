@@ -93,7 +93,6 @@ export function worstState(statuses: readonly ArtifactStatus[]): State {
   return statuses.reduce<State>((acc, item) => worse(acc, item.state), "ok");
 }
 
-/** What holds a path a link needed: a folder of yours, or another artifact. */
 function blockedDetail(held: { target: string; path: string; by?: string | undefined }): string {
   return held.by === undefined
     ? `${held.target}: something of yours is at ${held.path}`

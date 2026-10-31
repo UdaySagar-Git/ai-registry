@@ -66,10 +66,10 @@ interface ManifestSignature {
  * fields so transport whitespace and key order cannot change them.
  */
 export function canonicalPayload(manifest: ReleaseManifest): Uint8Array {
+  // `adapter` is omitted when absent, so releases signed before the field still verify.
   return new TextEncoder().encode(
     JSON.stringify({
       schema: MANIFEST_SCHEMA,
-      // Omitted when absent, so releases signed before the field still verify.
       ...(manifest.adapter === undefined ? {} : { adapter: manifest.adapter }),
       channel: manifest.channel,
       version: manifest.version,
@@ -84,7 +84,7 @@ export function canonicalPayload(manifest: ReleaseManifest): Uint8Array {
   );
 }
 
-/** The manifest, or a thrown reason. `channel` is the one this build asked for. */
+/** Throws on any defect. `channel` is the one this build asked for; undefined skips that check. */
 export function verifyManifest(raw: string, keys: TrustedKeys, channel?: Channel): ReleaseManifest {
   if (raw.length === 0 || raw.length > MAX_MANIFEST_BYTES) {
     throw new AiregError("The release manifest size is invalid.", { code: ErrorCode.Invalid });

@@ -18,7 +18,7 @@ import { isRecord } from "#core/fields.ts";
 import { exists, subdirectories } from "#core/fs/tree.ts";
 import { type Problem, readDocument } from "./read.ts";
 
-/** Every `<namespace>/<kind>/<name>` that has a `versions.json`, whether or not a version folder is left. */
+/** Each `<namespace>/<kind>/<name>` with a `versions.json`, even one with no version folder left. */
 async function catalogued(root: string): Promise<string[]> {
   const found: string[] = [];
   const base = join(root, "artifacts");

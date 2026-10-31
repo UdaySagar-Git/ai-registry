@@ -31,7 +31,6 @@ function signer(): { keys: TrustedKeys; sign: (payload: Uint8Array) => string } 
   return { keys, sign: (payload) => sign(null, payload, pair.privateKey).toString("base64") };
 }
 
-/** The wire document a publisher would upload, plus whatever `over` changes. */
 function document(
   over: Record<string, unknown> = {},
   signature = "",

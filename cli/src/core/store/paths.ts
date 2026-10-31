@@ -117,11 +117,11 @@ function journalPath(dir: string, env: NodeJS.ProcessEnv): string {
 export function roots(scope: Scope, cwd: string, env: NodeJS.ProcessEnv = process.env): Roots {
   const user = scope === "user";
   const dir = user ? userScopeDir(env) : join(cwd, SCOPE_DIR);
+  // The user base is canonical, like the scope folder under it: under a symlinked home every
+  // recorded path would otherwise escape upwards.
   return {
     scope,
     cwd,
-    // Canonical, like the home it is paired with: an artifacts tree under a
-    // symlinked root would otherwise make every recorded path escape upwards.
     base: user ? homeDir(env) : cwd,
     manifest: join(dir, MANIFEST_FILE),
     lock: join(dir, LOCK_FILE),

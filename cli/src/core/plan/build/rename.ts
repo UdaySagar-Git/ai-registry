@@ -5,13 +5,12 @@ import { addressOf } from "#core/plan/select.ts";
 /** Kinds whose name a target reads from front matter, which a rename rewrites. */
 const RENAMEABLE = new Set(["skill", "agent"]);
 
-/** How a person reads an address: `ops/review`, without the registry or the kind. */
+/** How a person reads an address: namespace and name, without the registry or the kind. */
 export function shownAddress(address: string): string {
   const parts = address.split("/");
   return parts.length >= 4 ? `${parts[1]}/${parts[3]}` : (parts.at(-1) ?? address);
 }
 
-/** The one command that changes what an install does about a taken name. */
 export const NAME_COLLISION_HINT =
   "To change the default, run `aireg config set defaults.name-collision <rename|report|fail>`.";
 

@@ -118,7 +118,6 @@ function refused(lock: Lock, upstream: UpstreamFacts): ArtifactRow[] {
   return rows;
 }
 
-/** Commonest first, so `0.1.0 x349` leads and the outliers follow it. */
 function versionSpread(rows: readonly ArtifactRow[]): string[] {
   const tally = new Map<string, number>();
   for (const item of rows) {
@@ -168,12 +167,12 @@ export async function groupArtifacts(input: GroupInput): Promise<ArtifactGroup[]
       const counts = emptyCounts();
       for (const item of members) counts[item.state] += 1;
       const local = key === LOCAL_GROUP;
+      // Rows sort trouble first: the ones you can act on should not need scrolling to.
       return {
         key,
         label: local ? "THIS MACHINE" : key,
         isDefault: !local && key === input.defaultNamespace,
         authoredHere: local,
-        // Trouble first: the rows you can act on should not be scrolled to.
         rows: members.sort(
           (left, right) =>
             RANK[left.state] - RANK[right.state] || left.name.localeCompare(right.name),

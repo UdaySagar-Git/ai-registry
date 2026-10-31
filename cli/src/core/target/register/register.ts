@@ -348,9 +348,8 @@ async function registerMapping(
 }
 
 /**
- * Writes a target's config entry while a placement of ours needs it and removes it with the
- * last one. Only a link into `scopeDir`, the scope's `.registry` folder, or one of `copies`, the
- * copies the lockfile records, counts as ours.
+ * Writes a target's config entry while a placement of ours needs it, removing it with the last.
+ * Ours is a link into `scopeDir` (the scope's `.registry`) or one of the lockfile's `copies`.
  */
 export async function applyRegister(
   touched: readonly Touched[],

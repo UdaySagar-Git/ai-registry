@@ -23,10 +23,10 @@ async function fetchIfMissing(root: string, base: string): Promise<void> {
   ]);
 }
 
-/** What changed under `artifacts/` since the base, root-relative, and the base's own copies. */
 interface BaseDiff {
   /** The ref as the author gave it, for the fixes printed. */
   ref: string;
+  /** Paths changed under `artifacts/` since the base, root-relative. */
   paths: string[];
   /** Each artifact's released versions in the base, by its `versions.json` path. */
   released: (versionsAt: string) => Promise<Map<string, unknown>>;

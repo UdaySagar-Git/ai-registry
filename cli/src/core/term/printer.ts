@@ -57,7 +57,7 @@ export class Styler {
     return this.wrap("36", text);
   }
 
-  /** `text` with every escape removed but the styling this writes: data in it could carry any other. */
+  /** Drops every escape but this styler's own, since data could carry any other. */
   inert(text: string): string {
     return this.on ? ownStyleOnly(text) : sanitizeBlock(text);
   }
@@ -112,8 +112,7 @@ export class Printer {
   private readonly err: Writer;
   readonly style: Styler;
   readonly errStyle: Styler;
-  // Whether a hint now would be about the warning or error just printed.
-  private attached = false;
+  private followsProblem = false;
   private readonly options: PrinterOptions;
 
   constructor(options: PrinterOptions = {}) {
@@ -142,58 +141,58 @@ export class Printer {
     return this.err.isTTY === true;
   }
 
-  /** Only the styling this printer added survives: a manifest or registry could write any other escape. */
+  /** Keeps only this printer's styling; a manifest or registry could write any other escape. */
   private print(line: string): void {
     this.out.write(this.style.inert(line));
   }
 
   /** Primary output. Never suppressed. */
   info(message = ""): void {
-    this.attached = false;
+    this.followsProblem = false;
     if (this.format === "json") return;
     this.print(`${message}\n`);
   }
 
   success(message: string): void {
-    this.attached = false;
+    this.followsProblem = false;
     if (this.format === "json" || this.quiet) return;
     this.print(`${this.style.green("✓")} ${message}\n`);
   }
 
   /** A step in a longer operation. Verbose only. */
   step(message: string): void {
-    this.attached = false;
+    this.followsProblem = false;
     if (this.format === "json" || !this.verbose) return;
     this.err.write(`${this.errStyle.dim("·")} ${sanitizeBlock(message)}\n`);
   }
 
   /** Secondary information about the step just printed. Verbose only. */
   detail(message: string): void {
-    this.attached = false;
+    this.followsProblem = false;
     if (this.format === "json" || !this.verbose) return;
     this.err.write(`  ${this.errStyle.dim(sanitizeBlock(message))}\n`);
   }
 
   /** A labeled follow-up, such as the next command to run. */
   note(label: string, message: string): void {
-    this.attached = false;
+    this.followsProblem = false;
     if (this.format === "json" || this.quiet) return;
     this.print(`  ${this.style.dim(label.padEnd(5))}  ${message}\n`);
   }
 
   warning(message: string): void {
     this.err.write(`${this.errStyle.yellow("warning:")} ${sanitizeBlock(message)}\n`);
-    this.attached = true;
+    this.followsProblem = true;
   }
 
   error(message: string): void {
     this.err.write(`${this.errStyle.red("error:")} ${sanitizeBlock(message)}\n`);
-    this.attached = true;
+    this.followsProblem = true;
   }
 
   /** What to do about the error or warning just printed. */
   hint(message: string): void {
-    if (this.quiet && !this.attached) return;
+    if (this.quiet && !this.followsProblem) return;
     this.err.write(`${this.errStyle.cyan("hint:")} ${sanitizeBlock(message)}\n`);
   }
 

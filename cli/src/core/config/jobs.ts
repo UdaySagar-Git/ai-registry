@@ -26,7 +26,8 @@ export function watchedFolders(job: Pick<Job, "steps">): string[] {
 
 /** The folder a job keeps in sync, as the runner reads it: its first scope step that names one. */
 export function jobRoot(job: Pick<Job, "steps">): string | undefined {
-  return job.steps.find((step) => isScopeStep(step) && step.root !== undefined)?.root;
+  // A composite such as `artifacts` names its root too; its leaves carry it once expanded.
+  return expandSteps(job.steps).find((step) => isScopeStep(step) && step.root !== undefined)?.root;
 }
 
 /** What stops publishing these folders, written so a shell runs it as printed. */

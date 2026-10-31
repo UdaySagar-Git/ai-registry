@@ -1,4 +1,4 @@
-import { scopeSteps } from "#core/config/jobs.ts";
+import { expandSteps, scopeSteps } from "#core/config/jobs.ts";
 import { DEFAULT_INTERVAL_SECONDS, isScopeStep, type Job, type Step } from "#core/config/model.ts";
 import { type Scope, scopeFor, userScopeDir } from "#core/store/paths.ts";
 import type { SyncPolicy } from "#core/sync/policy.ts";
@@ -31,7 +31,8 @@ export interface ScopeWork {
 
 /** The scope one job reconciles, derived from the steps that name a root. */
 export function workOf(job: { id: string; account: string; steps: readonly Step[] }): ScopeWork {
-  const scoped = job.steps.filter(isScopeStep);
+  // A configured job may still hold a composite step, which settles nothing until expanded.
+  const scoped = expandSteps(job.steps).filter(isScopeStep);
   const root = scoped.find((step) => step.root !== undefined)?.root ?? userScopeDir();
   return {
     id: job.id,

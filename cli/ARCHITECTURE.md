@@ -58,6 +58,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 | The scope a command installs into, how messages name it, and where it places artifacts | `core/store/paths.ts` |
 | Edits to a target's own config file, such as registering a plugin | `core/target/register/` |
 | A command's name, options, help and docs link | `cli/commands/<command>/spec.ts` |
+| A command's `--json` data, as types, and as the published schema checked against them | `cli/commands/<command>/result.ts`, `scripts/schema/output/<command>.ts` |
 | Usage errors for a missing or stray argument | `needsInput` and `noArguments` in `cli/options/parse.ts` |
 | Status marks and the closing line of a dry run | `GLYPH` in `core/term/theme.ts`, `Printer.dryRun` |
 | The command types; the built-in specs in help order and the names they reserve; each built-in's lazy module | `cli/commands/command.ts`, `cli/commands/builtins.ts`, `cli/commands/index.ts` |
@@ -66,7 +67,7 @@ The architecture test also holds every `adapters/<id>/` to the public contract a
 ## How a command runs
 
 1. `main.ts` finds the command in `cli/commands/index.ts` and loads its module.
-2. The command parses its options with `cli/options/parse.ts` and reads the scope once: the project's or your user scope's `.registry/manifest.yml` and `manifest.lock.yml`.
+2. The command's module is a `defineCommand` (`cli/commands/define.ts`). Its `parse` turns argv into typed options with `cli/options/parse.ts`, refusing a bad command line before anything is read; its `run` returns the result as data; `emit` prints that once, as the `--json` envelope or through the command's `text`. A command that prints as it goes, such as `logs --follow`, returns `STREAMED`. Commands that touch a scope read it once: the project's or your user scope's `.registry/manifest.yml` and `manifest.lock.yml`.
 3. Installing commands call `engine/install/pipeline.ts`, which acquires each registry through its adapter (`core/adapter/`), builds a plan (`core/plan/build/build.ts`) and, through one guarded commit, applies it (`core/plan/apply/apply.ts`) under the scope's lease (`core/lease/lease.ts`). How the run is shown is the command's, through `cli/render/plan.ts`.
 4. Placement in each target folder follows the target's definition (`src/targets/`, applied by `core/target/`), including any config file the target needs edited, such as Codex's `config.toml`.
 5. A failure is an `AiregError`; `cli/render/error.ts` prints it, or its `--json` form, and returns its exit status.

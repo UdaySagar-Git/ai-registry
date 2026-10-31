@@ -1,0 +1,24 @@
+import type { Static, TSchema } from "@sinclair/typebox";
+
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+
+/**
+ * A schema for a result type the command declares in its `result.ts`: it compiles only while
+ * the two agree, so the published schema cannot drift from what the command prints.
+ */
+export function matching<T>() {
+  return <S extends TSchema>(schema: S & (Equal<Static<S>, T> extends true ? unknown : never)) =>
+    schema;
+}
+
+/** One command's `--json` data, an entry per action, as one published document. */
+export function outputDocument(command: string, results: Record<string, TSchema>): object {
+  return {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $id: `output/${command}.json`,
+    title: `aireg ${command} --json`,
+    description: `The \`data\` each \`aireg ${command}\` action prints under --json, by action.`,
+    $defs: results,
+  };
+}

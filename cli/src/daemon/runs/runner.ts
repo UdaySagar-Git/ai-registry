@@ -25,8 +25,7 @@ import type { AppendRunEvent, CreateRun, RunStore } from "#core/run/store.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
 import { settledWithin } from "#core/wait.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
-import { RpcErrorCode } from "#daemon/rpc/codes.ts";
-import { ProtocolError } from "#daemon/rpc/protocol.ts";
+import { noJob, noJobAccount, runningAlready } from "#daemon/rpc/errors.ts";
 import type { SyncExecutionHooks } from "#engine/sync/decide.ts";
 import { executeSync } from "#engine/sync/execute.ts";
 import type { RunScope } from "#engine/sync/narrow.ts";
@@ -130,10 +129,7 @@ export class SyncRunner {
     const existing = ephemeral === undefined ? this.#store.activeJob(jobId) : undefined;
     if (existing !== undefined && existing.mode === mode) return existing;
     if (existing !== undefined) {
-      throw new ProtocolError(
-        RpcErrorCode.Busy,
-        `A ${existing.mode} run of job ${quoted(jobId)} is already running.`,
-      );
+      throw runningAlready(jobId, existing.mode);
     }
     // A one-off run gets a fresh job id the index never sees, so a repeated `aireg sync` joins
     // the run doing it rather than queuing another full scan behind the same lease.
@@ -409,14 +405,11 @@ function oneOffKey(
 function resolveTarget(config: RegistryConfig, jobId: string): Target {
   const job = config.jobs.find(({ id }) => id === jobId);
   if (job === undefined) {
-    throw new ProtocolError(RpcErrorCode.NotFound, `No job named ${quoted(jobId)}.`);
+    throw noJob(jobId);
   }
   const account = config.accounts.find(({ id }) => id === job.account);
   if (account === undefined) {
-    throw new ProtocolError(
-      RpcErrorCode.NotFound,
-      `Job ${quoted(job.id)} signs in with account ${quoted(job.account)}, which no longer exists.`,
-    );
+    throw noJobAccount(job.id, job.account);
   }
   return { job, account };
 }

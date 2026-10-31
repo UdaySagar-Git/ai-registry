@@ -8,12 +8,13 @@ import { RpcErrorCode } from "./codes.ts";
 import { ProtocolError } from "./protocol.ts";
 
 /** Why a handler turned a request down; `rpcError` sends each as its own JSON-RPC code. */
-type Refusal = "invalid" | "not-found" | "stale";
+type Refusal = "invalid" | "not-found" | "stale" | "busy";
 
 const REFUSAL_CODES = {
   invalid: RpcErrorCode.InvalidParams,
   "not-found": RpcErrorCode.NotFound,
   stale: RpcErrorCode.StaleRevision,
+  busy: RpcErrorCode.Busy,
 } as const satisfies Record<Refusal, RpcErrorCode>;
 
 /** What a handler throws to refuse a request; its message and data reach the client as they are. */
@@ -39,6 +40,18 @@ export function noJob(jobId: string): Error {
 
 export function noAccount(accountId: string): Error {
   return new RequestRefused("not-found", `No account named ${quoted(accountId)}.`);
+}
+
+/** A job whose account was removed after it was written. */
+export function noJobAccount(jobId: string, accountId: string): Error {
+  return new RequestRefused(
+    "not-found",
+    `Job ${quoted(jobId)} signs in with account ${quoted(accountId)}, which no longer exists.`,
+  );
+}
+
+export function runningAlready(jobId: string, mode: string): Error {
+  return new RequestRefused("busy", `A ${mode} run of job ${quoted(jobId)} is already running.`);
 }
 
 export function noRun(runId: string): Error {

@@ -19,6 +19,7 @@ import { stateDir } from "#core/store/paths.ts";
 import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
 import { toCounts, toEvent, toRun } from "./store-rows.ts";
 import {
+  ACTIVE,
   RUN_EVENTS_PER_JOB,
   RUN_HISTORY_PER_ACCOUNT,
   RUN_HISTORY_PER_JOB,
@@ -294,7 +295,7 @@ export class SqliteRunStore implements RunStore {
     return this.#transaction(() => {
       const changed = this.#prepare(
         `UPDATE runs SET state = ?, step = NULL, finished_at_ms = ?, error_code = ?, retryable = ?
-           WHERE id = ? AND state IN ('queued', 'running')`,
+           WHERE id = ? AND ${ACTIVE}`,
       ).run(
         result.state,
         result.finishedAtMs,
@@ -328,7 +329,7 @@ export class SqliteRunStore implements RunStore {
   activeJob(jobId: string): RunRecord | undefined {
     const row = this.#prepare(
       `SELECT ${RUN_COLUMNS} FROM runs
-         WHERE job_id = ? AND state IN ('queued', 'running')
+         WHERE job_id = ? AND ${ACTIVE}
          ORDER BY requested_at_ms DESC, id DESC LIMIT 1`,
     ).get(jobId);
     return row === undefined ? undefined : this.#hydrate([row as Row])[0];
@@ -385,14 +386,12 @@ export class SqliteRunStore implements RunStore {
 
   abandonActive(atMs: number): number {
     return this.#transaction(() => {
-      const rows = this.#prepare(
-        `SELECT id FROM runs WHERE state IN ('queued', 'running')`,
-      ).all() as { id: string }[];
+      const rows = this.#prepare(`SELECT id FROM runs WHERE ${ACTIVE}`).all() as { id: string }[];
       const changed = Number(
         this.#prepare(
           `UPDATE runs SET state = 'abandoned', step = NULL, finished_at_ms = ?,
               error_code = ?, retryable = 1
-             WHERE state IN ('queued', 'running')`,
+             WHERE ${ACTIVE}`,
         ).run(atMs, RunErrorCode.DaemonRestarted).changes,
       );
       for (const { id } of rows) {

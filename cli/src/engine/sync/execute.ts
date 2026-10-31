@@ -16,7 +16,6 @@ import { type Claim, moveAside, surveyClaims } from "./claim.ts";
 import {
   artifactKey,
   classify,
-  execution,
   type Overrides,
   outcomeOf,
   type Publishable,
@@ -25,6 +24,7 @@ import {
   type SyncExecution,
   type SyncExecutionHooks,
   type SyncOutcome,
+  summarizeExecution,
 } from "./decide.ts";
 import { registryOf, syncOptions } from "./inspect.ts";
 import { applyLocal } from "./local.ts";
@@ -669,7 +669,7 @@ async function takeTheirs(
 
 function finalizeRun(hooks: SyncExecutionHooks, outcomes: SyncOutcome[]): SyncExecution {
   enter(hooks, "finalizing");
-  return execution(outcomes);
+  return summarizeExecution(outcomes);
 }
 
 function enter(hooks: SyncExecutionHooks, phase: RunPhase): void {

@@ -10,7 +10,7 @@ import { outcome, planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
 import { asksFor } from "#core/manifest/match.ts";
 import { lockView } from "#core/plan/acquire/lock-view.ts";
 import { formatRef, refName } from "#core/ref.ts";
-import { type RunResult, run as runPipeline } from "#engine/install/pipeline.ts";
+import { type RunResult, runPipeline } from "#engine/install/pipeline.ts";
 import { rowsNamed } from "#engine/installed-names.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/scope/load.ts";

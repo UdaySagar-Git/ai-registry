@@ -10,7 +10,7 @@ export interface Problem {
   fix?: string | undefined;
 }
 
-export async function text(root: string, path: string): Promise<string | undefined> {
+export async function textAt(root: string, path: string): Promise<string | undefined> {
   try {
     const bytes = await rootReader(root)(path);
     return bytes === undefined ? undefined : new TextDecoder().decode(bytes);

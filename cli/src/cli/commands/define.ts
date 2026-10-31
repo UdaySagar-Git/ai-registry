@@ -48,7 +48,7 @@ export function defineCommand<O>(
 ): CommandModule {
   if (!("actions" in definition)) {
     return {
-      run: async (context) => perform(definition, definition.parse(context.argv), context),
+      run: async (context) => runAndPrint(definition, definition.parse(context.argv), context),
     };
   }
   return {
@@ -57,7 +57,7 @@ export function defineCommand<O>(
       const handlers = Object.fromEntries(
         Object.entries(definition.actions).map(([key, chosen]) => [
           key,
-          () => perform(chosen, options, context),
+          () => runAndPrint(chosen, options, context),
         ]),
       );
       await runAction(definition.spec, name, handlers, definition.more);
@@ -65,7 +65,7 @@ export function defineCommand<O>(
   };
 }
 
-async function perform<O>(
+async function runAndPrint<O>(
   chosen: Action<O, object>,
   options: O,
   context: CommandContext,

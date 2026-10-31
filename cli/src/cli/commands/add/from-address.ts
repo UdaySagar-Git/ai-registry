@@ -13,7 +13,7 @@ import { reached } from "#core/plan/acquire/lock-view.ts";
 import { describeCarried } from "#core/plan/carries.ts";
 import { formatAddress, parseRef } from "#core/ref.ts";
 import type { Probed, Resolved } from "#engine/address/probe.ts";
-import { run as runPipeline } from "#engine/install/pipeline.ts";
+import { runPipeline } from "#engine/install/pipeline.ts";
 import { openAddress, showable } from "./address.ts";
 import { chosenEntries, gather, shortened } from "./choose.ts";
 import { declare, narrowedTargets, type Repin, recordRegistry } from "./declare.ts";

@@ -86,7 +86,7 @@ export interface RunOptions {
 }
 
 /** The single install path: `add`, `update` and `remove` differ only in `edit`. */
-export async function run(options: RunOptions): Promise<RunResult> {
+export async function runPipeline(options: RunOptions): Promise<RunResult> {
   const { roots, common, printer, edit = () => ({}) } = options;
   const body = async (loaded: Loaded) => write(loaded, options, await edit(loaded));
   // A dry run writes nothing to the scope, so it takes no lease and leaves no lease folder behind.

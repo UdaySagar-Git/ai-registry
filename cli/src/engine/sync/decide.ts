@@ -144,7 +144,7 @@ export function classify(
     if (owner !== undefined && owner !== registry) continue;
     if (!relevant(mode, item.disposition)) continue;
     const chosen = withoutPublishing(
-      taken(item, decide(job, overrides, item, item.disposition)),
+      withLocalRemoval(item, decide(job, overrides, item, item.disposition)),
       publishable(item.kind),
     );
     outcomes.set(artifactKey(item.kind, item.name), decided(item, chosen));
@@ -193,7 +193,7 @@ function withoutPublishing(chosen: SyncOperation, publishable: boolean): SyncOpe
 export type Publishable = (kind: ArtifactKind) => boolean;
 
 /** Taking the registry's copy of one it deleted removes this one, and the run must say so. */
-function taken(item: SyncItem, chosen: SyncOperation): SyncOperation {
+function withLocalRemoval(item: SyncItem, chosen: SyncOperation): SyncOperation {
   const deleted =
     item.digests.upstream === undefined &&
     (item.disposition === "conflict" || item.disposition === "pull-delete");
@@ -265,7 +265,7 @@ function adopt(
   return { outcomes, mutates };
 }
 
-export function execution(outcomes: SyncOutcome[]): SyncExecution {
+export function summarizeExecution(outcomes: SyncOutcome[]): SyncExecution {
   const failed = outcomes.filter(({ failure }) => failure !== undefined).length;
   const settled = outcomes.map(({ operation: item }) => outcomeOf(item));
   const changed = settled.filter((outcome) => outcome === "changed").length;

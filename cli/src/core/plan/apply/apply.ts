@@ -66,7 +66,7 @@ export async function apply({
     onStep?.(action);
     if (action.kind !== "record")
       await assertManagedPath(action.to, roots, { leaf: action.kind !== "unlink", env });
-    await perform(run, action);
+    await applyAction(run, action);
   }
   const registered = await finish(run, plan);
 
@@ -99,7 +99,7 @@ export async function apply({
 const LEASE_CHECK_MS = 250;
 
 /** Each step returns what it adds; this is the one place the run takes it in. */
-async function perform(run: Run, action: Action): Promise<void> {
+async function applyAction(run: Run, action: Action): Promise<void> {
   const { results } = run;
   switch (action.kind) {
     case "stage":

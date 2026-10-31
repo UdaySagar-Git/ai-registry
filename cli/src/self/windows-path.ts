@@ -95,14 +95,18 @@ function expand(entry: string, env: NodeJS.ProcessEnv): string {
 }
 
 async function readUserPath(env: NodeJS.ProcessEnv): Promise<UserPath> {
-  const result = await run(READ, env);
+  const result = await runPowerShell(READ, env);
   if (result.code === NO_PATH) return { kind: "ExpandString", value: "" };
   if (result.code !== 0) throw new Error(`could not read the user PATH: ${result.stderr.trim()}`);
   const split = result.stdout.indexOf("\n");
   return { kind: result.stdout.slice(0, split).trim(), value: result.stdout.slice(split + 1) };
 }
 
-async function run(script: string, env: NodeJS.ProcessEnv, extra: NodeJS.ProcessEnv = {}) {
+async function runPowerShell(
+  script: string,
+  env: NodeJS.ProcessEnv,
+  extra: NodeJS.ProcessEnv = {},
+) {
   return exec("powershell", ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], {
     timeoutMs: TIMEOUT_MS,
     env: { ...env, ...extra },
@@ -110,7 +114,7 @@ async function run(script: string, env: NodeJS.ProcessEnv, extra: NodeJS.Process
 }
 
 async function writeUserPath(path: UserPath, env: NodeJS.ProcessEnv): Promise<void> {
-  const result = await run(WRITE, env, {
+  const result = await runPowerShell(WRITE, env, {
     REG_VALUE: path.value,
     REG_KIND: path.kind === "String" ? "String" : "ExpandString",
     REG_REFRESH: PATH_REFRESH_VARIABLE,

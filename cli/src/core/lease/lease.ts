@@ -9,7 +9,7 @@ import { quoted } from "#adapter/text.ts";
 import { PRIVATE_FILE } from "#core/fs/mode.ts";
 import { processAlive } from "#core/process.ts";
 import { type Roots, type Scope, scopeName } from "#core/store/paths.ts";
-import { POLL_MS, removeDir, STUCK_MS, taken, withCoordination } from "./coordination.ts";
+import { alreadyTaken, POLL_MS, removeDir, STUCK_MS, withCoordination } from "./coordination.ts";
 import { LeaseBusyError, LeaseError, stuckError, unlockCommand } from "./errors.ts";
 import { type LeaseHolder, readHolder, readHolderSync } from "./holder.ts";
 import {
@@ -130,7 +130,7 @@ async function claim(dir: string, holder: LeaseHolder, guard: Guard): Promise<Cl
   try {
     await mkdir(dir);
   } catch (error) {
-    if (!taken(error)) throw error;
+    if (!alreadyTaken(error)) throw error;
     if (!(await stale(dir))) return "held";
     await guard(dir);
     if (!(await removeDir(dir))) return "unremovable";
@@ -138,7 +138,7 @@ async function claim(dir: string, holder: LeaseHolder, guard: Guard): Promise<Cl
     const made = await mkdir(dir).then(
       () => true,
       (again: unknown) => {
-        if (taken(again)) return false;
+        if (alreadyTaken(again)) return false;
         throw again;
       },
     );
@@ -155,7 +155,7 @@ async function stale(dir: string): Promise<boolean> {
   if (age === undefined || age <= STALE_MS) return false;
   if (age > ABANDONED_MS) return true;
   const holder = await readHolder(dir);
-  return holder === undefined || !running(dir, holder);
+  return holder === undefined || !holderAlive(dir, holder);
 }
 
 /** Absolute: a clock stepped back leaves an mtime in the future, and that must still age out. */
@@ -170,7 +170,7 @@ async function ageMs(dir: string): Promise<number | undefined> {
  * A paused holder cannot heartbeat, so one gone, or on another host, ages out at STALE_MS; one whose
  * pid still runs here keeps its lease until ABANDONED_MS, when that pid is taken to be reused.
  */
-function running(dir: string, holder: LeaseHolder): boolean {
+function holderAlive(dir: string, holder: LeaseHolder): boolean {
   if (holder.host !== hostname()) return false;
   if (holder.pid === process.pid) return held.get(dir) === holder.id;
   return processAlive(holder.pid);

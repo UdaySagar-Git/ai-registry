@@ -6,7 +6,7 @@ import { confirmIfDestructive } from "#cli/prompt/confirm-plan.ts";
 import { cancel, interaction } from "#cli/prompt/interaction.ts";
 import { exitOnClash, reportCollisions } from "#cli/render/collisions.ts";
 import { outcome, planReport, summarize } from "#cli/render/plan.ts";
-import { type RunResult, run as runPipeline } from "#engine/install/pipeline.ts";
+import { type RunResult, runPipeline } from "#engine/install/pipeline.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/scope/load.ts";
 import { defineCommand, STREAMED } from "./define.ts";

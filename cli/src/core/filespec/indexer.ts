@@ -1,4 +1,5 @@
 import { join, posix } from "node:path";
+import { isRecord } from "#adapter/fields.ts";
 import { hashRegular, readRegular } from "#adapter/files.ts";
 import {
   DEFAULT_BLOB_URL,
@@ -37,7 +38,6 @@ import {
 import { catalogDigest } from "#adapter/spec/canonical.ts";
 import { describeFile } from "#adapter/spec/envelope.ts";
 import { isDigest, isVersion } from "#adapter/spec/ref.ts";
-import { isRecord } from "#core/fields.ts";
 import { ownDescription } from "#core/frontmatter.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { authored, exists, refusal, subdirectories } from "#core/fs/tree.ts";

@@ -1,7 +1,7 @@
+import { isRecord, textOf } from "#adapter/fields.ts";
 import type { ArtifactKind } from "#adapter/index.ts";
 import { isSafePath } from "#adapter/paths.ts";
 import { quoted } from "#adapter/text.ts";
-import { isRecord, textOf } from "#core/fields.ts";
 import { AGENT_ENTRY, SKILL_ENTRY } from "#core/kinds.ts";
 import { ManifestError } from "./errors.ts";
 

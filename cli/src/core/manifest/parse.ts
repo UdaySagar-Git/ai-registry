@@ -1,10 +1,11 @@
+import { isRecord, textOf } from "#adapter/fields.ts";
 import { isNamespace } from "#adapter/filespec/names.ts";
 import { isLayoutId, LAYOUT_IDS } from "#adapter/layouts/ids.ts";
 import { list, quoted, sanitizeName } from "#adapter/text.ts";
 import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
 import { parseEngine, unmetEngine } from "#core/engines.ts";
 import { AiregError } from "#core/errors.ts";
-import { dict, isRecord, RESERVED_KEYS, textMapOf, textOf } from "#core/fields.ts";
+import { dict, RESERVED_KEYS, textMapOf } from "#core/fields.ts";
 import { NAME } from "#core/product.ts";
 import {
   formatAddress,

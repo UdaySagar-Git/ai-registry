@@ -6,10 +6,10 @@ import {
   type ValidateFunction,
 } from "ajv/dist/2020.js";
 import { RE2JS, RE2JSSyntaxException } from "re2js";
+import { isRecord } from "#adapter/fields.ts";
 import { readJson } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
 import { quoted } from "#adapter/text.ts";
-import { isRecord } from "#core/fields.ts";
 import manifestSchema from "#schema/kind-manifest.schema.json" with { type: "json" };
 
 /** Validators follow the lifetime of the manifest objects loaded for an operation. */

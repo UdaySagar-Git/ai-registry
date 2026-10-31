@@ -1,5 +1,5 @@
+import { isRecord } from "#adapter/fields.ts";
 import { compareVersion, formatVersion, gte, parseVersion } from "#adapter/semver.ts";
-import { isRecord } from "./fields.ts";
 import { NAME } from "./product.ts";
 
 /**

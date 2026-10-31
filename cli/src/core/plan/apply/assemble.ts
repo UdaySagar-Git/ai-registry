@@ -1,7 +1,7 @@
 import { copyFile, mkdir, readdir, rm, stat, symlink } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
+import { isRecord } from "#adapter/fields.ts";
 import { assertUnredirected, readRegular } from "#adapter/files.ts";
-import { isRecord } from "#core/fields.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { exists } from "#core/fs/tree.ts";
 import type { PluginDocument } from "#core/plan/model.ts";

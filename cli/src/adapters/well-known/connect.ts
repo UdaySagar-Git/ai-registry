@@ -1,3 +1,4 @@
+import { isRecord } from "#adapter/fields.ts";
 import {
   type Artifact,
   buildEnvelope,
@@ -28,9 +29,6 @@ const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const MAX_INDEX = 4 * 1024 * 1024;
 const MAX_SKILL = 4 * 1024 * 1024;
 const MAX_ARCHIVE = 50 * 1024 * 1024;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 export async function connect(context: SourceContext): Promise<SourceHandle> {
   const { location, registry } = context.source;

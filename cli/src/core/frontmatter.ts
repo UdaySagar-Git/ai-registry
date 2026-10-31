@@ -1,6 +1,6 @@
+import { isRecord } from "#adapter/fields.ts";
 import { sanitizeText } from "#adapter/text.ts";
 import { engineFromUnknown } from "./engines.ts";
-import { isRecord } from "./fields.ts";
 import { AGENT_ENTRY, SKILL_ENTRY } from "./kinds.ts";
 import { parseYaml } from "./yaml.ts";
 

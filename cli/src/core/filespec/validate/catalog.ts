@@ -1,4 +1,5 @@
 import { join, posix } from "node:path";
+import { isRecord } from "#adapter/fields.ts";
 import { readJson } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
 import { newest } from "#adapter/filespec/merge.ts";
@@ -14,7 +15,6 @@ import {
 import { contentDigest, type Envelope } from "#adapter/index.ts";
 import { catalogDigest } from "#adapter/spec/canonical.ts";
 import { isVersion } from "#adapter/spec/ref.ts";
-import { isRecord } from "#core/fields.ts";
 import { exists, subdirectories } from "#core/fs/tree.ts";
 import { type Problem, readDocument } from "./read.ts";
 

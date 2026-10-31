@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { cp, lstat, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { isRecord } from "#adapter/fields.ts";
 import { readJson } from "#adapter/filespec/documents.ts";
 import { rootReader } from "#adapter/filespec/folder.ts";
 import { ENVELOPE } from "#adapter/filespec/names.ts";
@@ -8,7 +9,6 @@ import { list, sanitizeName } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import type { Own } from "#cli/commands/kind.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isRecord } from "#core/fields.ts";
 import { inBlobStore } from "#core/filespec/indexer.ts";
 import { requireRegistry } from "#core/filespec/init.ts";
 import {

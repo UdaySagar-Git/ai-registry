@@ -1,6 +1,6 @@
 import { stringify } from "yaml";
+import { isRecord } from "#adapter/fields.ts";
 import { quoted } from "#adapter/text.ts";
-import { isRecord } from "#core/fields.ts";
 import { isAdapterId } from "#core/release/origin.ts";
 import type { Targets } from "#core/target/contract.ts";
 import { resolveTargets } from "#core/target/table.ts";

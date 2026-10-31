@@ -1,10 +1,10 @@
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
+import { isRecord } from "#adapter/fields.ts";
 import { readRegular } from "#adapter/files.ts";
 import type { Envelope } from "#adapter/index.ts";
 import { sha256 } from "#adapter/spec/canonical.ts";
 import { list } from "#adapter/text.ts";
-import { isRecord } from "#core/fields.ts";
 import { isDirectory } from "#core/fs/tree.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";

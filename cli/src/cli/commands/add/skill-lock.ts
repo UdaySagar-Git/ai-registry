@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { posix } from "node:path";
+import { isRecord } from "#adapter/fields.ts";
 import { isArtifactName } from "#adapter/filespec/names.ts";
 import { isSafePath } from "#adapter/paths.ts";
 import { quoted, sanitizeText } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isRecord } from "#core/fields.ts";
 
 /** One skill another installer recorded, as aireg reads it again. */
 export interface LockedSkill {

@@ -1,13 +1,12 @@
 import { posix } from "node:path";
 import type { Artifact } from "../contract.ts";
+import { type Fields, isRecord, trimmedText } from "../fields.ts";
 import { SpecError } from "../filespec/documents.ts";
 import { isArtifactName } from "../filespec/names.ts";
 import { quoted } from "../text.ts";
 import { contentArtifact } from "./content-artifact.ts";
 import { artifactOf, ROOT_ID, SKILL_FILE, skipped } from "./folder.ts";
 import type { Tree } from "./tree.ts";
-
-export type Json = Record<string, unknown>;
 
 /** Where a plugin keeps its own manifest, in the order aireg reads them. */
 const PLUGIN_MANIFESTS = [".claude-plugin/plugin.json", ".codex-plugin/plugin.json", "plugin.json"];
@@ -33,14 +32,8 @@ const ENTRY_ONLY = new Set([
   "policy",
 ]);
 
-const isRecord = (value: unknown): value is Json =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const textOf = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
-
 /** A JSON object at `path`, or undefined when there is no file; a file that is no object throws. */
-export async function readObject(tree: Tree, path: string): Promise<Json | undefined> {
+export async function readObject(tree: Tree, path: string): Promise<Fields | undefined> {
   if (!(await tree.isFile(path))) return undefined;
   const bytes = await tree.read(path);
   if (bytes === undefined) return undefined;
@@ -63,7 +56,7 @@ const under = (dir: string, path: string) => (dir === "" ? path : `${dir}/${path
 export async function pluginManifest(
   tree: Tree,
   dir: string,
-): Promise<{ path: string; manifest: Json } | undefined> {
+): Promise<{ path: string; manifest: Fields } | undefined> {
   for (const name of PLUGIN_MANIFESTS) {
     const path = under(dir, name);
     if (name !== "plugin.json") {
@@ -130,7 +123,7 @@ export async function readPlugin(
   }
 
   const prefix = dir === "" ? "" : `${dir}/`;
-  const description = textOf(manifest.description);
+  const description = trimmedText(manifest.description);
   // The manifest goes in as text, since it may hold numbers an envelope cannot.
   const plugin = await contentArtifact(tree, {
     id: dir === "" ? ROOT_ID : dir,
@@ -173,7 +166,10 @@ export async function readPlugin(
  * The manifest a target loads: the entry alone when the plugin has none, else the plugin's own
  * with the entry's components appended, which `strict: false` refuses.
  */
-function effectiveManifest(own: Json | undefined, entry: Json | undefined): Json | "conflict" {
+function effectiveManifest(
+  own: Fields | undefined,
+  entry: Fields | undefined,
+): Fields | "conflict" {
   const listed = Object.fromEntries(
     Object.entries(entry ?? {}).filter(([key]) => !ENTRY_ONLY.has(key)),
   );
@@ -181,7 +177,7 @@ function effectiveManifest(own: Json | undefined, entry: Json | undefined): Json
   const adds = COMPONENTS.filter((key) => entry?.[key] !== undefined);
   if (adds.length === 0) return own;
   if (entry?.strict === false) return "conflict";
-  const merged: Json = { ...own };
+  const merged: Fields = { ...own };
   for (const key of adds) {
     if (key === "hooks" && isRecord(own.hooks) && isRecord(entry?.hooks)) {
       merged.hooks = { ...own.hooks, ...entry.hooks };
@@ -200,8 +196,8 @@ function listOf(value: unknown): unknown[] {
 }
 
 /** A listed plugin installs under its entry's name, as in Claude Code; its own still namespaces. */
-function namesOf(manifest: Json, input: PluginInput): { name: string; manifestName?: string } {
-  const manifestName = textOf(manifest.name);
+function namesOf(manifest: Fields, input: PluginInput): { name: string; manifestName?: string } {
+  const manifestName = trimmedText(manifest.name);
   const name = input.entry === undefined ? (manifestName ?? input.name) : input.name;
   return manifestName === undefined ? { name } : { name, manifestName };
 }
@@ -239,7 +235,7 @@ export interface PluginInput {
   /** The plugin's folder in the tree, `""` for the root. */
   dir: string;
   /** Its marketplace entry, when a marketplace lists it. */
-  entry?: Json | undefined;
+  entry?: Fields | undefined;
   /** Its entry's name, which it installs under; alone, the name when its manifest has none. */
   name: string;
   /** Listed by a marketplace whose source is its own root, so only the skills it names count. */
@@ -270,7 +266,7 @@ interface Command {
   path: string;
 }
 
-async function commandsOf(tree: Tree, dir: string, manifest: Json): Promise<Command[]> {
+async function commandsOf(tree: Tree, dir: string, manifest: Fields): Promise<Command[]> {
   const declared = manifest.commands;
   if (isRecord(declared)) {
     const commands: Command[] = [];

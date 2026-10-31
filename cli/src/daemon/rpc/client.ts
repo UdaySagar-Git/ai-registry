@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { createConnection, type Socket } from "node:net";
+import { isRecord } from "#adapter/fields.ts";
 import { plural } from "#adapter/text.ts";
 import type { RegistryConfig } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isRecord } from "#core/fields.ts";
 import { NAME } from "#core/product.ts";
 import { isTerminal, type RunEvent } from "#core/run/model.ts";
 import { RpcErrorCode } from "./codes.ts";

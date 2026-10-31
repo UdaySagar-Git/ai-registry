@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "output/watch.json",
+  "title": "aireg watch --json",
+  "description": "The `data` each `aireg watch` action prints under --json, by action.",
+  "$defs": {
+    "remove": {
+      "additionalProperties": false,
+      "description": "One document per job the folders named.",
+      "type": "object",
+      "required": [
+        "jobId",
+        "watching"
+      ],
+      "properties": {
+        "jobId": {
+          "type": "string"
+        },
+        "watching": {
+          "description": "The folders the job still watches.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "list": {
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "watches"
+      ],
+      "properties": {
+        "watches": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "folder",
+              "to",
+              "jobId",
+              "scope",
+              "root"
+            ],
+            "properties": {
+              "folder": {
+                "type": "string"
+              },
+              "to": {
+                "description": "Where it publishes, as <registry>/<namespace>.",
+                "type": "string"
+              },
+              "jobId": {
+                "type": "string"
+              },
+              "scope": {
+                "anyOf": [
+                  {
+                    "const": "user",
+                    "type": "string"
+                  },
+                  {
+                    "const": "project",
+                    "type": "string"
+                  }
+                ]
+              },
+              "root": {
+                "description": "The scope's folder.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

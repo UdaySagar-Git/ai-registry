@@ -59,7 +59,6 @@ export class DaemonRuntime {
   readonly #runner: SyncRunner;
   readonly #scheduler: JobScheduler;
   readonly #minUpdate = new DaemonMinUpdate(() => this.#applyMinUpdate());
-  #homeWatch: ReturnType<typeof setInterval> | undefined;
   readonly #follow = new DaemonMinUpdate(
     () => applyDaemonFollowInstalled(this.#replaceHooks()),
     FOLLOW_INTERVAL_MS,
@@ -67,9 +66,10 @@ export class DaemonRuntime {
   readonly #instanceId = `daemon_${randomUUID()}`;
   readonly #startedAtMs = Date.now();
   readonly #stopped = new Set<() => void>();
+  readonly #log: Logger;
+  #homeWatch: ReturnType<typeof setInterval> | undefined;
   #closing: Promise<void> | undefined;
   #exitCode = 0;
-  readonly #log: Logger;
 
   private constructor(runs: SqliteRunStore, version: string, log: Logger) {
     this.#runs = runs;
@@ -81,6 +81,11 @@ export class DaemonRuntime {
     this.#register();
   }
 
+  /** Non-zero only when the daemon asks its supervisor to start it again. */
+  get exitCode(): number {
+    return this.#exitCode;
+  }
+
   static async open(version: string, log: Logger = nullLogger()): Promise<DaemonRuntime> {
     // Reclaiming here would let a daemon that loses the bind race mark the
     // winner's live runs abandoned; listen() does it instead.
@@ -88,6 +93,43 @@ export class DaemonRuntime {
       log.warn("run history could not be read, so it was moved aside and started again", { to }),
     );
     return new DaemonRuntime(store, version, log);
+  }
+
+  async listen(): Promise<void> {
+    // A daemon busy starting up can miss the socket probe; its pid file still names it.
+    if ((await liveDaemonPid()) !== undefined) throw new DaemonAlreadyRunningError();
+    // Owning the endpoint is what makes this the single daemon, so only now
+    // is it safe to declare another process's runs dead.
+    const endpoint = rpcEndpoint();
+    await privateDirectory(dirname(endpoint));
+    await this.#server.listen(endpoint);
+    await writeDaemonPid(process.pid);
+    const abandoned = this.#runs.abandonActive(Date.now());
+    this.#log.debug("reclaimed runs left active by a previous process", { abandoned });
+    this.#scheduler.start();
+    this.#minUpdate.start();
+    this.#follow.start();
+    // A home deleted under it leaves a daemon nobody can reach or stop.
+    const home = toolHome();
+    this.#homeWatch = setInterval(() => {
+      if (existsSync(home)) return;
+      this.#log.warn("aireg's home is gone, so the daemon is stopping", { home });
+      void this.close();
+    }, HOME_WATCH_MS);
+    this.#homeWatch.unref();
+  }
+
+  onceStopped(listener: () => void): void {
+    if (this.#closing !== undefined) listener();
+    else this.#stopped.add(listener);
+  }
+
+  async close(): Promise<void> {
+    if (this.#closing === undefined) this.#closing = this.#finish();
+    await this.#closing;
+    const listeners = [...this.#stopped];
+    this.#stopped.clear();
+    for (const listener of listeners) listener();
   }
 
   #register(): void {
@@ -290,6 +332,13 @@ export class DaemonRuntime {
     return { run: await this.#runner.start(original.jobId, original.mode, "manual") };
   }
 
+  async #cancel(raw: unknown): Promise<{ run: RunRecord }> {
+    const runId = inputs.text(inputs.object(raw), "runId");
+    const run = this.#runner.cancel(runId);
+    if (run === undefined) throw noRun(runId);
+    return { run };
+  }
+
   #emit(event: RunEvent): void {
     this.#server.broadcast("run.event", event);
   }
@@ -335,55 +384,6 @@ export class DaemonRuntime {
           }
         : {}),
     };
-  }
-
-  /** Non-zero only when the daemon asks its supervisor to start it again. */
-  get exitCode(): number {
-    return this.#exitCode;
-  }
-
-  async #cancel(raw: unknown): Promise<{ run: RunRecord }> {
-    const runId = inputs.text(inputs.object(raw), "runId");
-    const run = this.#runner.cancel(runId);
-    if (run === undefined) throw noRun(runId);
-    return { run };
-  }
-
-  async listen(): Promise<void> {
-    // A daemon busy starting up can miss the socket probe; its pid file still names it.
-    if ((await liveDaemonPid()) !== undefined) throw new DaemonAlreadyRunningError();
-    // Owning the endpoint is what makes this the single daemon, so only now
-    // is it safe to declare another process's runs dead.
-    const endpoint = rpcEndpoint();
-    await privateDirectory(dirname(endpoint));
-    await this.#server.listen(endpoint);
-    await writeDaemonPid(process.pid);
-    const abandoned = this.#runs.abandonActive(Date.now());
-    this.#log.debug("reclaimed runs left active by a previous process", { abandoned });
-    this.#scheduler.start();
-    this.#minUpdate.start();
-    this.#follow.start();
-    // A home deleted under it leaves a daemon nobody can reach or stop.
-    const home = toolHome();
-    this.#homeWatch = setInterval(() => {
-      if (existsSync(home)) return;
-      this.#log.warn("aireg's home is gone, so the daemon is stopping", { home });
-      void this.close();
-    }, HOME_WATCH_MS);
-    this.#homeWatch.unref();
-  }
-
-  onceStopped(listener: () => void): void {
-    if (this.#closing !== undefined) listener();
-    else this.#stopped.add(listener);
-  }
-
-  async close(): Promise<void> {
-    if (this.#closing === undefined) this.#closing = this.#finish();
-    await this.#closing;
-    const listeners = [...this.#stopped];
-    this.#stopped.clear();
-    for (const listener of listeners) listener();
   }
 
   async #finish(): Promise<void> {

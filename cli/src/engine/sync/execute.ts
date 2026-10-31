@@ -40,17 +40,19 @@ import {
 import { closeScan, type Scan, scan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
 
-export async function executeSync(
-  job: ScopeWork,
-  account: Account,
-  mode: RunMode,
+export interface ExecuteSyncOptions {
+  work: ScopeWork;
+  account: Account;
+  mode: RunMode;
   /** Everything the job covers, unless this run was asked for a narrower set. */
-  refs: RunScope,
-  signal: AbortSignal,
-  hooks: SyncExecutionHooks,
+  refs?: RunScope;
+  signal: AbortSignal;
+  hooks: SyncExecutionHooks;
   /** Settles one named artifact whatever the policy would have chosen for it. */
-  overrides: Overrides = new Map(),
-): Promise<SyncExecution> {
+  overrides?: Overrides | undefined;
+}
+
+export async function executeSync(options: ExecuteSyncOptions): Promise<SyncExecution> {
   // Every scan is closed when the run ends, not when the next replaces it: a
   // pull may still be reading from an earlier one's sources.
   const scans: Scan[] = [];
@@ -60,20 +62,14 @@ export async function executeSync(
     return found;
   };
   try {
-    return await executeScanned(job, account, mode, refs, signal, hooks, overrides, scanned);
+    return await executeScanned(options, scanned);
   } finally {
     await Promise.all(scans.map(closeScan));
   }
 }
 
 async function executeScanned(
-  job: ScopeWork,
-  account: Account,
-  mode: RunMode,
-  refs: RunScope,
-  signal: AbortSignal,
-  hooks: SyncExecutionHooks,
-  overrides: Overrides,
+  { work: job, account, mode, refs, signal, hooks, overrides = new Map() }: ExecuteSyncOptions,
   scanning: typeof scan,
 ): Promise<SyncExecution> {
   const common = syncOptions(job, refs);
@@ -485,10 +481,18 @@ async function applyReported(
   // An override is a person overruling the edit that caused the conflict, so
   // the guard against an unasked-for overwrite has nothing left to protect.
   const forced = [...overrides.values()].some((item) => item === "pull" || item === "remove-local");
-  const applied = await applyLocal(loaded, common, current, names, published, forced, (action) => {
-    if (action.kind !== "record") {
-      hooks.event(RunEventType.Progress, "applying", action.name, { step: action.kind });
-    }
+  const applied = await applyLocal({
+    loaded,
+    common,
+    scan: current,
+    names,
+    published,
+    force: forced,
+    onStep: (action) => {
+      if (action.kind !== "record") {
+        hooks.event(RunEventType.Progress, "applying", action.name, { step: action.kind });
+      }
+    },
   });
   // What it did to a person's files, said wherever the run is followed.
   for (const notice of applied.notices) {

@@ -25,17 +25,27 @@ import { narrowToRelinks, relinksIn } from "./relink.ts";
 import type { Scan } from "./scan.ts";
 import { moved, pinnedNote, unservedNote } from "./served.ts";
 
-export async function applyLocal(
-  loaded: Loaded,
-  common: CommonOptions,
-  scan: Scan,
-  names: ReadonlySet<string>,
+export interface ApplyLocalOptions {
+  loaded: Loaded;
+  common: CommonOptions;
+  scan: Scan;
+  names: ReadonlySet<string>;
   /** What this run published, and the version each went out as. */
-  published: ReadonlyMap<string, string | undefined>,
+  published: ReadonlyMap<string, string | undefined>;
   /** Restages a locally edited artifact, which otherwise only warns. */
-  force: boolean,
-  onStep: (action: Action) => void,
-): Promise<{ changed: number; notices: ApplyNotice[] }> {
+  force: boolean;
+  onStep: (action: Action) => void;
+}
+
+export async function applyLocal({
+  loaded,
+  common,
+  scan,
+  names,
+  published,
+  force,
+  onStep,
+}: ApplyLocalOptions): Promise<{ changed: number; notices: ApplyNotice[] }> {
   // A run that only published still has something to record, or the lock never
   // learns what this project sent and every later comparison has no base.
   const recording = new Set([...names, ...published.keys()]);

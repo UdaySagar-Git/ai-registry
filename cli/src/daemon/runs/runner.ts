@@ -330,15 +330,15 @@ export class SyncRunner {
     let retryable: boolean | undefined;
 
     if (work.steps.length > 0) {
-      const result = await executeSync(
+      const result = await executeSync({
         work,
         account,
-        run.mode,
+        mode: run.mode,
         refs,
-        controller.signal,
+        signal: controller.signal,
         hooks,
         overrides,
-      );
+      });
       counts = result.counts;
       state = result.state;
       errorCode = result.errorCode;

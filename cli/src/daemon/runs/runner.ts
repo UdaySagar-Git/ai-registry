@@ -17,11 +17,11 @@ import { nullLogger } from "#core/log/logger.ts";
 import type { Logger } from "#core/log/model.ts";
 import {
   EMPTY_RUN_COUNTS,
-  ITEM_EVENT,
   type ItemSettled,
   isActive,
   type RunCounts,
   type RunEvent,
+  RunEventType,
   type RunMode,
   type RunRecord,
   type RunTrigger,
@@ -204,7 +204,7 @@ export class SyncRunner {
 
   private event(
     runId: string,
-    type: string,
+    type: RunEventType,
     step: string,
     artifact?: string,
     data?: unknown,
@@ -228,7 +228,7 @@ export class SyncRunner {
   ): void {
     const recorded = this.#store.progress(runId, step, {
       occurredAtMs: Date.now(),
-      eventType: ITEM_EVENT,
+      eventType: RunEventType.ItemSettled,
       step,
       artifact,
       ...settled,

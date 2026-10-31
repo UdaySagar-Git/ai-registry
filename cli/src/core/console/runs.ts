@@ -6,10 +6,10 @@ import type { Job, RegistryConfig } from "#core/config/model.ts";
 import { isRaw, parseLine } from "#core/log/read.ts";
 import { DAEMON_LOG_FILE, logPath } from "#core/log/sink.ts";
 import {
-  ITEM_EVENT,
   type ItemOutcome,
   isTerminal,
   type RunEvent,
+  RunEventType,
   type RunMode,
   type RunRecord,
 } from "#core/run/model.ts";
@@ -87,7 +87,7 @@ export function carriedPaths(
   const found = new Map<string, Carrier>();
   for (const { job, jobId, settledAtMs, events } of runs) {
     for (const event of events) {
-      if (event.eventType !== ITEM_EVENT || event.errorCode !== undefined) continue;
+      if (event.eventType !== RunEventType.ItemSettled || event.errorCode !== undefined) continue;
       if (!CARRIED.has(event.outcome)) continue;
       const paths = field(event, "paths");
       if (!Array.isArray(paths)) continue;

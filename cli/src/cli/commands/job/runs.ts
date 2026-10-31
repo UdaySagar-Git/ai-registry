@@ -12,6 +12,7 @@ import {
   isTerminal,
   RUN_STATES,
   type RunEvent,
+  RunEventType,
   type RunRecord,
   type RunState,
 } from "#core/run/model.ts";
@@ -91,7 +92,7 @@ async function detail(
   if (follow) {
     let end: RunEvent | undefined;
     await followRun(client, runId, (event) => {
-      if (event.eventType === "run.finished") end = event;
+      if (event.eventType === RunEventType.Finished) end = event;
       else printEvent(context, event);
     });
     if (end !== undefined) await printEnd(context, end);
@@ -102,7 +103,7 @@ async function detail(
   const events: RunEvent[] = [];
   for await (const event of runEvents(client, runId)) {
     if (context.printer.format === "json") events.push(event);
-    else if (event.eventType === "run.finished") await printEnd(context, event);
+    else if (event.eventType === RunEventType.Finished) await printEnd(context, event);
     else printEvent(context, event);
   }
   if (context.printer.format === "json") context.printer.json({ ok: true, data: { run, events } });

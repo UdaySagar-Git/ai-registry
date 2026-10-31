@@ -8,10 +8,10 @@ import { isMissing } from "#core/fs/path.ts";
 import { DATABASE_FILE } from "#core/product.ts";
 import {
   EMPTY_RUN_COUNTS,
-  ITEM_EVENT,
   type RunCounts,
   RunErrorCode,
   type RunEvent,
+  RunEventType,
   type RunRecord,
 } from "#core/run/model.ts";
 import type { AppendRunEvent, CreateRun, FinishRun, RunQuery, RunStore } from "#core/run/store.ts";
@@ -50,7 +50,7 @@ const COUNTS_SELECT = `
     SUM(CASE WHEN outcome = 'attention' THEN 1 ELSE 0 END) AS attention,
     SUM(CASE WHEN outcome = 'failed' THEN 1 ELSE 0 END) AS failed
   FROM run_events
-  WHERE event_type = '${ITEM_EVENT}'`;
+  WHERE event_type = '${RunEventType.ItemSettled}'`;
 
 function encoded(value: unknown): string {
   return JSON.stringify(value ?? {});
@@ -223,7 +223,7 @@ export class SqliteRunStore implements RunStore {
         input.requestedAtMs,
         input.deadlineAtMs,
       );
-      this.#event(input.id, { occurredAtMs: input.requestedAtMs, eventType: "run.queued" });
+      this.#event(input.id, { occurredAtMs: input.requestedAtMs, eventType: RunEventType.Queued });
       return this.get(input.id) as RunRecord;
     });
   }
@@ -236,7 +236,7 @@ export class SqliteRunStore implements RunStore {
       if (changed !== 1) {
         throw new AiregError(`Run ${quoted(id)} is not queued.`, { code: ErrorCode.Conflict });
       }
-      this.#event(id, { occurredAtMs: atMs, eventType: "run.started", step });
+      this.#event(id, { occurredAtMs: atMs, eventType: RunEventType.Started, step });
       return this.get(id) as RunRecord;
     });
   }
@@ -309,7 +309,7 @@ export class SqliteRunStore implements RunStore {
       }
       this.#event(id, {
         occurredAtMs: result.finishedAtMs,
-        eventType: "run.finished",
+        eventType: RunEventType.Finished,
         ...(result.errorCode === undefined ? {} : { errorCode: result.errorCode }),
         retryable: result.retryable === true,
         data: { state: result.state },
@@ -372,7 +372,7 @@ export class SqliteRunStore implements RunStore {
            OR (event_type = ? AND json_type(data_json, '$.paths') = 'array')
          )
          ORDER BY seq`,
-    ).all(runId, ITEM_EVENT);
+    ).all(runId, RunEventType.ItemSettled);
     return rows.map((row) => toEvent(row as Row));
   }
 
@@ -386,7 +386,7 @@ export class SqliteRunStore implements RunStore {
   abandonActive(atMs: number): number {
     return this.#transaction(() => {
       const rows = this.#prepare(
-        "SELECT id FROM runs WHERE state IN ('queued', 'running')",
+        `SELECT id FROM runs WHERE state IN ('queued', 'running')`,
       ).all() as { id: string }[];
       const changed = Number(
         this.#prepare(
@@ -398,7 +398,7 @@ export class SqliteRunStore implements RunStore {
       for (const { id } of rows) {
         this.#event(id, {
           occurredAtMs: atMs,
-          eventType: "run.finished",
+          eventType: RunEventType.Finished,
           errorCode: RunErrorCode.DaemonRestarted,
           retryable: true,
           data: { state: "abandoned" },

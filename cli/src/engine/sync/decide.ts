@@ -7,6 +7,7 @@ import {
   type ItemSettled,
   type RunCounts,
   RunErrorCode,
+  type RunEventType,
   type RunMode,
   type TerminalRunState,
 } from "#core/run/model.ts";
@@ -45,7 +46,7 @@ export interface SyncExecution {
 }
 
 export interface SyncExecutionHooks {
-  event(type: string, phase: string, artifact?: string, data?: unknown): void;
+  event(type: RunEventType, phase: string, artifact?: string, data?: unknown): void;
   /** How one item settled. Reported, never inferred from an event's data. */
   item(artifact: string, phase: string, settled: ItemSettled, data?: unknown): void;
 }

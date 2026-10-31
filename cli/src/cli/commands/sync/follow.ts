@@ -5,12 +5,11 @@ import { loadAdapter } from "#core/adapter/load.ts";
 import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import {
-  ITEM_EVENT,
   isFailed,
   isInterrupted,
   RunErrorCode,
+  RunEventType,
   type RunRecord,
-  WARNING_EVENT,
 } from "#core/run/model.ts";
 import { scopeFlag } from "#core/store/paths.ts";
 import { followRun, type RpcClient } from "#daemon/rpc/client.ts";
@@ -104,7 +103,7 @@ export async function follow(
   const warnings: string[] = [];
 
   await followRun(client, runId, (event) => {
-    if (event.eventType === WARNING_EVENT) {
+    if (event.eventType === RunEventType.Warning) {
       const { message, hint } = (event.data ?? {}) as { message?: unknown; hint?: unknown };
       if (typeof message !== "string") return;
       warnings.push(message);
@@ -112,7 +111,7 @@ export async function follow(
       if (typeof hint === "string") context.printer.hint(hint);
       return;
     }
-    if (event.artifact === undefined || event.eventType !== ITEM_EVENT) return;
+    if (event.artifact === undefined || event.eventType !== RunEventType.ItemSettled) return;
     if (event.outcome === "unchanged" || event.outcome === "skipped") return;
     context.printer.info(itemLine(context.printer, event));
     artifacts.push({

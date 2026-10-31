@@ -5,7 +5,7 @@ import { expandHome } from "#adapter/paths.ts";
 import { list, quoted } from "#adapter/text.ts";
 import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { unwatchCommand } from "#core/config/jobs.ts";
+import { scopeSteps, unwatchCommand } from "#core/config/jobs.ts";
 import {
   type Account,
   DEFAULT_INTERVAL_SECONDS,
@@ -24,8 +24,6 @@ import type { RegistrySource } from "#core/manifest/model.ts";
 import { readManifest, writeManifest } from "#core/manifest/repository.ts";
 import { formatAddress, formatRef, parseRef, type Ref } from "#core/ref.ts";
 import { type Roots, roots, type Scope, scopeFor } from "#core/store/paths.ts";
-import type { SyncPolicy } from "#core/sync/policy.ts";
-import { OPTIONAL_AXES } from "#core/sync/policy.ts";
 import { DEFAULT_TARGETS } from "#core/target/ids.ts";
 import { invalidParams, noAccount, noJob, staleSettings } from "#daemon/rpc/errors.ts";
 import { forgetOrigins } from "#engine/sync/origins.ts";
@@ -138,34 +136,7 @@ export async function createJob(
     },
     steps: [
       ...(origins === undefined ? [] : [origins]),
-      {
-        name: "pull",
-        kind: "pull",
-        needs: origins === undefined ? [] : ["origins"],
-        root,
-        select: [],
-        policy: policy.pull,
-        extra: {},
-      },
-      {
-        name: "publish",
-        kind: "publish",
-        needs: ["pull"],
-        root,
-        select: [],
-        policy: policy.publish,
-        extra: {},
-      },
-      {
-        name: "prune",
-        kind: "prune",
-        needs: ["pull"],
-        root,
-        select: [],
-        policy: policy.delete,
-        extra: {},
-      },
-      ...optionalSteps(policy, root),
+      ...scopeSteps(root, policy, origins === undefined ? [] : ["origins"]),
     ],
   };
   return { config: await saveJob(job, latest.revision), job };
@@ -400,16 +371,6 @@ function originsStep(
     policy: "on",
     extra: {},
   };
-}
-
-/** The axes a caller named and the defaults leave out: first publishes, and claiming copies. */
-function optionalSteps(policy: SyncPolicy, root: string): Step[] {
-  return OPTIONAL_AXES.flatMap((axis) => {
-    const level = policy[axis];
-    return level === undefined
-      ? []
-      : [{ name: axis, kind: axis, needs: ["pull"], root, select: [], policy: level, extra: {} }];
-  });
 }
 
 /** Every plain config edit as one transaction, so it lands on one revision. */

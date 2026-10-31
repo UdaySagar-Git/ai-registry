@@ -225,6 +225,7 @@ async function indexRootNow(root: string, at: string): Promise<Indexed> {
  * whose envelope still has its content digest is recomputed, so changed content stays an error.
  */
 async function recatalog(root: string, versionsAt: string): Promise<boolean> {
+  // Only a document that reads is recomputed; `registry validate` reports one that does not.
   const document = await json(root, versionsAt).catch(() => undefined);
   if (!isRecord(document) || !Array.isArray(document.versions)) return false;
   const rows: unknown[] = document.versions;
@@ -241,6 +242,7 @@ async function recatalog(root: string, versionsAt: string): Promise<boolean> {
 async function recataloged(root: string, versionsAt: string, row: unknown): Promise<unknown> {
   if (!isRecord(row) || typeof row.catalog_digest !== "string") return row;
   if (typeof row.version !== "string" || !isVersion(row.version)) return row;
+  // As in `recatalog`: a row whose envelope will not read is left as it is.
   const envelope = await json(
     root,
     `${posix.dirname(versionsAt)}/${row.version}/${ENVELOPE}`,
@@ -362,6 +364,7 @@ async function blobProblem(
   file: FileDescriptor,
   locator: string,
 ): Promise<string | undefined> {
+  // Any failure is the answer here, reported as one.
   const read = await hashRegular(root, locator).catch(() => undefined);
   if (read === undefined) return "could not be read";
   if (read.kind === "missing") return "is missing";

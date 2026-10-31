@@ -537,6 +537,7 @@ async function heldAt(
   version: string,
 ): Promise<Current | undefined> {
   const { name, kind } = work;
+  // Not held there, or not readable now: either way nothing to compare against.
   const found = await published.source.handle
     .resolve([{ name, namespace, kind, version }])
     .catch(() => undefined);

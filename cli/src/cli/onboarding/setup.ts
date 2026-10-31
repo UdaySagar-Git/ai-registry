@@ -93,6 +93,7 @@ async function followDaemon(bin: string, printer: Printer): Promise<void> {
   const spin = canAnimate(process.stderr) ? spinner(defaultIo(), printer.errStyle) : undefined;
   try {
     for (let attempt = 0; attempt < 3; attempt += 1) {
+      // One that does not answer is treated as down, which the restart below handles.
       const found = await probeDaemon(VERSION).catch(() => ({ status: "down" as const }));
       const behind = found.status === "ready" && found.version !== VERSION;
       if (!behind && found.status !== "outdated") return;
@@ -245,6 +246,7 @@ async function offerSkills(
     });
   } catch (error) {
     // A registry declared without its skills would read as the user's choice on the next run.
+    // Undoing is best effort; the warning below names the failure that matters.
     if (defaulted) {
       await withScope(user, ({ manifest: now }) =>
         writeManifest(user, { ...now, targets: [] }),

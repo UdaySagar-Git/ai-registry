@@ -73,6 +73,7 @@ export async function addToUserPath(
 }
 
 export async function userPathHas(dir: string, env: NodeJS.ProcessEnv): Promise<boolean> {
+  // A user PATH that cannot be read is reported as one without the entry.
   const path = await readUserPath(env).catch(() => undefined);
   return path !== undefined && withEntry(path.value, dir, env) === undefined;
 }

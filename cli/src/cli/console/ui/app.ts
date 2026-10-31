@@ -305,6 +305,7 @@ function counted(panel: { label: string; length: (view: PanelView) => number }, 
     const length = panel.length(view);
     return Number.isInteger(length) && length >= 0 ? length : 0;
   } catch {
+    // A panel that throws must not take the console down; it draws its own error.
     return 0;
   }
 }
@@ -471,6 +472,7 @@ function useLinks(context: ReturnType<typeof useCommands>) {
       try {
         url = panel.link?.(panelView);
       } catch {
+        // As in `counted`: a panel that throws only has no link to open.
         url = undefined;
       }
     } else if (view === "artifacts" && selectedArtifact !== undefined) {

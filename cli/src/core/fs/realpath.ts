@@ -9,6 +9,7 @@ export function canonical(path: string): string {
   try {
     return realpathSync.native(path);
   } catch {
+    // Any path that will not resolve, a link loop as much as a missing one, compares as written.
     return path;
   }
 }
@@ -18,6 +19,7 @@ export async function canonicalAsync(path: string): Promise<string> {
   try {
     return await realpath(path);
   } catch {
+    // As in `canonical`.
     return path;
   }
 }

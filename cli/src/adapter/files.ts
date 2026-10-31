@@ -254,6 +254,7 @@ export async function writeAtomic(
     await file.chmod(mode);
     if (durable) await file.sync();
   } catch (error) {
+    // The write's own error is the one to report; a leftover scratch file costs only disk.
     await file.close().catch(() => {});
     await rm(temp, { force: true }).catch(() => {});
     throw error;
@@ -264,6 +265,7 @@ export async function writeAtomic(
     await replaceFile(temp, target, options.beforeRename);
     if (durable) await syncDirectory(parent);
   } catch (error) {
+    // As above.
     await rm(temp, { force: true }).catch(() => {});
     throw error;
   }

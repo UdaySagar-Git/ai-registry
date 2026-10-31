@@ -157,6 +157,7 @@ export class SyncRunner {
         this.#workers.delete(run.id);
         if (asked !== undefined && this.#oneOff.get(asked) === run.id) this.#oneOff.delete(asked);
       })
+      // The worker settles its own run; this chain only tidies the maps once it does.
       .catch(() => {});
     return run;
   }

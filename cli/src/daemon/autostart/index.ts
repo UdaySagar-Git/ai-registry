@@ -100,6 +100,7 @@ function real(path: string): string | undefined {
   try {
     return realpathSync(path);
   } catch {
+    // A PATH entry that will not resolve, for any reason, is just not this binary.
     return undefined;
   }
 }

@@ -447,6 +447,7 @@ export async function writeLock(roots: Roots, lock: Lock): Promise<void> {
   await guardManagedPath(roots.lock, roots);
   const text = formatLock(lock);
   // One an earlier aireg wrote that already says this stays as it is, so it still reads it.
+  // One that will not read is simply replaced.
   const held = await readLock(roots).catch(() => undefined);
   if (held !== undefined && formatLock(held) === text) return;
   await writeAtomic(roots.lock, text);

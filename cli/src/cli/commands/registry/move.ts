@@ -121,6 +121,7 @@ export async function signInLeftBehind(
 ): Promise<boolean> {
   const origin = (location: string) => credentialOrigin(expandLocation(location, roots.base));
   if (origin(move.from) === origin(declared.location)) return false;
+  // A config that will not read only skips this warning; the next command that needs it reports it.
   const config = await readConfig().catch(() => undefined);
   return config?.accounts.some((account) => account.registry === alias) ?? false;
 }

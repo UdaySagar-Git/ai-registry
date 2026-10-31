@@ -208,6 +208,7 @@ export class RpcServer {
       if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new DaemonAlreadyRunningError();
       throw error;
     } finally {
+      // A stray staging name costs nothing; clients reach the endpoint.
       await unlink(staging).catch(() => undefined);
     }
     const { dev, ino } = await lstat(endpoint);
@@ -338,6 +339,7 @@ export class RpcServer {
       try {
         decoder.end();
       } catch {
+        // A frame the close cut short is dropped with the socket.
         socket.destroy();
       }
     });

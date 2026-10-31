@@ -116,6 +116,7 @@ export async function onboard(
 async function registryName(flow: OnboardingFlow, cwd: string): Promise<string> {
   const fallback = sanitizeName(lastSegment(flow.registry));
   if (flow.tokenStdin) return fallback;
+  // Only a suggested name hangs on it; the address's last segment serves when it cannot be read.
   const source = await probe({ input: flow.registry, flags: { adapter: flow.adapter }, cwd }).catch(
     () => undefined,
   );

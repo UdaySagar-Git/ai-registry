@@ -53,7 +53,7 @@ export const add = action({
     let readable = true;
     let move: Move | undefined;
     try {
-      const source = await probe(input, flags, context.cwd);
+      const source = await probe({ input, flags, cwd: context.cwd });
       try {
         declared = {
           ...source.declared,

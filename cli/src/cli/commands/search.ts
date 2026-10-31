@@ -1,4 +1,4 @@
-import { type ArtifactKind, isKind, KINDS } from "#adapter/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, plural, quoted, withoutCredentials } from "#adapter/text.ts";
 import { search } from "#cli/commands/search/rank.ts";
 import { SEARCH_COMMAND } from "#cli/commands/search/spec.ts";
@@ -35,7 +35,7 @@ interface Skipped {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common, own } = parse<{ registry?: string; kind?: string }>(
+  const { positionals, common, own } = parse<{ registry?: string; kind?: ArtifactKind }>(
     context.argv,
     SEARCH_COMMAND,
   );
@@ -47,7 +47,7 @@ export async function run(context: CommandContext): Promise<void> {
       "Name it: `aireg search <query>`, such as `aireg search review`.",
     );
   }
-  const kind = own.kind === undefined ? undefined : kindOf(own.kind);
+  const { kind } = own;
 
   const known = await knownRegistries(common, context.cwd);
   const targets =
@@ -98,15 +98,6 @@ export async function run(context: CommandContext): Promise<void> {
     query,
   );
   report(context, query, found, skipped);
-}
-
-function kindOf(raw: string): ArtifactKind {
-  const kind = raw.trim().toLowerCase();
-  if (isKind(kind)) return kind;
-  throw new AiregError(`${quoted(raw)} is not a kind.`, {
-    code: ErrorCode.Usage,
-    hint: `Use ${list(KINDS, "or")}.`,
-  });
 }
 
 /** Read through the same listing `aireg registry show` prints. */

@@ -1,10 +1,9 @@
-import { list as listOf, quoted } from "#adapter/text.ts";
+import { list as listOf } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { needsJob, noJob } from "#cli/commands/job/find.ts";
 import { findJob } from "#core/config/jobs.ts";
 import { readConfig } from "#core/config/repository.ts";
-import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isRunMode, RUN_MODES } from "#core/run/model.ts";
+import type { RunMode } from "#core/run/model.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 
 /**
@@ -14,7 +13,7 @@ import { withDaemon } from "#daemon/process/lifecycle.ts";
 export async function start(
   context: CommandContext,
   wanted: string | undefined,
-  requestedMode: string | undefined,
+  requestedMode: RunMode | undefined,
 ): Promise<void> {
   if (wanted === undefined) throw needsJob("start");
   const config = await readConfig();
@@ -27,12 +26,6 @@ export async function start(
     );
   }
   const mode = requestedMode ?? "sync";
-  if (!isRunMode(mode)) {
-    throw new AiregError(`--mode takes ${listOf(RUN_MODES, "or")}, not ${quoted(mode)}.`, {
-      code: ErrorCode.Usage,
-      hint: "Leave out `--mode` for a sync.",
-    });
-  }
 
   await withDaemon(async (client) => {
     const { run } = await client.request("run.start", {

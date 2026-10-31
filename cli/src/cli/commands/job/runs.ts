@@ -1,4 +1,4 @@
-import { list, plural, quoted } from "#adapter/text.ts";
+import { plural, quoted } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import { needsInput } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
@@ -10,7 +10,6 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import {
   isActive,
   isTerminal,
-  RUN_STATES,
   type RunEvent,
   RunEventType,
   type RunRecord,
@@ -22,15 +21,14 @@ import { table } from "#core/term/table.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { followRun, type RpcClient, runEvents } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
-import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
 
 /** `run_` plus a v4 uuid, as `runner.ts` mints them. */
 const RUN_ID = /^run_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface RunsOptions {
   job?: string | undefined;
-  state?: string | undefined;
-  limit?: string | undefined;
+  state?: RunState | undefined;
+  limit?: number | undefined;
   follow?: boolean | undefined;
 }
 
@@ -40,20 +38,7 @@ export async function runs(
   runId: string | undefined,
   own: RunsOptions,
 ): Promise<void> {
-  const state = own.state as RunState | undefined;
-  if (state !== undefined && !RUN_STATES.includes(state)) {
-    throw new AiregError(`Unknown run state ${quoted(state)}.`, {
-      code: ErrorCode.Usage,
-      hint: `Use ${list(RUN_STATES, "or")}.`,
-    });
-  }
-  const limit = own.limit === undefined ? undefined : Number.parseInt(own.limit, 10);
-  if (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE)) {
-    throw new AiregError(
-      `--limit takes a whole number from 1 to ${MAX_PAGE_SIZE}, not ${quoted(own.limit as string)}.`,
-      { code: ErrorCode.Usage },
-    );
-  }
+  const { state, limit } = own;
   if (runId !== undefined) checkRunId(runId);
 
   await withDaemon(async (client) => {

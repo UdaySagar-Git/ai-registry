@@ -12,7 +12,7 @@ import {
   writableFirst,
 } from "#cli/commands/publish/destination.ts";
 import { follow } from "#cli/commands/publish/follow.ts";
-import { bumpOf, type Own } from "#cli/commands/publish/options.ts";
+import type { Own } from "#cli/commands/publish/options.ts";
 import { edgesOf, opener, planAll } from "#cli/commands/publish/plan.ts";
 import { nothing, report } from "#cli/commands/publish/render.ts";
 import { review } from "#cli/commands/publish/review.ts";
@@ -97,7 +97,7 @@ export async function run(context: CommandContext): Promise<void> {
       taken.works,
       where,
       open,
-      bumpOf(own.bump),
+      own.bump,
       to?.version,
       common.force,
       edgesOf(loaded, found, known, taken.left),

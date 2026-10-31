@@ -1,9 +1,9 @@
 import { messageOf } from "#adapter/errors.ts";
-import { list, quoted, sanitizeText } from "#adapter/text.ts";
+import { sanitizeText } from "#adapter/text.ts";
 import { LOGS_COMMAND } from "#cli/commands/logs/spec.ts";
 import { noArguments, parse } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isLevel, LEVELS, type LogRecord } from "#core/log/model.ts";
+import type { Level, LogRecord } from "#core/log/model.ts";
 import {
   type Entry,
   type Filter,
@@ -20,10 +20,10 @@ import type { CommandContext } from "./command.ts";
 
 interface Own extends Record<string, unknown> {
   follow?: boolean;
-  tail?: string;
+  tail?: number;
   since?: string;
   until?: string;
-  level?: string;
+  level?: Level;
   grep?: string;
   daemon?: boolean;
   cli?: boolean;
@@ -41,13 +41,7 @@ export async function run(context: CommandContext): Promise<void> {
   const chosen = sources(own, home);
   const filter = filterOf(own);
 
-  const limit = own.tail === undefined ? DEFAULT_TAIL : Number(own.tail);
-  if (!Number.isInteger(limit) || limit < 0) {
-    throw new AiregError(`--tail takes a whole number, not ${quoted(own.tail ?? "")}.`, {
-      code: ErrorCode.Usage,
-      hint: "Pass how many entries to print, such as `--tail 20`.",
-    });
-  }
+  const limit = own.tail ?? DEFAULT_TAIL;
 
   // Each log is in time order, so the newest of all are among each one's newest.
   const history = chosen
@@ -118,15 +112,7 @@ function sources(own: Own, home: string): Source[] {
 
 function filterOf(own: Own): Filter {
   const filter: Filter = {};
-  if (own.level !== undefined) {
-    if (!isLevel(own.level)) {
-      throw new AiregError(`Unknown log level ${quoted(own.level)}.`, {
-        code: ErrorCode.Usage,
-        hint: `Use ${list(LEVELS, "or")}.`,
-      });
-    }
-    filter.minLevel = own.level;
-  }
+  if (own.level !== undefined) filter.minLevel = own.level;
   try {
     if (own.since !== undefined) filter.sinceMs = parseSince(own.since);
     if (own.until !== undefined) filter.untilMs = parseSince(own.until);

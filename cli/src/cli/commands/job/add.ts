@@ -9,6 +9,7 @@ import { expandLocation } from "#core/adapter/location.ts";
 import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import { watchedFolders } from "#core/config/jobs.ts";
 import type { Job } from "#core/config/model.ts";
+import { DEFAULT_INTERVAL_SECONDS } from "#core/config/model.ts";
 import { stepForFlags } from "#core/host/load.ts";
 import { unknownRegistry } from "#core/manifest/errors.ts";
 import { readManifest } from "#core/manifest/repository.ts";
@@ -18,7 +19,7 @@ import { withFreshConfig } from "#daemon/rpc/client.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { cannotPublish } from "#engine/publish/target.ts";
 import { originsOf, target } from "./list.ts";
-import { interval, type Own, policy, refsFrom } from "./options.ts";
+import { type Own, policy, refsFrom } from "./options.ts";
 
 /** `aireg job add`, and `aireg watch add`, which is the same with only its folders. */
 export async function add(
@@ -28,7 +29,7 @@ export async function add(
   common: CommonOptions,
 ): Promise<void> {
   const contribution = await stepForFlags(own);
-  const seconds = interval(own.interval);
+  const seconds = own.interval ?? DEFAULT_INTERVAL_SECONDS;
   if (contribution !== undefined) {
     const flags = { ...own, targets: common.targets };
     return withDaemon((client) => addContributedJob(context, client, contribution, flags, seconds));

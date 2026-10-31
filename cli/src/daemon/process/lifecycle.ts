@@ -8,6 +8,7 @@ import { withLease } from "#core/lease/lease.ts";
 import { DAEMON_STDERR_FILE, logPath } from "#core/log/sink.ts";
 import { pollUntil } from "#core/poll.ts";
 import { spawnDetached } from "#core/process.ts";
+import { DAEMON_FLAG } from "#core/product.ts";
 import { launchArgv, runningEntry } from "#core/release/launch.ts";
 import { ensureHome } from "#core/store/paths.ts";
 import { VERSION } from "#core/version.ts";
@@ -143,7 +144,7 @@ export async function startDaemon(entry: string, version: string): Promise<void>
   }
   // Here as well as in the daemon, so a directory it would refuse is named to the user.
   await privateDirectory(dirname(rpcEndpoint()));
-  const launch = launchArgv(entry, ["--internal-daemon"]);
+  const launch = launchArgv(entry, [DAEMON_FLAG]);
   const stderr = stderrCapture();
   try {
     spawnDetached(launch.command, launch.args, {

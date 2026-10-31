@@ -4,9 +4,6 @@ import { isAbsolute, join } from "node:path";
 import { pollUntil } from "#core/poll.ts";
 import { processAlive } from "#core/process.ts";
 
-/** What a copy of aireg.exe runs with to delete aireg's folder once `self uninstall` exits. */
-export const REMOVE_AFTER_FLAG = "--internal-remove-after";
-
 /** Retried, as Windows holds a file a moment after the process using it, such as the daemon, exits. */
 export function removeTree(dir: string): Promise<boolean> {
   return rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }).then(

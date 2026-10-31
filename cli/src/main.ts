@@ -22,18 +22,14 @@ import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { releaseLeasesOnInterrupt } from "#core/lease/lease.ts";
 import { LogLevelError } from "#core/log/level.ts";
 import { type LogBootstrap, openCliLog } from "#core/log/open.ts";
+import { DAEMON_FLAG, REMOVE_AFTER_FLAG, UPDATE_CHECK_FLAG } from "#core/product.ts";
 import { Printer } from "#core/term/printer.ts";
 import { NODE_REQUIREMENT, nodeTooOld, VERSION, versionInfo } from "#core/version.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
 import { recycleDaemon } from "#daemon/process/lifecycle.ts";
 import { applyMinimumUpdate } from "#self/minimum-update.ts";
-import { REMOVE_AFTER_FLAG, removeAfterExit } from "#self/remove-after-exit.ts";
-import {
-  hintUpdate,
-  refreshUpdates,
-  scheduleUpdateCheck,
-  UPDATE_CHECK_FLAG,
-} from "#self/update-check.ts";
+import { removeAfterExit } from "#self/remove-after-exit.ts";
+import { hintUpdate, refreshUpdates, scheduleUpdateCheck } from "#self/update-check.ts";
 
 registerBuiltinAdapters();
 
@@ -165,7 +161,7 @@ async function dispatch(
   const misused = misusedGlobal(values);
   if (misused !== undefined) return reportError(printer, misused);
 
-  if (argv.length === 1 && argv[0] === "--internal-daemon") {
+  if (argv.length === 1 && argv[0] === DAEMON_FLAG) {
     // A daemon outlives whatever started it, so it must not keep that
     // process's directory: one it cannot read fails every `process.cwd()`.
     process.chdir(homedir());

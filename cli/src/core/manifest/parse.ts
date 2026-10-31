@@ -4,8 +4,7 @@ import { isNamespace } from "#adapter/filespec/names.ts";
 import { isLayoutId, LAYOUT_IDS } from "#adapter/layouts/ids.ts";
 import { list, quoted, sanitizeName } from "#adapter/text.ts";
 import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
-import { parseEngine, unmetEngine } from "#core/engines.ts";
-import { AiregError } from "#core/errors.ts";
+import { parseEngine, refuseOldCli } from "#core/engines.ts";
 import { dict, RESERVED_KEYS, textMapOf } from "#core/fields.ts";
 import { NAME } from "#core/product.ts";
 import {
@@ -16,7 +15,6 @@ import {
   withExclusions,
   withLocalName,
 } from "#core/ref.ts";
-import { VERSION } from "#core/version.ts";
 import { parseYaml } from "#core/yaml.ts";
 import { ManifestError } from "./errors.ts";
 import { parseExports } from "./exports.ts";
@@ -333,12 +331,6 @@ function checkTarget(to: string, where: string, registries: Record<string, Regis
 
 function isFolderTarget(to: string): boolean {
   return to.startsWith(".") || to.startsWith("/");
-}
-
-function refuseOldCli(engine: string | undefined): void {
-  const why = unmetEngine(VERSION, engine);
-  if (why === undefined) return;
-  throw new AiregError(`This project ${why}.`, { hint: "Run `aireg self update`." });
 }
 
 function engineOf(raw: unknown): string | undefined {

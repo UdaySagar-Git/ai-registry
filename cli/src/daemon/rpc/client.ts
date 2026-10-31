@@ -6,6 +6,7 @@ import type { RegistryConfig } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { NAME } from "#core/product.ts";
 import { isTerminal, type RunEvent, RunEventType } from "#core/run/model.ts";
+import { MAX_PAGE_SIZE } from "#core/run/store.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { assertOwnSocket, daemonChallenge, provesDaemon } from "./endpoint.ts";
 import { FrameDecoder } from "./frames.ts";
@@ -15,7 +16,6 @@ import {
   type DaemonMethods,
   type DaemonNotification,
   type DaemonNotifications,
-  MAX_PAGE_SIZE,
   PROTOCOL_VERSION,
 } from "./methods.ts";
 import { encodeMessage, type RpcId, type RpcResponse } from "./protocol.ts";

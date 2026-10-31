@@ -22,6 +22,7 @@ import {
   type RunEvent,
   type RunRecord,
 } from "#core/run/model.ts";
+import { MAX_PAGE_SIZE } from "#core/run/store.ts";
 import { scopeName, toolHome, userScopeDir } from "#core/store/paths.ts";
 import { refreshAutostart, supervised } from "#daemon/autostart/index.ts";
 import { RESTART_EXIT_CODE } from "#daemon/autostart/model.ts";
@@ -33,12 +34,7 @@ import { startDaemon } from "#daemon/process/lifecycle.ts";
 import { liveDaemonPid, releaseDaemonPid, writeDaemonPid } from "#daemon/process/pid-file.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { privateDirectory, rpcEndpoint } from "#daemon/rpc/endpoint.ts";
-import {
-  type DaemonInfo,
-  MAX_PAGE_SIZE,
-  PROTOCOL_VERSION,
-  type RpcContext,
-} from "#daemon/rpc/methods.ts";
+import { type DaemonInfo, PROTOCOL_VERSION, type RpcContext } from "#daemon/rpc/methods.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import { DaemonAlreadyRunningError, RpcServer } from "#daemon/rpc/server.ts";
 import { SyncRunner } from "#daemon/runs/runner.ts";

@@ -14,9 +14,15 @@ import {
   RunEventType,
   type RunRecord,
 } from "#core/run/model.ts";
-import type { AppendRunEvent, CreateRun, FinishRun, RunQuery, RunStore } from "#core/run/store.ts";
+import {
+  type AppendRunEvent,
+  type CreateRun,
+  type FinishRun,
+  MAX_PAGE_SIZE,
+  type RunQuery,
+  type RunStore,
+} from "#core/run/store.ts";
 import { stateDir } from "#core/store/paths.ts";
-import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
 import { toCounts, toEvent, toRun } from "./store-rows.ts";
 import {
   ACTIVE,

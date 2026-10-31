@@ -44,6 +44,9 @@ export interface FinishRun {
   retryable?: boolean;
 }
 
+/** The most runs, or run events, one read returns. */
+export const MAX_PAGE_SIZE = 500;
+
 export interface RunQuery {
   jobId?: string;
   accountId?: string;

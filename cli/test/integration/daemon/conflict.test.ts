@@ -7,7 +7,16 @@ import { writeConfig } from "#core/config/repository.ts";
 import { RunEventType } from "#core/run/model.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
-import { ADAPTER, ENDPOINT, finished, jobStatus, NAMESPACE, testClient } from "#test/kit/daemon.ts";
+import {
+  ADAPTER,
+  declareUserRegistry,
+  ENDPOINT,
+  finished,
+  jobStatus,
+  NAMESPACE,
+  publishUpstream,
+  testClient,
+} from "#test/kit/daemon.ts";
 import { test as base } from "#test/kit/fixtures.ts";
 import { projected } from "#test/kit/target.ts";
 
@@ -27,19 +36,6 @@ function stagedDir(project: string): string {
   return dirname(projected(project, SKILL));
 }
 
-async function publishUpstream(remote: string, body: string): Promise<void> {
-  const path = upstreamDir(remote);
-  await mkdir(path, { recursive: true });
-  await writeFile(
-    join(path, "SKILL.md"),
-    `---\nname: ${SKILL}\ndescription: Reviews a change.\n---\n\n${body}\n`,
-  );
-  await writeFile(
-    join(path, "meta.json"),
-    `${JSON.stringify({ id: `skill_${SKILL}`, description: "Reviews a change." })}\n`,
-  );
-}
-
 async function editLocally(project: string, body: string): Promise<void> {
   await writeFile(
     join(stagedDir(project), "SKILL.md"),
@@ -56,13 +52,9 @@ interface Environment {
 /** A job whose one artifact is installed and settled, ready to be pulled apart. */
 const test = base.extend("setup", async ({ tmp, home, project, daemon }): Promise<Environment> => {
   const remote = join(tmp, "remote");
-  await publishUpstream(remote, BASE_BODY);
+  await publishUpstream(remote, SKILL, BASE_BODY);
   vi.stubEnv("AIREG_DEV_REMOTE", remote);
-  await mkdir(home.scope, { recursive: true });
-  await writeFile(
-    join(home.scope, "manifest.yml"),
-    ["registries:", "  personal:", `    source: ${ENDPOINT}`, "    adapter: dev", ""].join("\n"),
-  );
+  await declareUserRegistry(home.scope);
   await writeConfig({ ...emptyRegistryConfig(), adapters: { dev: ADAPTER } }, 0);
 
   const { client } = await daemon.start(CLIENT);
@@ -88,7 +80,7 @@ const test = base.extend("setup", async ({ tmp, home, project, daemon }): Promis
 
 /** Both sides move, which is the only thing that never reconciles itself. */
 async function diverge(project: string, remote: string): Promise<void> {
-  await publishUpstream(remote, UPSTREAM_BODY);
+  await publishUpstream(remote, SKILL, UPSTREAM_BODY);
   await editLocally(project, LOCAL_BODY);
 }
 

@@ -9,10 +9,12 @@ import type { RpcClient } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import {
   ADAPTER,
+  declareUserRegistry,
   ENDPOINT,
   finished,
   jobStatus,
   NAMESPACE,
+  publishUpstream,
   terminal,
   testClient,
   wait,
@@ -22,28 +24,6 @@ import { projected } from "#test/kit/target.ts";
 
 const CLIENT = testClient("watch_test");
 
-async function publish(remote: string, body: string): Promise<void> {
-  const path = join(remote, NAMESPACE, "skill", "quality-check");
-  await mkdir(path, { recursive: true });
-  await writeFile(
-    join(path, "SKILL.md"),
-    `---\nname: quality-check\ndescription: Reviews a change.\n---\n\n${body}\n`,
-  );
-  await writeFile(
-    join(path, "meta.json"),
-    `${JSON.stringify({ id: "skill_quality-check", description: "Reviews a change." })}\n`,
-  );
-}
-
-/** So `account.login` can resolve the alias against the user's own manifest. */
-async function declareUserRegistry(scope: string): Promise<void> {
-  await mkdir(scope, { recursive: true });
-  await writeFile(
-    join(scope, "manifest.yml"),
-    ["registries:", "  personal:", `    source: ${ENDPOINT}`, "    adapter: dev", ""].join("\n"),
-  );
-}
-
 describe("job methods", () => {
   test("creates a job, syncs it, and reports drift without applying it", async ({
     tmp,
@@ -52,7 +32,7 @@ describe("job methods", () => {
     daemon,
   }) => {
     const remote = join(tmp, "remote");
-    await publish(remote, "Read the diff.");
+    await publishUpstream(remote, "quality-check", "Read the diff.");
     await declareUserRegistry(home.scope);
     vi.stubEnv("AIREG_DEV_REMOTE", remote);
     await writeConfig({ ...emptyRegistryConfig(), adapters: { dev: ADAPTER } }, 0);
@@ -97,7 +77,7 @@ describe("job methods", () => {
       }),
     ]);
 
-    await publish(remote, "Read the diff, then name the risk.");
+    await publishUpstream(remote, "quality-check", "Read the diff, then name the risk.");
     const drifted = await jobStatus("watch_dev");
     expect(drifted.artifacts).toEqual([
       expect.objectContaining({ name: "quality-check", disposition: "pull", operation: "pull" }),
@@ -370,11 +350,7 @@ describe("adapter jobs", () => {
     daemon,
   }) => {
     vi.stubEnv("AIREG_DEV_REMOTE", join(tmp, "remote"));
-    await mkdir(home.scope, { recursive: true });
-    await writeFile(
-      join(home.scope, "manifest.yml"),
-      ["registries:", "  personal:", `    source: ${ENDPOINT}`, "    adapter: dev", ""].join("\n"),
-    );
+    await declareUserRegistry(home.scope);
     await writeConfig({ ...emptyRegistryConfig(), adapters: { dev: ADAPTER } }, 0);
 
     const { client } = await daemon.start(testClient("adapter_job_test"));

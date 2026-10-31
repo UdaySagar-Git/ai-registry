@@ -3,9 +3,10 @@ import type { Artifact } from "../contract.ts";
 import { type Fields, isRecord, trimmedText } from "../fields.ts";
 import { SpecError } from "../filespec/documents.ts";
 import { isArtifactName } from "../filespec/names.ts";
+import { SKILL_ENTRY } from "../kinds.ts";
 import { quoted } from "../text.ts";
 import { contentArtifact } from "./content-artifact.ts";
-import { artifactOf, ROOT_ID, SKILL_FILE, skipped } from "./folder.ts";
+import { artifactOf, ROOT_ID, skipped } from "./folder.ts";
 import type { Tree } from "./tree.ts";
 
 /** Where a plugin keeps its own manifest, in the order aireg reads them. */
@@ -106,7 +107,7 @@ export async function readPlugin(
     .filter((path): path is string => path !== undefined);
   let skills = await skillDirs(tree, skillPlaces);
   const lone = entrySkills === undefined && manifest.skills === undefined;
-  if (skills.length === 0 && lone && (await tree.isFile(under(dir, SKILL_FILE)))) {
+  if (skills.length === 0 && lone && (await tree.isFile(under(dir, SKILL_ENTRY)))) {
     skills = [dir === "" ? ROOT_ID : dir];
   }
   const agents = await markdownFiles(tree, dir, manifest.agents, "agents");
@@ -217,12 +218,12 @@ function inside(dir: string, path: unknown): string | undefined {
 async function skillDirs(tree: Tree, places: readonly string[]): Promise<string[]> {
   const found = new Set<string>();
   for (const place of places) {
-    if (await tree.isFile(under(place, SKILL_FILE))) {
+    if (await tree.isFile(under(place, SKILL_ENTRY))) {
       found.add(place);
       continue;
     }
     for (const entry of await tree.list(place)) {
-      if (entry.type === "folder" && (await tree.isFile(`${entry.path}/${SKILL_FILE}`))) {
+      if (entry.type === "folder" && (await tree.isFile(`${entry.path}/${SKILL_ENTRY}`))) {
         found.add(entry.path);
       }
     }

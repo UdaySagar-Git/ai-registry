@@ -12,6 +12,7 @@ import {
   sha256,
   type Want,
 } from "#adapter/index.ts";
+import { SKILL_ENTRY } from "#adapter/kinds.ts";
 import { readFrontmatter, textField } from "#adapter/layouts/frontmatter.ts";
 import { unpack } from "./archive.ts";
 import { fail } from "./errors.ts";
@@ -244,18 +245,18 @@ async function filesOf(context: SourceContext, entry: Entry): Promise<Files> {
   }
   const files: Files = new Map();
   if (entry.type === "skill-md") {
-    files.set("SKILL.md", { bytes, executable: false });
+    files.set(SKILL_ENTRY, { bytes, executable: false });
     return files;
   }
   for (const file of unpack(entry.name, bytes)) files.set(file.path, file);
-  if (!files.has("SKILL.md")) {
+  if (!files.has(SKILL_ENTRY)) {
     throw fail("invalid", `${entry.name}'s archive has no SKILL.md at its root.`);
   }
   return files;
 }
 
 function artifactOf(entry: Entry, files: Files, namespace: string): Artifact {
-  const front = readFrontmatter(new TextDecoder().decode(files.get("SKILL.md")?.bytes));
+  const front = readFrontmatter(new TextDecoder().decode(files.get(SKILL_ENTRY)?.bytes));
   const description = textField(front, "description") ?? (entry.description || undefined);
   const envelope = buildEnvelope({
     kind: "skill",

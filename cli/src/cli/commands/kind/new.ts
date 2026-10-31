@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { SKILL_ENTRY } from "#adapter/kinds.ts";
 import { list } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
 import type { Own } from "#cli/commands/kind.ts";
@@ -8,7 +9,6 @@ import { cancel, interaction, interactive } from "#cli/prompt/interaction.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { findRegistry } from "#core/filespec/init.ts";
 import { type KindManifest, primaryFiles } from "#core/filespec/kind-manifests.ts";
-import { SKILL_ENTRY } from "#core/kinds.ts";
 import { askFields, nameOf, render, scaffold, settings } from "./fields.ts";
 import { refuseRedirect, writeFresh } from "./files.ts";
 import { outsidePlace, registryPlace } from "./place.ts";

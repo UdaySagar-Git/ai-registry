@@ -10,7 +10,7 @@ import { present } from "#core/fs/tree.ts";
 import type { Lock } from "#core/lock.ts";
 import type { Plan } from "#core/plan/model.ts";
 import { removal, removeContained } from "#core/plan/removable.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import type { Roots } from "#core/store/paths.ts";
 import type { LinkGuard } from "./link-guard.ts";
 import type { ActionOf } from "./run.ts";
@@ -47,7 +47,7 @@ export async function recover(
     const reason =
       verdict.how === "refuse"
         ? verdict.reason
-        : await guardManagedPath(path, roots, false, env).then(
+        : await assertManagedPath(path, roots, { leaf: false, env }).then(
             () => undefined,
             (error: unknown) => messageOf(error).replace(/\.$/, ""),
           );

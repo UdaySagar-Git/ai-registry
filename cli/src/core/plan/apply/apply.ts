@@ -8,7 +8,7 @@ import { carriedBy } from "#core/plan/carries.ts";
 import type { Action, Fetch, Plan } from "#core/plan/model.ts";
 import { assertRemovable } from "#core/plan/removable.ts";
 import { ensureScopeIgnore } from "#core/store/ignore.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import { PROJECTIONS_DIR, type Roots } from "#core/store/paths.ts";
 import { assemble } from "./assemble.ts";
 import { journal } from "./journal.ts";
@@ -68,7 +68,7 @@ export async function apply(
     }
     onStep?.(action);
     if (action.kind !== "record")
-      await guardManagedPath(action.to, roots, action.kind !== "unlink");
+      await assertManagedPath(action.to, roots, { leaf: action.kind !== "unlink" });
     await perform(run, action);
   }
   await finish(run, plan);
@@ -120,7 +120,7 @@ async function finish(run: Run, plan: Plan): Promise<void> {
   const { roots } = run;
   // At link time a projection would see only the kind whose artifact happened to be first.
   for (const [dir, { content, targets, document }] of run.plugins) {
-    await guardManagedPath(dir, roots);
+    await assertManagedPath(dir, roots);
     await assemble(dir, content, targets, document);
   }
   for (const [to, from] of run.fanned) {
@@ -129,7 +129,7 @@ async function finish(run: Run, plan: Plan): Promise<void> {
   }
   if (run.projections !== undefined) await pruneProjections(run.projections, roots);
   if (run.plugins.size > 0 || Object.values(run.performed).some((count) => count > 0)) {
-    await guardManagedPath(roots.artifacts, roots);
+    await assertManagedPath(roots.artifacts, roots);
     await ensureScopeIgnore(roots);
   }
   run.kept.push(...(await applyRegistrations(plan.actions, roots, run.recorded ?? run.before)));
@@ -138,12 +138,12 @@ async function finish(run: Run, plan: Plan): Promise<void> {
 /** A link assembles a namespace's projection and no unlink takes it, so it goes with its last row. */
 async function pruneProjections(wanted: ReadonlySet<string>, roots: Roots): Promise<void> {
   const root = join(roots.artifacts, PROJECTIONS_DIR);
-  await guardManagedPath(root, roots);
+  await assertManagedPath(root, roots);
   for (const { name: source } of await entries(root)) {
-    await guardManagedPath(join(root, source), roots);
+    await assertManagedPath(join(root, source), roots);
     for (const { name: plugin } of await entries(join(root, source))) {
       const path = join(root, source, plugin);
-      await guardManagedPath(path, roots);
+      await assertManagedPath(path, roots);
       if (!wanted.has(path)) await remove(path);
     }
     await rmdir(join(root, source)).catch(() => undefined);

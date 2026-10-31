@@ -14,7 +14,7 @@ import { KIND_SPECS } from "#core/kinds.ts";
 import { type Lock, type LockArtifact, readLock, writeLock } from "#core/lock.ts";
 import { listedAt } from "#core/plan/acquire/sources.ts";
 import { removeContained } from "#core/plan/removable.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import { artifactPath, type Roots } from "#core/store/paths.ts";
 import { canonicalId } from "#core/target/ids.ts";
 import { resolveTargets } from "#core/target/table.ts";
@@ -218,7 +218,7 @@ export async function applyOrigins(
     );
     // Never the other way round: the origin is read, the copy is written.
     if (resolve(copy) === resolve(outcome.origin.from)) continue;
-    await guardManagedPath(copy, roots);
+    await assertManagedPath(copy, roots);
     // Checked again as it copies: a link that appeared since the survey is refused, not followed.
     const irregular = await copyAuthored(outcome.origin.from, copy);
     if (irregular !== undefined) {

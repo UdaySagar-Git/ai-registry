@@ -9,7 +9,7 @@ import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { earlierDigest, rememberEarlier } from "#core/fs/digest.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import type { Roots, Scope } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/contract.ts";
 import { canonicalId, earlierId } from "#core/target/ids.ts";
@@ -444,7 +444,7 @@ export function formatLock(lock: Lock): string {
 
 /** Atomic, so a killed write leaves the old lock or the new one; the caller holds the scope's lease. */
 export async function writeLock(roots: Roots, lock: Lock): Promise<void> {
-  await guardManagedPath(roots.lock, roots);
+  await assertManagedPath(roots.lock, roots);
   const text = formatLock(lock);
   // One an earlier aireg wrote that already says this stays as it is, so it still reads it.
   // One that will not read is simply replaced.

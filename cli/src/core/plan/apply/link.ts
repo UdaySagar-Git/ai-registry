@@ -10,7 +10,7 @@ import type { LinkMode } from "#core/lock.ts";
 import type { Plan } from "#core/plan/model.ts";
 import { assertRemovable, removal, removeContained } from "#core/plan/removable.ts";
 import { backupStamp } from "#core/store/backups.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import type { Roots } from "#core/store/paths.ts";
 import { applyCodec, type Rendered } from "#core/target/codecs/index.ts";
 import type { KeyFile } from "#core/target/contract.ts";
@@ -22,14 +22,16 @@ import { type ActionOf, linkKey, type Run } from "./run.ts";
 
 /** Refuses the entire plan before journaling or starting any fetch. */
 export async function preflight(plan: Plan, roots: Roots): Promise<Map<string, LinkGuard>> {
-  await guardManagedPath(roots.lock, roots);
+  await assertManagedPath(roots.lock, roots);
   // Each folder is checked once here; every write checks its own path again as it happens.
   const checked = new Set<string>();
   for (const action of plan.actions) {
     if (action.kind !== "record")
-      await guardManagedPath(action.to, roots, action.kind !== "unlink", process.env, checked);
-    if (action.kind === "link")
-      await guardManagedPath(action.from, roots, true, process.env, checked);
+      await assertManagedPath(action.to, roots, {
+        leaf: action.kind !== "unlink",
+        verified: checked,
+      });
+    if (action.kind === "link") await assertManagedPath(action.from, roots, { verified: checked });
   }
   return guardsOf(plan, roots);
 }
@@ -88,7 +90,7 @@ export async function assemblePlugin(run: Run, action: ActionOf<"link">): Promis
   };
   found.targets.add(action.target);
   run.plugins.set(action.from, found);
-  await guardManagedPath(action.from, run.roots);
+  await assertManagedPath(action.from, run.roots);
   await assemble(action.from, action.content, found.targets, found.document);
 }
 
@@ -212,7 +214,7 @@ async function moveAside(run: Run, path: string, target: string): Promise<void> 
   const { roots } = run;
   const info = await lstat(path);
   run.stamp ??= backupStamp();
-  await guardManagedPath(roots.artifacts, roots);
+  await assertManagedPath(roots.artifacts, roots);
   run.backedUp.push({
     path,
     to: await backUp(path, target, roots, run.stamp),

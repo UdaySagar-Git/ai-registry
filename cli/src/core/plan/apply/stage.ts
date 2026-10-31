@@ -2,7 +2,7 @@ import { copyDescribed, reasonOf } from "#core/adapter/materialize.ts";
 import { digest } from "#core/fs/digest.ts";
 import { exists, remove, unseal } from "#core/fs/tree.ts";
 import type { Action, Fetch, Plan, Staged } from "#core/plan/model.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import { type ActionOf, linkKey, type Run } from "./run.ts";
 
 const stageKey = (source: string, path: string): string => `${source}\0${path}`;
@@ -51,7 +51,7 @@ export async function stage(run: Run, action: ActionOf<"stage">): Promise<void> 
     from = await run.ahead(action.source, action.path);
   } catch (error) {
     run.unstaged.set(action.name, { reason: reasonOf(error), error });
-    await guardManagedPath(action.to, run.roots, false);
+    await assertManagedPath(action.to, run.roots, { leaf: false });
     await remove(action.to);
     return;
   }

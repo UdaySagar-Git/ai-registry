@@ -19,7 +19,7 @@ import { emptyManifest } from "#core/manifest/model.ts";
 import { readManifest } from "#core/manifest/repository.ts";
 import { gitIn } from "#core/process.ts";
 import { ensureScopeIgnore } from "#core/store/ignore.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import { roots as makeRoots, userScopeDir } from "#core/store/paths.ts";
 import { canonicalIds, IMPORTABLE_TARGETS } from "#core/target/ids.ts";
 import { placementFor } from "#core/target/placement.ts";
@@ -117,7 +117,7 @@ export const { run } = defineCommand({
       source !== undefined || planned === undefined ? undefined : importInto(existing.registries);
 
     // The manifest and the ignore file below go in the scope folder, which must be this project's.
-    await guardManagedPath(roots.manifest, roots);
+    await assertManagedPath(roots.manifest, roots);
     if (!resuming) {
       const contents = formatManifest({
         ...emptyManifest(),

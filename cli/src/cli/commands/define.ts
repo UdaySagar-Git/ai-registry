@@ -28,6 +28,8 @@ interface ActionCommand<O> {
   /** Refuses a command line before anything is read or written. */
   parse(argv: string[]): { action: string; options: O };
   actions: Readonly<Record<string, Action<O, object>>>;
+  /** Said after the list of actions when one is unknown, such as where else to look. */
+  more?: string;
 }
 
 interface CommandModule {
@@ -58,7 +60,7 @@ export function defineCommand<O>(
           () => perform(chosen, options, context),
         ]),
       );
-      await runAction(definition.spec, name, handlers);
+      await runAction(definition.spec, name, handlers, definition.more);
     },
   };
 }

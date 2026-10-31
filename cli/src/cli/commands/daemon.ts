@@ -1,6 +1,5 @@
 import { messageOf } from "#adapter/errors.ts";
 import { gte } from "#adapter/semver.ts";
-import { list } from "#adapter/text.ts";
 import type { DaemonAutostart, DaemonSettled, DaemonStatus } from "#cli/commands/daemon/result.ts";
 import { DAEMON_COMMAND } from "#cli/commands/daemon/spec.ts";
 import { parse } from "#cli/options/parse.ts";
@@ -55,21 +54,12 @@ type Autostart =
   | { turned: "on" | "off"; change: AutostartChange }
   | { report: AutostartState | undefined };
 
-const ACTIONS = (DAEMON_COMMAND.actions ?? []).map((entry) => entry.name);
-
 export const { run } = defineCommand<Options>({
   spec: DAEMON_COMMAND,
+  more: "To manage jobs, run `aireg job`.",
   parse(argv) {
     parse(argv, DAEMON_COMMAND);
     const chosen = daemonAction(argv);
-    if (!ACTIONS.includes(chosen)) {
-      throw unknownAction(
-        DAEMON_COMMAND.name,
-        chosen,
-        ACTIONS,
-        `Use ${list(ACTIONS, "or")}. To manage jobs, run \`aireg job\`.`,
-      );
-    }
     const rest = argv.slice(argv.indexOf(chosen) + 1);
     return { action: chosen, options: { autostart: daemonAction(rest) } };
   },

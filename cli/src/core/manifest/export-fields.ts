@@ -40,23 +40,6 @@ export function exportKind(raw: unknown, path: string): ArtifactKind | undefined
   throw new ManifestError(`\`kind\` of export ${quoted(path)} must be skill or agent.`);
 }
 
-function texts(raw: unknown, key: string, path: string, what: string): string[] | undefined {
-  if (raw === undefined || raw === null) return undefined;
-  if (!Array.isArray(raw) || raw.some((item) => textOf(item) === undefined)) {
-    throw new ManifestError(`\`${key}\` of export ${quoted(path)} must be a list of ${what}.`);
-  }
-  const seen = new Set<string>();
-  for (const item of raw as string[]) {
-    if (seen.has(item)) {
-      throw new ManifestError(
-        `Export ${quoted(path)} lists ${quoted(item)} twice under \`${key}\`.`,
-      );
-    }
-    seen.add(item);
-  }
-  return raw as string[];
-}
-
 /** Names of folders or files directly inside the entry's folder, which it then does not reach. */
 export function exportExclude(raw: unknown, path: string): string[] | undefined {
   const names = texts(raw, "exclude", path, "names");
@@ -77,50 +60,29 @@ export function exportExclude(raw: unknown, path: string): string[] | undefined 
   return names;
 }
 
+function texts(raw: unknown, key: string, path: string, what: string): string[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!Array.isArray(raw) || raw.some((item) => textOf(item) === undefined)) {
+    throw new ManifestError(`\`${key}\` of export ${quoted(path)} must be a list of ${what}.`);
+  }
+  const seen = new Set<string>();
+  for (const item of raw as string[]) {
+    if (seen.has(item)) {
+      throw new ManifestError(
+        `Export ${quoted(path)} lists ${quoted(item)} twice under \`${key}\`.`,
+      );
+    }
+    seen.add(item);
+  }
+  return raw as string[];
+}
+
 /** Gitignore patterns, read against each artifact the entry reaches. */
 export function exportIgnore(raw: unknown, path: string): string[] | undefined {
   return texts(raw, "ignore", path, "gitignore patterns");
 }
 
 const ENTRIES: ReadonlySet<string> = new Set([SKILL_ENTRY, AGENT_ENTRY]);
-
-function insidePath(text: string, path: string, key: "from" | "as" | "include"): string {
-  const problem =
-    pathProblem(text) ?? (isSafePath(text) ? undefined : "is no path a registry stores");
-  const shown = `\`${key === "include" ? "include" : `include ${key}`}\` ${quoted(text)} of export ${quoted(path)}`;
-  if (problem !== undefined) {
-    throw new ManifestError(
-      `${shown} ${problem.replace("the project", "the artifact")}.`,
-      "Write it relative to the artifact's folder, such as workspace/AGENTS.md.",
-    );
-  }
-  if (isGlob(text)) {
-    throw new ManifestError(
-      `${shown} is a glob, not a file or folder.`,
-      "Name each file or folder to publish.",
-    );
-  }
-  return text;
-}
-
-function includeItem(raw: unknown, path: string): ExportFile {
-  if (typeof raw === "string" && raw.trim() !== "") {
-    const from = insidePath(raw, path, "include");
-    return { from, as: from };
-  }
-  if (!isRecord(raw) || Object.keys(raw).some((key) => key !== "from" && key !== "as")) {
-    throw new ManifestError(
-      `\`include\` of export ${quoted(path)} must list paths, or \`{ from, as }\` mappings.`,
-    );
-  }
-  const [from, as] = [textOf(raw.from), textOf(raw.as)];
-  if (from === undefined || as === undefined) {
-    throw new ManifestError(
-      `An \`include\` mapping of export ${quoted(path)} needs both \`from\` and \`as\`.`,
-    );
-  }
-  return { from: insidePath(from, path, "from"), as: insidePath(as, path, "as") };
-}
 
 /** Validate include mappings without moving entry files or assigning two files to one destination. */
 export function exportInclude(raw: unknown, path: string): ExportFile[] | undefined {
@@ -156,4 +118,42 @@ export function exportInclude(raw: unknown, path: string): ExportFile[] | undefi
     read.add(from);
   }
   return items;
+}
+
+function includeItem(raw: unknown, path: string): ExportFile {
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const from = insidePath(raw, path, "include");
+    return { from, as: from };
+  }
+  if (!isRecord(raw) || Object.keys(raw).some((key) => key !== "from" && key !== "as")) {
+    throw new ManifestError(
+      `\`include\` of export ${quoted(path)} must list paths, or \`{ from, as }\` mappings.`,
+    );
+  }
+  const [from, as] = [textOf(raw.from), textOf(raw.as)];
+  if (from === undefined || as === undefined) {
+    throw new ManifestError(
+      `An \`include\` mapping of export ${quoted(path)} needs both \`from\` and \`as\`.`,
+    );
+  }
+  return { from: insidePath(from, path, "from"), as: insidePath(as, path, "as") };
+}
+
+function insidePath(text: string, path: string, key: "from" | "as" | "include"): string {
+  const problem =
+    pathProblem(text) ?? (isSafePath(text) ? undefined : "is no path a registry stores");
+  const shown = `\`${key === "include" ? "include" : `include ${key}`}\` ${quoted(text)} of export ${quoted(path)}`;
+  if (problem !== undefined) {
+    throw new ManifestError(
+      `${shown} ${problem.replace("the project", "the artifact")}.`,
+      "Write it relative to the artifact's folder, such as workspace/AGENTS.md.",
+    );
+  }
+  if (isGlob(text)) {
+    throw new ManifestError(
+      `${shown} is a glob, not a file or folder.`,
+      "Name each file or folder to publish.",
+    );
+  }
+  return text;
 }

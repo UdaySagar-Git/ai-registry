@@ -27,6 +27,12 @@ export class RunScopeError extends AiregError {
   }
 }
 
+/** The address that reaches only this kind of a run's artifact, never another of its name. */
+export function kindAddress(registry: string, kind: ArtifactKind, name: string): string {
+  const { namespace, leaf } = split(name);
+  return formatAddress({ registry, namespace, kind, name: leaf });
+}
+
 /** `<namespace>/<name>`, or a bare name when the registry groups it under none. */
 function split(name: string): { namespace: string | undefined; leaf: string } {
   const cut = name.lastIndexOf("/");
@@ -34,34 +40,28 @@ function split(name: string): { namespace: string | undefined; leaf: string } {
   return { namespace: name.slice(0, cut), leaf: name.slice(cut + 1) };
 }
 
-/** The address that reaches only this kind of a run's artifact, never another of its name. */
-export function kindAddress(registry: string, kind: ArtifactKind, name: string): string {
-  const { namespace, leaf } = split(name);
-  return formatAddress({ registry, namespace, kind, name: leaf });
-}
-
-function matchesItem(ref: Ref, registry: string, item: SyncItem, scan: Scan): boolean {
-  // Both sides: the ref has to name this job's registry, and the item has
-  // to come from it. Another account's catalog is not this run's to narrow.
-  if (ref.registry !== registry || item.source !== registry) return false;
-  const { namespace: named, leaf } = split(item.name);
-  // An installed artifact's lock key is usually its bare name; its row records the namespace.
-  const namespace = named ?? scan.pinned?.artifacts[item.name]?.namespace;
-  if (isWholeRegistry(ref)) return true;
-  if (isWholeNamespace(ref)) return ref.namespace === namespace;
-  if (ref.kind !== item.kind || ref.name !== leaf) return false;
-  // An address that names no namespace means "wherever it is", the same
-  // reading `plan/select.ts` gives it.
-  return ref.namespace === undefined || ref.namespace === namespace;
-}
-
 /**
- * A local artifact has no namespace to match on, so a whole registry or
- * namespace never adopts one by implication.
+ * `undefined` covers everything the job does. Throws when any ref reached
+ * nothing, so a run cannot report success for work it never looked at.
  */
-function matchesCandidate(ref: Ref, registry: string, candidate: Candidate): boolean {
-  if (ref.registry !== registry || ref.name !== candidate.name) return false;
-  return ref.kind === undefined || ref.kind === candidate.kind;
+export function scopedKeys(
+  refs: RunScope,
+  scan: Scan,
+  registry: string,
+): ReadonlySet<string> | undefined {
+  if (refs === undefined) return undefined;
+  const keys = new Set<string>();
+  const missed: string[] = [];
+  for (const raw of refs) {
+    const found = reached(raw, registry, scan);
+    if (found.size === 0) {
+      missed.push(raw);
+      continue;
+    }
+    for (const key of found) keys.add(key);
+  }
+  if (missed.length > 0) throw new RunScopeError(missed);
+  return keys;
 }
 
 /**
@@ -96,26 +96,26 @@ function reached(raw: string, registry: string, scan: Scan): Set<string> {
   return keys;
 }
 
+function matchesItem(ref: Ref, registry: string, item: SyncItem, scan: Scan): boolean {
+  // Both sides: the ref has to name this job's registry, and the item has
+  // to come from it. Another account's catalog is not this run's to narrow.
+  if (ref.registry !== registry || item.source !== registry) return false;
+  const { namespace: named, leaf } = split(item.name);
+  // An installed artifact's lock key is usually its bare name; its row records the namespace.
+  const namespace = named ?? scan.pinned?.artifacts[item.name]?.namespace;
+  if (isWholeRegistry(ref)) return true;
+  if (isWholeNamespace(ref)) return ref.namespace === namespace;
+  if (ref.kind !== item.kind || ref.name !== leaf) return false;
+  // An address that names no namespace means "wherever it is", the same
+  // reading `plan/select.ts` gives it.
+  return ref.namespace === undefined || ref.namespace === namespace;
+}
+
 /**
- * `undefined` covers everything the job does. Throws when any ref reached
- * nothing, so a run cannot report success for work it never looked at.
+ * A local artifact has no namespace to match on, so a whole registry or
+ * namespace never adopts one by implication.
  */
-export function scopedKeys(
-  refs: RunScope,
-  scan: Scan,
-  registry: string,
-): ReadonlySet<string> | undefined {
-  if (refs === undefined) return undefined;
-  const keys = new Set<string>();
-  const missed: string[] = [];
-  for (const raw of refs) {
-    const found = reached(raw, registry, scan);
-    if (found.size === 0) {
-      missed.push(raw);
-      continue;
-    }
-    for (const key of found) keys.add(key);
-  }
-  if (missed.length > 0) throw new RunScopeError(missed);
-  return keys;
+function matchesCandidate(ref: Ref, registry: string, candidate: Candidate): boolean {
+  if (ref.registry !== registry || ref.name !== candidate.name) return false;
+  return ref.kind === undefined || ref.kind === candidate.kind;
 }

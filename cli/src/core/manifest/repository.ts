@@ -10,6 +10,15 @@ import { formatManifest } from "./format.ts";
 import { emptyManifest, type Manifest } from "./model.ts";
 import { parseManifest } from "./parse.ts";
 
+export async function readManifest(path: string): Promise<Manifest> {
+  try {
+    return canonicalTargets(parseManifest(await readFile(path, "utf8"), path));
+  } catch (cause) {
+    if (isMissing(cause)) return emptyManifest();
+    throw cause;
+  }
+}
+
 /** Each target by its canonical id, so a command never writes an alias back. */
 function canonicalTargets(manifest: Manifest): Manifest {
   const table = resolveTargets();
@@ -20,15 +29,6 @@ function canonicalTargets(manifest: Manifest): Manifest {
       ref.targets === undefined ? ref : { ...ref, targets: canonicalIds(table, ref.targets) },
     ),
   };
-}
-
-export async function readManifest(path: string): Promise<Manifest> {
-  try {
-    return canonicalTargets(parseManifest(await readFile(path, "utf8"), path));
-  } catch (cause) {
-    if (isMissing(cause)) return emptyManifest();
-    throw cause;
-  }
 }
 
 /**

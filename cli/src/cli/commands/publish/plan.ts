@@ -18,12 +18,6 @@ type EdgesFor = (
   planned: (path: string) => Promise<Planned | undefined>,
 ) => Promise<PublishRelationship[] | undefined>;
 
-function needsBumpChoice(items: readonly Planned[]): boolean {
-  return items.some(
-    (item) => item.from !== undefined && !item.same && item.work.exported?.version === undefined,
-  );
-}
-
 /** Planned at a patch first; asked how big only when something already published moved. */
 export async function planAll(
   step: Interaction,
@@ -73,6 +67,12 @@ export async function planAll(
     step.io,
   );
   return canceled(picked) ? undefined : at(picked);
+}
+
+function needsBumpChoice(items: readonly Planned[]): boolean {
+  return items.some(
+    (item) => item.from !== undefined && !item.same && item.work.exported?.version === undefined,
+  );
 }
 
 export function edgesOf(

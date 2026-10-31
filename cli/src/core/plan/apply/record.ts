@@ -7,6 +7,28 @@ import { assertRemovable } from "#core/plan/removable.ts";
 import { assemblePlugin } from "./link.ts";
 import { type ActionOf, linkKey, type Run } from "./run.ts";
 
+export async function record(run: Run, action: ActionOf<"record">): Promise<void> {
+  await recopyPlugins(run);
+  // Taken first: a row whose restage failed may still have links reading its projection.
+  run.projections = projectionsOf(action.lock, run.roots);
+  await keepUnstaged(run, action.lock);
+  for (const [name, entry] of Object.entries(action.lock.artifacts)) {
+    if (!run.unstaged.has(name)) patchRow(run, name, entry);
+  }
+  await writeLock(run.roots, action.lock);
+  run.recorded = action.lock;
+}
+
+/** A copied plugin was copied with the members cloned before it; this one holds them all. */
+async function recopyPlugins(run: Run): Promise<void> {
+  for (const [to, action] of run.copiedPlugins) {
+    await assemblePlugin(run, action);
+    await assertRemovable(to, run.roots);
+    await link(action.from, to, true);
+    run.copies.set(to, await digest(to));
+  }
+}
+
 /** A row that failed to restage keeps what the lock held; one it never held is not recorded. */
 async function keepUnstaged(run: Run, lock: Lock): Promise<void> {
   if (run.unstaged.size === 0) return;
@@ -49,26 +71,4 @@ function patchRow(run: Run, name: string, entry: Lock["artifacts"][string]): voi
     const written = run.copies.get(at);
     if (written !== undefined) item.digest = written;
   }
-}
-
-/** A copied plugin was copied with the members cloned before it; this one holds them all. */
-async function recopyPlugins(run: Run): Promise<void> {
-  for (const [to, action] of run.copiedPlugins) {
-    await assemblePlugin(run, action);
-    await assertRemovable(to, run.roots);
-    await link(action.from, to, true);
-    run.copies.set(to, await digest(to));
-  }
-}
-
-export async function record(run: Run, action: ActionOf<"record">): Promise<void> {
-  await recopyPlugins(run);
-  // Taken first: a row whose restage failed may still have links reading its projection.
-  run.projections = projectionsOf(action.lock, run.roots);
-  await keepUnstaged(run, action.lock);
-  for (const [name, entry] of Object.entries(action.lock.artifacts)) {
-    if (!run.unstaged.has(name)) patchRow(run, name, entry);
-  }
-  await writeLock(run.roots, action.lock);
-  run.recorded = action.lock;
 }

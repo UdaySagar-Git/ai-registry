@@ -38,19 +38,6 @@ export async function stopEverything(): Promise<{ autostart: boolean }> {
   return { autostart: change?.changed === true };
 }
 
-function planLines(found: Found, style: Styler): string[] {
-  const rows: [string, string[]][] = [];
-  const daemon = [found.daemon ? "stop it" : "", found.autostart ? "turn autostart off" : ""];
-  if (found.daemon || found.autostart) rows.push(["daemon", [daemon.filter(Boolean).join(", ")]]);
-  rows.push(["unlink", found.links.map(underHome)]);
-  rows.push(["PATH", found.startupFiles.map(underHome)]);
-  rows.push(["delete", found.folders.map(underHome)]);
-  rows.push(["keep", [...found.kept.map(underHome), "each project's .registry/ folder"]]);
-  return rows.flatMap(([label, values]) =>
-    values.map((value, index) => `${style.dim(pad(index === 0 ? label : "", 8))}${value}`),
-  );
-}
-
 export async function run(context: CommandContext): Promise<void> {
   const { common, positionals } = parse(context.argv, actionOf(SELF_COMMAND, "uninstall"));
   if (positionals.length > 0) {
@@ -135,6 +122,19 @@ export async function run(context: CommandContext): Promise<void> {
     return;
   }
   report(context, done);
+}
+
+function planLines(found: Found, style: Styler): string[] {
+  const rows: [string, string[]][] = [];
+  const daemon = [found.daemon ? "stop it" : "", found.autostart ? "turn autostart off" : ""];
+  if (found.daemon || found.autostart) rows.push(["daemon", [daemon.filter(Boolean).join(", ")]]);
+  rows.push(["unlink", found.links.map(underHome)]);
+  rows.push(["PATH", found.startupFiles.map(underHome)]);
+  rows.push(["delete", found.folders.map(underHome)]);
+  rows.push(["keep", [...found.kept.map(underHome), "each project's .registry/ folder"]]);
+  return rows.flatMap(([label, values]) =>
+    values.map((value, index) => `${style.dim(pad(index === 0 ? label : "", 8))}${value}`),
+  );
 }
 
 function report(context: CommandContext, done: Found): void {

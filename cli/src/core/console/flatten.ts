@@ -12,21 +12,6 @@ export interface FlattenOptions {
   only: ArtifactState | undefined;
 }
 
-function keep(row: ArtifactRow, group: ArtifactGroup, options: FlattenOptions): boolean {
-  if (options.only !== undefined && row.state !== options.only) return false;
-  const needle = options.filter.trim().toLowerCase();
-  if (needle === "") return true;
-  // The group's label too: work authored here has no namespace, and "this
-  // machine" is the only name a person has for it.
-  return (
-    row.key.toLowerCase().includes(needle) ||
-    row.state.includes(needle) ||
-    group.label.toLowerCase().includes(needle) ||
-    (row.namespace ?? "").toLowerCase().includes(needle) ||
-    (row.version ?? "").includes(needle)
-  );
-}
-
 /**
  * Groups and their members as one list of lines, kept out of the view so key
  * handling and rendering agree by construction.
@@ -49,6 +34,21 @@ export function flatten(
     for (const row of members) lines.push({ kind: "artifact", group, row });
   }
   return { lines, shown };
+}
+
+function keep(row: ArtifactRow, group: ArtifactGroup, options: FlattenOptions): boolean {
+  if (options.only !== undefined && row.state !== options.only) return false;
+  const needle = options.filter.trim().toLowerCase();
+  if (needle === "") return true;
+  // The group's label too: work authored here has no namespace, and "this
+  // machine" is the only name a person has for it.
+  return (
+    row.key.toLowerCase().includes(needle) ||
+    row.state.includes(needle) ||
+    group.label.toLowerCase().includes(needle) ||
+    (row.namespace ?? "").toLowerCase().includes(needle) ||
+    (row.version ?? "").includes(needle)
+  );
 }
 
 export function lineKey(line: Line): string {

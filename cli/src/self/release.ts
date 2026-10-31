@@ -14,13 +14,6 @@ export interface ResolvedRelease {
   readonly plan: ManifestPlan;
 }
 
-function unstamped(): AiregError {
-  return new AiregError("This build does not update itself.", {
-    code: ErrorCode.Unavailable,
-    hint: "Install a released build with the published installer, or pull and rebuild your source checkout.",
-  });
-}
-
 /**
  * The signed channel manifest on the release server, and nothing else. A build
  * that cannot name its keyring has no signature to check, so it refuses.
@@ -41,6 +34,17 @@ export async function resolveRelease(
   };
 }
 
+function unstamped(): AiregError {
+  return new AiregError("This build does not update itself.", {
+    code: ErrorCode.Unavailable,
+    hint: "Install a released build with the published installer, or pull and rebuild your source checkout.",
+  });
+}
+
+function timeout(timeoutMs: number | undefined): AbortSignal | undefined {
+  return timeoutMs === undefined ? undefined : AbortSignal.timeout(timeoutMs);
+}
+
 /** Verified against the sha256 the signed manifest states for this artifact. */
 export async function downloadRelease(
   release: ResolvedRelease,
@@ -58,8 +62,4 @@ export function downloadSize(release: ResolvedRelease): number | undefined {
 /** Said wherever an update is offered or forced, so it is no surprise on a metered link. */
 export function describeSize(sizeBytes: number | undefined): string {
   return sizeBytes === undefined ? "" : ` (${Math.round(sizeBytes / (1024 * 1024))} MB download)`;
-}
-
-function timeout(timeoutMs: number | undefined): AbortSignal | undefined {
-  return timeoutMs === undefined ? undefined : AbortSignal.timeout(timeoutMs);
 }

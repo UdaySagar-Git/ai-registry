@@ -19,11 +19,6 @@ export interface Changes {
 
 const sorted = (items: Iterable<string>) => [...items].sort();
 
-function dependsOn(side: Side | undefined): Set<string> {
-  const edges = side?.relationships ?? [];
-  return new Set(edges.filter((edge) => edge.rel_type === "depends_on").map((edge) => edge.to));
-}
-
 /** What `sent` changes against `held`; with no version held, everything it sends is added. */
 export function changesFrom(held: Side | undefined, sent: Side): Changes {
   const heldFiles = held?.files ?? [];
@@ -53,6 +48,11 @@ export function changesFrom(held: Side | undefined, sent: Side): Changes {
       removed: sorted([...was].filter((to) => !now.has(to))),
     },
   };
+}
+
+function dependsOn(side: Side | undefined): Set<string> {
+  const edges = side?.relationships ?? [];
+  return new Set(edges.filter((edge) => edge.rel_type === "depends_on").map((edge) => edge.to));
 }
 
 const SHOWN = 10;

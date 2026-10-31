@@ -18,26 +18,6 @@ import { detectLayout, openLayoutRoot } from "#adapter/layouts/open.ts";
 import { fail, translating } from "./errors.ts";
 import { writeOffer } from "./publish.ts";
 
-/** The layout the manifest recorded or `--layout` forced; undefined detects it. */
-function layoutOf(context: SourceContext): LayoutId | undefined {
-  const named = context.source.config.layout;
-  if (named === undefined) return undefined;
-  if (!isLayoutId(named)) throw fail("invalid", `${named} is not a layout this adapter reads.`);
-  return named;
-}
-
-/** A folder of skills has no versions: what it holds now is all there is, named by its content. */
-function refuseVersions(registry: string, want: readonly Want[]): void {
-  const pinned = want.find((item) => item.version !== undefined);
-  if (pinned === undefined) return;
-  throw fail(
-    "invalid",
-    `${registry} is a folder of skills, which has no versions, so ${pinned.name}@${pinned.version} cannot be installed.`,
-    pinned.name,
-    "Leave off the `@<version>`: aireg installs what the folder holds now.",
-  );
-}
-
 export async function connect(context: SourceContext): Promise<SourceHandle> {
   const root = context.source.location;
   if (!isAbsolute(root)) {
@@ -113,4 +93,24 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
 
     async close(): Promise<void> {},
   };
+}
+
+/** The layout the manifest recorded or `--layout` forced; undefined detects it. */
+function layoutOf(context: SourceContext): LayoutId | undefined {
+  const named = context.source.config.layout;
+  if (named === undefined) return undefined;
+  if (!isLayoutId(named)) throw fail("invalid", `${named} is not a layout this adapter reads.`);
+  return named;
+}
+
+/** A folder of skills has no versions: what it holds now is all there is, named by its content. */
+function refuseVersions(registry: string, want: readonly Want[]): void {
+  const pinned = want.find((item) => item.version !== undefined);
+  if (pinned === undefined) return;
+  throw fail(
+    "invalid",
+    `${registry} is a folder of skills, which has no versions, so ${pinned.name}@${pinned.version} cannot be installed.`,
+    pinned.name,
+    "Leave off the `@<version>`: aireg installs what the folder holds now.",
+  );
 }

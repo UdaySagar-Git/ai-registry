@@ -1,6 +1,21 @@
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 
+export function closest(typed: string, candidates: readonly string[]): string | undefined {
+  // Short words are a letter or two from everything, so they get less slack.
+  const cap = Math.min(2, Math.floor(typed.length / 2));
+  let best: string | undefined;
+  let bestDistance = cap + 1;
+  for (const candidate of candidates) {
+    const d = distance(typed, candidate);
+    if (d < bestDistance) {
+      best = candidate;
+      bestDistance = d;
+    }
+  }
+  return best;
+}
+
 /** Optimal string alignment: an adjacent swap costs one, as `stauts` should. */
 function distance(a: string, b: string): number {
   const width = b.length + 1;
@@ -19,21 +34,6 @@ function distance(a: string, b: string): number {
     }
   }
   return at(a.length, b.length);
-}
-
-export function closest(typed: string, candidates: readonly string[]): string | undefined {
-  // Short words are a letter or two from everything, so they get less slack.
-  const cap = Math.min(2, Math.floor(typed.length / 2));
-  let best: string | undefined;
-  let bestDistance = cap + 1;
-  for (const candidate of candidates) {
-    const d = distance(typed, candidate);
-    if (d < bestDistance) {
-      best = candidate;
-      bestDistance = d;
-    }
-  }
-  return best;
 }
 
 export function didYouMean(guess: string | undefined, hint: string): string {

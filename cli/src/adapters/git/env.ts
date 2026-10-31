@@ -9,6 +9,19 @@ export function transportEnv(url: string): NodeJS.ProcessEnv {
   return /^http:/i.test(url) ? { GIT_ALLOW_PROTOCOL: `${ALLOWED_PROTOCOLS}:http` } : {};
 }
 
+export function gitEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  // A private repository without credentials must fail, not block CI on a prompt, and read-only
+  // inspection must not write index.lock beside a concurrent run.
+  return withAbsolutePath({
+    ...withoutRepository(process.env),
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_ALLOW_PROTOCOL: ALLOWED_PROTOCOLS,
+    GIT_LFS_SKIP_SMUDGE: "1",
+    GIT_OPTIONAL_LOCKS: "0",
+    ...extra,
+  });
+}
+
 /**
  * What `git rev-parse --local-env-vars` lists, less its config entries. Inside a
  * git hook these name the caller's repository, and a clone would write into it.
@@ -33,19 +46,6 @@ function withoutRepository(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const kept = { ...env };
   for (const name of REPOSITORY_VARIABLES) delete kept[name];
   return kept;
-}
-
-export function gitEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
-  // A private repository without credentials must fail, not block CI on a prompt, and read-only
-  // inspection must not write index.lock beside a concurrent run.
-  return withAbsolutePath({
-    ...withoutRepository(process.env),
-    GIT_TERMINAL_PROMPT: "0",
-    GIT_ALLOW_PROTOCOL: ALLOWED_PROTOCOLS,
-    GIT_LFS_SKIP_SMUDGE: "1",
-    GIT_OPTIONAL_LOCKS: "0",
-    ...extra,
-  });
 }
 
 /**

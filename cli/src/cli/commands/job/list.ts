@@ -54,16 +54,6 @@ interface Described {
   steps: string;
 }
 
-/** Where a job works: the folders it watches, its first rooted step, or its kinds. */
-export function target(job: Job): string {
-  const watched = watchedFolders(job).map(underHome);
-  if (watched.length > 0) return watched.join(", ");
-  const rooted = job.steps.find((step) => step.root !== undefined);
-  return rooted?.root === undefined
-    ? job.steps.map((step) => step.kind).join("+")
-    : underHome(rooted.root);
-}
-
 async function describe(job: Job, named: ReadonlyMap<string, string>): Promise<Described> {
   const registry = named.get(job.account) ?? job.account;
   const steps = await Promise.all(
@@ -80,6 +70,16 @@ async function describe(job: Job, named: ReadonlyMap<string, string>): Promise<D
     enabled: job.schedule.enabled,
     steps: steps.join(" → "),
   };
+}
+
+/** Where a job works: the folders it watches, its first rooted step, or its kinds. */
+export function target(job: Job): string {
+  const watched = watchedFolders(job).map(underHome);
+  if (watched.length > 0) return watched.join(", ");
+  const rooted = job.steps.find((step) => step.root !== undefined);
+  return rooted?.root === undefined
+    ? job.steps.map((step) => step.kind).join("+")
+    : underHome(rooted.root);
 }
 
 /** `--watch` folders, published to `--to`; `~` is kept for the daemon to expand. */

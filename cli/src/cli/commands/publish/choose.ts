@@ -11,6 +11,32 @@ import { exportsOn, installedPaths } from "#engine/publish/reach.ts";
 import { changedSince, type Exported, edited, fromArgs, type Work } from "#engine/publish/work.ts";
 import type { Loaded } from "#engine/scope/load.ts";
 
+export async function gather(
+  step: Interaction,
+  loaded: Loaded,
+  common: CommonOptions,
+  cwd: string,
+  options: {
+    paths: readonly string[];
+    since: string | undefined;
+    found: ReadonlyMap<string, Export> | undefined;
+  },
+): Promise<Work[] | undefined> {
+  const { paths, since, found } = options;
+  const keep = async (works: Work[]) =>
+    since === undefined ? works : changedSince(works, since, cwd);
+
+  const exported = found === undefined ? undefined : await exportWork(found, loaded.roots.base);
+  const works =
+    paths.length > 0
+      ? await keep(await fromArgs(paths, loaded, cwd))
+      : exported !== undefined
+        ? await keep(exported)
+        : await chooseWork(step, loaded, common, cwd, keep);
+  for (const work of works ?? []) work.exported = found?.get(work.path);
+  return works;
+}
+
 /** With nothing named, the work edited here: all of it under `--yes`, a pick on a terminal. */
 async function chooseWork(
   step: Interaction,
@@ -42,32 +68,6 @@ async function chooseWork(
     step.io,
   );
   return canceled(picked) ? undefined : picked.map((index) => found[Number(index)] as Work);
-}
-
-export async function gather(
-  step: Interaction,
-  loaded: Loaded,
-  common: CommonOptions,
-  cwd: string,
-  options: {
-    paths: readonly string[];
-    since: string | undefined;
-    found: ReadonlyMap<string, Export> | undefined;
-  },
-): Promise<Work[] | undefined> {
-  const { paths, since, found } = options;
-  const keep = async (works: Work[]) =>
-    since === undefined ? works : changedSince(works, since, cwd);
-
-  const exported = found === undefined ? undefined : await exportWork(found, loaded.roots.base);
-  const works =
-    paths.length > 0
-      ? await keep(await fromArgs(paths, loaded, cwd))
-      : exported !== undefined
-        ? await keep(exported)
-        : await chooseWork(step, loaded, common, cwd, keep);
-  for (const work of works ?? []) work.exported = found?.get(work.path);
-  return works;
 }
 
 export async function reachExports(

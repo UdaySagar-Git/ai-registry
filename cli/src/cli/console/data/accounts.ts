@@ -7,6 +7,24 @@ import { signedInAccounts } from "#core/credentials/store.ts";
 import type { Manifest } from "#core/manifest/model.ts";
 import { credentialsPath } from "#core/store/paths.ts";
 
+export async function readAccounts(
+  config: RegistryConfig,
+  manifest: Manifest,
+  counts: AccountCounts,
+): Promise<AccountRow[]> {
+  const signedIn = await signedInAccounts();
+  return Promise.all(
+    config.accounts.map((account) =>
+      describe(
+        account,
+        manifest,
+        counts.byAlias[account.registry] ?? { artifacts: 0, namespaces: 0 },
+        signedIn.has(account.id),
+      ),
+    ),
+  );
+}
+
 /** `auth list` does not say where a token lives, so each row does. */
 async function describe(
   account: Account,
@@ -32,6 +50,11 @@ async function describe(
   };
 }
 
+export interface AccountCounts {
+  /** Installed artifacts and distinct namespaces, by registry alias. */
+  byAlias: Readonly<Record<string, { artifacts: number; namespaces: number }>>;
+}
+
 /**
  * One with no sign-in has no account state to show, and one that takes no publishes
  * has nothing to publish to. An adapter that cannot be told apart is shown as able to.
@@ -52,27 +75,4 @@ async function abilities(
   } catch {
     return { signIn: true, publishes: true };
   }
-}
-
-export interface AccountCounts {
-  /** Installed artifacts and distinct namespaces, by registry alias. */
-  byAlias: Readonly<Record<string, { artifacts: number; namespaces: number }>>;
-}
-
-export async function readAccounts(
-  config: RegistryConfig,
-  manifest: Manifest,
-  counts: AccountCounts,
-): Promise<AccountRow[]> {
-  const signedIn = await signedInAccounts();
-  return Promise.all(
-    config.accounts.map((account) =>
-      describe(
-        account,
-        manifest,
-        counts.byAlias[account.registry] ?? { artifacts: 0, namespaces: 0 },
-        signedIn.has(account.id),
-      ),
-    ),
-  );
 }

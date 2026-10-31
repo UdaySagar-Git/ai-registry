@@ -44,42 +44,6 @@ export function supervised(env: NodeJS.ProcessEnv = process.env): boolean {
   return value !== undefined && value !== "";
 }
 
-/**
- * Pruning deletes versioned directories, so the service names a path every update relinks: the
- * signed binary under `current`, trusted over a shell script, else the shim or the Windows copy.
- */
-function stableEntry(entry: string, env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string {
-  if (!isWithin(cliRoot(env), entry)) return entry;
-  // On Windows `current` is a file naming the version, so only the copy is stable there.
-  if (platform !== "win32" && existsSync(currentBin(env))) return currentBin(env);
-  return existsSync(shimPath(env)) ? shimPath(env) : entry;
-}
-
-function real(path: string): string | undefined {
-  try {
-    return realpathSync(path);
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * `execPath` is resolved, so it can name a versioned directory that an
- * upgrade deletes; the PATH entry linking to it survives.
- */
-function stableNode(execPath: string, path: string | undefined): string {
-  const target = real(execPath);
-  if (target === undefined || path === undefined) return execPath;
-  for (const dir of path.split(delimiter)) {
-    if (!isAbsolute(dir)) continue;
-    const candidate = join(dir, basename(execPath));
-    if (real(candidate) === target) return candidate;
-  }
-  return execPath;
-}
-
-export const NO_EXECUTABLE = "aireg cannot find its own executable, so it cannot start the daemon.";
-
 export function serviceSpec(options: AutostartOptions = {}): ServiceSpec {
   const env = options.env ?? process.env;
   const entry = options.entry ?? runningEntry();
@@ -117,6 +81,48 @@ export function serviceSpec(options: AutostartOptions = {}): ServiceSpec {
   };
 }
 
+/**
+ * `execPath` is resolved, so it can name a versioned directory that an
+ * upgrade deletes; the PATH entry linking to it survives.
+ */
+function stableNode(execPath: string, path: string | undefined): string {
+  const target = real(execPath);
+  if (target === undefined || path === undefined) return execPath;
+  for (const dir of path.split(delimiter)) {
+    if (!isAbsolute(dir)) continue;
+    const candidate = join(dir, basename(execPath));
+    if (real(candidate) === target) return candidate;
+  }
+  return execPath;
+}
+
+function real(path: string): string | undefined {
+  try {
+    return realpathSync(path);
+  } catch {
+    return undefined;
+  }
+}
+
+export const NO_EXECUTABLE = "aireg cannot find its own executable, so it cannot start the daemon.";
+
+/**
+ * Pruning deletes versioned directories, so the service names a path every update relinks: the
+ * signed binary under `current`, trusted over a shell script, else the shim or the Windows copy.
+ */
+function stableEntry(entry: string, env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string {
+  if (!isWithin(cliRoot(env), entry)) return entry;
+  // On Windows `current` is a file naming the version, so only the copy is stable there.
+  if (platform !== "win32" && existsSync(currentBin(env))) return currentBin(env);
+  return existsSync(shimPath(env)) ? shimPath(env) : entry;
+}
+
+export async function autostartState(
+  options: AutostartOptions = {},
+): Promise<AutostartState | undefined> {
+  return backendFor(options)?.state();
+}
+
 /** Undefined where this CLI knows no per-user login mechanism. */
 function backendFor(options: AutostartOptions): AutostartBackend | undefined {
   const platform = options.platform ?? process.platform;
@@ -125,12 +131,6 @@ function backendFor(options: AutostartOptions): AutostartBackend | undefined {
   if (platform === "linux") return systemdBackend(serviceSpec(options), exec);
   if (platform === "win32") return runKeyBackend(serviceSpec(options), exec);
   return undefined;
-}
-
-export async function autostartState(
-  options: AutostartOptions = {},
-): Promise<AutostartState | undefined> {
-  return backendFor(options)?.state();
 }
 
 export interface AutostartChange {

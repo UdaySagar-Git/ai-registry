@@ -55,15 +55,15 @@ function keptNotice(roots: Roots, kept: ApplyResult["kept"][number]): string {
   return `Did not install ${name} at ${shown}: ${sanitizeText(reason)}.`;
 }
 
-export function keptMessage(roots: Roots, name: string, path: string, verb: string): string {
-  return `${verb} install ${name}, because ${displayPath(roots, path)} already holds something of yours.`;
-}
-
 /** A tool by its name, and a shared folder by its path, as the summary names them. */
 function displayName(targetTable: Targets, name: string): string {
   const target = targetTable[name];
   if (target === undefined) return name;
   return target.shared ? target.projectRoot : target.displayName;
+}
+
+export function keptMessage(roots: Roots, name: string, path: string, verb: string): string {
+  return `${verb} install ${name}, because ${displayPath(roots, path)} already holds something of yours.`;
 }
 
 export function unstagedNotices(unstaged: Readonly<ApplyResult["unstaged"]>): ApplyNotice[] {

@@ -18,20 +18,6 @@ export function writeAtomic(
   return write(target, contents, { mode, durable, beforeRename: assertLeasesHeld });
 }
 
-/** Where a write to `path` lands: what a link names, even one whose file is not there yet. */
-async function landing(path: string): Promise<string> {
-  try {
-    return await realpath(path);
-  } catch (error) {
-    if (!isMissing(error)) throw error;
-  }
-  const info = await lstat(path).catch((error: unknown) => {
-    if (isMissing(error)) return undefined;
-    throw error;
-  });
-  return info?.isSymbolicLink() === true ? resolve(dirname(path), await readlink(path)) : path;
-}
-
 /**
  * For a person's own file, such as a target config: written through a link, so one a
  * dotfiles manager placed stays linked, and with the mode it has. A new one is owner-only.
@@ -46,4 +32,18 @@ export async function rewriteAtomic(path: string, contents: string): Promise<voi
     },
   );
   await writeAtomic(target, contents, mode);
+}
+
+/** Where a write to `path` lands: what a link names, even one whose file is not there yet. */
+async function landing(path: string): Promise<string> {
+  try {
+    return await realpath(path);
+  } catch (error) {
+    if (!isMissing(error)) throw error;
+  }
+  const info = await lstat(path).catch((error: unknown) => {
+    if (isMissing(error)) return undefined;
+    throw error;
+  });
+  return info?.isSymbolicLink() === true ? resolve(dirname(path), await readlink(path)) : path;
 }

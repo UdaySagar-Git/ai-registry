@@ -36,15 +36,6 @@ export function projectionPath(
   return join(targetRoot(target, scope, cwd, env), mapping.subdir, leaf);
 }
 
-function expandPlacement(
-  template: string,
-  values: Readonly<{ name: string; source: string }>,
-): string {
-  return template.replace(/\{(source|name)\}/g, (_, key: "source" | "name") =>
-    sanitizeName(values[key]),
-  );
-}
-
 export function pluginProjection(
   target: Target,
   namespace: string,
@@ -60,4 +51,13 @@ export function pluginProjection(
     return join(root, expandPlacement(mapping.subdir, { name: namespace, source }));
   }
   return join(root, mapping.subdir, namespace);
+}
+
+function expandPlacement(
+  template: string,
+  values: Readonly<{ name: string; source: string }>,
+): string {
+  return template.replace(/\{(source|name)\}/g, (_, key: "source" | "name") =>
+    sanitizeName(values[key]),
+  );
 }

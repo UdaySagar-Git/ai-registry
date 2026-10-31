@@ -45,52 +45,6 @@ export interface Exported extends Export {
 const SHAPE_HINT =
   "Name a skill folder that holds SKILL.md, an agent's folder that holds AGENT.md, or an agent's .md file.";
 
-function copyPath(key: string, entry: LockArtifact, loaded: Loaded): string {
-  // A watched row has no address yet; its recorded path still carries the extension.
-  return artifactPath(
-    loaded.roots,
-    entry.registry,
-    entry.namespace,
-    entry.kind,
-    copyLeaf(key, entry.name),
-    entry.address ?? entry.path,
-  );
-}
-
-function installed(key: string, entry: LockArtifact, loaded: Loaded): Work {
-  const path = copyPath(key, entry, loaded);
-  refuseRedirectedCopy(key, path, loaded.roots);
-  return {
-    name: entry.name,
-    kind: entry.kind,
-    path,
-    description: undefined,
-    home: { registry: entry.registry, namespace: entry.namespace },
-    row: key,
-    base: entry.version,
-  };
-}
-
-async function textAt(path: string): Promise<string | undefined> {
-  try {
-    return await readFile(path, "utf8");
-  } catch (error) {
-    if (isAbsent(error) || (error as NodeJS.ErrnoException).code === "EISDIR") return undefined;
-    throw error;
-  }
-}
-
-async function folderEntry(
-  root: string,
-): Promise<{ kind: ArtifactKind; text: string } | undefined> {
-  const [skill, agent] = await Promise.all([
-    textAt(join(root, SKILL_ENTRY)),
-    textAt(join(root, AGENT_ENTRY)),
-  ]);
-  if (skill !== undefined) return { kind: "skill", text: skill };
-  return agent === undefined ? undefined : { kind: "agent", text: agent };
-}
-
 /** Read each entry once to identify a skill, folder agent or native agent file. */
 export async function fromPath(path: string): Promise<Work> {
   const entry = basename(path) === SKILL_ENTRY;
@@ -117,6 +71,26 @@ export async function fromPath(path: string): Promise<Work> {
     row: undefined,
     base: undefined,
   };
+}
+
+async function folderEntry(
+  root: string,
+): Promise<{ kind: ArtifactKind; text: string } | undefined> {
+  const [skill, agent] = await Promise.all([
+    textAt(join(root, SKILL_ENTRY)),
+    textAt(join(root, AGENT_ENTRY)),
+  ]);
+  if (skill !== undefined) return { kind: "skill", text: skill };
+  return agent === undefined ? undefined : { kind: "agent", text: agent };
+}
+
+async function textAt(path: string): Promise<string | undefined> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    if (isAbsent(error) || (error as NodeJS.ErrnoException).code === "EISDIR") return undefined;
+    throw error;
+  }
 }
 
 export async function expand(pattern: string, cwd: string): Promise<string[]> {
@@ -167,6 +141,32 @@ export async function fromArgs(
     }
   }
   return works;
+}
+
+function installed(key: string, entry: LockArtifact, loaded: Loaded): Work {
+  const path = copyPath(key, entry, loaded);
+  refuseRedirectedCopy(key, path, loaded.roots);
+  return {
+    name: entry.name,
+    kind: entry.kind,
+    path,
+    description: undefined,
+    home: { registry: entry.registry, namespace: entry.namespace },
+    row: key,
+    base: entry.version,
+  };
+}
+
+function copyPath(key: string, entry: LockArtifact, loaded: Loaded): string {
+  // A watched row has no address yet; its recorded path still carries the extension.
+  return artifactPath(
+    loaded.roots,
+    entry.registry,
+    entry.namespace,
+    entry.kind,
+    copyLeaf(key, entry.name),
+    entry.address ?? entry.path,
+  );
 }
 
 /** Where `path` leads when it is itself a link, else undefined. */

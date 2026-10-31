@@ -93,35 +93,6 @@ function planQuestion(plan: Plan, verb: "Install" | "Remove" | "Update"): string
   return `${said} ${plural(count, "artifact")}?`;
 }
 
-/** Chosen targets the plan places nothing in, so the review can warn before it applies. */
-export function unreached(plan: Plan, targets: readonly string[], targetTable?: Targets): string[] {
-  const reached = new Set<string>();
-  for (const action of plan.actions) {
-    if (action.kind === "link") reached.add(action.target);
-  }
-  // A target that reads another's folder is reached through it.
-  const reads = (name: string) =>
-    targetTable === undefined
-      ? [name]
-      : [name, ...KINDS.flatMap((kind) => readsFor(targetTable, name, kind))];
-  return targets.filter((name) => !reads(name).some((read) => reached.has(read))).sort();
-}
-
-/**
- * A plugin is one plan entry but one link per member per target, so a target
- * is named once however many members point there.
- */
-export function linkedTargets(plan: Plan): Map<string, string[]> {
-  const linked = new Map<string, string[]>();
-  for (const action of plan.actions) {
-    if (action.kind !== "link") continue;
-    const seen = linked.get(action.name);
-    if (seen === undefined) linked.set(action.name, [action.target]);
-    else if (!seen.includes(action.target)) seen.push(action.target);
-  }
-  return linked;
-}
-
 function planLines(step: Interaction, plan: Plan, context: PlanContext): string[] {
   const style = step.printer.errStyle;
   const staged = new Set<string>();
@@ -217,48 +188,6 @@ function planLines(step: Interaction, plan: Plan, context: PlanContext): string[
   return lines.length === 0 ? [style.dim("Nothing to do.")] : lines;
 }
 
-/** The artifacts each chosen tool is left without, for tools that receive something else. */
-function skipped(
-  names: readonly string[],
-  chosen: readonly string[],
-  missed: readonly string[],
-  loading: (name: string) => string[] | undefined,
-  folders: (name: string) => string[],
-): Map<string, string[]> {
-  const out = new Map<string, string[]>();
-  for (const name of names) {
-    if (folders(name).length === 0) continue;
-    const tools = loading(name);
-    if (tools === undefined) continue;
-    for (const tool of chosen) {
-      if (missed.includes(tool) || tools.includes(tool)) continue;
-      out.set(tool, [...(out.get(tool) ?? []), name]);
-    }
-  }
-  return out;
-}
-
-/** One line per tool: what it skips, and the kind it cannot load when that is why. */
-function explainSkipped(
-  skips: ReadonlyMap<string, string[]>,
-  recorded: Lock | undefined,
-  context: PlanContext,
-): string[] {
-  const { targetTable } = context;
-  if (targetTable === undefined) return [];
-  return [...skips.entries()].map(([tool, names]) => {
-    const kinds = [
-      ...new Set(
-        names.flatMap((name) => {
-          const kind = recorded?.artifacts[name]?.kind;
-          return kind === undefined ? [] : [kind];
-        }),
-      ),
-    ];
-    return skipLine(targetTable, tool, names, kinds);
-  });
-}
-
 /** Group unreached targets by unsupported kinds for concise reporting. */
 function explainMissed(missed: readonly string[], context: PlanContext): string[] {
   if (missed.length === 0) return [];
@@ -284,4 +213,75 @@ function explainMissed(missed: readonly string[], context: PlanContext): string[
           reason.split(",").map((kind) => `${kind}s`),
         )}.`,
   );
+}
+
+/** One line per tool: what it skips, and the kind it cannot load when that is why. */
+function explainSkipped(
+  skips: ReadonlyMap<string, string[]>,
+  recorded: Lock | undefined,
+  context: PlanContext,
+): string[] {
+  const { targetTable } = context;
+  if (targetTable === undefined) return [];
+  return [...skips.entries()].map(([tool, names]) => {
+    const kinds = [
+      ...new Set(
+        names.flatMap((name) => {
+          const kind = recorded?.artifacts[name]?.kind;
+          return kind === undefined ? [] : [kind];
+        }),
+      ),
+    ];
+    return skipLine(targetTable, tool, names, kinds);
+  });
+}
+
+/** The artifacts each chosen tool is left without, for tools that receive something else. */
+function skipped(
+  names: readonly string[],
+  chosen: readonly string[],
+  missed: readonly string[],
+  loading: (name: string) => string[] | undefined,
+  folders: (name: string) => string[],
+): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const name of names) {
+    if (folders(name).length === 0) continue;
+    const tools = loading(name);
+    if (tools === undefined) continue;
+    for (const tool of chosen) {
+      if (missed.includes(tool) || tools.includes(tool)) continue;
+      out.set(tool, [...(out.get(tool) ?? []), name]);
+    }
+  }
+  return out;
+}
+
+/** Chosen targets the plan places nothing in, so the review can warn before it applies. */
+export function unreached(plan: Plan, targets: readonly string[], targetTable?: Targets): string[] {
+  const reached = new Set<string>();
+  for (const action of plan.actions) {
+    if (action.kind === "link") reached.add(action.target);
+  }
+  // A target that reads another's folder is reached through it.
+  const reads = (name: string) =>
+    targetTable === undefined
+      ? [name]
+      : [name, ...KINDS.flatMap((kind) => readsFor(targetTable, name, kind))];
+  return targets.filter((name) => !reads(name).some((read) => reached.has(read))).sort();
+}
+
+/**
+ * A plugin is one plan entry but one link per member per target, so a target
+ * is named once however many members point there.
+ */
+export function linkedTargets(plan: Plan): Map<string, string[]> {
+  const linked = new Map<string, string[]>();
+  for (const action of plan.actions) {
+    if (action.kind !== "link") continue;
+    const seen = linked.get(action.name);
+    if (seen === undefined) linked.set(action.name, [action.target]);
+    else if (!seen.includes(action.target)) seen.push(action.target);
+  }
+  return linked;
 }

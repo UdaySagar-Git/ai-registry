@@ -140,6 +140,22 @@ interface Picked {
   addresses: string[] | undefined;
 }
 
+/** A catalog entry as the plan would place it, for showing where each target loads it from. */
+function asSelected(entry: Entry, alias: string): Selected {
+  return {
+    name: entry.name,
+    kind: entry.kind,
+    source: alias,
+    path: entry.path,
+    id: entry.path,
+    upstreamName: entry.name,
+    contentId: undefined,
+    version: undefined,
+    contents: [],
+    group: entry.group,
+  };
+}
+
 /** The entries a selection covers; every entry when the whole registry is taken. */
 export function chosenEntries(
   addresses: readonly string[] | undefined,
@@ -156,22 +172,6 @@ export function chosenEntries(
       wanted.has(entry.name) ||
       (entry.group !== undefined && namespaces.has(entry.group)),
   );
-}
-
-/** A catalog entry as the plan would place it, for showing where each target loads it from. */
-function asSelected(entry: Entry, alias: string): Selected {
-  return {
-    name: entry.name,
-    kind: entry.kind,
-    source: alias,
-    path: entry.path,
-    id: entry.path,
-    upstreamName: entry.name,
-    contentId: undefined,
-    version: undefined,
-    contents: [],
-    group: entry.group,
-  };
 }
 
 /** The hint's addresses: the kind only where a namespace has two artifacts of one name. */

@@ -19,15 +19,6 @@ import { VERSION } from "#core/version.ts";
 import type { Loaded } from "#engine/scope/load.ts";
 import { unstagedNotices, warn } from "./notices.ts";
 
-function refuseIncompatible(plan: Plan): void {
-  if (plan.incompatible.length === 0) return;
-  const needing = plan.incompatible.map((item) => `${quoted(item.name)} (>= ${item.engine})`);
-  const verb = needing.length === 1 ? "needs" : "need";
-  throw new AiregError(`${list(needing)} ${verb} a newer aireg than ${VERSION}.`, {
-    hint: "Run `aireg self update`.",
-  });
-}
-
 /** Skipping what the command named would report success for an install that never happened. */
 export function refuseClash(plan: Plan, adding: ReadonlySet<string> | undefined): void {
   const clash = plan.clashes.find(({ dropped }) => adding?.has(dropped));
@@ -47,36 +38,6 @@ export function refuseCollision(plan: Plan): void {
     `Nothing was installed: ${shownAddress(clash.dropped)} needs the name ${taken}, which ${shownAddress(clash.kept)} already has.`,
     { code: ErrorCode.Usage, hint: NAME_COLLISION_HINT },
   );
-}
-
-function refuseRewritten(plan: Plan): void {
-  if (plan.rewritten.length === 0) return;
-  const changed = plan.rewritten.map(
-    (item) => `${quoted(item.name)} ${item.version} (locked ${item.locked}, now ${item.served})`,
-  );
-  throw new AiregError(
-    `The registry serves different content for ${list(changed)}, so nothing was installed.`,
-    {
-      code: ErrorCode.Integrity,
-      hint: "Ask the registry's owner to publish the change as a new version; a released version never changes, so this may be tampering.",
-    },
-  );
-}
-
-/** A lock that holds a yanked version keeps it; nothing new may pin one. */
-function refuseYanked(acquired: readonly Acquired[], lock: Lock): void {
-  const yanked = newlyYanked(acquired, lock);
-  if (yanked.length === 0) return;
-  throw new AiregError(`${list(yanked)}, so nothing was installed.`, {
-    hint: "Pin another version, or leave the version off for the latest; a yanked version installs only where the lockfile already holds it.",
-  });
-}
-
-function refuseConflicts(plan: Plan): void {
-  const [first] = plan.conflicts;
-  if (first !== undefined) {
-    throw new AiregError(first.message, { code: ErrorCode.Conflict, hint: first.hint });
-  }
 }
 
 /** `--frozen` installs what the lock holds and refuses only a run that would change it. */
@@ -219,6 +180,45 @@ export function refusePlan(plan: Plan, acquired: readonly Acquired[], lock: Lock
   refuseRewritten(plan);
   refuseYanked(acquired, lock);
   refuseConflicts(plan);
+}
+
+function refuseIncompatible(plan: Plan): void {
+  if (plan.incompatible.length === 0) return;
+  const needing = plan.incompatible.map((item) => `${quoted(item.name)} (>= ${item.engine})`);
+  const verb = needing.length === 1 ? "needs" : "need";
+  throw new AiregError(`${list(needing)} ${verb} a newer aireg than ${VERSION}.`, {
+    hint: "Run `aireg self update`.",
+  });
+}
+
+function refuseRewritten(plan: Plan): void {
+  if (plan.rewritten.length === 0) return;
+  const changed = plan.rewritten.map(
+    (item) => `${quoted(item.name)} ${item.version} (locked ${item.locked}, now ${item.served})`,
+  );
+  throw new AiregError(
+    `The registry serves different content for ${list(changed)}, so nothing was installed.`,
+    {
+      code: ErrorCode.Integrity,
+      hint: "Ask the registry's owner to publish the change as a new version; a released version never changes, so this may be tampering.",
+    },
+  );
+}
+
+/** A lock that holds a yanked version keeps it; nothing new may pin one. */
+function refuseYanked(acquired: readonly Acquired[], lock: Lock): void {
+  const yanked = newlyYanked(acquired, lock);
+  if (yanked.length === 0) return;
+  throw new AiregError(`${list(yanked)}, so nothing was installed.`, {
+    hint: "Pin another version, or leave the version off for the latest; a yanked version installs only where the lockfile already holds it.",
+  });
+}
+
+function refuseConflicts(plan: Plan): void {
+  const [first] = plan.conflicts;
+  if (first !== undefined) {
+    throw new AiregError(first.message, { code: ErrorCode.Conflict, hint: first.hint });
+  }
 }
 
 /**

@@ -42,69 +42,6 @@ export interface LeaseOptions {
   env?: NodeJS.ProcessEnv;
 }
 
-/** Absolute: a clock stepped back leaves an mtime in the future, and that must still age out. */
-async function ageMs(dir: string): Promise<number | undefined> {
-  try {
-    return Math.abs(Date.now() - (await stat(metaPath(dir))).mtimeMs);
-  } catch {
-    // A half-written acquire must not wedge the scope forever.
-    try {
-      await stat(dir);
-      return Number.POSITIVE_INFINITY;
-    } catch {
-      return undefined;
-    }
-  }
-}
-
-/** Leases this process holds, by directory, so an interrupt can hand them back. */
-const held = new Map<string, string>();
-
-/**
- * A paused holder cannot heartbeat, so one gone, or on another host, ages out at STALE_MS; one whose
- * pid still runs here keeps its lease until ABANDONED_MS, when that pid is taken to be reused.
- */
-function running(dir: string, holder: LeaseHolder): boolean {
-  if (holder.host !== hostname()) return false;
-  if (holder.pid === process.pid) return held.get(dir) === holder.id;
-  return processAlive(holder.pid);
-}
-
-async function stale(dir: string): Promise<boolean> {
-  const age = await ageMs(dir);
-  if (age === undefined || age <= STALE_MS) return false;
-  if (age > ABANDONED_MS) return true;
-  const holder = await readHolder(dir);
-  return holder === undefined || !running(dir, holder);
-}
-
-type Claim = "taken" | "held" | "unremovable";
-
-async function claim(dir: string, holder: LeaseHolder, guard: Guard): Promise<Claim> {
-  await guard(dir);
-  try {
-    await mkdir(dir);
-  } catch (error) {
-    if (!taken(error)) throw error;
-    if (!(await stale(dir))) return "held";
-    await guard(dir);
-    if (!(await removeDir(dir))) return "unremovable";
-    // Another claimant can get there between the remove and this, so it reads as held.
-    const made = await mkdir(dir).then(
-      () => true,
-      (again: unknown) => {
-        if (taken(again)) return false;
-        throw again;
-      },
-    );
-    if (!made) return "held";
-  }
-  // Ours from the moment it exists, so an interrupt before the metadata lands still hands it back.
-  held.set(dir, holder.id);
-  await writeFile(metaPath(dir), `${JSON.stringify(holder, null, 2)}\n`, { mode: PRIVATE_FILE });
-  return "taken";
-}
-
 /**
  * Hands back a one-shot command's leases on interrupt, so the next writer need not wait for them
  * to go stale. The daemon drains its runs instead; `alsoStop` ends what the signal cannot reach.
@@ -136,55 +73,12 @@ export function releaseLeasesOnInterrupt(alsoStop: () => void): void {
   process.once("SIGTERM", interrupted);
 }
 
-function beat(dir: string, id: string, guard: Guard): NodeJS.Timeout {
-  const timer = setInterval(() => {
-    const now = new Date();
-    // A lease reclaimed meanwhile is its new holder's to keep alive, not this one's.
-    void guard(dir)
-      .then(() => readHolder(dir))
-      .then((holder) => (holder?.id === id ? utimes(metaPath(dir), now, now) : undefined))
-      .catch(() => {});
-  }, HEARTBEAT_MS);
-  // Never the reason a one-shot command stays alive.
-  timer.unref();
-  return timer;
-}
-
-async function assertOwned(dir: string, id: string, scope: Scope): Promise<void> {
-  if ((await readHolder(dir))?.id === id) return;
-  throw new LeaseError(
-    `Another aireg process took over ${where(scope)}, so this command stopped.`,
-    "lease_lost",
-    "Run the command again.",
-  );
-}
-
-/** Ownership checks for the leases the current async call chain runs under. */
-const fences = new AsyncLocalStorage<readonly (() => Promise<void>)[]>();
+/** Leases this process holds, by directory, so an interrupt can hand them back. */
+const held = new Map<string, string>();
 
 /** A holder that lost its lease must not write its stale snapshot over the new holder's work. */
 export async function assertLeasesHeld(): Promise<void> {
   for (const owned of fences.getStore() ?? []) await owned();
-}
-
-async function releaseOwned(
-  dir: string,
-  id: string,
-  timer: NodeJS.Timeout,
-  guard: Guard,
-): Promise<void> {
-  clearInterval(timer);
-  // A stale reclaim may have handed the scope to someone else meanwhile.
-  const holder = await readHolder(dir);
-  // Without a heartbeat a leftover goes stale and is reclaimed, so it must not fail finished work.
-  if (holder?.id === id) {
-    await guard(dir)
-      .then(() => rename(dir, asideOf(dir, id)))
-      .then(() => removeDir(asideOf(dir, id)))
-      .catch(() => false);
-  }
-  // Held until it is gone, so an interrupt mid-release still removes it.
-  held.delete(dir);
 }
 
 export async function acquire(
@@ -227,6 +121,103 @@ export async function acquire(
   }
 }
 
+type Claim = "taken" | "held" | "unremovable";
+
+async function claim(dir: string, holder: LeaseHolder, guard: Guard): Promise<Claim> {
+  await guard(dir);
+  try {
+    await mkdir(dir);
+  } catch (error) {
+    if (!taken(error)) throw error;
+    if (!(await stale(dir))) return "held";
+    await guard(dir);
+    if (!(await removeDir(dir))) return "unremovable";
+    // Another claimant can get there between the remove and this, so it reads as held.
+    const made = await mkdir(dir).then(
+      () => true,
+      (again: unknown) => {
+        if (taken(again)) return false;
+        throw again;
+      },
+    );
+    if (!made) return "held";
+  }
+  // Ours from the moment it exists, so an interrupt before the metadata lands still hands it back.
+  held.set(dir, holder.id);
+  await writeFile(metaPath(dir), `${JSON.stringify(holder, null, 2)}\n`, { mode: PRIVATE_FILE });
+  return "taken";
+}
+
+async function stale(dir: string): Promise<boolean> {
+  const age = await ageMs(dir);
+  if (age === undefined || age <= STALE_MS) return false;
+  if (age > ABANDONED_MS) return true;
+  const holder = await readHolder(dir);
+  return holder === undefined || !running(dir, holder);
+}
+
+/** Absolute: a clock stepped back leaves an mtime in the future, and that must still age out. */
+async function ageMs(dir: string): Promise<number | undefined> {
+  try {
+    return Math.abs(Date.now() - (await stat(metaPath(dir))).mtimeMs);
+  } catch {
+    // A half-written acquire must not wedge the scope forever.
+    try {
+      await stat(dir);
+      return Number.POSITIVE_INFINITY;
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+/**
+ * A paused holder cannot heartbeat, so one gone, or on another host, ages out at STALE_MS; one whose
+ * pid still runs here keeps its lease until ABANDONED_MS, when that pid is taken to be reused.
+ */
+function running(dir: string, holder: LeaseHolder): boolean {
+  if (holder.host !== hostname()) return false;
+  if (holder.pid === process.pid) return held.get(dir) === holder.id;
+  return processAlive(holder.pid);
+}
+
+/** Ownership checks for the leases the current async call chain runs under. */
+const fences = new AsyncLocalStorage<readonly (() => Promise<void>)[]>();
+
+function beat(dir: string, id: string, guard: Guard): NodeJS.Timeout {
+  const timer = setInterval(() => {
+    const now = new Date();
+    // A lease reclaimed meanwhile is its new holder's to keep alive, not this one's.
+    void guard(dir)
+      .then(() => readHolder(dir))
+      .then((holder) => (holder?.id === id ? utimes(metaPath(dir), now, now) : undefined))
+      .catch(() => {});
+  }, HEARTBEAT_MS);
+  // Never the reason a one-shot command stays alive.
+  timer.unref();
+  return timer;
+}
+
+async function releaseOwned(
+  dir: string,
+  id: string,
+  timer: NodeJS.Timeout,
+  guard: Guard,
+): Promise<void> {
+  clearInterval(timer);
+  // A stale reclaim may have handed the scope to someone else meanwhile.
+  const holder = await readHolder(dir);
+  // Without a heartbeat a leftover goes stale and is reclaimed, so it must not fail finished work.
+  if (holder?.id === id) {
+    await guard(dir)
+      .then(() => rename(dir, asideOf(dir, id)))
+      .then(() => removeDir(asideOf(dir, id)))
+      .catch(() => false);
+  }
+  // Held until it is gone, so an interrupt mid-release still removes it.
+  held.delete(dir);
+}
+
 /** Guarantees release, so no caller can leave a scope wedged by an early return. */
 export async function withLease<T>(
   roots: Pick<Roots, "scope" | "lock">,
@@ -241,6 +232,15 @@ export async function withLease<T>(
   } finally {
     await lease.release();
   }
+}
+
+async function assertOwned(dir: string, id: string, scope: Scope): Promise<void> {
+  if ((await readHolder(dir))?.id === id) return;
+  throw new LeaseError(
+    `Another aireg process took over ${where(scope)}, so this command stopped.`,
+    "lease_lost",
+    "Run the command again.",
+  );
 }
 
 export async function readLease(

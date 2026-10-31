@@ -57,54 +57,6 @@ export interface ExecOptions {
 
 const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
 
-/** Codes as a shell gives them: 127 missing, 126 cannot run, 128 plus a signal, 124 a timeout. */
-function failed(
-  command: string,
-  error: ExecFileException,
-  options: ExecOptions,
-): { code: number; why?: string } {
-  if (error.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
-    const limit = options.maxOutputBytes ?? MAX_OUTPUT_BYTES;
-    return {
-      code: 128 + constants.signals.SIGTERM,
-      why: `${command} wrote more than ${limit} bytes, so it was stopped.`,
-    };
-  }
-  if (error.code === "ENOENT") return { code: 127, why: `${command} was not found.` };
-  if (typeof error.code === "string") {
-    return { code: 126, why: `${command} could not run: ${error.code}.` };
-  }
-  if (error.signal !== null && error.signal !== undefined) {
-    return error.killed === true
-      ? { code: 124, why: `${command} did not finish within ${options.timeoutMs} ms.` }
-      : {
-          code: 128 + constants.signals[error.signal],
-          why: `${command} was stopped by ${error.signal}.`,
-        };
-  }
-  return { code: typeof error.code === "number" ? error.code : 1 };
-}
-
-function launchable(
-  command: string,
-  given: NodeJS.ProcessEnv,
-  cwd: string | undefined,
-): { program: string; env: NodeJS.ProcessEnv } | string {
-  let env: NodeJS.ProcessEnv;
-  try {
-    env = withAbsolutePath(given);
-  } catch (error) {
-    // Found without PATH, so it runs; its own children get no PATH to search.
-    env = Object.fromEntries(Object.entries(given).filter(([key]) => key.toUpperCase() !== "PATH"));
-    const program = programPath(command, env, cwd);
-    return program !== undefined && isAbsolute(program)
-      ? { program, env }
-      : (error as Error).message;
-  }
-  const program = programPath(command, env, cwd);
-  return program === undefined ? `${command} was not found.` : { program, env };
-}
-
 /**
  * Runs a command without a shell. Any failure is a `code` to read, never a throw: a binary
  * reachable only through a relative PATH entry counts as missing.
@@ -149,6 +101,54 @@ export function exec(
       },
     );
   });
+}
+
+function launchable(
+  command: string,
+  given: NodeJS.ProcessEnv,
+  cwd: string | undefined,
+): { program: string; env: NodeJS.ProcessEnv } | string {
+  let env: NodeJS.ProcessEnv;
+  try {
+    env = withAbsolutePath(given);
+  } catch (error) {
+    // Found without PATH, so it runs; its own children get no PATH to search.
+    env = Object.fromEntries(Object.entries(given).filter(([key]) => key.toUpperCase() !== "PATH"));
+    const program = programPath(command, env, cwd);
+    return program !== undefined && isAbsolute(program)
+      ? { program, env }
+      : (error as Error).message;
+  }
+  const program = programPath(command, env, cwd);
+  return program === undefined ? `${command} was not found.` : { program, env };
+}
+
+/** Codes as a shell gives them: 127 missing, 126 cannot run, 128 plus a signal, 124 a timeout. */
+function failed(
+  command: string,
+  error: ExecFileException,
+  options: ExecOptions,
+): { code: number; why?: string } {
+  if (error.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
+    const limit = options.maxOutputBytes ?? MAX_OUTPUT_BYTES;
+    return {
+      code: 128 + constants.signals.SIGTERM,
+      why: `${command} wrote more than ${limit} bytes, so it was stopped.`,
+    };
+  }
+  if (error.code === "ENOENT") return { code: 127, why: `${command} was not found.` };
+  if (typeof error.code === "string") {
+    return { code: 126, why: `${command} could not run: ${error.code}.` };
+  }
+  if (error.signal !== null && error.signal !== undefined) {
+    return error.killed === true
+      ? { code: 124, why: `${command} did not finish within ${options.timeoutMs} ms.` }
+      : {
+          code: 128 + constants.signals[error.signal],
+          why: `${command} was stopped by ${error.signal}.`,
+        };
+  }
+  return { code: typeof error.code === "number" ? error.code : 1 };
 }
 
 /** Runs another aireg in this terminal and returns its exit status, for when it takes over. */

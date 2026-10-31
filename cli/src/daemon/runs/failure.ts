@@ -90,39 +90,6 @@ export function retryBackoff(failures: number): number {
   return Math.min(RETRY_CEILING_MS, RETRY_FLOOR_MS * 2 ** (failures - 1));
 }
 
-function outcomeKey(state: TerminalRunState, counts: RunCounts): string {
-  const { examined, changed, skipped, attention, failed } = counts;
-  return [state, examined, changed, skipped, attention, failed].join(":");
-}
-
-/** Consecutive newest runs that failed outright, ignoring interruptions. */
-function failureStreak(recent: readonly RunRecord[]): number {
-  let streak = 0;
-  for (const run of recent) {
-    if (run.finishedAtMs === undefined) continue;
-    // An interrupted run is not a failure: a busy afternoon must not read as an outage.
-    if (isInterrupted(run.state)) continue;
-    if (run.state === "succeeded" || run.state === "attention") break;
-    streak += 1;
-  }
-  return streak;
-}
-
-/** Consecutive earlier runs that reached the same conclusion, unedited. */
-function repeats(recent: readonly RunRecord[], latest: RunRecord): number {
-  const key = outcomeKey(latest.state as TerminalRunState, latest.counts);
-  let count = 0;
-  for (const previous of recent) {
-    if (previous.id === latest.id) continue;
-    // An edited job is a new question, whatever the last answer was.
-    if (previous.configRevision !== latest.configRevision) break;
-    if (isActive(previous.state)) break;
-    if (outcomeKey(previous.state as TerminalRunState, previous.counts) !== key) break;
-    count += 1;
-  }
-  return count;
-}
-
 /**
  * Derived from the job's own history rather than a stored schedule: a column
  * beside the runs is a second answer that can disagree. Newest first.
@@ -154,4 +121,37 @@ export function dueAt(
     settled +
     Math.max(interval, Math.min(interval * 2 ** repeats(recent, latest), QUIET_CEILING_MS))
   );
+}
+
+/** Consecutive newest runs that failed outright, ignoring interruptions. */
+function failureStreak(recent: readonly RunRecord[]): number {
+  let streak = 0;
+  for (const run of recent) {
+    if (run.finishedAtMs === undefined) continue;
+    // An interrupted run is not a failure: a busy afternoon must not read as an outage.
+    if (isInterrupted(run.state)) continue;
+    if (run.state === "succeeded" || run.state === "attention") break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/** Consecutive earlier runs that reached the same conclusion, unedited. */
+function repeats(recent: readonly RunRecord[], latest: RunRecord): number {
+  const key = outcomeKey(latest.state as TerminalRunState, latest.counts);
+  let count = 0;
+  for (const previous of recent) {
+    if (previous.id === latest.id) continue;
+    // An edited job is a new question, whatever the last answer was.
+    if (previous.configRevision !== latest.configRevision) break;
+    if (isActive(previous.state)) break;
+    if (outcomeKey(previous.state as TerminalRunState, previous.counts) !== key) break;
+    count += 1;
+  }
+  return count;
+}
+
+function outcomeKey(state: TerminalRunState, counts: RunCounts): string {
+  const { examined, changed, skipped, attention, failed } = counts;
+  return [state, examined, changed, skipped, attention, failed].join(":");
 }

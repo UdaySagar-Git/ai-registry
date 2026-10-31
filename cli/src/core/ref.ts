@@ -43,52 +43,6 @@ const INVALID_SEGMENT = /^$|^\.\.?$|[\\@]/;
 /** Spelled by omission, and accepted spelled out because every package manager takes it. */
 const LATEST = "latest";
 
-function segments(input: string, trimmed: string): string[] {
-  const parts = trimmed.split("/");
-  for (const segment of parts) {
-    if (INVALID_SEGMENT.test(segment)) {
-      throw new RefParseError(input, `the part ${quoted(segment)} is not valid`);
-    }
-  }
-  return parts;
-}
-
-/** Every kind an address may name. A plugin is addressed as the namespace it is. */
-const ADDRESSABLE = KINDS.filter((kind) => kind !== "plugin");
-
-/** The one place that turns a kind segment into a kind, so the error reads the same everywhere. */
-function kindOf(input: string, segment: string, registry: string, name: string): ArtifactKind {
-  // A plugin and the namespace it publishes under are one thing to install, and
-  // naming the plugin alone would leave out the loose artifacts beside it.
-  if (segment === "plugin") {
-    throw new RefParseError(
-      input,
-      `a plugin is addressed as its namespace. Write ${registry}/${name}`,
-    );
-  }
-  if (isKind(segment)) return segment;
-  throw new RefParseError(
-    input,
-    `${quoted(segment)} is not a kind. The part before the name must be ${list(ADDRESSABLE, "or")}`,
-  );
-}
-
-function splitVersion(input: string, trimmed: string): { address: string; version?: string } {
-  const at = trimmed.indexOf("@");
-  if (at === -1) return { address: trimmed };
-  if (trimmed.indexOf("@", at + 1) !== -1) {
-    throw new RefParseError(input, "an address takes at most one @version");
-  }
-
-  const version = trimmed.slice(at + 1);
-  if (version === "") throw new RefParseError(input, "no version follows the @");
-  // `latest` is what absence already means, so it normalizes away rather than
-  // becoming a pin that can never match a published version.
-  if (version === LATEST) return { address: trimmed.slice(0, at) };
-  if (!isVersion(version)) throw new RefParseError(input, `${quoted(version)} is not a version`);
-  return { address: trimmed.slice(0, at), version };
-}
-
 export function parseRef(input: string): Ref {
   const trimmed = input.trim();
   if (trimmed === "") throw new RefParseError(input, "it is empty");
@@ -128,6 +82,52 @@ export function parseRef(input: string): Ref {
     name: parts[3],
     ...pinned,
   };
+}
+
+function splitVersion(input: string, trimmed: string): { address: string; version?: string } {
+  const at = trimmed.indexOf("@");
+  if (at === -1) return { address: trimmed };
+  if (trimmed.indexOf("@", at + 1) !== -1) {
+    throw new RefParseError(input, "an address takes at most one @version");
+  }
+
+  const version = trimmed.slice(at + 1);
+  if (version === "") throw new RefParseError(input, "no version follows the @");
+  // `latest` is what absence already means, so it normalizes away rather than
+  // becoming a pin that can never match a published version.
+  if (version === LATEST) return { address: trimmed.slice(0, at) };
+  if (!isVersion(version)) throw new RefParseError(input, `${quoted(version)} is not a version`);
+  return { address: trimmed.slice(0, at), version };
+}
+
+function segments(input: string, trimmed: string): string[] {
+  const parts = trimmed.split("/");
+  for (const segment of parts) {
+    if (INVALID_SEGMENT.test(segment)) {
+      throw new RefParseError(input, `the part ${quoted(segment)} is not valid`);
+    }
+  }
+  return parts;
+}
+
+/** Every kind an address may name. A plugin is addressed as the namespace it is. */
+const ADDRESSABLE = KINDS.filter((kind) => kind !== "plugin");
+
+/** The one place that turns a kind segment into a kind, so the error reads the same everywhere. */
+function kindOf(input: string, segment: string, registry: string, name: string): ArtifactKind {
+  // A plugin and the namespace it publishes under are one thing to install, and
+  // naming the plugin alone would leave out the loose artifacts beside it.
+  if (segment === "plugin") {
+    throw new RefParseError(
+      input,
+      `a plugin is addressed as its namespace. Write ${registry}/${name}`,
+    );
+  }
+  if (isKind(segment)) return segment;
+  throw new RefParseError(
+    input,
+    `${quoted(segment)} is not a kind. The part before the name must be ${list(ADDRESSABLE, "or")}`,
+  );
 }
 
 export function withLocalName(ref: Ref, localName: string): Ref {

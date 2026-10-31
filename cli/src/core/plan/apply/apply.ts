@@ -18,60 +18,6 @@ import { applyRegistrations } from "./registrations.ts";
 import type { ApplyResult, Run } from "./run.ts";
 import { cloneInto, prefetch, stage } from "./stage.ts";
 
-/** A link assembles a namespace's projection and no unlink takes it, so it goes with its last row. */
-async function pruneProjections(wanted: ReadonlySet<string>, roots: Roots): Promise<void> {
-  const root = join(roots.artifacts, PROJECTIONS_DIR);
-  await guardManagedPath(root, roots);
-  for (const { name: source } of await entries(root)) {
-    await guardManagedPath(join(root, source), roots);
-    for (const { name: plugin } of await entries(join(root, source))) {
-      const path = join(root, source, plugin);
-      await guardManagedPath(path, roots);
-      if (!wanted.has(path)) await remove(path);
-    }
-    await rmdir(join(root, source)).catch(() => undefined);
-  }
-  await rmdir(root).catch(() => undefined);
-}
-
-/** How stale a run's knowledge that it still holds the lease may be. */
-const LEASE_CHECK_MS = 250;
-
-function perform(run: Run, action: Action): Promise<void> {
-  switch (action.kind) {
-    case "stage":
-      return stage(run, action);
-    case "clone":
-      return cloneInto(run, action);
-    case "link":
-      return linkInto(run, action);
-    case "unlink":
-      return unlink(run, action);
-    case "record":
-      return record(run, action);
-  }
-}
-
-/** Work that needs every clone landed first, then the store's housekeeping. */
-async function finish(run: Run, plan: Plan): Promise<void> {
-  const { roots } = run;
-  // At link time a projection would see only the kind whose artifact happened to be first.
-  for (const [dir, { content, targets, document }] of run.plugins) {
-    await guardManagedPath(dir, roots);
-    await assemble(dir, content, targets, document);
-  }
-  for (const [to, from] of run.fanned) {
-    await assertRemovable(to, roots);
-    await fanOut(from, to);
-  }
-  if (run.projections !== undefined) await pruneProjections(run.projections, roots);
-  if (run.plugins.size > 0 || Object.values(run.performed).some((count) => count > 0)) {
-    await guardManagedPath(roots.artifacts, roots);
-    await ensureScopeIgnore(roots);
-  }
-  run.kept.push(...(await applyRegistrations(plan.actions, roots, run.recorded ?? run.before)));
-}
-
 const linked = (lock: Lock | undefined, name: string): number =>
   lock?.artifacts[name]?.links.length ?? 0;
 
@@ -149,4 +95,58 @@ export async function apply(
     carried: await carriedBy(plan, run.recorded, roots),
     unrendered: run.unrendered,
   };
+}
+
+/** How stale a run's knowledge that it still holds the lease may be. */
+const LEASE_CHECK_MS = 250;
+
+function perform(run: Run, action: Action): Promise<void> {
+  switch (action.kind) {
+    case "stage":
+      return stage(run, action);
+    case "clone":
+      return cloneInto(run, action);
+    case "link":
+      return linkInto(run, action);
+    case "unlink":
+      return unlink(run, action);
+    case "record":
+      return record(run, action);
+  }
+}
+
+/** Work that needs every clone landed first, then the store's housekeeping. */
+async function finish(run: Run, plan: Plan): Promise<void> {
+  const { roots } = run;
+  // At link time a projection would see only the kind whose artifact happened to be first.
+  for (const [dir, { content, targets, document }] of run.plugins) {
+    await guardManagedPath(dir, roots);
+    await assemble(dir, content, targets, document);
+  }
+  for (const [to, from] of run.fanned) {
+    await assertRemovable(to, roots);
+    await fanOut(from, to);
+  }
+  if (run.projections !== undefined) await pruneProjections(run.projections, roots);
+  if (run.plugins.size > 0 || Object.values(run.performed).some((count) => count > 0)) {
+    await guardManagedPath(roots.artifacts, roots);
+    await ensureScopeIgnore(roots);
+  }
+  run.kept.push(...(await applyRegistrations(plan.actions, roots, run.recorded ?? run.before)));
+}
+
+/** A link assembles a namespace's projection and no unlink takes it, so it goes with its last row. */
+async function pruneProjections(wanted: ReadonlySet<string>, roots: Roots): Promise<void> {
+  const root = join(roots.artifacts, PROJECTIONS_DIR);
+  await guardManagedPath(root, roots);
+  for (const { name: source } of await entries(root)) {
+    await guardManagedPath(join(root, source), roots);
+    for (const { name: plugin } of await entries(join(root, source))) {
+      const path = join(root, source, plugin);
+      await guardManagedPath(path, roots);
+      if (!wanted.has(path)) await remove(path);
+    }
+    await rmdir(join(root, source)).catch(() => undefined);
+  }
+  await rmdir(root).catch(() => undefined);
 }

@@ -16,6 +16,39 @@ export type RemovableRoots = Pick<Roots, "scope" | "cwd" | "artifacts">;
 
 type Removal = { how: "remove" } | { how: "unlink" } | { how: "refuse"; reason: string };
 
+/**
+ * A lock is repository-written, so a path goes only if spelled below an aireg folder with no link
+ * on the way.
+ */
+export function removal(
+  path: string,
+  roots: RemovableRoots,
+  env: NodeJS.ProcessEnv = process.env,
+): Removal {
+  const target = resolve(roots.cwd, path);
+  // A target home set through its env var is canonical, while the lock spells paths as typed.
+  const targets = [target, join(canonical(dirname(target)), basename(target))];
+  for (const { anchor, dir } of boundaries(roots, env)) {
+    const real = canonical(anchor);
+    const spellings = [anchor, join(canonical(dirname(anchor)), basename(anchor)), real];
+    const match = spellings
+      .flatMap((base) => targets.map((at) => ({ base, at })))
+      .find(({ base, at }) => isStrictlyWithin(join(base, dir), at));
+    if (match === undefined) continue;
+    if (ownLink(target, roots)) return { how: "unlink" };
+    const found = redirection(real, join(real, relative(match.base, match.at)), false);
+    if (found === undefined) return { how: "remove" };
+    return {
+      how: "refuse",
+      reason:
+        found.problem === "symlink"
+          ? `${shown(real, found.at)} is a symlink, so it may lead outside ${scopeName(roots.scope)}`
+          : `${shown(real, found.at)} is not a directory`,
+    };
+  }
+  return { how: "refuse", reason: `${NAME} never places anything there` };
+}
+
 /** A folder aireg places things in; only `anchor` is resolved through links. */
 interface Boundary {
   anchor: string;
@@ -56,39 +89,6 @@ function ownLink(target: string, roots: RemovableRoots): boolean {
 /** Relative to the folder it was found under, with forward slashes as the lock spells paths. */
 function shown(anchor: string, at: string): string {
   return isStrictlyWithin(anchor, at) ? posixRelative(anchor, at) : at;
-}
-
-/**
- * A lock is repository-written, so a path goes only if spelled below an aireg folder with no link
- * on the way.
- */
-export function removal(
-  path: string,
-  roots: RemovableRoots,
-  env: NodeJS.ProcessEnv = process.env,
-): Removal {
-  const target = resolve(roots.cwd, path);
-  // A target home set through its env var is canonical, while the lock spells paths as typed.
-  const targets = [target, join(canonical(dirname(target)), basename(target))];
-  for (const { anchor, dir } of boundaries(roots, env)) {
-    const real = canonical(anchor);
-    const spellings = [anchor, join(canonical(dirname(anchor)), basename(anchor)), real];
-    const match = spellings
-      .flatMap((base) => targets.map((at) => ({ base, at })))
-      .find(({ base, at }) => isStrictlyWithin(join(base, dir), at));
-    if (match === undefined) continue;
-    if (ownLink(target, roots)) return { how: "unlink" };
-    const found = redirection(real, join(real, relative(match.base, match.at)), false);
-    if (found === undefined) return { how: "remove" };
-    return {
-      how: "refuse",
-      reason:
-        found.problem === "symlink"
-          ? `${shown(real, found.at)} is a symlink, so it may lead outside ${scopeName(roots.scope)}`
-          : `${shown(real, found.at)} is not a directory`,
-    };
-  }
-  return { how: "refuse", reason: `${NAME} never places anything there` };
 }
 
 /** Checked again at deletion: a link can appear after planning. */

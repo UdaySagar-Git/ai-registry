@@ -83,17 +83,6 @@ export class SourceParseError extends AdapterError {
   }
 }
 
-/**
- * A `@ref` suffix only counts after the final `/`, so `git@github.com:o/r`
- * keeps its user and `o/r@v2` is split.
- */
-function splitRef(input: string): { address: string; ref: string | undefined } {
-  const at = input.lastIndexOf("@");
-  if (at <= 0 || at < input.lastIndexOf("/")) return { address: input, ref: undefined };
-  const ref = input.slice(at + 1);
-  return ref === "" ? { address: input, ref: undefined } : { address: input.slice(0, at), ref };
-}
-
 export function parseSource(input: string, cwd = process.cwd()): SourceSpec {
   const trimmed = input.trim();
   if (trimmed === "") throw new SourceParseError(input, "it is empty");
@@ -175,9 +164,15 @@ export function parseSource(input: string, cwd = process.cwd()): SourceSpec {
   };
 }
 
-/** `cloneUrl` keeps a user only for ssh:, so only there does a user make the address exact. */
-function namesSshUser(url: URL): boolean {
-  return url.protocol === "ssh:" && url.username !== "" && url.username !== "git";
+/**
+ * A `@ref` suffix only counts after the final `/`, so `git@github.com:o/r`
+ * keeps its user and `o/r@v2` is split.
+ */
+function splitRef(input: string): { address: string; ref: string | undefined } {
+  const at = input.lastIndexOf("@");
+  if (at <= 0 || at < input.lastIndexOf("/")) return { address: input, ref: undefined };
+  const ref = input.slice(at + 1);
+  return ref === "" ? { address: input, ref: undefined } : { address: input.slice(0, at), ref };
 }
 
 /** file:// is a git transport, not a directory read: `./dir` is the latter. */
@@ -186,6 +181,11 @@ function cloneUrl(url: URL, path: string): string {
   // Built by hand: `url.origin` is "null" for a scheme the URL standard does not know, like ssh:.
   const user = url.protocol === "ssh:" && url.username !== "" ? `${url.username}@` : "";
   return `${url.protocol}//${user}${url.host}/${path}.git`;
+}
+
+/** `cloneUrl` keeps a user only for ssh:, so only there does a user make the address exact. */
+function namesSshUser(url: URL): boolean {
+  return url.protocol === "ssh:" && url.username !== "" && url.username !== "git";
 }
 
 /** The SSH form of an HTTPS clone URL, for the auth fallback. */

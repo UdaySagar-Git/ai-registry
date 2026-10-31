@@ -7,31 +7,6 @@ import { gitIn } from "#core/process.ts";
 import { sentence } from "#core/term/printer.ts";
 import { type Problem, parsed, readDocument, rowsOf } from "./read.ts";
 
-/** A CI checkout holds one commit; the tip of the target branch is all a comparison needs. */
-async function fetchIfMissing(root: string, base: string): Promise<void> {
-  const found = await gitIn(root, ["rev-parse", "--verify", "--quiet", "--end-of-options", base]);
-  if (found.code === 0) return;
-  const branch = /^origin\/(.+)$/.exec(base)?.[1];
-  if (branch === undefined) return;
-  await gitIn(root, [
-    "fetch",
-    "--quiet",
-    "--no-tags",
-    "--depth=1",
-    "origin",
-    `+refs/heads/${branch}:refs/remotes/origin/${branch}`,
-  ]);
-}
-
-interface BaseDiff {
-  /** The ref as the author gave it, for the fixes printed. */
-  ref: string;
-  /** Paths changed under `artifacts/` since the base, root-relative. */
-  paths: string[];
-  /** Each artifact's released versions in the base, by its `versions.json` path. */
-  released: (versionsAt: string) => Promise<Map<string, unknown>>;
-}
-
 export async function baseDiff(root: string, base: string): Promise<BaseDiff> {
   // A ref git would read as an option, such as `--output=<file>`, never reaches it.
   if (base.startsWith("-")) {
@@ -80,6 +55,31 @@ export async function baseDiff(root: string, base: string): Promise<BaseDiff> {
     return found;
   };
   return { ref: base, paths, released };
+}
+
+interface BaseDiff {
+  /** The ref as the author gave it, for the fixes printed. */
+  ref: string;
+  /** Paths changed under `artifacts/` since the base, root-relative. */
+  paths: string[];
+  /** Each artifact's released versions in the base, by its `versions.json` path. */
+  released: (versionsAt: string) => Promise<Map<string, unknown>>;
+}
+
+/** A CI checkout holds one commit; the tip of the target branch is all a comparison needs. */
+async function fetchIfMissing(root: string, base: string): Promise<void> {
+  const found = await gitIn(root, ["rev-parse", "--verify", "--quiet", "--end-of-options", base]);
+  if (found.code === 0) return;
+  const branch = /^origin\/(.+)$/.exec(base)?.[1];
+  if (branch === undefined) return;
+  await gitIn(root, [
+    "fetch",
+    "--quiet",
+    "--no-tags",
+    "--depth=1",
+    "origin",
+    `+refs/heads/${branch}:refs/remotes/origin/${branch}`,
+  ]);
 }
 
 /** Version folders the base revision already released, which no change may touch. */

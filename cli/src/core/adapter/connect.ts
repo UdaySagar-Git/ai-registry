@@ -100,122 +100,6 @@ export interface Listing {
   layout: LayoutId | undefined;
 }
 
-/** Text from an adapter, one line, without escapes; anything else is dropped. */
-function line(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() !== "" ? sanitizeText(value) : undefined;
-}
-
-/**
- * The address the file spec gives this artifact inside its registry, which is
- * where its bytes sit in the mirror. File-shaped entries keep the extension.
- */
-function entryPath(artifact: Artifact): string | undefined {
-  // A plugin is its own namespace; anything else is filed under the one it
-  // belongs to, and an artifact with neither is filed under its own name.
-  const namespace = sanitizeName(
-    artifact.kind === "plugin"
-      ? artifact.envelope.metadata.name
-      : (artifact.group ?? artifact.envelope.metadata.namespace ?? artifact.envelope.metadata.name),
-  );
-  const name = sanitizeName(artifact.envelope.metadata.name);
-  const address = `artifacts/${namespace}/${specKindDir(artifact.kind)}/${name}`;
-  if (KIND_SPECS[artifact.kind].shape === "directory") return address;
-
-  const only = artifact.files.length === 1 ? artifact.files[0] : undefined;
-  return only === undefined ? undefined : `${address}${extname(only.path)}`;
-}
-
-function asServed(artifact: Artifact): { artifact: Artifact; leftOut?: string[] } | undefined {
-  const spec = KIND_SPECS[artifact.kind];
-  if (spec.shape !== "file" || artifact.files.length <= 1) return { artifact };
-  const entry = (spec.served ?? [])
-    .map((name) => artifact.files.find((file) => file.path === name))
-    .find((file) => file !== undefined);
-  if (entry === undefined) return undefined;
-  const leftOut = artifact.files.filter((file) => file !== entry).map((file) => file.path);
-  return { artifact: { ...artifact, files: [entry] }, leftOut: leftOut.sort() };
-}
-
-type Fail = (message: string) => never;
-
-/**
- * Both directions, so neither an undescribed file nor an unreachable descriptor
- * surfaces halfway through a fetch.
- */
-function checkFiles(envelope: Envelope, artifact: Artifact, fail: Fail): void {
-  const described = new Map<string, FileDescriptor>();
-  for (const descriptor of envelope.files) {
-    if (!isSafePath(descriptor.path)) {
-      fail(`describes an unusable file path: ${descriptor.path}`);
-    }
-    if (!isDigest(descriptor.digest)) {
-      fail(
-        `describes ${descriptor.path} with "${descriptor.digest}", which is not a sha256 digest`,
-      );
-    }
-    if (!Number.isSafeInteger(descriptor.size) || descriptor.size < 0) {
-      fail(`describes ${descriptor.path} with a size of ${descriptor.size}`);
-    }
-    described.set(descriptor.path, descriptor);
-  }
-  const clash = collidingPaths([...described.keys()]);
-  if (clash !== undefined) {
-    fail(`describes ${quoted(clash[0])} and ${quoted(clash[1])}, which are one file on most disks`);
-  }
-
-  const published = new Set<string>();
-  for (const file of artifact.files) {
-    if (!isSafePath(file.path)) fail(`publishes an unusable file path: ${file.path}`);
-    if (typeof file.locator !== "string" || file.locator === "") {
-      fail(`publishes ${file.path} with no locator`);
-    }
-    if (!described.has(file.path)) fail(`publishes ${file.path}, which it does not describe`);
-    published.add(file.path);
-  }
-  for (const path of described.keys()) {
-    if (!published.has(path)) fail(`describes ${path}, which it does not publish`);
-  }
-}
-
-/**
- * Everything an adapter returns is checked here, once, rather than by each
- * adapter in its own way. A backend that lies is named in the failure.
- */
-function check(adapter: SourceAdapter, artifact: Artifact, index: number): void {
-  const envelope: Envelope | undefined = artifact.envelope;
-  const metadata: EnvelopeMetadata | undefined = envelope?.metadata;
-  const name = typeof metadata?.name === "string" ? metadata.name : "";
-  const where = name === "" ? `Artifact ${index}` : `Artifact ${quoted(name)}`;
-  // Annotated so the compiler knows a failing check does not fall through.
-  const fail: Fail = (message) => {
-    const title = `${where} ${message}.`;
-    throw new AdapterError(adapter.id, "invalid", title, {
-      artifact: name,
-      problem: { code: "SPEC_INVALID", title },
-    });
-  };
-
-  if (typeof artifact.id !== "string" || artifact.id === "") fail("has no id");
-  if (!adapter.artifactKinds.includes(artifact.kind)) {
-    fail(`is a ${artifact.kind}, which ${adapter.displayName} does not serve`);
-  }
-  if (envelope === undefined || metadata === undefined) fail("has no file list");
-  if (envelope.apiVersion !== ENVELOPE_API_VERSION) {
-    fail(`has a file list in format ${quoted(envelope.apiVersion)}, not ${ENVELOPE_API_VERSION}`);
-  }
-  if (typeof envelope.kind !== "string" || envelope.kind === "")
-    fail("has no kind in its file list");
-  if (name === "") fail("has no name");
-  if (!Array.isArray(envelope.files) || envelope.files.length === 0) fail("describes no files");
-  if (!Array.isArray(artifact.files) || artifact.files.length === 0) fail("publishes no files");
-  const { version } = artifact;
-  if (version !== undefined && (typeof version !== "string" || !isVersion(version))) {
-    fail(`is served at ${quoted(String(version))}, which is not a version`);
-  }
-
-  checkFiles(envelope, artifact, fail);
-}
-
 export async function resolveArtifacts(
   source: ConnectedSource,
   want: readonly Want[],
@@ -287,6 +171,122 @@ export async function resolveArtifacts(
     registry: identity(resolution.registry),
     layout: layout ? resolution.layout : undefined,
   };
+}
+
+/**
+ * Everything an adapter returns is checked here, once, rather than by each
+ * adapter in its own way. A backend that lies is named in the failure.
+ */
+function check(adapter: SourceAdapter, artifact: Artifact, index: number): void {
+  const envelope: Envelope | undefined = artifact.envelope;
+  const metadata: EnvelopeMetadata | undefined = envelope?.metadata;
+  const name = typeof metadata?.name === "string" ? metadata.name : "";
+  const where = name === "" ? `Artifact ${index}` : `Artifact ${quoted(name)}`;
+  // Annotated so the compiler knows a failing check does not fall through.
+  const fail: Fail = (message) => {
+    const title = `${where} ${message}.`;
+    throw new AdapterError(adapter.id, "invalid", title, {
+      artifact: name,
+      problem: { code: "SPEC_INVALID", title },
+    });
+  };
+
+  if (typeof artifact.id !== "string" || artifact.id === "") fail("has no id");
+  if (!adapter.artifactKinds.includes(artifact.kind)) {
+    fail(`is a ${artifact.kind}, which ${adapter.displayName} does not serve`);
+  }
+  if (envelope === undefined || metadata === undefined) fail("has no file list");
+  if (envelope.apiVersion !== ENVELOPE_API_VERSION) {
+    fail(`has a file list in format ${quoted(envelope.apiVersion)}, not ${ENVELOPE_API_VERSION}`);
+  }
+  if (typeof envelope.kind !== "string" || envelope.kind === "")
+    fail("has no kind in its file list");
+  if (name === "") fail("has no name");
+  if (!Array.isArray(envelope.files) || envelope.files.length === 0) fail("describes no files");
+  if (!Array.isArray(artifact.files) || artifact.files.length === 0) fail("publishes no files");
+  const { version } = artifact;
+  if (version !== undefined && (typeof version !== "string" || !isVersion(version))) {
+    fail(`is served at ${quoted(String(version))}, which is not a version`);
+  }
+
+  checkFiles(envelope, artifact, fail);
+}
+
+/**
+ * Both directions, so neither an undescribed file nor an unreachable descriptor
+ * surfaces halfway through a fetch.
+ */
+function checkFiles(envelope: Envelope, artifact: Artifact, fail: Fail): void {
+  const described = new Map<string, FileDescriptor>();
+  for (const descriptor of envelope.files) {
+    if (!isSafePath(descriptor.path)) {
+      fail(`describes an unusable file path: ${descriptor.path}`);
+    }
+    if (!isDigest(descriptor.digest)) {
+      fail(
+        `describes ${descriptor.path} with "${descriptor.digest}", which is not a sha256 digest`,
+      );
+    }
+    if (!Number.isSafeInteger(descriptor.size) || descriptor.size < 0) {
+      fail(`describes ${descriptor.path} with a size of ${descriptor.size}`);
+    }
+    described.set(descriptor.path, descriptor);
+  }
+  const clash = collidingPaths([...described.keys()]);
+  if (clash !== undefined) {
+    fail(`describes ${quoted(clash[0])} and ${quoted(clash[1])}, which are one file on most disks`);
+  }
+
+  const published = new Set<string>();
+  for (const file of artifact.files) {
+    if (!isSafePath(file.path)) fail(`publishes an unusable file path: ${file.path}`);
+    if (typeof file.locator !== "string" || file.locator === "") {
+      fail(`publishes ${file.path} with no locator`);
+    }
+    if (!described.has(file.path)) fail(`publishes ${file.path}, which it does not describe`);
+    published.add(file.path);
+  }
+  for (const path of described.keys()) {
+    if (!published.has(path)) fail(`describes ${path}, which it does not publish`);
+  }
+}
+
+type Fail = (message: string) => never;
+
+function asServed(artifact: Artifact): { artifact: Artifact; leftOut?: string[] } | undefined {
+  const spec = KIND_SPECS[artifact.kind];
+  if (spec.shape !== "file" || artifact.files.length <= 1) return { artifact };
+  const entry = (spec.served ?? [])
+    .map((name) => artifact.files.find((file) => file.path === name))
+    .find((file) => file !== undefined);
+  if (entry === undefined) return undefined;
+  const leftOut = artifact.files.filter((file) => file !== entry).map((file) => file.path);
+  return { artifact: { ...artifact, files: [entry] }, leftOut: leftOut.sort() };
+}
+
+/**
+ * The address the file spec gives this artifact inside its registry, which is
+ * where its bytes sit in the mirror. File-shaped entries keep the extension.
+ */
+function entryPath(artifact: Artifact): string | undefined {
+  // A plugin is its own namespace; anything else is filed under the one it
+  // belongs to, and an artifact with neither is filed under its own name.
+  const namespace = sanitizeName(
+    artifact.kind === "plugin"
+      ? artifact.envelope.metadata.name
+      : (artifact.group ?? artifact.envelope.metadata.namespace ?? artifact.envelope.metadata.name),
+  );
+  const name = sanitizeName(artifact.envelope.metadata.name);
+  const address = `artifacts/${namespace}/${specKindDir(artifact.kind)}/${name}`;
+  if (KIND_SPECS[artifact.kind].shape === "directory") return address;
+
+  const only = artifact.files.length === 1 ? artifact.files[0] : undefined;
+  return only === undefined ? undefined : `${address}${extname(only.path)}`;
+}
+
+/** Text from an adapter, one line, without escapes; anything else is dropped. */
+function line(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? sanitizeText(value) : undefined;
 }
 
 /** Only what could be a name or a label; a backend's other fields are not read. */

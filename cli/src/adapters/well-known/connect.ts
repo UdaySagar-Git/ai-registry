@@ -32,64 +32,6 @@ const MAX_ARCHIVE = 50 * 1024 * 1024;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Loopback as the host counts it, the one place plain http is allowed. */
-function isLoopback(url: URL): boolean {
-  const host = url.hostname;
-  return (
-    host === "localhost" || host.endsWith(".localhost") || host === "[::1]" || /^127\./.test(host)
-  );
-}
-
-/** Where to look for the index: beside the address first, then at the site's root. */
-function indexUrls(location: string): URL[] {
-  const base = new URL(location);
-  if (base.pathname.endsWith(`/${INDEX}`)) return [base];
-  const folder = new URL(base.href.endsWith("/") ? base.href : `${base.href}/`);
-  const urls = [new URL(INDEX, folder), new URL(`/${INDEX}`, base)];
-  return urls.filter((url, at) => urls.findIndex((other) => other.href === url.href) === at);
-}
-
-interface Entry {
-  name: string;
-  type: "skill-md" | "archive";
-  description: string;
-  url: URL;
-  digest: string;
-}
-
-/** One index entry, checked; a skill aireg cannot read is skipped, a broken entry is an error. */
-function entryOf(url: URL, item: Record<string, unknown>, warnings: string[]): Entry | undefined {
-  const name = typeof item.name === "string" ? item.name : "";
-  if (!NAME.test(name) || name.length > 64) {
-    warnings.push(`Skipped ${quoted(name)}: it is not an Agent Skills name.`);
-    return undefined;
-  }
-  if (item.type !== "skill-md" && item.type !== "archive") {
-    warnings.push(`Skipped ${quoted(name)}: its type is not one aireg reads.`);
-    return undefined;
-  }
-  const digest = typeof item.digest === "string" ? item.digest : "";
-  if (!DIGEST.test(digest))
-    throw fail("invalid", `${url.href} gives ${quoted(name)} no sha256 digest.`);
-  let at: URL;
-  try {
-    at = new URL(String(item.url), url);
-  } catch {
-    throw fail("invalid", `${url.href} gives ${quoted(name)} a url that is not one.`);
-  }
-  // Another host is trusted no further than the digest the index gives it, and only over https.
-  if (at.origin !== url.origin && at.protocol !== "https:") {
-    throw fail(
-      "invalid",
-      `${url.href} sends ${quoted(name)} to ${at.href}, which is another host without https.`,
-    );
-  }
-  const description = typeof item.description === "string" ? item.description : "";
-  return { name, type: item.type, description, url: at, digest };
-}
-
-type Files = Map<string, { bytes: Uint8Array; executable: boolean }>;
-
 export async function connect(context: SourceContext): Promise<SourceHandle> {
   const { location, registry } = context.source;
   let site: URL;
@@ -150,39 +92,6 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
   };
 }
 
-function isSecure(url: URL): boolean {
-  return url.protocol === "https:" || (url.protocol === "http:" && isLoopback(url));
-}
-
-// No credentials and no cookies: a site's index is public, whatever host an entry names.
-async function get(
-  context: SourceContext,
-  url: URL,
-  limit: number,
-): Promise<{ status: number; bytes: Uint8Array }> {
-  if (!isSecure(url)) throw fail("invalid", `${url.href} has no transport security.`);
-  const signal = AbortSignal.any([context.signal, AbortSignal.timeout(context.limits.timeoutMs)]);
-  let response: Response;
-  try {
-    response = await fetch(url, { signal, credentials: "omit", redirect: "follow" });
-  } catch (error) {
-    if (context.signal.aborted) throw error;
-    throw fail("unavailable", `Could not read ${url.href}: ${(error as Error).message}.`);
-  }
-  const landed = new URL(response.url || url.href);
-  if (!isSecure(landed)) {
-    throw fail(
-      "invalid",
-      `${url.href} sent aireg to ${landed.href}, which has no transport security.`,
-    );
-  }
-  if (!response.ok) return { status: response.status, bytes: new Uint8Array() };
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength > limit) throw fail("invalid", `${url.href} is larger than aireg reads.`);
-  context.onBytes(bytes.byteLength);
-  return { status: response.status, bytes };
-}
-
 async function readIndex(
   context: SourceContext,
   location: string,
@@ -214,6 +123,66 @@ async function readIndex(
   );
 }
 
+interface Entry {
+  name: string;
+  type: "skill-md" | "archive";
+  description: string;
+  url: URL;
+  digest: string;
+}
+
+/** Where to look for the index: beside the address first, then at the site's root. */
+function indexUrls(location: string): URL[] {
+  const base = new URL(location);
+  if (base.pathname.endsWith(`/${INDEX}`)) return [base];
+  const folder = new URL(base.href.endsWith("/") ? base.href : `${base.href}/`);
+  const urls = [new URL(INDEX, folder), new URL(`/${INDEX}`, base)];
+  return urls.filter((url, at) => urls.findIndex((other) => other.href === url.href) === at);
+}
+
+type Files = Map<string, { bytes: Uint8Array; executable: boolean }>;
+
+// No credentials and no cookies: a site's index is public, whatever host an entry names.
+async function get(
+  context: SourceContext,
+  url: URL,
+  limit: number,
+): Promise<{ status: number; bytes: Uint8Array }> {
+  if (!isSecure(url)) throw fail("invalid", `${url.href} has no transport security.`);
+  const signal = AbortSignal.any([context.signal, AbortSignal.timeout(context.limits.timeoutMs)]);
+  let response: Response;
+  try {
+    response = await fetch(url, { signal, credentials: "omit", redirect: "follow" });
+  } catch (error) {
+    if (context.signal.aborted) throw error;
+    throw fail("unavailable", `Could not read ${url.href}: ${(error as Error).message}.`);
+  }
+  const landed = new URL(response.url || url.href);
+  if (!isSecure(landed)) {
+    throw fail(
+      "invalid",
+      `${url.href} sent aireg to ${landed.href}, which has no transport security.`,
+    );
+  }
+  if (!response.ok) return { status: response.status, bytes: new Uint8Array() };
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > limit) throw fail("invalid", `${url.href} is larger than aireg reads.`);
+  context.onBytes(bytes.byteLength);
+  return { status: response.status, bytes };
+}
+
+function isSecure(url: URL): boolean {
+  return url.protocol === "https:" || (url.protocol === "http:" && isLoopback(url));
+}
+
+/** Loopback as the host counts it, the one place plain http is allowed. */
+function isLoopback(url: URL): boolean {
+  const host = url.hostname;
+  return (
+    host === "localhost" || host.endsWith(".localhost") || host === "[::1]" || /^127\./.test(host)
+  );
+}
+
 function entriesOf(url: URL, document: unknown, warnings: string[]): Entry[] {
   if (!isRecord(document) || document.$schema !== SCHEMA) {
     const named = isRecord(document) ? document.$schema : undefined;
@@ -229,6 +198,37 @@ function entriesOf(url: URL, document: unknown, warnings: string[]): Entry[] {
     if (entry !== undefined) entries.push(entry);
   }
   return entries;
+}
+
+/** One index entry, checked; a skill aireg cannot read is skipped, a broken entry is an error. */
+function entryOf(url: URL, item: Record<string, unknown>, warnings: string[]): Entry | undefined {
+  const name = typeof item.name === "string" ? item.name : "";
+  if (!NAME.test(name) || name.length > 64) {
+    warnings.push(`Skipped ${quoted(name)}: it is not an Agent Skills name.`);
+    return undefined;
+  }
+  if (item.type !== "skill-md" && item.type !== "archive") {
+    warnings.push(`Skipped ${quoted(name)}: its type is not one aireg reads.`);
+    return undefined;
+  }
+  const digest = typeof item.digest === "string" ? item.digest : "";
+  if (!DIGEST.test(digest))
+    throw fail("invalid", `${url.href} gives ${quoted(name)} no sha256 digest.`);
+  let at: URL;
+  try {
+    at = new URL(String(item.url), url);
+  } catch {
+    throw fail("invalid", `${url.href} gives ${quoted(name)} a url that is not one.`);
+  }
+  // Another host is trusted no further than the digest the index gives it, and only over https.
+  if (at.origin !== url.origin && at.protocol !== "https:") {
+    throw fail(
+      "invalid",
+      `${url.href} sends ${quoted(name)} to ${at.href}, which is another host without https.`,
+    );
+  }
+  const description = typeof item.description === "string" ? item.description : "";
+  return { name, type: item.type, description, url: at, digest };
 }
 
 // Bytes that do not hash to the digest the index gives never land; the whole read fails.

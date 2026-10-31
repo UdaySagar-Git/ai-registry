@@ -99,6 +99,15 @@ export async function run(context: CommandContext): Promise<void> {
   report(context, query, found, skipped);
 }
 
+function kindOf(raw: string): ArtifactKind {
+  const kind = raw.trim().toLowerCase();
+  if (isKind(kind)) return kind;
+  throw new AiregError(`${quoted(raw)} is not a kind.`, {
+    code: ErrorCode.Usage,
+    hint: `Use ${list(KINDS, "or")}.`,
+  });
+}
+
 /** Read through the same listing `aireg registry show` prints. */
 async function matchesIn(target: Resolved, cwd: string): Promise<Match[]> {
   const source = await probe(target.input, target.flags, cwd, [], target);
@@ -139,15 +148,6 @@ async function matchesIn(target: Resolved, cwd: string): Promise<Match[]> {
   } finally {
     await source.close();
   }
-}
-
-function kindOf(raw: string): ArtifactKind {
-  const kind = raw.trim().toLowerCase();
-  if (isKind(kind)) return kind;
-  throw new AiregError(`${quoted(raw)} is not a kind.`, {
-    code: ErrorCode.Usage,
-    hint: `Use ${list(KINDS, "or")}.`,
-  });
 }
 
 function report(

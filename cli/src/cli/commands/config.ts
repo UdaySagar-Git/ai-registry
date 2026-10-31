@@ -72,10 +72,6 @@ const SETTINGS = {
 
 type Key = keyof typeof SETTINGS;
 
-function isKey(value: string): value is Key {
-  return Object.hasOwn(SETTINGS, value);
-}
-
 export async function run(context: CommandContext): Promise<void> {
   const spec = CONFIG_COMMAND;
   const { positionals } = parse(context.argv, spec);
@@ -121,25 +117,6 @@ async function list(context: CommandContext): Promise<void> {
   context.printer.note("file", configPath());
 }
 
-async function path(context: CommandContext): Promise<void> {
-  context.printer.format === "json"
-    ? context.printer.json({ ok: true, data: { path: configPath() } })
-    : context.printer.info(configPath());
-}
-
-async function get(context: CommandContext, key: string | undefined): Promise<void> {
-  if (key === undefined) throw needsKey("get", "aireg config get <key>");
-  if (!isKey(key)) throw unknownSetting(key);
-
-  const current = SETTINGS[key].read(await readConfig());
-  if (context.printer.format === "json") {
-    context.printer.json({ ok: true, data: { key, value: current ?? null } });
-    return;
-  }
-  // Nothing but the value, so `$(aireg config get ...)` is usable.
-  if (current !== undefined) context.printer.info(String(current));
-}
-
 async function set(
   context: CommandContext,
   key: string | undefined,
@@ -164,6 +141,47 @@ async function set(
     : context.printer.success(`Set ${key} to ${String(stored)}.`);
 }
 
+function needsKey(action: string, usage: string): AiregError {
+  return new AiregError(`\`aireg config ${action}\` needs a setting name.`, {
+    code: ErrorCode.Usage,
+    hint: `Name the setting: \`${usage}\`. ${settings()}`,
+  });
+}
+
+function settings(): string {
+  return `The settings are ${listOf(Object.keys(SETTINGS))}.`;
+}
+
+function isKey(value: string): value is Key {
+  return Object.hasOwn(SETTINGS, value);
+}
+
+function unknownSetting(key: string): AiregError {
+  return new AiregError(`Unknown setting ${quoted(key)}.`, {
+    code: ErrorCode.Usage,
+    hint: didYouMean(closest(key, Object.keys(SETTINGS)), settings()),
+  });
+}
+
+async function path(context: CommandContext): Promise<void> {
+  context.printer.format === "json"
+    ? context.printer.json({ ok: true, data: { path: configPath() } })
+    : context.printer.info(configPath());
+}
+
+async function get(context: CommandContext, key: string | undefined): Promise<void> {
+  if (key === undefined) throw needsKey("get", "aireg config get <key>");
+  if (!isKey(key)) throw unknownSetting(key);
+
+  const current = SETTINGS[key].read(await readConfig());
+  if (context.printer.format === "json") {
+    context.printer.json({ ok: true, data: { key, value: current ?? null } });
+    return;
+  }
+  // Nothing but the value, so `$(aireg config get ...)` is usable.
+  if (current !== undefined) context.printer.info(String(current));
+}
+
 /** Back to the default, which for a setting with none is not set at all. */
 async function unset(context: CommandContext, key: string | undefined): Promise<void> {
   if (key === undefined) throw needsKey("unset", "aireg config unset <key>");
@@ -178,22 +196,4 @@ async function unset(context: CommandContext, key: string | undefined): Promise<
   context.printer.success(
     stored === undefined ? `Cleared ${key}.` : `Set ${key} back to ${String(stored)}.`,
   );
-}
-
-function settings(): string {
-  return `The settings are ${listOf(Object.keys(SETTINGS))}.`;
-}
-
-function needsKey(action: string, usage: string): AiregError {
-  return new AiregError(`\`aireg config ${action}\` needs a setting name.`, {
-    code: ErrorCode.Usage,
-    hint: `Name the setting: \`${usage}\`. ${settings()}`,
-  });
-}
-
-function unknownSetting(key: string): AiregError {
-  return new AiregError(`Unknown setting ${quoted(key)}.`, {
-    code: ErrorCode.Usage,
-    hint: didYouMean(closest(key, Object.keys(SETTINGS)), settings()),
-  });
 }

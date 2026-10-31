@@ -18,23 +18,6 @@ import { isRecord } from "#core/fields.ts";
 import { exists, subdirectories } from "#core/fs/tree.ts";
 import { type Problem, readDocument } from "./read.ts";
 
-/** Each `<namespace>/<kind>/<name>` with a `versions.json`, even one with no version folder left. */
-async function catalogued(root: string): Promise<string[]> {
-  const found: string[] = [];
-  const base = join(root, "artifacts");
-  for (const namespace of (await subdirectories(base)).filter(isNamespace)) {
-    for (const kind of (await subdirectories(join(base, namespace))).filter(isKindSegment)) {
-      for (const name of await subdirectories(join(base, namespace, kind))) {
-        if (!isArtifactName(name)) continue;
-        if (await exists(join(base, namespace, kind, name, VERSIONS_DOCUMENT))) {
-          found.push(`${namespace}/${kind}/${name}`);
-        }
-      }
-    }
-  }
-  return found;
-}
-
 /** Section 3: the documents describe one catalog, so they must agree. */
 export async function catalogProblems(
   root: string,
@@ -64,6 +47,49 @@ export async function catalogProblems(
     problems.push({
       path: INDEX_DOCUMENT,
       message: `lists ${key}, which has no versions.json`,
+      fix: "aireg registry index",
+    });
+  }
+  return problems;
+}
+
+/** Each `<namespace>/<kind>/<name>` with a `versions.json`, even one with no version folder left. */
+async function catalogued(root: string): Promise<string[]> {
+  const found: string[] = [];
+  const base = join(root, "artifacts");
+  for (const namespace of (await subdirectories(base)).filter(isNamespace)) {
+    for (const kind of (await subdirectories(join(base, namespace))).filter(isKindSegment)) {
+      for (const name of await subdirectories(join(base, namespace, kind))) {
+        if (!isArtifactName(name)) continue;
+        if (await exists(join(base, namespace, kind, name, VERSIONS_DOCUMENT))) {
+          found.push(`${namespace}/${kind}/${name}`);
+        }
+      }
+    }
+  }
+  return found;
+}
+
+/** A `versions.json` names its own folder and the newest active release. */
+function versionsProblems(
+  at: string,
+  document: Record<string, unknown>,
+  named: Record<"namespace" | "kind" | "name", string>,
+): Problem[] {
+  const problems: Problem[] = [];
+  for (const [field, folder] of Object.entries(named)) {
+    if (document[field] !== folder) {
+      problems.push({
+        path: at,
+        message: `${field} is ${String(document[field])}, but its folder says ${folder}`,
+      });
+    }
+  }
+  const want = newest(Array.isArray(document.versions) ? document.versions : []);
+  if (want !== undefined && document.latest !== want) {
+    problems.push({
+      path: at,
+      message: `latest is ${String(document.latest)}, but the newest active release is ${want}`,
       fix: "aireg registry index",
     });
   }
@@ -104,32 +130,6 @@ async function rowProblems(
       path: at,
       message: `catalog_digest of ${row.version} is ${row.catalog_digest}, but its row and envelope give ${want}`,
       ...(indexed ? { fix: "aireg registry index" } : {}),
-    });
-  }
-  return problems;
-}
-
-/** A `versions.json` names its own folder and the newest active release. */
-function versionsProblems(
-  at: string,
-  document: Record<string, unknown>,
-  named: Record<"namespace" | "kind" | "name", string>,
-): Problem[] {
-  const problems: Problem[] = [];
-  for (const [field, folder] of Object.entries(named)) {
-    if (document[field] !== folder) {
-      problems.push({
-        path: at,
-        message: `${field} is ${String(document[field])}, but its folder says ${folder}`,
-      });
-    }
-  }
-  const want = newest(Array.isArray(document.versions) ? document.versions : []);
-  if (want !== undefined && document.latest !== want) {
-    problems.push({
-      path: at,
-      message: `latest is ${String(document.latest)}, but the newest active release is ${want}`,
-      fix: "aireg registry index",
     });
   }
   return problems;

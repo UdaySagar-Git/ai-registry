@@ -19,29 +19,6 @@ interface Journal {
   writes: string[];
 }
 
-async function readJournal(path: string): Promise<Journal | undefined> {
-  try {
-    const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
-    if (isRecord(parsed)) {
-      const writes = parsed.writes;
-      if (Array.isArray(writes) && writes.every((item) => typeof item === "string")) {
-        return { writes };
-      }
-    }
-    throw new AiregError(`Invalid apply journal: ${path}`, { code: ErrorCode.Invalid });
-  } catch (error) {
-    if (isMissing(error)) return undefined;
-    throw error;
-  }
-}
-
-export interface Recovered {
-  /** What a crashed run wrote that the lock does not hold, now removed. */
-  removed: string[];
-  /** What it wrote that was left in place, as removing it was not safe, and why. */
-  skipped: { path: string; reason: string }[];
-}
-
 /**
  * The lock is written last, so a crash leaves the previous lock and a journal of paths that may be
  * orphaned. Each entry is read once: one that cannot be removed safely is reported and left.
@@ -82,6 +59,29 @@ export async function recover(
   }
   await rm(roots.applyJournal, { force: true });
   return recovered;
+}
+
+export interface Recovered {
+  /** What a crashed run wrote that the lock does not hold, now removed. */
+  removed: string[];
+  /** What it wrote that was left in place, as removing it was not safe, and why. */
+  skipped: { path: string; reason: string }[];
+}
+
+async function readJournal(path: string): Promise<Journal | undefined> {
+  try {
+    const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
+    if (isRecord(parsed)) {
+      const writes = parsed.writes;
+      if (Array.isArray(writes) && writes.every((item) => typeof item === "string")) {
+        return { writes };
+      }
+    }
+    throw new AiregError(`Invalid apply journal: ${path}`, { code: ErrorCode.Invalid });
+  } catch (error) {
+    if (isMissing(error)) return undefined;
+    throw error;
+  }
 }
 
 export async function journal(

@@ -42,16 +42,6 @@ const re2: NonNullable<CodeOptions["regExp"]> = Object.assign(
   { code: "re2" },
 );
 
-function compiler(): Ajv2020 {
-  // Extensions are annotations. Validation must never rewrite the native document.
-  return new Ajv2020({
-    allErrors: true,
-    strict: false,
-    validateFormats: false,
-    code: { regExp: re2 },
-  });
-}
-
 const manifestShape = compiler().compile(manifestSchema);
 
 /**
@@ -91,14 +81,30 @@ export async function prepareManifest(
   compiled.set(schema, validate);
 }
 
-function valueAt(value: unknown, pointer: string): unknown {
-  let current = value;
-  for (const part of pointer.split("/").slice(1)) {
-    const key = part.replaceAll("~1", "/").replaceAll("~0", "~");
-    if (current === null || typeof current !== "object") return undefined;
-    current = (current as Record<string, unknown>)[key];
+function compiler(): Ajv2020 {
+  // Extensions are annotations. Validation must never rewrite the native document.
+  return new Ajv2020({
+    allErrors: true,
+    strict: false,
+    validateFormats: false,
+    code: { regExp: re2 },
+  });
+}
+
+/** Problems with a value, without coercion, default insertion, or removal of fields. */
+export function check(schema: SchemaObject, value: unknown): string[] {
+  let validate = compiled.get(schema);
+  if (validate === undefined) {
+    try {
+      validate = compiler().compile(schema);
+      if (schema.$async !== undefined)
+        return ["kind schema uses unsupported asynchronous validation"];
+      compiled.set(schema, validate);
+    } catch (error) {
+      return [`kind schema is invalid: ${(error as Error).message}`];
+    }
   }
-  return current;
+  return validate(value) ? [] : (validate.errors ?? []).map((error) => message(error, value));
 }
 
 function message(error: ErrorObject, value: unknown): string {
@@ -128,18 +134,12 @@ function message(error: ErrorObject, value: unknown): string {
   }
 }
 
-/** Problems with a value, without coercion, default insertion, or removal of fields. */
-export function check(schema: SchemaObject, value: unknown): string[] {
-  let validate = compiled.get(schema);
-  if (validate === undefined) {
-    try {
-      validate = compiler().compile(schema);
-      if (schema.$async !== undefined)
-        return ["kind schema uses unsupported asynchronous validation"];
-      compiled.set(schema, validate);
-    } catch (error) {
-      return [`kind schema is invalid: ${(error as Error).message}`];
-    }
+function valueAt(value: unknown, pointer: string): unknown {
+  let current = value;
+  for (const part of pointer.split("/").slice(1)) {
+    const key = part.replaceAll("~1", "/").replaceAll("~0", "~");
+    if (current === null || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[key];
   }
-  return validate(value) ? [] : (validate.errors ?? []).map((error) => message(error, value));
+  return current;
 }

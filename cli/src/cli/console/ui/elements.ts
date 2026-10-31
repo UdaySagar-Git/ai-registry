@@ -7,15 +7,6 @@ import { COLOR } from "#core/term/theme.ts";
 type BoxProps = (Parameters<typeof Box>[0] & Attributes) | null;
 type TextProps = (Parameters<typeof Text>[0] & Attributes) | null;
 
-/**
- * The console shows manifest, lockfile and registry text, and Ink keeps hyperlinks and any
- * styling in it. The console styles through props, so no string it draws needs an escape.
- */
-function inert(node: ReactNode): ReactNode {
-  if (typeof node === "string") return sanitizeBlock(node);
-  return Array.isArray(node) ? node.map(inert) : node;
-}
-
 // `createElement` rather than JSX: the CLI runs from TypeScript source under Node's type
 // stripping, which does not transform JSX.
 export function box(props: BoxProps, ...children: ReactNode[]): ReactElement {
@@ -24,6 +15,15 @@ export function box(props: BoxProps, ...children: ReactNode[]): ReactElement {
 
 export function text(props: TextProps, ...children: ReactNode[]): ReactElement {
   return createElement(Text, props, ...children.map(inert));
+}
+
+/**
+ * The console shows manifest, lockfile and registry text, and Ink keeps hyperlinks and any
+ * styling in it. The console styles through props, so no string it draws needs an escape.
+ */
+function inert(node: ReactNode): ReactNode {
+  if (typeof node === "string") return sanitizeBlock(node);
+  return Array.isArray(node) ? node.map(inert) : node;
 }
 
 export function plain(value: ReactNode): ReactElement {

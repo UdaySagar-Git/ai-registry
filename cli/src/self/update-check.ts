@@ -25,11 +25,6 @@ const ADAPTER_TIMEOUT_MS = 10_000;
 
 export const UPDATE_CHECK_FLAG = "--internal-update-check";
 
-/** A time in the future is stale, so a clock moved backwards cannot pin the cache. */
-function isFresh(at: number | undefined, now = Date.now()): boolean {
-  return at !== undefined && now - at >= 0 && now - at < CHECK_INTERVAL_MS;
-}
-
 export function skipUpdateCheck(env: NodeJS.ProcessEnv, json: boolean, tty: boolean): boolean {
   if (json || !tty) return true;
   if (isCI(env) || isSet("DISABLE_UPDATE_CHECK", env)) return true;
@@ -49,6 +44,11 @@ export async function scheduleUpdateCheck(
   await writeUpdateCache({ ...cached, checkedAt: Date.now() }, env);
   const launch = launchArgv(entry, [UPDATE_CHECK_FLAG]);
   $spawn(launch.command, launch.args, { env }).on("error", () => {});
+}
+
+/** A time in the future is stale, so a clock moved backwards cannot pin the cache. */
+function isFresh(at: number | undefined, now = Date.now()): boolean {
+  return at !== undefined && now - at >= 0 && now - at < CHECK_INTERVAL_MS;
 }
 
 /** The detached child's work; a version already on disk is a rollback to respect. */

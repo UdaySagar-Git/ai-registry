@@ -5,31 +5,6 @@ import type { SyncOperation } from "#core/sync/policy.ts";
 
 type Row = Record<string, unknown>;
 
-function optionalText(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
-
-function integer(value: unknown): number {
-  if (typeof value !== "number" || !Number.isSafeInteger(value)) {
-    throw new Error("The run history holds an invalid number.");
-  }
-  return value;
-}
-
-function optionalInteger(value: unknown): number | undefined {
-  return value === null || value === undefined ? undefined : integer(value);
-}
-
-function json(value: unknown): unknown {
-  if (value === null || value === undefined) return undefined;
-  if (typeof value !== "string") throw new Error("The run history holds invalid JSON.");
-  try {
-    return JSON.parse(value);
-  } catch (cause) {
-    throw new Error("The run history holds invalid JSON.", { cause });
-  }
-}
-
 export function toRun(row: Row, counts: RunCounts): RunRecord {
   return {
     id: String(row.id),
@@ -48,6 +23,21 @@ export function toRun(row: Row, counts: RunCounts): RunRecord {
     errorCode: optionalText(row.error_code),
     retryable: row.retryable === 1,
   };
+}
+
+function optionalText(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function integer(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value)) {
+    throw new Error("The run history holds an invalid number.");
+  }
+  return value;
+}
+
+function optionalInteger(value: unknown): number | undefined {
+  return value === null || value === undefined ? undefined : integer(value);
 }
 
 export function toCounts(row: Row): RunCounts {
@@ -77,4 +67,14 @@ export function toEvent(row: Row): RunEvent {
     retryable: row.retryable === 1,
     data: json(row.data_json),
   };
+}
+
+function json(value: unknown): unknown {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== "string") throw new Error("The run history holds invalid JSON.");
+  try {
+    return JSON.parse(value);
+  } catch (cause) {
+    throw new Error("The run history holds invalid JSON.", { cause });
+  }
 }

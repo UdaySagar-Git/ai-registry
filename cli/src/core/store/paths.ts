@@ -107,13 +107,6 @@ export function leasesDir(env: NodeJS.ProcessEnv = process.env): string {
   return join(toolHome(env), "leases");
 }
 
-/** In aireg's home, not the scope: recovery deletes what it names, and a clone could ship one. */
-function journalPath(dir: string, env: NodeJS.ProcessEnv): string {
-  const scope = join(canonical(dirname(dir)), basename(dir));
-  const key = shortHash(scope);
-  return join(toolHome(env), "journals", `${key}.json`);
-}
-
 export function roots(scope: Scope, cwd: string, env: NodeJS.ProcessEnv = process.env): Roots {
   const user = scope === "user";
   const dir = user ? userScopeDir(env) : join(cwd, SCOPE_DIR);
@@ -128,6 +121,13 @@ export function roots(scope: Scope, cwd: string, env: NodeJS.ProcessEnv = proces
     artifacts: join(dir, "artifacts"),
     applyJournal: journalPath(dir, env),
   };
+}
+
+/** In aireg's home, not the scope: recovery deletes what it names, and a clone could ship one. */
+function journalPath(dir: string, env: NodeJS.ProcessEnv): string {
+  const scope = join(canonical(dirname(dir)), basename(dir));
+  const key = shortHash(scope);
+  return join(toolHome(env), "journals", `${key}.json`);
 }
 
 /** Scope is positional rather than declared: the user scope's folder, else a project. */

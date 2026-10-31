@@ -84,40 +84,6 @@ function aliasProblems(
   }
 }
 
-function profileProblems(root: string, report: Report) {
-  if (!root.startsWith("~/")) report("the profiles root is not under ~/.");
-  pathProblem(root.slice(2), ["profile"], report);
-  const segments = root.split("/");
-  if (!segments.at(-1)?.includes("{profile}") || segments.slice(0, -1).join("/").includes("{")) {
-    report("the profiles root names {profile} only in its last segment.");
-  }
-  if (segments.length === 2 && segments[1] === "{profile}") {
-    report("the profiles root would make every folder in your home folder a profile.");
-  }
-}
-
-function readProblem(
-  kind: ArtifactKind,
-  found: TargetDefinition | undefined,
-  read: string,
-  report: Report,
-) {
-  if (found === undefined) report(`reads.${kind} names ${read}, which is not a target.`);
-  else if (found.kinds[kind] === undefined) {
-    report(`reads.${kind} names ${read}, which places no ${kind}.`);
-  }
-}
-
-function keyProblems(mapping: KindMapping, report: Report) {
-  for (const file of Object.values(mapping.keys ?? {})) {
-    if (file === false) continue;
-    pathProblem(file.path, [], report);
-    if (!/\.(json|ya?ml)$/.test(file.path)) {
-      report(`${quoted(file.path)} is not a .json or .yaml file.`);
-    }
-  }
-}
-
 function rootProblems(definition: TargetDefinition, report: Report) {
   if (!definition.roots.user.default.startsWith("~/")) report("the user root is not under ~/.");
   for (const path of [definition.roots.project, definition.roots.user.default.slice(2)]) {
@@ -127,6 +93,31 @@ function rootProblems(definition: TargetDefinition, report: Report) {
   if (within !== undefined) {
     pathProblem(within, [], report);
     if (definition.roots.user.env === undefined) report("roots.user.within needs an env.");
+  }
+}
+
+function pathProblem(path: string, vars: readonly string[], report: Report) {
+  if (path === "" || isAbsolute(path) || path.split(/[\\/]/).includes("..")) {
+    report(`${quoted(path)} is not a path inside its root.`);
+  }
+  templateProblems(path, vars, report);
+}
+
+function templateProblems(text: string, vars: readonly string[], report: Report) {
+  for (const name of templateVars(text)) {
+    if (!vars.includes(name)) report(`${text} uses {${name}}, which nothing fills there.`);
+  }
+}
+
+function profileProblems(root: string, report: Report) {
+  if (!root.startsWith("~/")) report("the profiles root is not under ~/.");
+  pathProblem(root.slice(2), ["profile"], report);
+  const segments = root.split("/");
+  if (!segments.at(-1)?.includes("{profile}") || segments.slice(0, -1).join("/").includes("{")) {
+    report("the profiles root names {profile} only in its last segment.");
+  }
+  if (segments.length === 2 && segments[1] === "{profile}") {
+    report("the profiles root would make every folder in your home folder a profile.");
   }
 }
 
@@ -169,6 +160,27 @@ function mappingProblems(kind: ArtifactKind, mapping: KindMapping, report: Repor
   }
 }
 
+function valueProblems(value: ConfigValue, vars: readonly string[], report: Report) {
+  if (typeof value === "string") templateProblems(value, vars, report);
+  else if (Array.isArray(value)) for (const item of value) valueProblems(item, vars, report);
+  else if (typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      templateProblems(key, vars, report);
+      valueProblems(item, vars, report);
+    }
+  }
+}
+
+function keyProblems(mapping: KindMapping, report: Report) {
+  for (const file of Object.values(mapping.keys ?? {})) {
+    if (file === false) continue;
+    pathProblem(file.path, [], report);
+    if (!/\.(json|ya?ml)$/.test(file.path)) {
+      report(`${quoted(file.path)} is not a .json or .yaml file.`);
+    }
+  }
+}
+
 function registerProblems(
   kind: string,
   entry: RegisterEntry,
@@ -200,26 +212,14 @@ function registerProblems(
   }
 }
 
-function pathProblem(path: string, vars: readonly string[], report: Report) {
-  if (path === "" || isAbsolute(path) || path.split(/[\\/]/).includes("..")) {
-    report(`${quoted(path)} is not a path inside its root.`);
-  }
-  templateProblems(path, vars, report);
-}
-
-function templateProblems(text: string, vars: readonly string[], report: Report) {
-  for (const name of templateVars(text)) {
-    if (!vars.includes(name)) report(`${text} uses {${name}}, which nothing fills there.`);
-  }
-}
-
-function valueProblems(value: ConfigValue, vars: readonly string[], report: Report) {
-  if (typeof value === "string") templateProblems(value, vars, report);
-  else if (Array.isArray(value)) for (const item of value) valueProblems(item, vars, report);
-  else if (typeof value === "object") {
-    for (const [key, item] of Object.entries(value)) {
-      templateProblems(key, vars, report);
-      valueProblems(item, vars, report);
-    }
+function readProblem(
+  kind: ArtifactKind,
+  found: TargetDefinition | undefined,
+  read: string,
+  report: Report,
+) {
+  if (found === undefined) report(`reads.${kind} names ${read}, which is not a target.`);
+  else if (found.kinds[kind] === undefined) {
+    report(`reads.${kind} names ${read}, which places no ${kind}.`);
   }
 }

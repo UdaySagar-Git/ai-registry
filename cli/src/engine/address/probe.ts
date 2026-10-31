@@ -118,39 +118,6 @@ export function rememberSource(
   return { ...existing, config: probed.config };
 }
 
-/** A registry's slug, else its name made identifier-safe: the name clients use for it. */
-function ownName(registry: RegistryIdentity | undefined): string | undefined {
-  const raw = registry?.slug ?? registry?.name;
-  return raw === undefined ? undefined : sanitizeName(raw);
-}
-
-/** The description, else a name that says more than the alias already does. */
-function labelOf(registry: RegistryIdentity | undefined, alias: string): string | undefined {
-  if (registry?.description !== undefined) return registry.description;
-  return registry?.name === undefined || sanitizeName(registry.name) === alias
-    ? undefined
-    : registry.name;
-}
-
-export interface Resolved {
-  /** What to hand `probe`, whichever way the registry was named. */
-  input: string;
-  flags: SourceFlags;
-  /** The artifact the address singled out, when it named one. */
-  name: string | undefined;
-  /** The namespace and kind the address wrote, which narrow that name. */
-  namespace?: string | undefined;
-  kind?: ArtifactKind | undefined;
-  /** The version that address pinned, when it carried one. */
-  version: string | undefined;
-  /** Whether the address named a registry this scope already declares. */
-  declared: boolean;
-  /** The declared alias, whose account is the one to read with. */
-  alias: string | undefined;
-  /** Every alias the same declarations hold, any of which may read the same token. */
-  aliases: readonly string[];
-}
-
 /**
  * An address may name a registry this scope already declares; otherwise its first
  * segment would reach the git adapter as a repository name.
@@ -204,6 +171,37 @@ export function throughManifest(
     alias,
     aliases: Object.keys(registries),
   };
+}
+
+/** Flags win over the manifest, so `--ref` can override a pinned registry. */
+function overlay(declared: RegistrySource, flags: SourceFlags): SourceFlags {
+  const config = Object.entries(declared.config).map(([key, value]) => `${key}=${value}`);
+  return {
+    adapter: flags.adapter ?? declared.adapter,
+    config: [...config, ...(flags.config ?? [])],
+    ref: flags.ref,
+    path: flags.path,
+    layout: flags.layout,
+  };
+}
+
+export interface Resolved {
+  /** What to hand `probe`, whichever way the registry was named. */
+  input: string;
+  flags: SourceFlags;
+  /** The artifact the address singled out, when it named one. */
+  name: string | undefined;
+  /** The namespace and kind the address wrote, which narrow that name. */
+  namespace?: string | undefined;
+  kind?: ArtifactKind | undefined;
+  /** The version that address pinned, when it carried one. */
+  version: string | undefined;
+  /** Whether the address named a registry this scope already declares. */
+  declared: boolean;
+  /** The declared alias, whose account is the one to read with. */
+  alias: string | undefined;
+  /** Every alias the same declarations hold, any of which may read the same token. */
+  aliases: readonly string[];
 }
 
 /**
@@ -345,15 +343,6 @@ export function atAddress(resolved: Resolved, entries: readonly Entry[], alias: 
   });
 }
 
-export interface ArtifactLink {
-  /** The registry's address, what `--registry` would take. */
-  registry: string;
-  /** Where in a repository the registry sits, from a pasted link. */
-  flags: SourceFlags;
-  /** The artifact inside it: `<namespace>/<kind>/<name>[@<version>]`. */
-  address: string;
-}
-
 /**
  * A pasted link or a folder that points at one artifact inside a registry, not
  * at the registry: the registry is the folder above `artifacts`, holding registry.json.
@@ -396,37 +385,18 @@ export async function insideRegistry(
   return { registry, flags: {}, address: addressOf(place) };
 }
 
+export interface ArtifactLink {
+  /** The registry's address, what `--registry` would take. */
+  registry: string;
+  /** Where in a repository the registry sits, from a pasted link. */
+  flags: SourceFlags;
+  /** The artifact inside it: `<namespace>/<kind>/<name>[@<version>]`. */
+  address: string;
+}
+
 function addressOf(place: ArtifactPlace): string {
   const address = `${place.namespace}/${place.kind}/${place.name}`;
   return place.version === undefined ? address : `${address}@${place.version}`;
-}
-
-/**
- * Detection runs once: a layout other than a registry is recorded with the source, so every later
- * run reads it the same way. A registry is the default and is recorded only when forced.
- */
-function withLayout(
-  config: Readonly<Record<string, string>>,
-  layout: LayoutId | undefined,
-  adapter: SourceAdapter,
-): Record<string, string> {
-  const takes = adapter.configSchema?.properties?.layout !== undefined;
-  if (!takes || layout === undefined || layout === "registry" || config.layout !== undefined) {
-    return { ...config };
-  }
-  return canonicalConfig({ ...config, layout });
-}
-
-/** Flags win over the manifest, so `--ref` can override a pinned registry. */
-function overlay(declared: RegistrySource, flags: SourceFlags): SourceFlags {
-  const config = Object.entries(declared.config).map(([key, value]) => `${key}=${value}`);
-  return {
-    adapter: flags.adapter ?? declared.adapter,
-    config: [...config, ...(flags.config ?? [])],
-    ref: flags.ref,
-    path: flags.path,
-    layout: flags.layout,
-  };
 }
 
 /**
@@ -544,4 +514,34 @@ export async function probe(
     },
     close: () => open.handle.close(),
   };
+}
+
+/** A registry's slug, else its name made identifier-safe: the name clients use for it. */
+function ownName(registry: RegistryIdentity | undefined): string | undefined {
+  const raw = registry?.slug ?? registry?.name;
+  return raw === undefined ? undefined : sanitizeName(raw);
+}
+
+/**
+ * Detection runs once: a layout other than a registry is recorded with the source, so every later
+ * run reads it the same way. A registry is the default and is recorded only when forced.
+ */
+function withLayout(
+  config: Readonly<Record<string, string>>,
+  layout: LayoutId | undefined,
+  adapter: SourceAdapter,
+): Record<string, string> {
+  const takes = adapter.configSchema?.properties?.layout !== undefined;
+  if (!takes || layout === undefined || layout === "registry" || config.layout !== undefined) {
+    return { ...config };
+  }
+  return canonicalConfig({ ...config, layout });
+}
+
+/** The description, else a name that says more than the alias already does. */
+function labelOf(registry: RegistryIdentity | undefined, alias: string): string | undefined {
+  if (registry?.description !== undefined) return registry.description;
+  return registry?.name === undefined || sanitizeName(registry.name) === alias
+    ? undefined
+    : registry.name;
 }

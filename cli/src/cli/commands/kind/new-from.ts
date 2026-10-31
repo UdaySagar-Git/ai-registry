@@ -35,63 +35,6 @@ interface Incoming {
   front: { file: string; name: string } | undefined;
 }
 
-async function incoming(
-  kind: string,
-  manifest: KindManifest,
-  cwd: string,
-  input: string,
-  named: string | undefined,
-): Promise<Incoming> {
-  const source = resolve(cwd, expandUserPath(input));
-  if (!existsSync(source)) {
-    throw new AiregError(`Nothing exists at ${input}.`, {
-      code: ErrorCode.NotFound,
-      hint: `Name an existing ${kind} folder or file: \`aireg ${kind} new --from <path>\`.`,
-    });
-  }
-  const isDirectory = (await stat(source)).isDirectory();
-  const dir = isDirectory ? source : dirname(source);
-  const visible = (path: string) => !path.split("/").some((part) => part.startsWith("."));
-  const found = isDirectory ? await authored(dir) : { files: [], irregular: await linked(source) };
-  const entries = isDirectory
-    ? found.files.map((record) => record.path).filter(visible)
-    : [basename(source)];
-
-  const texts = new Map<string, string>();
-  for (const path of entries.filter((item) => /\.(md|json)$/.test(item))) {
-    texts.set(path, await readFile(join(dir, path), "utf8"));
-  }
-  const spec = specOf(manifest, texts, named);
-  const problems = [
-    ...found.irregular
-      .filter((entry) => visible(entry.path))
-      .map((entry) => `${entry.path} ${refusal(entry)}`),
-    ...fileProblems(manifest, new Set(entries)),
-    ...(spec === undefined ? ["has no front matter"] : check(manifest, spec)),
-  ];
-  const fallback =
-    typeof spec?.name === "string"
-      ? spec.name
-      : sanitizeName(basename(isDirectory ? source : dirname(source)));
-  const name = nameOf(named, fallback);
-  if (problems.length > 0) {
-    throw new AiregError(`${input} is not a valid ${kind}: ${problems.join("; ")}.`, {
-      code: ErrorCode.Invalid,
-      hint: `Fix it where it is, then run \`aireg ${kind} new --from ${input}\` again.`,
-    });
-  }
-  const file = specFile(manifest, texts);
-  const front =
-    file !== undefined && typeof spec?.name === "string" ? { file, name: spec.name } : undefined;
-  return { input, dir, entries, name, front };
-}
-
-/** One file named by `--from`, refused as a link the way a folder's entries are. */
-async function linked(source: string): Promise<Irregular[]> {
-  if (!(await lstat(source)).isSymbolicLink()) return [];
-  return [{ path: basename(source), reason: "is a symlink" }];
-}
-
 /** Starts new artifacts from folders that already exist; the originals stay where they are. */
 export async function newFrom(
   kind: string,
@@ -170,6 +113,63 @@ export async function newFrom(
     context.printer.success(`Copied ${item.name} into ${relative(context.cwd, item.at) || "."}/.`);
   }
   context.printer.note("next", "aireg registry index");
+}
+
+async function incoming(
+  kind: string,
+  manifest: KindManifest,
+  cwd: string,
+  input: string,
+  named: string | undefined,
+): Promise<Incoming> {
+  const source = resolve(cwd, expandUserPath(input));
+  if (!existsSync(source)) {
+    throw new AiregError(`Nothing exists at ${input}.`, {
+      code: ErrorCode.NotFound,
+      hint: `Name an existing ${kind} folder or file: \`aireg ${kind} new --from <path>\`.`,
+    });
+  }
+  const isDirectory = (await stat(source)).isDirectory();
+  const dir = isDirectory ? source : dirname(source);
+  const visible = (path: string) => !path.split("/").some((part) => part.startsWith("."));
+  const found = isDirectory ? await authored(dir) : { files: [], irregular: await linked(source) };
+  const entries = isDirectory
+    ? found.files.map((record) => record.path).filter(visible)
+    : [basename(source)];
+
+  const texts = new Map<string, string>();
+  for (const path of entries.filter((item) => /\.(md|json)$/.test(item))) {
+    texts.set(path, await readFile(join(dir, path), "utf8"));
+  }
+  const spec = specOf(manifest, texts, named);
+  const problems = [
+    ...found.irregular
+      .filter((entry) => visible(entry.path))
+      .map((entry) => `${entry.path} ${refusal(entry)}`),
+    ...fileProblems(manifest, new Set(entries)),
+    ...(spec === undefined ? ["has no front matter"] : check(manifest, spec)),
+  ];
+  const fallback =
+    typeof spec?.name === "string"
+      ? spec.name
+      : sanitizeName(basename(isDirectory ? source : dirname(source)));
+  const name = nameOf(named, fallback);
+  if (problems.length > 0) {
+    throw new AiregError(`${input} is not a valid ${kind}: ${problems.join("; ")}.`, {
+      code: ErrorCode.Invalid,
+      hint: `Fix it where it is, then run \`aireg ${kind} new --from ${input}\` again.`,
+    });
+  }
+  const file = specFile(manifest, texts);
+  const front =
+    file !== undefined && typeof spec?.name === "string" ? { file, name: spec.name } : undefined;
+  return { input, dir, entries, name, front };
+}
+
+/** One file named by `--from`, refused as a link the way a folder's entries are. */
+async function linked(source: string): Promise<Irregular[]> {
+  if (!(await lstat(source)).isSymbolicLink()) return [];
+  return [{ path: basename(source), reason: "is a symlink" }];
 }
 
 /**

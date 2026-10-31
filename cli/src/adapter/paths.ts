@@ -4,18 +4,6 @@ import { delimiter, extname, isAbsolute, join, posix, relative, resolve, sep } f
 import { stripTrailing } from "./text.ts";
 
 const UNPRINTABLE = /\p{Cc}/u;
-/** Code points HFS+ ignores in a name, so `.g\u200cit` is `.git` there (as git checks). */
-const HFS_IGNORED = /[\u200c-\u200f\u202a-\u202e\u206a-\u206f\ufeff]/gu;
-
-/**
- * A segment some filesystem stores as `.git`: any case, HFS+'s ignored code points,
- * the trailing dots and spaces Windows drops, and the 8.3 short name `git~1`.
- */
-function isGitDir(segment: string): boolean {
-  const folded = stripTrailing(segment.replace(HFS_IGNORED, "").toLowerCase(), ". ");
-  return folded === ".git" || folded === "git~1";
-}
-
 /**
  * A relative POSIX path every platform writes inside the folder it joins, with no `.git` segment.
  * A spelling later refused or rewritten must never reach the content key, or equal trees differ.
@@ -28,6 +16,18 @@ export function isSafePath(path: string): boolean {
     .every(
       (segment) => segment !== "" && segment !== "." && segment !== ".." && !isGitDir(segment),
     );
+}
+
+/** Code points HFS+ ignores in a name, so `.g\u200cit` is `.git` there (as git checks). */
+const HFS_IGNORED = /[\u200c-\u200f\u202a-\u202e\u206a-\u206f\ufeff]/gu;
+
+/**
+ * A segment some filesystem stores as `.git`: any case, HFS+'s ignored code points,
+ * the trailing dots and spaces Windows drops, and the 8.3 short name `git~1`.
+ */
+function isGitDir(segment: string): boolean {
+  const folded = stripTrailing(segment.replace(HFS_IGNORED, "").toLowerCase(), ". ");
+  return folded === ".git" || folded === "git~1";
 }
 
 /**
@@ -78,18 +78,6 @@ export function expandHome(path: string, home = homedir()): string {
   return typed ? join(home, path.slice(2)) : path;
 }
 
-/** The names `env` gives PATH: on Windows, where names ignore case, `Path` too. */
-function pathKeys(env: NodeJS.ProcessEnv): string[] {
-  const windows = process.platform === "win32";
-  return Object.keys(env).filter(
-    (key) => env[key] !== undefined && (windows ? key.toUpperCase() === "PATH" : key === "PATH"),
-  );
-}
-
-function absoluteFolders(path: string | undefined): string[] {
-  return (path ?? "").split(delimiter).filter((folder) => isAbsolute(folder));
-}
-
 /**
  * `env` with PATH cut to its absolute folders: a spawn resolves any other entry against its working
  * folder, which a registry may have written. Throws rather than empty PATH, which searches it too.
@@ -106,6 +94,18 @@ export function withAbsolutePath(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return kept;
 }
 
+/** The names `env` gives PATH: on Windows, where names ignore case, `Path` too. */
+function pathKeys(env: NodeJS.ProcessEnv): string[] {
+  const windows = process.platform === "win32";
+  return Object.keys(env).filter(
+    (key) => env[key] !== undefined && (windows ? key.toUpperCase() === "PATH" : key === "PATH"),
+  );
+}
+
+function absoluteFolders(path: string | undefined): string[] {
+  return (path ?? "").split(delimiter).filter((folder) => isAbsolute(folder));
+}
+
 /** Cheap `which`: no subprocess, and only the folders a spawn would search. */
 export function onPath(binary: string, env: NodeJS.ProcessEnv = process.env): boolean {
   const paths = pathKeys(env).flatMap((key) => absoluteFolders(env[key]));
@@ -118,21 +118,6 @@ const SYSTEM_PROGRAMS = new Map([
   ["reg", "reg.exe"],
   ["rundll32", "rundll32.exe"],
 ]);
-
-function system32(env: NodeJS.ProcessEnv): string {
-  const key = Object.keys(env).find((each) => each.toUpperCase() === "SYSTEMROOT");
-  const root = key === undefined ? undefined : env[key];
-  return join(
-    root !== undefined && /^[A-Za-z]:[\\/]/.test(root) ? root : "C:\\Windows",
-    "System32",
-  );
-}
-
-/** What a Windows spawn tries for `name`: itself when it has an extension, then .com and .exe. */
-function windowsCandidates(folder: string, name: string): string[] {
-  const names = [...(extname(name) === "" ? [] : [name]), `${name}.com`, `${name}.exe`];
-  return names.map((each) => join(folder, each));
-}
 
 /**
  * Windows tries a bare name in the working folder before PATH, so there this is its System32 copy
@@ -152,4 +137,19 @@ export function programPath(
     .filter((folder) => resolve(folder).toLowerCase() !== here)
     .flatMap((folder) => windowsCandidates(folder, command))
     .find((path) => existsSync(path));
+}
+
+function system32(env: NodeJS.ProcessEnv): string {
+  const key = Object.keys(env).find((each) => each.toUpperCase() === "SYSTEMROOT");
+  const root = key === undefined ? undefined : env[key];
+  return join(
+    root !== undefined && /^[A-Za-z]:[\\/]/.test(root) ? root : "C:\\Windows",
+    "System32",
+  );
+}
+
+/** What a Windows spawn tries for `name`: itself when it has an extension, then .com and .exe. */
+function windowsCandidates(folder: string, name: string): string[] {
+  const names = [...(extname(name) === "" ? [] : [name]), `${name}.com`, `${name}.exe`];
+  return names.map((each) => join(folder, each));
 }

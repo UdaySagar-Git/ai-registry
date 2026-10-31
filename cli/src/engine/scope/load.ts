@@ -45,13 +45,6 @@ export async function withScope<T>(
   return withLease(roots, { wait: true, onWaiting }, async () => run(await read(roots)));
 }
 
-export async function read(roots: Roots): Promise<Loaded> {
-  const lock = await readLock(roots);
-  const manifest = await readManifest(roots.manifest);
-  const targetTable = resolveTargets();
-  return { roots, manifest, lock, targetTable, manifestAsRead: formatManifest(manifest) };
-}
-
 /** Said at once, without --verbose: a silent wait reads as a hang. */
 function waiting(printer: Printer, scope: Scope, holder: LeaseHolder | undefined): void {
   const who = holder === undefined ? `another aireg process` : `aireg (pid ${holder.pid})`;
@@ -60,4 +53,11 @@ function waiting(printer: Printer, scope: Scope, holder: LeaseHolder | undefined
   printer.hint(
     `Wait for it to finish, or run \`aireg unlock${scope === "user" ? " -g" : ""}\` if it has stopped.`,
   );
+}
+
+export async function read(roots: Roots): Promise<Loaded> {
+  const lock = await readLock(roots);
+  const manifest = await readManifest(roots.manifest);
+  const targetTable = resolveTargets();
+  return { roots, manifest, lock, targetTable, manifestAsRead: formatManifest(manifest) };
 }

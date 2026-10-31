@@ -37,160 +37,10 @@ type Code = Extract<CliCode, "DIGEST_MISMATCH" | "SPEC_INVALID" | "NOT_FOUND">;
 
 type Fail = (file: FileRef, message: string, code?: Code) => AdapterError;
 
-function describedBy(envelope: Envelope): Map<string, FileDescriptor> {
-  return new Map(envelope.files.map((descriptor) => [descriptor.path, descriptor]));
-}
-
-/** File spec section 4.1: bytes that do not match what described them never land. */
-function mismatch(
-  found: { size: number; digest: string },
-  descriptor: FileDescriptor,
-): string | undefined {
-  if (found.size !== descriptor.size) {
-    return `arrived as ${found.size} bytes, but ${descriptor.size} were described`;
-  }
-  if (found.digest !== descriptor.digest) {
-    return `arrived with digest ${found.digest}, but ${descriptor.digest} was described`;
-  }
-  return undefined;
-}
-
-function verify(bytes: Uint8Array, descriptor: FileDescriptor, file: FileRef, fail: Fail): void {
-  const digest = sha256(bytes);
-  const wrong = mismatch({ size: bytes.byteLength, digest }, descriptor);
-  if (wrong !== undefined) throw fail(file, wrong, "DIGEST_MISMATCH");
-}
-
 /** Why something did not land, for a caller that names the artifact itself. */
 export function reasonOf(error: unknown): string {
   if (isAdapterError(error)) return adapterProblem(error).title;
   return error instanceof Error ? error.message : String(error);
-}
-
-/** The member a published file belongs to, `<kind dir>/<name>`; a top-level file is its own. */
-function memberOf(path: string): string {
-  const parts = path.split(posix.sep);
-  return parts.length > 2 ? parts.slice(0, 2).join(posix.sep) : path;
-}
-
-interface Written {
-  kept: FileDescriptor[];
-  /** Members the source would not serve. Only ever non-empty for a collection. */
-  missing: string[];
-  /** Why each missing member was dropped, so the caller can say so. */
-  reasons: Map<string, AdapterError>;
-}
-
-/** A `collection` survives a member it cannot fetch by dropping it; a single artifact does not. */
-async function writeFiles(
-  root: string,
-  artifact: Artifact,
-  read: (file: FileRef) => Promise<Uint8Array>,
-  fail: Fail,
-  collection: boolean,
-  onRead?: (bytes: number) => void,
-): Promise<Written> {
-  const described = describedBy(artifact.envelope);
-  const landed: FileDescriptor[] = [];
-  const absent = new Set<string>();
-  const why = new Map<string, AdapterError>();
-  let failed = false;
-
-  const one = async (file: FileRef): Promise<void> => {
-    // The directory is about to be removed, so the rest stop fetching into it.
-    if (failed) return;
-    try {
-      const descriptor = described.get(file.path);
-      if (descriptor === undefined) {
-        throw fail(file, "is not in the artifact's file list", "SPEC_INVALID");
-      }
-
-      const target = join(root, ...file.path.split(posix.sep));
-      assertWithin(root, target, "published file");
-      const bytes = await read(file);
-      onRead?.(bytes.byteLength);
-      verify(bytes, descriptor, file, fail);
-      landed.push(descriptor);
-
-      await assertUnredirected(root, target);
-      await mkdir(dirname(target), { recursive: true });
-      await assertUnredirected(root, target);
-      await writeFile(target, bytes);
-      if (file.executable) await chmod(target, EXECUTABLE);
-    } catch (error) {
-      // Dropping one bad member is the safe half of the choice - the bytes never
-      // land either way - and it is what keeps the other members installable.
-      const droppable =
-        isAdapterError(error) && (error.failure === "not_found" || error.failure === "invalid");
-      if (collection && droppable) {
-        absent.add(memberOf(file.path));
-        why.set(memberOf(file.path), error);
-        return;
-      }
-      failed = true;
-      throw error;
-    }
-  };
-
-  // Settled rather than raced, so nothing is still writing into the staging
-  // directory when the caller starts removing it.
-  const results = await Promise.allSettled(
-    artifact.files.map((file) =>
-      fetching(() => holding(described.get(file.path)?.size ?? 0, () => one(file))),
-    ),
-  );
-  const failure = results.find((result) => result.status === "rejected");
-  if (failure !== undefined) throw failure.reason;
-  if (absent.size === 0) return { kept: landed, missing: [], reasons: why };
-
-  // Everything else the member published goes with it: half a skill reads as a
-  // whole one to the target that loads it.
-  const missing = [...absent].sort();
-  const kept = landed.filter((descriptor) => !absent.has(memberOf(descriptor.path)));
-  if (kept.length === 0) {
-    const name = artifact.envelope.metadata.name;
-    throw new AiregError(
-      `${name}: the registry served none of its ${plural(missing.length, "member")}.`,
-      { code: ErrorCode.Unavailable },
-    );
-  }
-  await Promise.all(
-    missing.map((member) =>
-      rm(join(root, ...member.split(posix.sep)), { recursive: true, force: true }),
-    ),
-  );
-  return { kept, missing, reasons: why };
-}
-
-function contentAt(artifact: Artifact, root: string): string {
-  if (KIND_SPECS[artifact.kind].shape === "directory") return root;
-  const only = artifact.files[0] as Artifact["files"][number];
-  return join(root, ...only.path.split(posix.sep));
-}
-
-/**
- * Content already on this machine still has to be what the envelope describes,
- * so it is checked against the same descriptors rather than hashed a second way.
- */
-async function verifyAt(
-  root: string,
-  files: readonly FileRef[],
-  envelope: Envelope,
-  fail: Fail,
-): Promise<void> {
-  const described = describedBy(envelope);
-  for (const file of files) {
-    const descriptor = described.get(file.path);
-    if (descriptor === undefined) {
-      throw fail(file, "is not in the artifact's file list", "SPEC_INVALID");
-    }
-    // Verified, not copied, so a large asset is hashed as it streams past.
-    const read = await hashRegular(root, descriptor.path);
-    if (read.kind === "missing") throw fail(file, "is missing", "NOT_FOUND");
-    if (read.kind === "refused") throw fail(file, read.reason, "SPEC_INVALID");
-    const wrong = mismatch(read, descriptor);
-    if (wrong !== undefined) throw fail(file, wrong, "DIGEST_MISMATCH");
-  }
 }
 
 /**
@@ -235,34 +85,18 @@ export async function copyDescribed(
   }
 }
 
-/** A subset of the files is a different artifact, so it gets its own envelope. */
-function envelopeOf(envelope: Envelope, files: readonly FileDescriptor[]): Envelope {
-  const { digest: _digest, ...metadata } = envelope.metadata;
-  return buildEnvelope({
-    kind: envelope.kind,
-    metadata,
-    files,
-    spec: envelope.spec,
-    relationships: envelope.relationships,
-  });
-}
-
-/** A member of a collection that did not land, and why. */
-interface Dropped {
-  member: string;
-  reason: string;
-  error: AdapterError | undefined;
-}
-
-export interface MaterializeOptions {
-  /**
-   * Where bytes with this content digest are kept between runs. Keyed by what
-   * they are, so a cached copy can be checked against the envelope asking for it.
-   */
-  into: (contentId: string) => string;
-  /** No folder from this root down to a cache path may be a link; unchecked when absent. */
-  boundary?: string;
-  onRead?: ((bytes: number) => void) | undefined;
+/** File spec section 4.1: bytes that do not match what described them never land. */
+function mismatch(
+  found: { size: number; digest: string },
+  descriptor: FileDescriptor,
+): string | undefined {
+  if (found.size !== descriptor.size) {
+    return `arrived as ${found.size} bytes, but ${descriptor.size} were described`;
+  }
+  if (found.digest !== descriptor.digest) {
+    return `arrived with digest ${found.digest}, but ${descriptor.digest} was described`;
+  }
+  return undefined;
 }
 
 /**
@@ -379,4 +213,170 @@ export async function materialize(
     await guard(staging);
     await rm(staging, { recursive: true, force: true }).catch(() => {});
   }
+}
+
+function contentAt(artifact: Artifact, root: string): string {
+  if (KIND_SPECS[artifact.kind].shape === "directory") return root;
+  const only = artifact.files[0] as Artifact["files"][number];
+  return join(root, ...only.path.split(posix.sep));
+}
+
+/**
+ * Content already on this machine still has to be what the envelope describes,
+ * so it is checked against the same descriptors rather than hashed a second way.
+ */
+async function verifyAt(
+  root: string,
+  files: readonly FileRef[],
+  envelope: Envelope,
+  fail: Fail,
+): Promise<void> {
+  const described = describedBy(envelope);
+  for (const file of files) {
+    const descriptor = described.get(file.path);
+    if (descriptor === undefined) {
+      throw fail(file, "is not in the artifact's file list", "SPEC_INVALID");
+    }
+    // Verified, not copied, so a large asset is hashed as it streams past.
+    const read = await hashRegular(root, descriptor.path);
+    if (read.kind === "missing") throw fail(file, "is missing", "NOT_FOUND");
+    if (read.kind === "refused") throw fail(file, read.reason, "SPEC_INVALID");
+    const wrong = mismatch(read, descriptor);
+    if (wrong !== undefined) throw fail(file, wrong, "DIGEST_MISMATCH");
+  }
+}
+
+function describedBy(envelope: Envelope): Map<string, FileDescriptor> {
+  return new Map(envelope.files.map((descriptor) => [descriptor.path, descriptor]));
+}
+
+interface Written {
+  kept: FileDescriptor[];
+  /** Members the source would not serve. Only ever non-empty for a collection. */
+  missing: string[];
+  /** Why each missing member was dropped, so the caller can say so. */
+  reasons: Map<string, AdapterError>;
+}
+
+/** A `collection` survives a member it cannot fetch by dropping it; a single artifact does not. */
+async function writeFiles(
+  root: string,
+  artifact: Artifact,
+  read: (file: FileRef) => Promise<Uint8Array>,
+  fail: Fail,
+  collection: boolean,
+  onRead?: (bytes: number) => void,
+): Promise<Written> {
+  const described = describedBy(artifact.envelope);
+  const landed: FileDescriptor[] = [];
+  const absent = new Set<string>();
+  const why = new Map<string, AdapterError>();
+  let failed = false;
+
+  const one = async (file: FileRef): Promise<void> => {
+    // The directory is about to be removed, so the rest stop fetching into it.
+    if (failed) return;
+    try {
+      const descriptor = described.get(file.path);
+      if (descriptor === undefined) {
+        throw fail(file, "is not in the artifact's file list", "SPEC_INVALID");
+      }
+
+      const target = join(root, ...file.path.split(posix.sep));
+      assertWithin(root, target, "published file");
+      const bytes = await read(file);
+      onRead?.(bytes.byteLength);
+      verify(bytes, descriptor, file, fail);
+      landed.push(descriptor);
+
+      await assertUnredirected(root, target);
+      await mkdir(dirname(target), { recursive: true });
+      await assertUnredirected(root, target);
+      await writeFile(target, bytes);
+      if (file.executable) await chmod(target, EXECUTABLE);
+    } catch (error) {
+      // Dropping one bad member is the safe half of the choice - the bytes never
+      // land either way - and it is what keeps the other members installable.
+      const droppable =
+        isAdapterError(error) && (error.failure === "not_found" || error.failure === "invalid");
+      if (collection && droppable) {
+        absent.add(memberOf(file.path));
+        why.set(memberOf(file.path), error);
+        return;
+      }
+      failed = true;
+      throw error;
+    }
+  };
+
+  // Settled rather than raced, so nothing is still writing into the staging
+  // directory when the caller starts removing it.
+  const results = await Promise.allSettled(
+    artifact.files.map((file) =>
+      fetching(() => holding(described.get(file.path)?.size ?? 0, () => one(file))),
+    ),
+  );
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure !== undefined) throw failure.reason;
+  if (absent.size === 0) return { kept: landed, missing: [], reasons: why };
+
+  // Everything else the member published goes with it: half a skill reads as a
+  // whole one to the target that loads it.
+  const missing = [...absent].sort();
+  const kept = landed.filter((descriptor) => !absent.has(memberOf(descriptor.path)));
+  if (kept.length === 0) {
+    const name = artifact.envelope.metadata.name;
+    throw new AiregError(
+      `${name}: the registry served none of its ${plural(missing.length, "member")}.`,
+      { code: ErrorCode.Unavailable },
+    );
+  }
+  await Promise.all(
+    missing.map((member) =>
+      rm(join(root, ...member.split(posix.sep)), { recursive: true, force: true }),
+    ),
+  );
+  return { kept, missing, reasons: why };
+}
+
+function verify(bytes: Uint8Array, descriptor: FileDescriptor, file: FileRef, fail: Fail): void {
+  const digest = sha256(bytes);
+  const wrong = mismatch({ size: bytes.byteLength, digest }, descriptor);
+  if (wrong !== undefined) throw fail(file, wrong, "DIGEST_MISMATCH");
+}
+
+/** The member a published file belongs to, `<kind dir>/<name>`; a top-level file is its own. */
+function memberOf(path: string): string {
+  const parts = path.split(posix.sep);
+  return parts.length > 2 ? parts.slice(0, 2).join(posix.sep) : path;
+}
+
+/** A member of a collection that did not land, and why. */
+interface Dropped {
+  member: string;
+  reason: string;
+  error: AdapterError | undefined;
+}
+
+export interface MaterializeOptions {
+  /**
+   * Where bytes with this content digest are kept between runs. Keyed by what
+   * they are, so a cached copy can be checked against the envelope asking for it.
+   */
+  into: (contentId: string) => string;
+  /** No folder from this root down to a cache path may be a link; unchecked when absent. */
+  boundary?: string;
+  onRead?: ((bytes: number) => void) | undefined;
+}
+
+/** A subset of the files is a different artifact, so it gets its own envelope. */
+function envelopeOf(envelope: Envelope, files: readonly FileDescriptor[]): Envelope {
+  const { digest: _digest, ...metadata } = envelope.metadata;
+  return buildEnvelope({
+    kind: envelope.kind,
+    metadata,
+    files,
+    spec: envelope.spec,
+    relationships: envelope.relationships,
+  });
 }

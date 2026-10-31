@@ -33,24 +33,16 @@ export interface Footprint {
   kept: string[];
 }
 
-/** With nothing declared every row is stale, so the planner unlinks all of them, as `remove` would. */
-async function teardownPlan(scope: Roots): Promise<Plan> {
-  const manifest = await readManifest(scope.manifest);
-  return build(
-    { ...manifest, artifacts: [], registries: dict() },
-    await readLock(scope),
-    [],
-    { artifacts: dict() },
-    { roots: scope, targets: [], targetTable: resolveTargets(), force: false, copy: false },
-  );
-}
-
-/** The links in target folders; the copies they point at go with the scope's folder. */
-function linksOf(plan: Plan, env: NodeJS.ProcessEnv): string[] {
-  const dir = userScopeDir(env);
-  return plan.actions.flatMap((action) =>
-    action.kind === "unlink" && !isWithin(dir, action.to) ? [action.to] : [],
-  );
+export async function footprint(env: NodeJS.ProcessEnv = process.env): Promise<Footprint> {
+  const { folders: own, kept } = folders(env);
+  const entry = runningEntry();
+  if (entry !== undefined && !isWithin(toolHome(env), canonical(entry))) kept.push(entry);
+  return {
+    links: linksOf(await teardownPlan(roots("user", homeDir(env), env)), env),
+    startupFiles: await onPathIn(env),
+    folders: own,
+    kept,
+  };
 }
 
 /** aireg's two folders that exist; a moved home that holds the home directory itself is kept. */
@@ -63,16 +55,24 @@ function folders(env: NodeJS.ProcessEnv): { folders: string[]; kept: string[] } 
   return found;
 }
 
-export async function footprint(env: NodeJS.ProcessEnv = process.env): Promise<Footprint> {
-  const { folders: own, kept } = folders(env);
-  const entry = runningEntry();
-  if (entry !== undefined && !isWithin(toolHome(env), canonical(entry))) kept.push(entry);
-  return {
-    links: linksOf(await teardownPlan(roots("user", homeDir(env), env)), env),
-    startupFiles: await onPathIn(env),
-    folders: own,
-    kept,
-  };
+/** The links in target folders; the copies they point at go with the scope's folder. */
+function linksOf(plan: Plan, env: NodeJS.ProcessEnv): string[] {
+  const dir = userScopeDir(env);
+  return plan.actions.flatMap((action) =>
+    action.kind === "unlink" && !isWithin(dir, action.to) ? [action.to] : [],
+  );
+}
+
+/** With nothing declared every row is stale, so the planner unlinks all of them, as `remove` would. */
+async function teardownPlan(scope: Roots): Promise<Plan> {
+  const manifest = await readManifest(scope.manifest);
+  return build(
+    { ...manifest, artifacts: [], registries: dict() },
+    await readLock(scope),
+    [],
+    { artifacts: dict() },
+    { roots: scope, targets: [], targetTable: resolveTargets(), force: false, copy: false },
+  );
 }
 
 /** aireg's own teardown of the user scope, under its lease so no job writes beside it. */
@@ -116,10 +116,6 @@ export async function deleteFolders(
   return { deleted, failed };
 }
 
-function helperPath(suffix: string): string {
-  return join(tmpdir(), `${NAME}-${suffix}-${randomBytes(4).toString("hex")}.exe`);
-}
-
 /** Into the temp folder, which Windows cleans; this fails when TEMP is on another drive. */
 async function moveToTemp(path: string): Promise<string | undefined> {
   const to = helperPath("uninstalled");
@@ -127,6 +123,10 @@ async function moveToTemp(path: string): Promise<string | undefined> {
     () => to,
     () => undefined,
   );
+}
+
+function helperPath(suffix: string): string {
+  return join(tmpdir(), `${NAME}-${suffix}-${randomBytes(4).toString("hex")}.exe`);
 }
 
 /**

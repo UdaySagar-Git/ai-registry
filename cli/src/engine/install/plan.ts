@@ -22,54 +22,6 @@ import type { Loaded } from "#engine/scope/load.ts";
 import type { RunHooks } from "./pipeline.ts";
 
 /**
- * A need its registry withholds by status is not asked for again: the lock keeps the copy it holds,
- * and one it does not hold is refused, since nothing installs a blocked version.
- */
-function keptWithheld(missing: Unresolved, sources: readonly Acquired[], lock: Lock): boolean {
-  const { alias, need, by } = missing;
-  const source = sources.find((item) => item.alias === alias);
-  const at = { name: need.name, group: need.namespace, kind: need.kind };
-  const withheld = withheldAt(source?.catalog.withheld, at);
-  if (withheld === undefined) return false;
-  const held = Object.values(lock.artifacts).some(
-    (row) =>
-      row.registry === alias &&
-      row.namespace === need.namespace &&
-      row.kind === need.kind &&
-      row.name === need.name &&
-      row.version === need.version,
-  );
-  if (held) return true;
-  throw new AiregError(`${by} needs ${withheldMessage(withheld)}, so nothing was installed.`, {
-    code: ErrorCode.Invalid,
-    hint: `Ask the registry's owner about it, or remove ${by}.`,
-  });
-}
-
-function unpublished({ alias, need, by }: Unresolved): AiregError {
-  return new AiregError(
-    `${by} needs ${formatNeed(need)}, which ${alias} does not publish, so nothing was installed.`,
-    { code: ErrorCode.NotFound, hint: `Ask the registry's owner to publish it, or remove ${by}.` },
-  );
-}
-
-/**
- * Registries planned from the lock alone that the plan needs the registry for
- * after all: their bytes, or a plugin, whose members only the registry lists.
- */
-function needsRegistry(plan: Plan, lock: Lock, settled: ReadonlyMap<string, Acquired>): string[] {
-  const next = recordOf(plan);
-  const needed = new Set<string>();
-  for (const action of plan.actions) {
-    if (action.kind === "record") continue;
-    const row = next.artifacts[action.name] ?? lock.artifacts[action.name];
-    if (row === undefined || !settled.has(row.registry)) continue;
-    if (action.kind === "stage" || row.kind === "plugin") needed.add(row.registry);
-  }
-  return [...needed].sort();
-}
-
-/**
  * The lock is the source of truth: a registry it fully answers is planned
  * from it, and its registry is opened only for what the lock cannot supply.
  */
@@ -171,6 +123,54 @@ export async function plan(
     await closeAll(acquired);
     throw error;
   }
+}
+
+/**
+ * Registries planned from the lock alone that the plan needs the registry for
+ * after all: their bytes, or a plugin, whose members only the registry lists.
+ */
+function needsRegistry(plan: Plan, lock: Lock, settled: ReadonlyMap<string, Acquired>): string[] {
+  const next = recordOf(plan);
+  const needed = new Set<string>();
+  for (const action of plan.actions) {
+    if (action.kind === "record") continue;
+    const row = next.artifacts[action.name] ?? lock.artifacts[action.name];
+    if (row === undefined || !settled.has(row.registry)) continue;
+    if (action.kind === "stage" || row.kind === "plugin") needed.add(row.registry);
+  }
+  return [...needed].sort();
+}
+
+/**
+ * A need its registry withholds by status is not asked for again: the lock keeps the copy it holds,
+ * and one it does not hold is refused, since nothing installs a blocked version.
+ */
+function keptWithheld(missing: Unresolved, sources: readonly Acquired[], lock: Lock): boolean {
+  const { alias, need, by } = missing;
+  const source = sources.find((item) => item.alias === alias);
+  const at = { name: need.name, group: need.namespace, kind: need.kind };
+  const withheld = withheldAt(source?.catalog.withheld, at);
+  if (withheld === undefined) return false;
+  const held = Object.values(lock.artifacts).some(
+    (row) =>
+      row.registry === alias &&
+      row.namespace === need.namespace &&
+      row.kind === need.kind &&
+      row.name === need.name &&
+      row.version === need.version,
+  );
+  if (held) return true;
+  throw new AiregError(`${by} needs ${withheldMessage(withheld)}, so nothing was installed.`, {
+    code: ErrorCode.Invalid,
+    hint: `Ask the registry's owner about it, or remove ${by}.`,
+  });
+}
+
+function unpublished({ alias, need, by }: Unresolved): AiregError {
+  return new AiregError(
+    `${by} needs ${formatNeed(need)}, which ${alias} does not publish, so nothing was installed.`,
+    { code: ErrorCode.NotFound, hint: `Ask the registry's owner to publish it, or remove ${by}.` },
+  );
 }
 
 export async function closeAll(sources: readonly Acquired[]): Promise<void> {

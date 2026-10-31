@@ -43,104 +43,6 @@ export function newAccountId(): string {
   return `${ACCOUNT_PREFIX}${randomUUID()}`;
 }
 
-function assertAccountId(accountId: string): void {
-  if (!ACCOUNT_ID.test(accountId)) {
-    throw new CredentialStoreError(`${quoted(accountId)} is not an account id.`);
-  }
-}
-
-// Never quotes the file, a value or a parse error: any of them can carry a token.
-function malformed(path: string, detail: string): CredentialStoreError {
-  return new CredentialStoreError(`${path} is not a valid credentials file: ${detail}.`, {
-    hint: "Fix or remove it, then sign in again.",
-  });
-}
-
-function expiresAt(ms: number): string {
-  return new Date(ms).toISOString().replace(/\.000Z$/, "Z");
-}
-
-function encode({ origin, credential }: StoredCredential): Fields {
-  if (credential.type === "apiKey") {
-    return { origin, type: "api_key", header: credential.header, value: credential.value };
-  }
-  return {
-    origin,
-    type: "bearer",
-    access_token: credential.accessToken,
-    ...(credential.refreshToken === undefined ? {} : { refresh_token: credential.refreshToken }),
-    ...(credential.expiresAtMs === undefined
-      ? {}
-      : { expires_at: expiresAt(credential.expiresAtMs) }),
-  };
-}
-
-/** Reads one entry field by field; `fail` names the field, never its value. */
-function decode(entry: unknown, fail: (detail: string) => Error): StoredCredential {
-  if (!isRecord(entry)) throw fail("it is not an object");
-  const text = (key: string) => {
-    const value = textOf(entry[key]);
-    if (value === undefined) throw fail(`its ${key} is not a non-empty string`);
-    return value;
-  };
-  const only = (known: readonly string[]) => {
-    if (unknownKeys(entry, known).length > 0) throw fail(`it takes only ${known.join(", ")}`);
-  };
-  const origin = text("origin");
-  if (credentialOrigin(origin) !== origin) throw fail("its origin is not an origin");
-  const type = text("type");
-  if (type === "api_key") {
-    only(["origin", "type", "header", "value"]);
-    return { origin, credential: { type: "apiKey", header: text("header"), value: text("value") } };
-  }
-  if (type !== "bearer") throw fail("its type is not bearer or api_key");
-  only(["origin", "type", "access_token", "refresh_token", "expires_at"]);
-  const refreshToken = entry.refresh_token === undefined ? undefined : text("refresh_token");
-  let expiresAtMs: number | undefined;
-  if (entry.expires_at !== undefined) {
-    const written = text("expires_at");
-    expiresAtMs = RFC_3339.test(written) ? Date.parse(written) : Number.NaN;
-    if (!Number.isFinite(expiresAtMs)) throw fail("its expires_at is not an RFC 3339 time");
-  }
-  return {
-    origin,
-    credential: {
-      type: "bearer",
-      accessToken: text("access_token"),
-      ...(refreshToken === undefined ? {} : { refreshToken }),
-      ...(expiresAtMs === undefined ? {} : { expiresAtMs }),
-    },
-  };
-}
-
-function parse(text: string, path: string): Map<string, StoredCredential> {
-  let document: unknown;
-  try {
-    document = JSON.parse(text);
-  } catch {
-    throw malformed(path, "it is not JSON");
-  }
-  if (!isRecord(document)) throw malformed(path, "it is not an object");
-  if (document.version !== VERSION) throw malformed(path, `its version is not ${VERSION}`);
-  if (unknownKeys(document, ["version", "credentials"]).length > 0) {
-    throw malformed(path, "it holds more than version and credentials");
-  }
-  const { credentials } = document;
-  if (!isRecord(credentials)) throw malformed(path, "its credentials are not an object");
-  const entries = new Map<string, StoredCredential>();
-  for (const [accountId, entry] of Object.entries(credentials)) {
-    if (!ACCOUNT_ID.test(accountId)) throw malformed(path, "a key is not an account id");
-    entries.set(
-      accountId,
-      decode(entry, (detail) => malformed(path, `the entry for ${accountId}: ${detail}`)),
-    );
-  }
-  return entries;
-}
-
-/** POSIX permissions mean nothing on Windows, where the profile ACL protects the file. */
-const POSIX = process.platform !== "win32";
-
 /**
  * Why a credentials file someone else could read or swap is unsafe, from its own (unfollowed)
  * stat: the store refuses it, and `doctor` reports it, by this one rule.
@@ -153,6 +55,26 @@ export function fileExposure(info: Stats): string | undefined {
   if (info.uid !== uid) return "belongs to another user";
   if ((info.mode & OPEN_TO_OTHERS) !== 0) return "can be read by other users";
   return undefined;
+}
+
+/** Undefined means signed out. */
+export async function readCredential(
+  accountId: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<StoredCredential | undefined> {
+  assertAccountId(accountId);
+  return (await load(credentialsPath(env))).get(accountId);
+}
+
+function assertAccountId(accountId: string): void {
+  if (!ACCOUNT_ID.test(accountId)) {
+    throw new CredentialStoreError(`${quoted(accountId)} is not an account id.`);
+  }
+}
+
+async function load(path: string): Promise<Map<string, StoredCredential>> {
+  const text = await readPrivate(path);
+  return text === undefined ? new Map() : parse(text, path);
 }
 
 const EXPOSURE_HINT: Readonly<Record<string, (path: string) => string>> = {
@@ -197,24 +119,99 @@ async function readPrivate(path: string): Promise<string | undefined> {
   }
 }
 
-async function load(path: string): Promise<Map<string, StoredCredential>> {
-  const text = await readPrivate(path);
-  return text === undefined ? new Map() : parse(text, path);
+function parse(text: string, path: string): Map<string, StoredCredential> {
+  let document: unknown;
+  try {
+    document = JSON.parse(text);
+  } catch {
+    throw malformed(path, "it is not JSON");
+  }
+  if (!isRecord(document)) throw malformed(path, "it is not an object");
+  if (document.version !== VERSION) throw malformed(path, `its version is not ${VERSION}`);
+  if (unknownKeys(document, ["version", "credentials"]).length > 0) {
+    throw malformed(path, "it holds more than version and credentials");
+  }
+  const { credentials } = document;
+  if (!isRecord(credentials)) throw malformed(path, "its credentials are not an object");
+  const entries = new Map<string, StoredCredential>();
+  for (const [accountId, entry] of Object.entries(credentials)) {
+    if (!ACCOUNT_ID.test(accountId)) throw malformed(path, "a key is not an account id");
+    entries.set(
+      accountId,
+      decode(entry, (detail) => malformed(path, `the entry for ${accountId}: ${detail}`)),
+    );
+  }
+  return entries;
 }
 
-async function save(path: string, entries: ReadonlyMap<string, StoredCredential>): Promise<void> {
-  const credentials = Object.fromEntries(
-    [...entries].map(([accountId, stored]) => [accountId, encode(stored)]),
-  );
-  try {
-    await writeAtomic(
-      path,
-      `${JSON.stringify({ version: VERSION, credentials }, null, 2)}\n`,
-      PRIVATE_FILE,
-    );
-  } catch (cause) {
-    throw new CredentialStoreError(`Could not write ${path}.`, { cause });
+/** POSIX permissions mean nothing on Windows, where the profile ACL protects the file. */
+const POSIX = process.platform !== "win32";
+
+// Never quotes the file, a value or a parse error: any of them can carry a token.
+function malformed(path: string, detail: string): CredentialStoreError {
+  return new CredentialStoreError(`${path} is not a valid credentials file: ${detail}.`, {
+    hint: "Fix or remove it, then sign in again.",
+  });
+}
+
+/** Reads one entry field by field; `fail` names the field, never its value. */
+function decode(entry: unknown, fail: (detail: string) => Error): StoredCredential {
+  if (!isRecord(entry)) throw fail("it is not an object");
+  const text = (key: string) => {
+    const value = textOf(entry[key]);
+    if (value === undefined) throw fail(`its ${key} is not a non-empty string`);
+    return value;
+  };
+  const only = (known: readonly string[]) => {
+    if (unknownKeys(entry, known).length > 0) throw fail(`it takes only ${known.join(", ")}`);
+  };
+  const origin = text("origin");
+  if (credentialOrigin(origin) !== origin) throw fail("its origin is not an origin");
+  const type = text("type");
+  if (type === "api_key") {
+    only(["origin", "type", "header", "value"]);
+    return { origin, credential: { type: "apiKey", header: text("header"), value: text("value") } };
   }
+  if (type !== "bearer") throw fail("its type is not bearer or api_key");
+  only(["origin", "type", "access_token", "refresh_token", "expires_at"]);
+  const refreshToken = entry.refresh_token === undefined ? undefined : text("refresh_token");
+  let expiresAtMs: number | undefined;
+  if (entry.expires_at !== undefined) {
+    const written = text("expires_at");
+    expiresAtMs = RFC_3339.test(written) ? Date.parse(written) : Number.NaN;
+    if (!Number.isFinite(expiresAtMs)) throw fail("its expires_at is not an RFC 3339 time");
+  }
+  return {
+    origin,
+    credential: {
+      type: "bearer",
+      accessToken: text("access_token"),
+      ...(refreshToken === undefined ? {} : { refreshToken }),
+      ...(expiresAtMs === undefined ? {} : { expiresAtMs }),
+    },
+  };
+}
+
+/** An entry in the file is what signed in means, so no other record says so. */
+export async function signedInAccounts(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<ReadonlySet<string>> {
+  return new Set((await load(credentialsPath(env))).keys());
+}
+
+export async function saveCredential(
+  accountId: string,
+  stored: StoredCredential,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<void> {
+  assertAccountId(accountId);
+  if (credentialOrigin(stored.origin) !== stored.origin) {
+    throw new CredentialStoreError(`${quoted(stored.origin)} is not an origin.`);
+  }
+  await edit(env, (entries) => {
+    entries.set(accountId, stored);
+    return true;
+  });
 }
 
 // One chain for the process, so its own writers queue here instead of polling the lease.
@@ -242,35 +239,38 @@ function edit(
   return next;
 }
 
-/** Undefined means signed out. */
-export async function readCredential(
-  accountId: string,
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<StoredCredential | undefined> {
-  assertAccountId(accountId);
-  return (await load(credentialsPath(env))).get(accountId);
-}
-
-/** An entry in the file is what signed in means, so no other record says so. */
-export async function signedInAccounts(
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<ReadonlySet<string>> {
-  return new Set((await load(credentialsPath(env))).keys());
-}
-
-export async function saveCredential(
-  accountId: string,
-  stored: StoredCredential,
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<void> {
-  assertAccountId(accountId);
-  if (credentialOrigin(stored.origin) !== stored.origin) {
-    throw new CredentialStoreError(`${quoted(stored.origin)} is not an origin.`);
+async function save(path: string, entries: ReadonlyMap<string, StoredCredential>): Promise<void> {
+  const credentials = Object.fromEntries(
+    [...entries].map(([accountId, stored]) => [accountId, encode(stored)]),
+  );
+  try {
+    await writeAtomic(
+      path,
+      `${JSON.stringify({ version: VERSION, credentials }, null, 2)}\n`,
+      PRIVATE_FILE,
+    );
+  } catch (cause) {
+    throw new CredentialStoreError(`Could not write ${path}.`, { cause });
   }
-  await edit(env, (entries) => {
-    entries.set(accountId, stored);
-    return true;
-  });
+}
+
+function encode({ origin, credential }: StoredCredential): Fields {
+  if (credential.type === "apiKey") {
+    return { origin, type: "api_key", header: credential.header, value: credential.value };
+  }
+  return {
+    origin,
+    type: "bearer",
+    access_token: credential.accessToken,
+    ...(credential.refreshToken === undefined ? {} : { refresh_token: credential.refreshToken }),
+    ...(credential.expiresAtMs === undefined
+      ? {}
+      : { expires_at: expiresAt(credential.expiresAtMs) }),
+  };
+}
+
+function expiresAt(ms: number): string {
+  return new Date(ms).toISOString().replace(/\.000Z$/, "Z");
 }
 
 /** False when there was nothing to delete. */

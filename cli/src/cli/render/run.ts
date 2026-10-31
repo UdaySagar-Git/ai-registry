@@ -47,15 +47,6 @@ export function failureWords(code: string): string {
 /** Wide enough for every word a line starts with, so the artifact names line up. */
 const WIDTH = 9;
 
-/** Why one needs you or failed, or which folder of yours one came from; a change needs no why. */
-function detailOf(event: RunEvent): string | undefined {
-  const { detail, origin } = (event.data ?? {}) as { detail?: unknown; origin?: unknown };
-  const waiting = event.outcome === "attention" || event.outcome === "failed";
-  if (waiting && typeof detail === "string") return sanitizeText(detail);
-  if (typeof origin === "string") return `from ${underHome(origin)}`;
-  return waiting && event.errorCode !== undefined ? failureWords(event.errorCode) : undefined;
-}
-
 /** One settled artifact: what happened to it, its name, and why. */
 export function itemLine(printer: Printer, event: RunEvent): string {
   const { style } = printer;
@@ -76,6 +67,15 @@ export function itemLine(printer: Printer, event: RunEvent): string {
           : style.dim(padded);
   const why = detailOf(event);
   return `  ${verb}  ${event.artifact ?? ""}${why === undefined ? "" : style.dim(`  ${why}`)}`;
+}
+
+/** Why one needs you or failed, or which folder of yours one came from; a change needs no why. */
+function detailOf(event: RunEvent): string | undefined {
+  const { detail, origin } = (event.data ?? {}) as { detail?: unknown; origin?: unknown };
+  const waiting = event.outcome === "attention" || event.outcome === "failed";
+  if (waiting && typeof detail === "string") return sanitizeText(detail);
+  if (typeof origin === "string") return `from ${underHome(origin)}`;
+  return waiting && event.errorCode !== undefined ? failureWords(event.errorCode) : undefined;
 }
 
 /**

@@ -34,6 +34,16 @@ const INLINE_GLOBALS = GLOBAL_OPTIONS.filter(
   .map((option) => option.short ?? option.flag)
   .join(", ");
 
+export async function unknownCommand(name: string, hint: string): Promise<AiregError> {
+  const commands = await allCommands();
+  const names = commands.flatMap((c) => [c.name, ...(c.aliases ?? [])]);
+  const near = spacedOut(name, commands) ?? closest(name, names);
+  return new AiregError(`Unknown command ${quoted(name)}.`, {
+    code: ErrorCode.Usage,
+    hint: didYouMean(near === undefined ? undefined : `aireg ${near}`, hint),
+  });
+}
+
 /** A hyphenated word such as `self-update` read as a command and one of its actions. */
 function spacedOut(name: string, commands: readonly CommandSpec[]): string | undefined {
   const at = name.indexOf("-");
@@ -46,16 +56,6 @@ function spacedOut(name: string, commands: readonly CommandSpec[]): string | und
   return command === undefined || action === undefined
     ? undefined
     : `${command.name} ${action.name}`;
-}
-
-export async function unknownCommand(name: string, hint: string): Promise<AiregError> {
-  const commands = await allCommands();
-  const names = commands.flatMap((c) => [c.name, ...(c.aliases ?? [])]);
-  const near = spacedOut(name, commands) ?? closest(name, names);
-  return new AiregError(`Unknown command ${quoted(name)}.`, {
-    code: ErrorCode.Usage,
-    hint: didYouMean(near === undefined ? undefined : `aireg ${near}`, hint),
-  });
 }
 
 /** `strict` refuses an unknown action, as only `aireg help` names one for sure. */
@@ -107,13 +107,58 @@ export async function printHelp(
   return ExitCode.Ok;
 }
 
-function formatOptions(options: readonly OptionSpec[]): string[] {
-  const left = options.map((option) => {
-    const flag = option.value === undefined ? option.flag : `${option.flag} ${option.value}`;
-    return option.short === undefined ? `    ${flag}` : `${option.short}, ${flag}`;
-  });
-  const width = Math.max(...left.map((text) => text.length));
-  return options.map((option, index) => `  ${left[index]?.padEnd(width)}  ${option.describe}`);
+async function renderHelp(printer: Printer): Promise<void> {
+  writeIntro(printer, ROOT_USAGE);
+
+  printer.info();
+  printer.info(printer.style.bold("Examples:"));
+  writeExamples(printer, EXAMPLES);
+
+  writeGroups(printer, await allCommands(), true);
+
+  printer.info();
+  printer.info(printer.style.bold("Options:"));
+  for (const line of formatOptions(GLOBAL_OPTIONS)) printer.info(line);
+
+  printer.info();
+  printer.info(printer.style.bold("Questions:"));
+  printer.info("  On a terminal, commands that change things ask before they do.");
+  printer.info("  Every question has an option that answers it, and the option wins.");
+  printer.info("  Nothing is asked with --yes or --json, without a terminal, in CI,");
+  printer.info("  or inside a coding agent.");
+
+  printer.info();
+  printer.info(printer.style.bold("Exit codes:"));
+  printer.info("  0 success   1 error   2 usage error   3 changes found   4 sign-in needed");
+
+  printer.info();
+  printer.info(printer.style.bold("Learn more:"));
+  printer.info("  Run `aireg help <command>` for a command's options and examples.");
+  printer.info(`  Docs:   ${docsUrl()}`);
+  printer.info(`  Issues: ${ISSUES_URL}`);
+
+  const agent = callingAgent();
+  if (agent !== undefined) {
+    printer.info();
+    printer.info(printer.style.bold("Agent guidance:"));
+    printer.info(
+      "  aireg --map json   The whole command tree, with each command's options, in one call",
+    );
+    printer.info("  Machine-readable output and exit codes are documented above.");
+  }
+}
+
+function writeIntro(printer: Printer, usage: readonly string[]): void {
+  printer.info(`${printer.style.bold(NAME)} ${printer.style.dim(VERSION)}`);
+  printer.info(ROOT_SUMMARY);
+  printer.info();
+  writeUsage(printer, usage);
+}
+
+function writeUsage(printer: Printer, usage: readonly string[]): void {
+  const [first, ...rest] = usage;
+  printer.info(`${printer.style.bold("Usage:")} ${first}`);
+  for (const line of rest) printer.info(`       ${line}`);
 }
 
 function writeExamples(printer: Printer, examples: readonly Example[]): void {
@@ -125,10 +170,30 @@ function writeExamples(printer: Printer, examples: readonly Example[]): void {
   }
 }
 
-function writeUsage(printer: Printer, usage: readonly string[]): void {
-  const [first, ...rest] = usage;
-  printer.info(`${printer.style.bold("Usage:")} ${first}`);
-  for (const line of rest) printer.info(`       ${line}`);
+function writeGroups(printer: Printer, commands: readonly CommandSpec[], actions: boolean): void {
+  const width = Math.max(...commands.map((c) => c.name.length));
+  for (const group of GROUPS) {
+    const inGroup = commands.filter((c) => c.group === group);
+    if (inGroup.length === 0) continue;
+    printer.info();
+    printer.info(printer.style.bold(`${group}:`));
+    for (const command of inGroup) {
+      printer.info(`  ${command.name.padEnd(width)}  ${command.summary}`);
+      if (actions && command.actions !== undefined) {
+        const names = (command.actions ?? []).map((action) => action.name).join("  ");
+        printer.info(`  ${"".padEnd(width)}  ${printer.style.dim(names)}`);
+      }
+    }
+  }
+}
+
+function formatOptions(options: readonly OptionSpec[]): string[] {
+  const left = options.map((option) => {
+    const flag = option.value === undefined ? option.flag : `${option.flag} ${option.value}`;
+    return option.short === undefined ? `    ${flag}` : `${option.short}, ${flag}`;
+  });
+  const width = Math.max(...left.map((text) => text.length));
+  return options.map((option, index) => `  ${left[index]?.padEnd(width)}  ${option.describe}`);
 }
 
 function renderCommand(printer: Printer, command: CommandSpec, action: ActionSpec | undefined) {
@@ -177,30 +242,6 @@ function renderCommand(printer: Printer, command: CommandSpec, action: ActionSpe
   printer.info(`  Docs: ${docsUrl(command.docs)}`);
 }
 
-function writeIntro(printer: Printer, usage: readonly string[]): void {
-  printer.info(`${printer.style.bold(NAME)} ${printer.style.dim(VERSION)}`);
-  printer.info(ROOT_SUMMARY);
-  printer.info();
-  writeUsage(printer, usage);
-}
-
-function writeGroups(printer: Printer, commands: readonly CommandSpec[], actions: boolean): void {
-  const width = Math.max(...commands.map((c) => c.name.length));
-  for (const group of GROUPS) {
-    const inGroup = commands.filter((c) => c.group === group);
-    if (inGroup.length === 0) continue;
-    printer.info();
-    printer.info(printer.style.bold(`${group}:`));
-    for (const command of inGroup) {
-      printer.info(`  ${command.name.padEnd(width)}  ${command.summary}`);
-      if (actions && command.actions !== undefined) {
-        const names = (command.actions ?? []).map((action) => action.name).join("  ");
-        printer.info(`  ${"".padEnd(width)}  ${printer.style.dim(names)}`);
-      }
-    }
-  }
-}
-
 /** What bare `aireg` prints, the same for a person, a pipe or a coding agent. */
 export async function printShortHelp(printer: Printer): Promise<void> {
   await warnHidden(printer);
@@ -210,45 +251,4 @@ export async function printShortHelp(printer: Printer): Promise<void> {
   printer.info(
     `Run \`aireg --help\` for examples, options and exit codes, or \`aireg help <command>\` for one.`,
   );
-}
-
-async function renderHelp(printer: Printer): Promise<void> {
-  writeIntro(printer, ROOT_USAGE);
-
-  printer.info();
-  printer.info(printer.style.bold("Examples:"));
-  writeExamples(printer, EXAMPLES);
-
-  writeGroups(printer, await allCommands(), true);
-
-  printer.info();
-  printer.info(printer.style.bold("Options:"));
-  for (const line of formatOptions(GLOBAL_OPTIONS)) printer.info(line);
-
-  printer.info();
-  printer.info(printer.style.bold("Questions:"));
-  printer.info("  On a terminal, commands that change things ask before they do.");
-  printer.info("  Every question has an option that answers it, and the option wins.");
-  printer.info("  Nothing is asked with --yes or --json, without a terminal, in CI,");
-  printer.info("  or inside a coding agent.");
-
-  printer.info();
-  printer.info(printer.style.bold("Exit codes:"));
-  printer.info("  0 success   1 error   2 usage error   3 changes found   4 sign-in needed");
-
-  printer.info();
-  printer.info(printer.style.bold("Learn more:"));
-  printer.info("  Run `aireg help <command>` for a command's options and examples.");
-  printer.info(`  Docs:   ${docsUrl()}`);
-  printer.info(`  Issues: ${ISSUES_URL}`);
-
-  const agent = callingAgent();
-  if (agent !== undefined) {
-    printer.info();
-    printer.info(printer.style.bold("Agent guidance:"));
-    printer.info(
-      "  aireg --map json   The whole command tree, with each command's options, in one call",
-    );
-    printer.info("  Machine-readable output and exit codes are documented above.");
-  }
 }

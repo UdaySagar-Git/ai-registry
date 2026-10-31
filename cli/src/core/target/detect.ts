@@ -24,6 +24,14 @@ export interface Detection {
   by: DetectionRule | undefined;
 }
 
+export function detectAll(
+  targetTable: Targets,
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Detection[] {
+  return names(targetTable).map((name) => detect(targetTable[name] as Target, cwd, env));
+}
+
 /** Prefer an explicit signal - env, then binary - over a directory that may be stale. */
 function detect(target: Target, cwd: string, env: NodeJS.ProcessEnv = process.env): Detection {
   const signals = target.detect;
@@ -45,12 +53,4 @@ function detect(target: Target, cwd: string, env: NodeJS.ProcessEnv = process.en
     return { target, detected: true, by: "user" };
   }
   return { target, detected: false, by: undefined };
-}
-
-export function detectAll(
-  targetTable: Targets,
-  cwd: string,
-  env: NodeJS.ProcessEnv = process.env,
-): Detection[] {
-  return names(targetTable).map((name) => detect(targetTable[name] as Target, cwd, env));
 }

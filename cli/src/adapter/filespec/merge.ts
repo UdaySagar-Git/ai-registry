@@ -6,48 +6,6 @@ import { quoted } from "../text.ts";
 import { SpecError } from "./documents.ts";
 import { INDEX_DOCUMENT, versionsPath } from "./names.ts";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** One version an offer is publishing. */
-export interface OfferedVersion {
-  namespace: string;
-  kind: ArtifactKind;
-  name: string;
-  version: string;
-  /** The envelope's content digest, which `versions.json` has to match. */
-  digest: string;
-  description?: string | undefined;
-  /** The row's status in `versions.json`; `active` unless a status change set another. */
-  status?: string | undefined;
-  /** The row's `catalog_digest`, when it has one; `index.json` repeats it. */
-  catalogDigest?: string | undefined;
-}
-
-function objectAt(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) throw new SpecError(`${path} is not a JSON object.`, { path });
-  return value;
-}
-
-function entriesOf(document: Record<string, unknown>, key: string, path: string): unknown[] {
-  const list = document[key];
-  if (list === undefined) return [];
-  if (!Array.isArray(list)) throw new SpecError(`${path} needs \`${key}\` to be a list.`, { path });
-  return list;
-}
-
-/** Same (namespace, kind, name) is the same catalog row; §3.2 keeps it unique. */
-function rowKey(row: Record<string, unknown>): string {
-  return `${String(row.namespace)}\u0000${String(row.kind)}\u0000${String(row.name)}`;
-}
-
-/** A release outranks every prerelease, and a prerelease every version that does not parse. */
-function tier(parsed: Version | undefined): number {
-  if (parsed === undefined) return 0;
-  return parsed.prerelease.length === 0 ? 2 : 1;
-}
-
 /**
  * Section 3.3: highest active, non-yanked semver, so a backport never becomes latest. Equals,
  * and versions that do not parse, keep the first row, since the list is newest first.
@@ -70,16 +28,25 @@ export function newest(versions: readonly unknown[]): string | undefined {
   return best?.version;
 }
 
-/** Section 3.3 lists newest first: a new row goes above the first version it outranks. */
-function rowAt(versions: readonly unknown[], version: string): number {
-  const parsed = parseVersion(version);
+/** One version an offer is publishing. */
+export interface OfferedVersion {
+  namespace: string;
+  kind: ArtifactKind;
+  name: string;
+  version: string;
+  /** The envelope's content digest, which `versions.json` has to match. */
+  digest: string;
+  description?: string | undefined;
+  /** The row's status in `versions.json`; `active` unless a status change set another. */
+  status?: string | undefined;
+  /** The row's `catalog_digest`, when it has one; `index.json` repeats it. */
+  catalogDigest?: string | undefined;
+}
+
+/** A release outranks every prerelease, and a prerelease every version that does not parse. */
+function tier(parsed: Version | undefined): number {
   if (parsed === undefined) return 0;
-  const at = versions.findIndex((item) => {
-    const other = isRecord(item) && typeof item.version === "string" ? item.version : undefined;
-    const ranked = other === undefined ? undefined : parseVersion(other);
-    return ranked !== undefined && compareVersion(parsed, ranked) > 0;
-  });
-  return at === -1 ? versions.length : at;
+  return parsed.prerelease.length === 0 ? 2 : 1;
 }
 
 /**
@@ -136,6 +103,34 @@ export function mergedVersions(
   };
 }
 
+function objectAt(value: unknown, path: string): Record<string, unknown> {
+  if (!isRecord(value)) throw new SpecError(`${path} is not a JSON object.`, { path });
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function entriesOf(document: Record<string, unknown>, key: string, path: string): unknown[] {
+  const list = document[key];
+  if (list === undefined) return [];
+  if (!Array.isArray(list)) throw new SpecError(`${path} needs \`${key}\` to be a list.`, { path });
+  return list;
+}
+
+/** Section 3.3 lists newest first: a new row goes above the first version it outranks. */
+function rowAt(versions: readonly unknown[], version: string): number {
+  const parsed = parseVersion(version);
+  if (parsed === undefined) return 0;
+  const at = versions.findIndex((item) => {
+    const other = isRecord(item) && typeof item.version === "string" ? item.version : undefined;
+    const ranked = other === undefined ? undefined : parseVersion(other);
+    return ranked !== undefined && compareVersion(parsed, ranked) > 0;
+  });
+  return at === -1 ? versions.length : at;
+}
+
 /**
  * `index.json` with each offered artifact upserted. Callers offer only a version that became
  * `latest`, so rows agree with `versions.json`; rows not offered are left exactly as they were.
@@ -188,6 +183,11 @@ export function mergedIndex(
     generated_at: stamp,
     entries: rows,
   };
+}
+
+/** Same (namespace, kind, name) is the same catalog row; §3.2 keeps it unique. */
+function rowKey(row: Record<string, unknown>): string {
+  return `${String(row.namespace)}\u0000${String(row.kind)}\u0000${String(row.name)}`;
 }
 
 /** Two spaces and a trailing newline, matching every other document we write. */

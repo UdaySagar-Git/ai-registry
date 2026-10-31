@@ -7,6 +7,15 @@ import { artifactPath, copyLeaf } from "#core/store/paths.ts";
 import { keep } from "./carry.ts";
 import type { BuildState } from "./state.ts";
 
+/** A target link the lock recorded, which apply takes back only if it is still ours. */
+export function unlinkRecorded(
+  build: BuildState,
+  name: string,
+  link: LockArtifact["links"][number],
+): boolean {
+  return unlink(build, name, resolve(build.options.roots.base, link.path), { link });
+}
+
 /** Every removal the lock asks for passes here: the lock is a file a repository can ship. */
 function unlink(
   build: BuildState,
@@ -30,15 +39,6 @@ function unlink(
     ...(how.link === undefined ? {} : { link: { target: how.link.target, mode: how.link.mode } }),
   });
   return true;
-}
-
-/** A target link the lock recorded, which apply takes back only if it is still ours. */
-export function unlinkRecorded(
-  build: BuildState,
-  name: string,
-  link: LockArtifact["links"][number],
-): boolean {
-  return unlink(build, name, resolve(build.options.roots.base, link.path), { link });
 }
 
 /**

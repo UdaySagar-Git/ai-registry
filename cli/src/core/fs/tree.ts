@@ -84,32 +84,23 @@ const SECRET_NAMES = new Set([
   "id_ed25519",
   "id_rsa",
 ]);
-const SECRET_EXTENSIONS = [".key", ".p12", ".pem", ".pfx"];
-
-/** Refused rather than skipped, so a file someone meant to ship is never dropped without a word. */
-function maySecret(name: string): boolean {
-  if (SECRET_NAMES.has(name)) return true;
-  if (/^\.env\./.test(name)) return !/^\.env\.(example|sample|template)$/.test(name);
-  const lower = name.toLowerCase();
-  return SECRET_EXTENSIONS.some((extension) => lower.endsWith(extension));
-}
-
-function isLitter(name: string): boolean {
-  return LITTER.has(name) || name.startsWith("._") || /^\..+\.swp$/.test(name);
-}
-
-/** An entry an artifact cannot hold, and why. */
-export interface Irregular {
-  path: string;
-  reason: "is a symlink" | "is not a regular file" | "may hold credentials";
-}
-
 /** What index, validate and publish all say about an entry they refuse. */
 export function refusal(entry: Irregular): string {
   if (entry.reason === "may hold credentials") {
     return `${entry.reason}; move it out of the artifact folder, since everything there is published`;
   }
   return `${entry.reason}; an artifact holds regular files only`;
+}
+
+/** Sorted, so two walks of the same tree always produce the same list. */
+export async function walk(root: string): Promise<FileRecord[]> {
+  return (await scan(root, false)).files;
+}
+
+/** An entry an artifact cannot hold, and why. */
+export interface Irregular {
+  path: string;
+  reason: "is a symlink" | "is not a regular file" | "may hold credentials";
 }
 
 async function scan(
@@ -153,9 +144,18 @@ async function scan(
   return { files: files.sort((a, b) => a.path.localeCompare(b.path)), irregular };
 }
 
-/** Sorted, so two walks of the same tree always produce the same list. */
-export async function walk(root: string): Promise<FileRecord[]> {
-  return (await scan(root, false)).files;
+function isLitter(name: string): boolean {
+  return LITTER.has(name) || name.startsWith("._") || /^\..+\.swp$/.test(name);
+}
+
+const SECRET_EXTENSIONS = [".key", ".p12", ".pem", ".pfx"];
+
+/** Refused rather than skipped, so a file someone meant to ship is never dropped without a word. */
+function maySecret(name: string): boolean {
+  if (SECRET_NAMES.has(name)) return true;
+  if (/^\.env\./.test(name)) return !/^\.env\.(example|sample|template)$/.test(name);
+  const lower = name.toLowerCase();
+  return SECRET_EXTENSIONS.some((extension) => lower.endsWith(extension));
 }
 
 /**
@@ -239,11 +239,6 @@ export async function copyInto(source: string, dest: string): Promise<void> {
   });
 }
 
-/** A copy inherits its source's modes, and a projection has to be editable. */
-export async function unseal(root: string): Promise<void> {
-  await mode(root, EXECUTABLE, PUBLIC_FILE);
-}
-
 /** A file-shaped kind is one file, not a directory, so both shapes are handled. */
 async function mode(root: string, executable: number, plain: number): Promise<void> {
   if (!(await isDirectory(root))) {
@@ -256,6 +251,11 @@ async function mode(root: string, executable: number, plain: number): Promise<vo
     const full = join(root, ...file.path.split(posix.sep));
     await chmod(full, file.executable ? executable : plain).catch(() => {});
   }
+}
+
+/** A copy inherits its source's modes, and a projection has to be editable. */
+export async function unseal(root: string): Promise<void> {
+  await mode(root, EXECUTABLE, PUBLIC_FILE);
 }
 
 export async function remove(path: string): Promise<void> {

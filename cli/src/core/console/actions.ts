@@ -11,27 +11,6 @@ export interface Command {
   argv: string[];
 }
 
-/** Shown as a POSIX shell would need it typed, so the confirm screen can be pasted. */
-function shown(argv: string[]): Command {
-  const words = argv.map((arg) =>
-    /^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replaceAll("'", "'\\''")}'`,
-  );
-  return { display: `${NAME} ${words.join(" ")}`, argv };
-}
-
-/** The tree the console is reading, so a child command acts on the same one. */
-function scoped(scope: Scope): string[] {
-  return scope === "user" ? ["-g"] : [];
-}
-
-/**
- * Names read from a lockfile or a config, after `--` and every option: a name
- * such as `-g` or `--yes` then stays a name and cannot change what the child does.
- */
-function data(values: readonly string[]): string[] {
-  return values.length === 0 ? [] : ["--", ...values];
-}
-
 export function pullLatest(alias: string | undefined, scope: Scope): Command {
   // A pull is a pull: nothing here may send or remove anything.
   const argv = [
@@ -47,6 +26,27 @@ export function pullLatest(alias: string | undefined, scope: Scope): Command {
     ...data(alias === undefined ? [] : [alias]),
   ];
   return shown(argv);
+}
+
+/** The tree the console is reading, so a child command acts on the same one. */
+function scoped(scope: Scope): string[] {
+  return scope === "user" ? ["-g"] : [];
+}
+
+/**
+ * Names read from a lockfile or a config, after `--` and every option: a name
+ * such as `-g` or `--yes` then stays a name and cannot change what the child does.
+ */
+function data(values: readonly string[]): string[] {
+  return values.length === 0 ? [] : ["--", ...values];
+}
+
+/** Shown as a POSIX shell would need it typed, so the confirm screen can be pasted. */
+function shown(argv: string[]): Command {
+  const words = argv.map((arg) =>
+    /^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replaceAll("'", "'\\''")}'`,
+  );
+  return { display: `${NAME} ${words.join(" ")}`, argv };
 }
 
 /** Installed work goes back where it came from; only authored work needs a `<alias>/<namespace>`. */

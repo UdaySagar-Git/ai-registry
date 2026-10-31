@@ -20,14 +20,29 @@ const MANIFESTS = new Set([".claude-plugin", ".codex-plugin", "plugin.json"]);
 const CLAUDE_MANIFEST = ".claude-plugin/plugin.json";
 
 /**
- * Relative, so moving the artifacts tree does not strand a projection. Windows gets an absolute
- * junction, as a symlink needs Developer Mode, and a file is copied, as a junction cannot reach it.
+ * Every entry of the content is linked in, and every link is recreated rather than patched:
+ * what stopped existing upstream has to stop being projected, and comparing costs more.
  */
-async function pointAt(from: string, to: string): Promise<void> {
-  await rm(from, { recursive: true, force: true });
-  if (process.platform !== "win32") await symlink(relative(join(from, ".."), to), from);
-  else if ((await stat(to)).isDirectory()) await symlink(resolve(to), from, "junction");
-  else await copyFile(to, from);
+export async function assemble(
+  projection: string,
+  content: string,
+  targets: Iterable<string>,
+  document?: PluginDocument,
+): Promise<void> {
+  await mkdir(projection, { recursive: true });
+  const own = (await names(content)).filter((entry) => !MANIFESTS.has(entry));
+  const linked = new Set(own.flatMap((entry) => [entry, ...(ALIASES[entry] ?? [])]));
+  for (const entry of await names(projection)) {
+    if (!MANIFESTS.has(entry) && !linked.has(entry)) {
+      await rm(join(projection, entry), { recursive: true, force: true });
+    }
+  }
+  for (const entry of own) {
+    for (const at of [entry, ...(ALIASES[entry] ?? [])]) {
+      await pointAt(join(projection, at), join(content, entry));
+    }
+  }
+  await writePluginManifest(projection, content, targets, document);
 }
 
 /** What every target's plugin manifest says, before any keys of its own. */
@@ -38,17 +53,14 @@ async function names(dir: string): Promise<string[]> {
 }
 
 /**
- * Claude Code keys plugins by the name in their manifest, so a copied one takes the projection's,
- * which no other registry's plugin holds. One that is not a JSON object is copied as it is.
+ * Relative, so moving the artifacts tree does not strand a projection. Windows gets an absolute
+ * junction, as a symlink needs Developer Mode, and a file is copied, as a junction cannot reach it.
  */
-function named(bytes: Buffer, name: string): Buffer | string {
-  let manifest: unknown;
-  try {
-    manifest = JSON.parse(bytes.toString("utf8"));
-  } catch {
-    return bytes;
-  }
-  return isRecord(manifest) ? `${JSON.stringify({ ...manifest, name }, null, 2)}\n` : bytes;
+async function pointAt(from: string, to: string): Promise<void> {
+  await rm(from, { recursive: true, force: true });
+  if (process.platform !== "win32") await symlink(relative(join(from, ".."), to), from);
+  else if ((await stat(to)).isDirectory()) await symlink(resolve(to), from, "junction");
+  else await copyFile(to, from);
 }
 
 /**
@@ -91,27 +103,15 @@ async function writePluginManifest(
 }
 
 /**
- * Every entry of the content is linked in, and every link is recreated rather than patched:
- * what stopped existing upstream has to stop being projected, and comparing costs more.
+ * Claude Code keys plugins by the name in their manifest, so a copied one takes the projection's,
+ * which no other registry's plugin holds. One that is not a JSON object is copied as it is.
  */
-export async function assemble(
-  projection: string,
-  content: string,
-  targets: Iterable<string>,
-  document?: PluginDocument,
-): Promise<void> {
-  await mkdir(projection, { recursive: true });
-  const own = (await names(content)).filter((entry) => !MANIFESTS.has(entry));
-  const linked = new Set(own.flatMap((entry) => [entry, ...(ALIASES[entry] ?? [])]));
-  for (const entry of await names(projection)) {
-    if (!MANIFESTS.has(entry) && !linked.has(entry)) {
-      await rm(join(projection, entry), { recursive: true, force: true });
-    }
+function named(bytes: Buffer, name: string): Buffer | string {
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    return bytes;
   }
-  for (const entry of own) {
-    for (const at of [entry, ...(ALIASES[entry] ?? [])]) {
-      await pointAt(join(projection, at), join(content, entry));
-    }
-  }
-  await writePluginManifest(projection, content, targets, document);
+  return isRecord(manifest) ? `${JSON.stringify({ ...manifest, name }, null, 2)}\n` : bytes;
 }

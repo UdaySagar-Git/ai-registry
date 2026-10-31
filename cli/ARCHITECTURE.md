@@ -96,6 +96,14 @@ Lint fails on a function whose cognitive complexity is over 25, a function with 
 
 Lint also warns about a function over 100 lines or a file over 1000, blank lines aside and outside tests, and a reassigned parameter. These prompt a look, not a split: split a file when it holds more than one concern. Existing code may carry these warnings, but a pull request must leave every file it adds or edits free of them: CI runs `pnpm run lint:changed --since=<base>`, which fails on any warning in those files. Run it before you push, with `--since=origin/main`.
 
+## Code layout
+
+- **File names** are kebab-case and name one concern; the folder gives the context, so `manifest/parse.ts`, not `manifest-parser.ts`. There is no `utils.ts`: a helper one folder uses stays in that folder, one a command group shares goes in `commands/<command>/shared.ts`, and one several layers share is a named module in `core/` or `adapter/`.
+- **`model.ts`** holds a feature's types, constants and small type guards; **`errors.ts`** holds its error classes and the functions that build them; **`index.ts`** is only an entry point, such as `adapter/index.ts`, never an implementation.
+- **Import a name from the module that defines it.** Nothing in `src/` re-exports another module except the published entry `adapter/index.ts` and each built-in adapter's `api.ts`.
+- **A large module splits by concern, not by length.** Split when its parts change for different reasons, its importers use separate groups of its exports, or it cannot be named without "and". A long module that is one concern, such as a target definition or the adapter contract, stays whole.
+- **Inside a file**, imports come first, then types and constants, then the exported entry points, each followed by the private helpers it calls in the order it calls them. A constant one function uses sits directly above it.
+
 ## Comments
 
 A comment says why: a constraint, an invariant, an ordering, a platform quirk, a compatibility reason or a link. What the code does, the name and the type already say; when they do not, rename. JSDoc is for the published contract in `adapter/`, `core/target/contract.ts`, `core/product.ts`, the settings in `core/env.ts` and the command specs, one line where it fits. Elsewhere a doc comment on a declaration or field is at most two lines, and only for what its name and type cannot say, such as what an absent value means. A `//` above a statement is at most two lines.

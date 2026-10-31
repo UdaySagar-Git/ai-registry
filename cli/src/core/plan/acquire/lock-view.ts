@@ -48,11 +48,6 @@ export function lockView(lock: Lock): LockView {
   };
 }
 
-/** The locked rows a reference reaches, by installed name. */
-export function reached(lock: Lock, ref: Ref): string[] {
-  return lockView(lock).reached(ref);
-}
-
 function fromRows(
   lock: Lock,
   alias: string,
@@ -107,6 +102,11 @@ function fromRows(
     content: () => Promise.reject(new Error(`Registry ${quoted(alias)} was not opened.`)),
     close: async () => {},
   };
+}
+
+/** The locked rows a reference reaches, by installed name. */
+export function reached(lock: Lock, ref: Ref): string[] {
+  return lockView(lock).reached(ref);
 }
 
 /**

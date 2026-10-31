@@ -51,63 +51,6 @@ export interface PlannedLink {
   keys?: Record<string, KeyRule>;
 }
 
-/** Copies, when any selected target that reads `folder` takes this kind as copies. */
-function copyAt(
-  folder: string,
-  kind: ArtifactKind,
-  selected: readonly string[],
-  targetTable: Targets,
-  scope: Scope,
-): { copy?: true } {
-  const copied = [...new Set(selected)].some(
-    (reader) =>
-      targetTable[reader]?.kinds[kind]?.place === "copy" &&
-      readsFor(targetTable, reader, kind, scope).includes(folder),
-  );
-  return copied ? { copy: true } : {};
-}
-
-/** The key rules of every selected target that reads `folder`. */
-function keysAt(
-  folder: string,
-  kind: ArtifactKind,
-  selected: readonly string[],
-  targetTable: Targets,
-  scope: Scope,
-): { keys?: Record<string, KeyRule> } {
-  const keys: Record<string, KeyRule> = {};
-  for (const reader of new Set(selected)) {
-    if (!readsFor(targetTable, reader, kind, scope).includes(folder)) continue;
-    const target = targetTable[reader];
-    for (const [key, how] of Object.entries(target?.kinds[kind]?.keys ?? {})) {
-      const rule = keys[key] ?? { files: [], refusedBy: [] };
-      keys[key] = rule;
-      if (how === false) rule.refusedBy.push(target?.displayName ?? reader);
-      else if (!rule.files.some((file) => file.path === how.path)) rule.files.push(how);
-    }
-  }
-  return Object.keys(keys).length === 0 ? {} : { keys };
-}
-
-function plannedLink(
-  name: string,
-  path: string,
-  from: string,
-  options: ProjectionOptions,
-  kind?: ArtifactKind,
-): PlannedLink {
-  const mapping = kind === undefined ? undefined : options.targetTable[name]?.kinds[kind];
-  return {
-    target: name,
-    absolute: path,
-    relative: posixRelative(options.roots.base, path),
-    from,
-    ...(mapping?.codec === undefined ? {} : { codec: mapping.codec }),
-    ...(mapping?.entry === undefined ? {} : { entry: mapping.entry }),
-    ...(mapping?.place === "copy" ? { copy: true } : {}),
-  };
-}
-
 /**
  * A plugin artifact is its own; anything else wrapped joins the plugin its namespace
  * becomes, or the registry's when it publishes no namespaces.
@@ -115,13 +58,6 @@ function plannedLink(
 export function namespaceOf(item: Pick<Selected, "kind" | "name" | "group" | "source">): string {
   if (item.kind === "plugin") return item.name;
   return item.group ?? item.source;
-}
-
-/** One registry's namespace, as a target would hold it. */
-export interface NamespaceWant {
-  target: string;
-  namespace: string;
-  source: string;
 }
 
 /**
@@ -181,6 +117,13 @@ export function projectionsOf(
     }
   }
   return dirs;
+}
+
+/** One registry's namespace, as a target would hold it. */
+export interface NamespaceWant {
+  target: string;
+  namespace: string;
+  source: string;
 }
 
 /**
@@ -265,43 +208,52 @@ export function rowPlugin(
   return namespaceDir(options.roots, source, namespace);
 }
 
-type Unreadable = (target: string, kind: ArtifactKind) => void;
-
 /**
- * A target that loads plugins is pointed at the whole namespace: one entry in a
- * directory we do not own, holding the layout it already reads.
+ * A plugin installs as one, and so does a namespace whose source wraps it; anything else
+ * is placed as itself, in the fewest folders that reach every target able to read its kind.
  */
-function pluginLink(
+export function linksFor(
   item: Selected,
-  name: string,
-  target: Targets[string],
+  copy: string,
   options: ProjectionOptions,
-  crowded: ReadonlySet<string>,
-): PlannedLink | undefined {
+  wrapped = false,
+  crowded: ReadonlySet<string> = new Set(),
+  onUnreadable: Unreadable = () => undefined,
+): PlannedLink[] {
+  const selected = item.targets ?? options.targets;
+  if (item.kind === "plugin") {
+    return pluginLinks(item, copy, selected, options, crowded, onUnreadable);
+  }
+
   const { scope, cwd } = options.roots;
-  const namespace = namespaceOf(item);
-  const shared = pluginProjection(target, namespace, scope, cwd, process.env, item.source);
-  if (shared === undefined) return undefined;
-  // Every registry sharing the directory takes its alias as a prefix, so
-  // no one of them depends on which the others sync first.
-  const plugin = crowded.has(shared) ? qualifiedName(item.source, namespace) : namespace;
-  const container =
-    plugin === namespace
-      ? shared
-      : pluginProjection(target, plugin, scope, cwd, process.env, item.source);
-  if (container === undefined) return undefined;
-  // Always the assembled projection, never the content: the content tree holds
-  // no manifests. Its directory name is the plugin name.
-  const dir = projectionDir(options.roots, item.source, plugin);
-  return {
-    ...plannedLink(name, container, dir, options),
-    shared: true,
-    content: namespaceDir(options.roots, item.source, namespace),
-    ...(item.plugin === undefined ? {} : { document: item.plugin }),
-    ...(target.kinds.plugin?.place === "fan" ? { fan: true } : {}),
-    ...(target.kinds.plugin?.place === "copy" ? { copy: true } : {}),
-    ...(plugin === namespace ? {} : { renamed: { namespace, name: plugin } }),
-  };
+  const links: PlannedLink[] = [];
+  const rest: string[] = [];
+  for (const name of new Set(selected)) {
+    const target = options.targetTable[name];
+    if (target === undefined) continue;
+    // Its plugins carry only kinds it places as they are; the rest are placed flat or not at all.
+    const mapping = target.kinds[item.kind];
+    const written = mapping?.codec !== undefined || mapping?.entry !== undefined;
+    if (!wrapped || !takesPlugin(target, scope) || mapping === undefined || written) {
+      rest.push(name);
+      continue;
+    }
+    const link = pluginLink(item, name, target, options, crowded);
+    if (link !== undefined) links.push(link);
+  }
+  const placed = placementFor(item.kind, rest, options.targetTable, scope, wrapped);
+  for (const target of placed.unreadable) onUnreadable(target, item.kind);
+  for (const name of placed.targets) {
+    const target = options.targetTable[name] as Targets[string];
+    const own = projectionPath(target, item.kind, item.name, scope, cwd);
+    if (own === undefined) continue;
+    links.push({
+      ...plannedLink(name, own, copy, options, item.kind),
+      ...copyAt(name, item.kind, selected, options.targetTable, scope),
+      ...keysAt(name, item.kind, selected, options.targetTable, scope),
+    });
+  }
+  return links;
 }
 
 /** Tools that load plugins get the container; the rest get its members where they read each kind. */
@@ -352,51 +304,99 @@ function pluginLinks(
 }
 
 /**
- * A plugin installs as one, and so does a namespace whose source wraps it; anything else
- * is placed as itself, in the fewest folders that reach every target able to read its kind.
+ * A target that loads plugins is pointed at the whole namespace: one entry in a
+ * directory we do not own, holding the layout it already reads.
  */
-export function linksFor(
+function pluginLink(
   item: Selected,
-  copy: string,
+  name: string,
+  target: Targets[string],
   options: ProjectionOptions,
-  wrapped = false,
-  crowded: ReadonlySet<string> = new Set(),
-  onUnreadable: Unreadable = () => undefined,
-): PlannedLink[] {
-  const selected = item.targets ?? options.targets;
-  if (item.kind === "plugin") {
-    return pluginLinks(item, copy, selected, options, crowded, onUnreadable);
-  }
-
+  crowded: ReadonlySet<string>,
+): PlannedLink | undefined {
   const { scope, cwd } = options.roots;
-  const links: PlannedLink[] = [];
-  const rest: string[] = [];
-  for (const name of new Set(selected)) {
-    const target = options.targetTable[name];
-    if (target === undefined) continue;
-    // Its plugins carry only kinds it places as they are; the rest are placed flat or not at all.
-    const mapping = target.kinds[item.kind];
-    const written = mapping?.codec !== undefined || mapping?.entry !== undefined;
-    if (!wrapped || !takesPlugin(target, scope) || mapping === undefined || written) {
-      rest.push(name);
-      continue;
+  const namespace = namespaceOf(item);
+  const shared = pluginProjection(target, namespace, scope, cwd, process.env, item.source);
+  if (shared === undefined) return undefined;
+  // Every registry sharing the directory takes its alias as a prefix, so
+  // no one of them depends on which the others sync first.
+  const plugin = crowded.has(shared) ? qualifiedName(item.source, namespace) : namespace;
+  const container =
+    plugin === namespace
+      ? shared
+      : pluginProjection(target, plugin, scope, cwd, process.env, item.source);
+  if (container === undefined) return undefined;
+  // Always the assembled projection, never the content: the content tree holds
+  // no manifests. Its directory name is the plugin name.
+  const dir = projectionDir(options.roots, item.source, plugin);
+  return {
+    ...plannedLink(name, container, dir, options),
+    shared: true,
+    content: namespaceDir(options.roots, item.source, namespace),
+    ...(item.plugin === undefined ? {} : { document: item.plugin }),
+    ...(target.kinds.plugin?.place === "fan" ? { fan: true } : {}),
+    ...(target.kinds.plugin?.place === "copy" ? { copy: true } : {}),
+    ...(plugin === namespace ? {} : { renamed: { namespace, name: plugin } }),
+  };
+}
+
+type Unreadable = (target: string, kind: ArtifactKind) => void;
+
+function plannedLink(
+  name: string,
+  path: string,
+  from: string,
+  options: ProjectionOptions,
+  kind?: ArtifactKind,
+): PlannedLink {
+  const mapping = kind === undefined ? undefined : options.targetTable[name]?.kinds[kind];
+  return {
+    target: name,
+    absolute: path,
+    relative: posixRelative(options.roots.base, path),
+    from,
+    ...(mapping?.codec === undefined ? {} : { codec: mapping.codec }),
+    ...(mapping?.entry === undefined ? {} : { entry: mapping.entry }),
+    ...(mapping?.place === "copy" ? { copy: true } : {}),
+  };
+}
+
+/** Copies, when any selected target that reads `folder` takes this kind as copies. */
+function copyAt(
+  folder: string,
+  kind: ArtifactKind,
+  selected: readonly string[],
+  targetTable: Targets,
+  scope: Scope,
+): { copy?: true } {
+  const copied = [...new Set(selected)].some(
+    (reader) =>
+      targetTable[reader]?.kinds[kind]?.place === "copy" &&
+      readsFor(targetTable, reader, kind, scope).includes(folder),
+  );
+  return copied ? { copy: true } : {};
+}
+
+/** The key rules of every selected target that reads `folder`. */
+function keysAt(
+  folder: string,
+  kind: ArtifactKind,
+  selected: readonly string[],
+  targetTable: Targets,
+  scope: Scope,
+): { keys?: Record<string, KeyRule> } {
+  const keys: Record<string, KeyRule> = {};
+  for (const reader of new Set(selected)) {
+    if (!readsFor(targetTable, reader, kind, scope).includes(folder)) continue;
+    const target = targetTable[reader];
+    for (const [key, how] of Object.entries(target?.kinds[kind]?.keys ?? {})) {
+      const rule = keys[key] ?? { files: [], refusedBy: [] };
+      keys[key] = rule;
+      if (how === false) rule.refusedBy.push(target?.displayName ?? reader);
+      else if (!rule.files.some((file) => file.path === how.path)) rule.files.push(how);
     }
-    const link = pluginLink(item, name, target, options, crowded);
-    if (link !== undefined) links.push(link);
   }
-  const placed = placementFor(item.kind, rest, options.targetTable, scope, wrapped);
-  for (const target of placed.unreadable) onUnreadable(target, item.kind);
-  for (const name of placed.targets) {
-    const target = options.targetTable[name] as Targets[string];
-    const own = projectionPath(target, item.kind, item.name, scope, cwd);
-    if (own === undefined) continue;
-    links.push({
-      ...plannedLink(name, own, copy, options, item.kind),
-      ...copyAt(name, item.kind, selected, options.targetTable, scope),
-      ...keysAt(name, item.kind, selected, options.targetTable, scope),
-    });
-  }
-  return links;
+  return Object.keys(keys).length === 0 ? {} : { keys };
 }
 
 /**

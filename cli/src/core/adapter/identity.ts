@@ -31,6 +31,15 @@ export function canonicalConfig(config: SourceConfig): Record<string, string> {
   return canonical;
 }
 
+/** For comparing two addresses: one `canonicalLocation` refuses is compared as written. */
+export function comparableLocation(location: string): string {
+  try {
+    return canonicalLocation(location);
+  } catch {
+    return location;
+  }
+}
+
 /**
  * One spelling for one address, so an endpoint typed with a trailing slash and
  * the same endpoint without one are recognized as the same place.
@@ -56,15 +65,6 @@ function canonicalLocation(location: string): string {
   }
   url.pathname = stripTrailing(url.pathname, "/");
   return url.href;
-}
-
-/** For comparing two addresses: one `canonicalLocation` refuses is compared as written. */
-export function comparableLocation(location: string): string {
-  try {
-    return canonicalLocation(location);
-  } catch {
-    return location;
-  }
 }
 
 /**

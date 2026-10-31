@@ -13,14 +13,6 @@ import { select } from "#cli/prompt/select.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { askName, nameOf, valid } from "./fields.ts";
 
-/** The namespace `cwd` sits in under `artifacts/`; undefined outside one. */
-function namespaceHere(root: string, cwd: string): string | undefined {
-  const artifacts = join(root, "artifacts");
-  if (!isWithin(artifacts, cwd)) return undefined;
-  const inside = relative(artifacts, cwd).split(sep)[0];
-  return inside !== undefined && isNamespace(inside) ? inside : undefined;
-}
-
 /** The namespace named, the one you are in, or one picked; undefined when the pick is canceled. */
 export async function namespaceFor(
   root: string,
@@ -60,6 +52,14 @@ export async function namespaceFor(
     return undefined;
   }
   return picked;
+}
+
+/** The namespace `cwd` sits in under `artifacts/`; undefined outside one. */
+function namespaceHere(root: string, cwd: string): string | undefined {
+  const artifacts = join(root, "artifacts");
+  if (!isWithin(artifacts, cwd)) return undefined;
+  const inside = relative(artifacts, cwd).split(sep)[0];
+  return inside !== undefined && isNamespace(inside) ? inside : undefined;
 }
 
 /** `artifacts/<namespace>/<kind>/<name>/0.1.0`, with the namespace and name asked for when missing. */

@@ -20,19 +20,6 @@ export interface LogBootstrap {
   close(): void;
 }
 
-function build(
-  level: Level | "off",
-  sink: () => Sink,
-  bindings: Record<string, unknown>,
-): LogBootstrap {
-  if (level === "off") return { logger: nullLogger(), close: () => {} };
-  const destination = sink();
-  return {
-    logger: createLogger({ sink: destination, level, bindings }),
-    close: () => destination.close?.(),
-  };
-}
-
 /**
  * The daemon writes to a file always. Nobody is watching its stderr - it is
  * spawned detached - so the file is the only account of a scheduled run.
@@ -46,6 +33,19 @@ export function openDaemonLog(version: string, env: NodeJS.ProcessEnv = process.
     () => throttleSink(fileSink({ path: logPath(home, DAEMON_LOG_FILE) })),
     { "service.name": `${NAME}-daemon`, "service.version": version, pid: process.pid },
   );
+}
+
+function build(
+  level: Level | "off",
+  sink: () => Sink,
+  bindings: Record<string, unknown>,
+): LogBootstrap {
+  if (level === "off") return { logger: nullLogger(), close: () => {} };
+  const destination = sink();
+  return {
+    logger: createLogger({ sink: destination, level, bindings }),
+    close: () => destination.close?.(),
+  };
 }
 
 /** Foreground runs stay silent until asked, and never write to stdout. */

@@ -27,10 +27,6 @@ export interface ArtifactStatus {
   taken?: true;
 }
 
-function worse(a: State, b: State): State {
-  return STATES.indexOf(a) >= STATES.indexOf(b) ? a : b;
-}
-
 /** Pure: the disk was already read into `survey`. */
 export function status(lock: Lock, survey: Survey, roots: Roots): ArtifactStatus[] {
   const out: ArtifactStatus[] = [];
@@ -89,16 +85,6 @@ export function status(lock: Lock, survey: Survey, roots: Roots): ArtifactStatus
   return out;
 }
 
-export function worstState(statuses: readonly ArtifactStatus[]): State {
-  return statuses.reduce<State>((acc, item) => worse(acc, item.state), "ok");
-}
-
-function blockedDetail(held: { target: string; path: string; by?: string | undefined }): string {
-  return held.by === undefined
-    ? `${held.target}: something of yours is at ${held.path}`
-    : `${held.target}: ${held.by} is installed at ${held.path}`;
-}
-
 /** How one recorded link looks on disk: the state it adds, why, and what its target sees. */
 function linkFinding(
   link: Lock["artifacts"][string]["links"][number],
@@ -136,4 +122,18 @@ function linkFinding(
     };
   }
   return { state: "ok", seen: "linked" };
+}
+
+function worse(a: State, b: State): State {
+  return STATES.indexOf(a) >= STATES.indexOf(b) ? a : b;
+}
+
+function blockedDetail(held: { target: string; path: string; by?: string | undefined }): string {
+  return held.by === undefined
+    ? `${held.target}: something of yours is at ${held.path}`
+    : `${held.target}: ${held.by} is installed at ${held.path}`;
+}
+
+export function worstState(statuses: readonly ArtifactStatus[]): State {
+  return statuses.reduce<State>((acc, item) => worse(acc, item.state), "ok");
 }

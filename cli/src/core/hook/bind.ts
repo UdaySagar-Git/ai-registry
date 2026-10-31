@@ -9,6 +9,31 @@ import type {
 import type { PipelineHook } from "#core/config/hook-stages.ts";
 import { configuredHooks, runPipelineHooks } from "./run.ts";
 
+/** Wrap connect so a host that calls it itself still hits config checks and hooks. */
+export function bindAdapter(adapter: SourceAdapter, alias: string): SourceAdapter {
+  return {
+    ...adapter,
+    connect: async (context) => {
+      assertAdapterConfig(adapter.id, adapter.configSchema, context.source.config);
+      const hooks = await configuredHooks();
+      await runPipelineHooks(
+        "preConnect",
+        { alias, location: context.source.location },
+        context.signal,
+        hooks,
+      );
+      const handle = await adapter.connect(context);
+      try {
+        await runPipelineHooks("postConnect", { alias }, context.signal, hooks);
+      } catch (error) {
+        await handle.close().catch(() => {});
+        throw error;
+      }
+      return bindHandle(handle, alias, context.signal, hooks);
+    },
+  };
+}
+
 /** Wrap a handle so resolve/publish/unpublish/close fire the matching pipeline stages. */
 function bindHandle(
   handle: SourceHandle,
@@ -55,29 +80,4 @@ function bindHandle(
     };
   }
   return wrapped;
-}
-
-/** Wrap connect so a host that calls it itself still hits config checks and hooks. */
-export function bindAdapter(adapter: SourceAdapter, alias: string): SourceAdapter {
-  return {
-    ...adapter,
-    connect: async (context) => {
-      assertAdapterConfig(adapter.id, adapter.configSchema, context.source.config);
-      const hooks = await configuredHooks();
-      await runPipelineHooks(
-        "preConnect",
-        { alias, location: context.source.location },
-        context.signal,
-        hooks,
-      );
-      const handle = await adapter.connect(context);
-      try {
-        await runPipelineHooks("postConnect", { alias }, context.signal, hooks);
-      } catch (error) {
-        await handle.close().catch(() => {});
-        throw error;
-      }
-      return bindHandle(handle, alias, context.signal, hooks);
-    },
-  };
 }

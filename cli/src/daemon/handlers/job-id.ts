@@ -7,25 +7,6 @@ import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import * as inputs from "./params.ts";
 
-function productJobId(kind: string, label: string): string {
-  const id = `job_${kind}_${sanitizeName(label)}`;
-  if (!inputs.JOB_ID.test(id)) {
-    throw new ProtocolError(
-      RpcErrorCode.InvalidParams,
-      `Cannot make a job id from ${quoted(label)}. Name the job with --name.`,
-    );
-  }
-  return id;
-}
-
-function named(params: Record<string, unknown>, product: string): string {
-  return params.name === undefined ? product : inputs.jobId(params, "name");
-}
-
-function rootOf(job: Job): string | undefined {
-  return job.steps.find((step) => step.root !== undefined)?.root;
-}
-
 /**
  * One job per registry and folder, so a second project gets its own job rather
  * than taking over the first's. The first keeps the plain id.
@@ -63,6 +44,10 @@ export function skillsJobId(
   return id;
 }
 
+function rootOf(job: Job): string | undefined {
+  return job.steps.find((step) => step.root !== undefined)?.root;
+}
+
 /** The plain id while it is free, then one that names the folder. */
 function nextFree(config: RegistryConfig, alias: string, folder: string): string {
   const used = new Set(config.jobs.map((job) => job.id));
@@ -72,6 +57,17 @@ function nextFree(config: RegistryConfig, alias: string, folder: string): string
   const base = productJobId("skills", `${alias}-${folder}`.slice(0, 48));
   let id = base;
   for (let n = 2; used.has(id); n += 1) id = `${base}-${n}`;
+  return id;
+}
+
+function productJobId(kind: string, label: string): string {
+  const id = `job_${kind}_${sanitizeName(label)}`;
+  if (!inputs.JOB_ID.test(id)) {
+    throw new ProtocolError(
+      RpcErrorCode.InvalidParams,
+      `Cannot make a job id from ${quoted(label)}. Name the job with --name.`,
+    );
+  }
   return id;
 }
 
@@ -96,4 +92,8 @@ export function contributedJobId(
     );
   }
   return id;
+}
+
+function named(params: Record<string, unknown>, product: string): string {
+  return params.name === undefined ? product : inputs.jobId(params, "name");
 }

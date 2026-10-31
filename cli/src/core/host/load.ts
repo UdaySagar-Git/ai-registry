@@ -9,14 +9,6 @@ import {
 } from "./extend.ts";
 import type { PanelContribution, UpstreamContribution } from "./panel.ts";
 
-/** Every loaded adapter's extension. A broken module is skipped, not fatal. */
-async function loadedExtensions(): Promise<readonly { extend: AdapterExtension }[]> {
-  return (await loadAdapters()).loaded.flatMap((adapter) => {
-    const extend = extensionOf(adapter);
-    return extend === undefined ? [] : [{ extend }];
-  });
-}
-
 export async function contributedCommands(): Promise<readonly CommandContribution[]> {
   const commands: CommandContribution[] = [];
   const seen = new Set<string>();
@@ -28,6 +20,14 @@ export async function contributedCommands(): Promise<readonly CommandContributio
     }
   }
   return commands;
+}
+
+/** Every loaded adapter's extension. A broken module is skipped, not fatal. */
+async function loadedExtensions(): Promise<readonly { extend: AdapterExtension }[]> {
+  return (await loadAdapters()).loaded.flatMap((adapter) => {
+    const extend = extensionOf(adapter);
+    return extend === undefined ? [] : [{ extend }];
+  });
 }
 
 export function stepOn(adapter: SourceAdapter, kind: string): StepContribution | undefined {

@@ -63,6 +63,10 @@ function addressOf(pick: string, all: readonly Entry[], alias: string): string |
   return ref.name === undefined && (namespaces.has(word) || plugin) ? word : undefined;
 }
 
+function pickedNamespace(value: string): string | undefined {
+  return value.endsWith("/") ? value.slice(0, -1) : undefined;
+}
+
 /** A plugin and an artifact of the same name: either is a fair reading, so neither is taken. */
 function refuseShared(word: string, address: string, kind: string, alias: string): never {
   throw new AiregError(
@@ -77,8 +81,4 @@ function refuseShared(word: string, address: string, kind: string, alias: string
 /** Picking a whole namespace answers with this, which no artifact name can be. */
 export function namespaceChoice(namespace: string): string {
   return `${namespace}/`;
-}
-
-function pickedNamespace(value: string): string | undefined {
-  return value.endsWith("/") ? value.slice(0, -1) : undefined;
 }

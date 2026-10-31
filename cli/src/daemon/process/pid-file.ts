@@ -6,16 +6,16 @@ import { processAlive } from "#core/process.ts";
 import { ensureHome, toolHome } from "#core/store/paths.ts";
 import { isDaemonProcess } from "./process-info.ts";
 
-function daemonPidPath(env: NodeJS.ProcessEnv = process.env): string {
-  return join(toolHome(env), "state", "daemon.pid");
-}
-
 export async function writeDaemonPid(
   pid: number,
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<void> {
   await mkdir(join(ensureHome(env), "state"), { recursive: true });
   await writeFile(daemonPidPath(env), `${String(pid)}\n`, { encoding: "utf8", mode: PRIVATE_FILE });
+}
+
+function daemonPidPath(env: NodeJS.ProcessEnv = process.env): string {
+  return join(toolHome(env), "state", "daemon.pid");
 }
 
 export async function readDaemonPid(

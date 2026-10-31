@@ -83,10 +83,6 @@ export function heldAs(
   )?.[0];
 }
 
-function holds(lock: Lock, alias: string, path: string, version: string | undefined): boolean {
-  return heldAs(lock, alias, path, version) !== undefined;
-}
-
 /** Yanked versions this run would install that the lock does not already hold. */
 export function newlyYanked(acquired: readonly Acquired[], lock: Lock): string[] {
   return acquired.flatMap((source) =>
@@ -96,4 +92,8 @@ export function newlyYanked(acquired: readonly Acquired[], lock: Lock): string[]
         : [`"${sanitizeText(name)}" ${version} is yanked${because(yanked)}`],
     ),
   );
+}
+
+function holds(lock: Lock, alias: string, path: string, version: string | undefined): boolean {
+  return heldAs(lock, alias, path, version) !== undefined;
 }

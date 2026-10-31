@@ -11,6 +11,51 @@ export interface TailOptions {
 
 const NEWLINE = 0x0a;
 
+/**
+ * `tail -F`, not `-f`: rotation renames the file out from under a reader, so
+ * the path is followed. A smaller size means truncation, a new inode a roll.
+ */
+export async function* follow(options: TailOptions): AsyncGenerator<string> {
+  const { path, signal } = options;
+  let offset = options.fromByte ?? sizeOf(path);
+  let inode = inodeOf(path);
+  // A line the writer has not finished yet waits here for its newline.
+  let pending = Buffer.alloc(0);
+
+  let wake: (() => void) | undefined;
+  const watcher = watch(dirname(path), () => wake?.());
+  const stop = () => {
+    watcher.close();
+    wake?.();
+  };
+  signal?.addEventListener("abort", stop, { once: true });
+
+  try {
+    while (signal?.aborted !== true) {
+      const read = await readPast(path, offset, inode);
+      if (read !== undefined) {
+        // Rolled or truncated: whatever was buffered past the cut is gone.
+        if (read.restarted) pending = Buffer.alloc(0);
+        inode = read.inode;
+        offset = read.nextOffset;
+        const bytes = Buffer.concat([pending, read.bytes]);
+        const complete = bytes.lastIndexOf(NEWLINE) + 1;
+        pending = bytes.subarray(complete);
+        for (const line of bytes.subarray(0, complete).toString("utf8").split("\n").slice(0, -1)) {
+          yield line.endsWith("\r") ? line.slice(0, -1) : line;
+        }
+      }
+      await new Promise<void>((resolve) => {
+        wake = resolve;
+        const timer = setTimeout(resolve, 250);
+        timer.unref?.();
+      });
+    }
+  } finally {
+    watcher.close();
+  }
+}
+
 function sizeOf(path: string): number {
   try {
     return statSync(path).size;
@@ -61,50 +106,5 @@ async function readPast(
     };
   } finally {
     await handle.close();
-  }
-}
-
-/**
- * `tail -F`, not `-f`: rotation renames the file out from under a reader, so
- * the path is followed. A smaller size means truncation, a new inode a roll.
- */
-export async function* follow(options: TailOptions): AsyncGenerator<string> {
-  const { path, signal } = options;
-  let offset = options.fromByte ?? sizeOf(path);
-  let inode = inodeOf(path);
-  // A line the writer has not finished yet waits here for its newline.
-  let pending = Buffer.alloc(0);
-
-  let wake: (() => void) | undefined;
-  const watcher = watch(dirname(path), () => wake?.());
-  const stop = () => {
-    watcher.close();
-    wake?.();
-  };
-  signal?.addEventListener("abort", stop, { once: true });
-
-  try {
-    while (signal?.aborted !== true) {
-      const read = await readPast(path, offset, inode);
-      if (read !== undefined) {
-        // Rolled or truncated: whatever was buffered past the cut is gone.
-        if (read.restarted) pending = Buffer.alloc(0);
-        inode = read.inode;
-        offset = read.nextOffset;
-        const bytes = Buffer.concat([pending, read.bytes]);
-        const complete = bytes.lastIndexOf(NEWLINE) + 1;
-        pending = bytes.subarray(complete);
-        for (const line of bytes.subarray(0, complete).toString("utf8").split("\n").slice(0, -1)) {
-          yield line.endsWith("\r") ? line.slice(0, -1) : line;
-        }
-      }
-      await new Promise<void>((resolve) => {
-        wake = resolve;
-        const timer = setTimeout(resolve, 250);
-        timer.unref?.();
-      });
-    }
-  } finally {
-    watcher.close();
   }
 }

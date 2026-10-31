@@ -100,130 +100,66 @@ interface Group {
 }
 
 /**
- * One shared list item, marked as aireg's: there while any placement needs it, and gone with
- * the last. An item a person wrote is theirs, and stays.
+ * Writes a target's config entry while a placement of ours needs it, removing it with the last.
+ * Ours is a link into `scopeDir` (the scope's `.registry`) or one of the lockfile's `copies`.
  */
-function append(
-  entry: RegisterEntry & { append: string },
-  doc: ConfigDocument,
-  group: Group,
-): void {
-  const vars = first(group);
-  const at = entry.at.map((key) => expand(key, vars));
-  const value = expand(entry.append, vars);
-  if (group.present.size > 0) {
-    doc.addMarked(at, value);
-    return;
-  }
-  if (!doc.dropMarked(at, value) || (doc.list(at) ?? []).length > 0) return;
-  // A list this emptied goes, with any table it left empty.
-  doc.drop(at);
-  for (let depth = at.length - 1; depth > 0; depth--) {
-    const parent = at.slice(0, depth);
-    const table = doc.table(parent);
-    if (table === undefined || Object.keys(table).length > 0) break;
-    doc.drop(parent);
-  }
-}
-
-function identity(entry: RegisterEntry, vars: Vars): string {
-  const { upsert: _, ...shared } = entry;
-  return JSON.stringify(expandValue(shared as unknown as ConfigValue, vars));
-}
-
-function first(group: Group): Vars {
-  return ([...group.present.values()][0] ?? [...group.absent.values()][0]) as Vars;
-}
-
-/** One item per placement in a list, matched on `key`; a person's other items stay. */
-function upsert(
-  { key, item }: NonNullable<RegisterEntry["upsert"]>,
-  doc: ConfigDocument,
-  group: Group,
-  at: string[],
-): void {
-  const before = doc.list(at);
-  const items = [...(before ?? [])];
-  const keyOf = (each: unknown) => (each as Record<string, unknown> | null)?.[key];
-  for (const each of group.absent.values()) {
-    const gone = expandValue(item, each)[key];
-    const index = items.findIndex((found) => keyOf(found) === gone);
-    if (index >= 0) items.splice(index, 1);
-  }
-  const wanted = [...group.present.values()]
-    .map((each) => expandValue(item, each))
-    .sort((a, b) => String(a[key]).localeCompare(String(b[key])));
-  for (const want of wanted) {
-    const index = items.findIndex((found) => keyOf(found) === want[key]);
-    if (index >= 0) items[index] = want;
-    else items.push(want);
-  }
-  if (before !== undefined || items.length > 0) doc.setList(at, items);
-}
-
-/** Brings one entry in line with its placements; true when it is left to a person. */
-function edit(entry: RegisterEntry, doc: ConfigDocument, group: Group): boolean {
-  if (entry.append !== undefined) {
-    append(entry, doc, group);
-    return false;
-  }
-  const vars = first(group);
-  const at = entry.at.map((key) => expand(key, vars));
-  if (entry.upsert !== undefined) {
-    upsert(entry.upsert, doc, group, at);
-    return false;
-  }
-
-  const value = expandValue(entry.value ?? {}, vars);
-  const current = doc.table(at);
-  const ours =
-    current === undefined ||
-    Object.entries(value).every(([name, wanted]) => isDeepStrictEqual(current[name], wanted));
-  if (entry.conflict === "keep" && !ours) return true;
-  if (group.present.size > 0) {
-    doc.set(at, value);
-    return false;
-  }
-  if (current === undefined) return false;
-  const foreign = Object.keys(current).filter((name) => !Object.hasOwn(value, name));
-  if (entry.remove === "entry" || foreign.length === 0) doc.drop(at);
-  else if (entry.off !== undefined) doc.set(at, expandValue(entry.off, vars));
-  else doc.unset(at, Object.keys(value));
-  return false;
-}
-
-async function ours(
-  placements: readonly PlacedPath[],
+export async function applyRegister(
+  touched: readonly Touched[],
+  targetTable: Targets,
+  where: Where,
   scopeDir: string,
-  copies: ReadonlySet<string>,
-): Promise<Map<string, Vars>> {
-  const out = new Map<string, Vars>();
-  for (const placement of placements) {
-    const state = await inspect(placement.path);
-    const linked =
-      state.isLink && state.target !== undefined && isWithin(scopeDir, resolve(state.target));
-    if (linked || (state.exists && !state.isLink && copies.has(placement.path))) {
-      out.set(placement.path, { ...placement.vars, root: placement.root });
+  copies: ReadonlySet<string> = new Set(),
+): Promise<Kept[]> {
+  const files = new Files();
+  const kept: Kept[] = [];
+  const owned = { scopeDir, copies };
+  for (const target of Object.values(targetTable)) {
+    const root = targetRoot(target, where.scope, where.cwd);
+    // A project's own folders hold its target roots, and a link among them may lead out of
+    // it; a person's target root is theirs to keep wherever they like, dotfiles included.
+    const anchor = where.scope === "project" ? where.cwd : root;
+    for (const mapping of Object.values(target.kinds)) {
+      if (mapping === undefined) continue;
+      // A kind loaded from another scope's installation is that scope's to register.
+      if (mapping.scope !== undefined && mapping.scope !== where.scope) continue;
+      const at = { root, anchor };
+      kept.push(...(await registerMapping(target.name, mapping, touched, owned, files, at)));
     }
   }
-  return out;
+  await files.flush();
+  return kept;
 }
 
-/** Touched placements grouped by the config entry they share, split by whether they remain. */
-function groupsFor(
-  entry: RegisterEntry,
-  touched: ReadonlyMap<string, Vars>,
-  members: ReadonlyMap<string, Vars>,
-): Group[] {
-  const groups = new Map<string, Group>();
-  for (const [path, vars] of touched) {
-    const id = identity(entry, vars);
-    const group = groups.get(id) ?? { present: new Map(), absent: new Map() };
-    (members.has(path) ? group.present : group.absent).set(path, vars);
-    groups.set(id, group);
+async function registerMapping(
+  target: string,
+  mapping: KindMapping,
+  touched: readonly Touched[],
+  owned: { scopeDir: string; copies: ReadonlySet<string> },
+  files: Files,
+  at: Anchor,
+): Promise<Kept[]> {
+  const template = placementTemplate(mapping);
+  const entries = mapping.register ?? [];
+  if (template === undefined || entries.length === 0) return [];
+  const pattern = placementPattern(template);
+  const kept: Kept[] = [];
+  for (const [root, paths] of touchedByRoot(touched, target, pattern)) {
+    // Only the target's own root for this scope: a path elsewhere that merely ends the
+    // way a placement does names no config of this target's.
+    if (!isRoot(root, at.root)) continue;
+    // Only a kind placed as copies by design: a `--copy` install is not registered.
+    const copies = mapping.place === "copy" ? owned.copies : new Set<string>();
+    const members = await ours(await pattern.scan(root), owned.scopeDir, copies);
+    // A link kept back for a person's own folder is theirs to register.
+    for (const touch of touched) {
+      if (touch.target !== undefined && !members.has(touch.path)) paths.delete(touch.path);
+    }
+    if (paths.size === 0) continue;
+    // Folders below the kind's fixed prefix are ours to tidy; the target's own are not.
+    const stop = join(root, ...fixedPrefix(template));
+    kept.push(...(await reconcile(entries, root, paths, members, files, stop, at)));
   }
-  for (const [path, vars] of members) groups.get(identity(entry, vars))?.present.set(path, vars);
-  return [...groups.values()];
+  return kept;
 }
 
 /** This target's touched paths that match the placement, keyed by the root they sit under. */
@@ -243,6 +179,28 @@ function touchedByRoot(
     byRoot.set(found.root, paths);
   }
   return byRoot;
+}
+
+/** The touched root, however it is spelled, is the target's own for this run. */
+function isRoot(found: string, root: string): boolean {
+  return resolve(found) === resolve(root) || canonical(found) === canonical(root);
+}
+
+async function ours(
+  placements: readonly PlacedPath[],
+  scopeDir: string,
+  copies: ReadonlySet<string>,
+): Promise<Map<string, Vars>> {
+  const out = new Map<string, Vars>();
+  for (const placement of placements) {
+    const state = await inspect(placement.path);
+    const linked =
+      state.isLink && state.target !== undefined && isWithin(scopeDir, resolve(state.target));
+    if (linked || (state.exists && !state.isLink && copies.has(placement.path))) {
+      out.set(placement.path, { ...placement.vars, root: placement.root });
+    }
+  }
+  return out;
 }
 
 /**
@@ -285,10 +243,62 @@ async function reconcile(
   return kept;
 }
 
+/** Touched placements grouped by the config entry they share, split by whether they remain. */
+function groupsFor(
+  entry: RegisterEntry,
+  touched: ReadonlyMap<string, Vars>,
+  members: ReadonlyMap<string, Vars>,
+): Group[] {
+  const groups = new Map<string, Group>();
+  for (const [path, vars] of touched) {
+    const id = identity(entry, vars);
+    const group = groups.get(id) ?? { present: new Map(), absent: new Map() };
+    (members.has(path) ? group.present : group.absent).set(path, vars);
+    groups.set(id, group);
+  }
+  for (const [path, vars] of members) groups.get(identity(entry, vars))?.present.set(path, vars);
+  return [...groups.values()];
+}
+
+function identity(entry: RegisterEntry, vars: Vars): string {
+  const { upsert: _, ...shared } = entry;
+  return JSON.stringify(expandValue(shared as unknown as ConfigValue, vars));
+}
+
+/** One item per placement in a list, matched on `key`; a person's other items stay. */
+function upsert(
+  { key, item }: NonNullable<RegisterEntry["upsert"]>,
+  doc: ConfigDocument,
+  group: Group,
+  at: string[],
+): void {
+  const before = doc.list(at);
+  const items = [...(before ?? [])];
+  const keyOf = (each: unknown) => (each as Record<string, unknown> | null)?.[key];
+  for (const each of group.absent.values()) {
+    const gone = expandValue(item, each)[key];
+    const index = items.findIndex((found) => keyOf(found) === gone);
+    if (index >= 0) items.splice(index, 1);
+  }
+  const wanted = [...group.present.values()]
+    .map((each) => expandValue(item, each))
+    .sort((a, b) => String(a[key]).localeCompare(String(b[key])));
+  for (const want of wanted) {
+    const index = items.findIndex((found) => keyOf(found) === want[key]);
+    if (index >= 0) items[index] = want;
+    else items.push(want);
+  }
+  if (before !== undefined || items.length > 0) doc.setList(at, items);
+}
+
 /** The run's own spelling of a target root, and the folder its containment is checked from. */
 interface Anchor {
   root: string;
   anchor: string;
+}
+
+function first(group: Group): Vars {
+  return ([...group.present.values()][0] ?? [...group.absent.values()][0]) as Vars;
 }
 
 /**
@@ -310,70 +320,60 @@ function outside(file: string, root: string, at: Anchor): string | undefined {
   }
 }
 
-/** The touched root, however it is spelled, is the target's own for this run. */
-function isRoot(found: string, root: string): boolean {
-  return resolve(found) === resolve(root) || canonical(found) === canonical(root);
-}
-
-async function registerMapping(
-  target: string,
-  mapping: KindMapping,
-  touched: readonly Touched[],
-  owned: { scopeDir: string; copies: ReadonlySet<string> },
-  files: Files,
-  at: Anchor,
-): Promise<Kept[]> {
-  const template = placementTemplate(mapping);
-  const entries = mapping.register ?? [];
-  if (template === undefined || entries.length === 0) return [];
-  const pattern = placementPattern(template);
-  const kept: Kept[] = [];
-  for (const [root, paths] of touchedByRoot(touched, target, pattern)) {
-    // Only the target's own root for this scope: a path elsewhere that merely ends the
-    // way a placement does names no config of this target's.
-    if (!isRoot(root, at.root)) continue;
-    // Only a kind placed as copies by design: a `--copy` install is not registered.
-    const copies = mapping.place === "copy" ? owned.copies : new Set<string>();
-    const members = await ours(await pattern.scan(root), owned.scopeDir, copies);
-    // A link kept back for a person's own folder is theirs to register.
-    for (const touch of touched) {
-      if (touch.target !== undefined && !members.has(touch.path)) paths.delete(touch.path);
-    }
-    if (paths.size === 0) continue;
-    // Folders below the kind's fixed prefix are ours to tidy; the target's own are not.
-    const stop = join(root, ...fixedPrefix(template));
-    kept.push(...(await reconcile(entries, root, paths, members, files, stop, at)));
+/** Brings one entry in line with its placements; true when it is left to a person. */
+function edit(entry: RegisterEntry, doc: ConfigDocument, group: Group): boolean {
+  if (entry.append !== undefined) {
+    append(entry, doc, group);
+    return false;
   }
-  return kept;
+  const vars = first(group);
+  const at = entry.at.map((key) => expand(key, vars));
+  if (entry.upsert !== undefined) {
+    upsert(entry.upsert, doc, group, at);
+    return false;
+  }
+
+  const value = expandValue(entry.value ?? {}, vars);
+  const current = doc.table(at);
+  const ours =
+    current === undefined ||
+    Object.entries(value).every(([name, wanted]) => isDeepStrictEqual(current[name], wanted));
+  if (entry.conflict === "keep" && !ours) return true;
+  if (group.present.size > 0) {
+    doc.set(at, value);
+    return false;
+  }
+  if (current === undefined) return false;
+  const foreign = Object.keys(current).filter((name) => !Object.hasOwn(value, name));
+  if (entry.remove === "entry" || foreign.length === 0) doc.drop(at);
+  else if (entry.off !== undefined) doc.set(at, expandValue(entry.off, vars));
+  else doc.unset(at, Object.keys(value));
+  return false;
 }
 
 /**
- * Writes a target's config entry while a placement of ours needs it, removing it with the last.
- * Ours is a link into `scopeDir` (the scope's `.registry`) or one of the lockfile's `copies`.
+ * One shared list item, marked as aireg's: there while any placement needs it, and gone with
+ * the last. An item a person wrote is theirs, and stays.
  */
-export async function applyRegister(
-  touched: readonly Touched[],
-  targetTable: Targets,
-  where: Where,
-  scopeDir: string,
-  copies: ReadonlySet<string> = new Set(),
-): Promise<Kept[]> {
-  const files = new Files();
-  const kept: Kept[] = [];
-  const owned = { scopeDir, copies };
-  for (const target of Object.values(targetTable)) {
-    const root = targetRoot(target, where.scope, where.cwd);
-    // A project's own folders hold its target roots, and a link among them may lead out of
-    // it; a person's target root is theirs to keep wherever they like, dotfiles included.
-    const anchor = where.scope === "project" ? where.cwd : root;
-    for (const mapping of Object.values(target.kinds)) {
-      if (mapping === undefined) continue;
-      // A kind loaded from another scope's installation is that scope's to register.
-      if (mapping.scope !== undefined && mapping.scope !== where.scope) continue;
-      const at = { root, anchor };
-      kept.push(...(await registerMapping(target.name, mapping, touched, owned, files, at)));
-    }
+function append(
+  entry: RegisterEntry & { append: string },
+  doc: ConfigDocument,
+  group: Group,
+): void {
+  const vars = first(group);
+  const at = entry.at.map((key) => expand(key, vars));
+  const value = expand(entry.append, vars);
+  if (group.present.size > 0) {
+    doc.addMarked(at, value);
+    return;
   }
-  await files.flush();
-  return kept;
+  if (!doc.dropMarked(at, value) || (doc.list(at) ?? []).length > 0) return;
+  // A list this emptied goes, with any table it left empty.
+  doc.drop(at);
+  for (let depth = at.length - 1; depth > 0; depth--) {
+    const parent = at.slice(0, depth);
+    const table = doc.table(parent);
+    if (table === undefined || Object.keys(table).length > 0) break;
+    doc.drop(parent);
+  }
 }

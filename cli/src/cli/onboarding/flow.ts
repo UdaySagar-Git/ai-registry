@@ -109,25 +109,30 @@ export async function onboard(
   return done;
 }
 
-/** Offers what was edited here, and is a step only when something was sent. */
-async function publishLocal(
-  context: CommandContext,
-  alias: string,
-  at: readonly string[],
-): Promise<Step[]> {
-  const sent = (await delegate("publish", context, ["--yes", ...at])) as
-    | { artifacts?: { published?: boolean }[] }
-    | undefined;
-  const published = sent?.artifacts?.filter((item) => item.published === true).length ?? 0;
-  return published === 0
-    ? []
-    : [{ name: "published", detail: `${plural(published, "artifact")} to ${alias}` }];
+/**
+ * The name `aireg registry add` gives it: the one in its registry.json. One that cannot be
+ * read before you sign in is named after its address instead.
+ */
+async function registryName(flow: OnboardingFlow, cwd: string): Promise<string> {
+  const fallback = sanitizeName(lastSegment(flow.registry));
+  if (flow.tokenStdin) return fallback;
+  const source = await probe(flow.registry, { adapter: flow.adapter }, cwd).catch(() => undefined);
+  if (source === undefined) return fallback;
+  await source.close();
+  return source.alias;
 }
 
-/** A git registry takes work through git, so there is nothing for aireg to offer it. */
-async function publishes(flow: OnboardingFlow, cwd: string): Promise<boolean> {
-  const adapter = await adapterFor(expandLocation(flow.registry, cwd), flow.adapter);
-  return adapter.capabilities.publish !== false;
+function lastSegment(location: string): string {
+  let path = location;
+  try {
+    path = new URL(location).pathname;
+  } catch {
+    // Not a URL, so the whole address is the path.
+  }
+  const last = stripTrailing(path.replace(/\.git$/, ""), "/")
+    .split(/[/:]/)
+    .at(-1);
+  return last === undefined || last === "" ? "registry" : last;
 }
 
 function scopeArgv(scope: Scope): string[] {
@@ -165,6 +170,12 @@ async function delegate(
     : (JSON.parse(last) as { data?: unknown }).data;
 }
 
+/** `init` checked it before writing anything. */
+async function setNamespace(namespace: string): Promise<void> {
+  const config = await readConfig();
+  await writeConfig({ ...config, defaults: { ...config.defaults, namespace } }, config.revision);
+}
+
 async function setAccountNamespace(alias: string, namespace: string): Promise<void> {
   const [, own] = namespace.split("/");
   if (own === undefined) return;
@@ -175,34 +186,23 @@ async function setAccountNamespace(alias: string, namespace: string): Promise<vo
   await writeConfig({ ...config, accounts }, config.revision);
 }
 
-/** `init` checked it before writing anything. */
-async function setNamespace(namespace: string): Promise<void> {
-  const config = await readConfig();
-  await writeConfig({ ...config, defaults: { ...config.defaults, namespace } }, config.revision);
+/** A git registry takes work through git, so there is nothing for aireg to offer it. */
+async function publishes(flow: OnboardingFlow, cwd: string): Promise<boolean> {
+  const adapter = await adapterFor(expandLocation(flow.registry, cwd), flow.adapter);
+  return adapter.capabilities.publish !== false;
 }
 
-/**
- * The name `aireg registry add` gives it: the one in its registry.json. One that cannot be
- * read before you sign in is named after its address instead.
- */
-async function registryName(flow: OnboardingFlow, cwd: string): Promise<string> {
-  const fallback = sanitizeName(lastSegment(flow.registry));
-  if (flow.tokenStdin) return fallback;
-  const source = await probe(flow.registry, { adapter: flow.adapter }, cwd).catch(() => undefined);
-  if (source === undefined) return fallback;
-  await source.close();
-  return source.alias;
-}
-
-function lastSegment(location: string): string {
-  let path = location;
-  try {
-    path = new URL(location).pathname;
-  } catch {
-    // Not a URL, so the whole address is the path.
-  }
-  const last = stripTrailing(path.replace(/\.git$/, ""), "/")
-    .split(/[/:]/)
-    .at(-1);
-  return last === undefined || last === "" ? "registry" : last;
+/** Offers what was edited here, and is a step only when something was sent. */
+async function publishLocal(
+  context: CommandContext,
+  alias: string,
+  at: readonly string[],
+): Promise<Step[]> {
+  const sent = (await delegate("publish", context, ["--yes", ...at])) as
+    | { artifacts?: { published?: boolean }[] }
+    | undefined;
+  const published = sent?.artifacts?.filter((item) => item.published === true).length ?? 0;
+  return published === 0
+    ? []
+    : [{ name: "published", detail: `${plural(published, "artifact")} to ${alias}` }];
 }

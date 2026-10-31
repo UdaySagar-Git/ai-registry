@@ -5,13 +5,9 @@ export type TomlScalar = string | number | boolean;
 const MAX_BYTES = 1_000_000;
 const BARE_KEY = /^[A-Za-z0-9_-]+$/;
 
-function checked(text: string): void {
-  if (text.length > MAX_BYTES) {
-    throw new AiregError("A TOML config is too large to edit.", { code: ErrorCode.Invalid });
-  }
-  if (text.includes("\0")) {
-    throw new AiregError("A TOML config is not text.", { code: ErrorCode.Invalid });
-  }
+/** A basic string: the quote, the backslash and every control character escaped. */
+export function quote(value: string): string {
+  return `"${escaped(value).replaceAll('"', '\\"')}"`;
 }
 
 /** The backslash and every control character escaped, except those in `kept`. */
@@ -30,11 +26,6 @@ function escaped(value: string, kept = ""): string {
   return out;
 }
 
-/** A basic string: the quote, the backslash and every control character escaped. */
-export function quote(value: string): string {
-  return `"${escaped(value).replaceAll('"', '\\"')}"`;
-}
-
 /** A multi-line basic string; a quote is escaped only where it would end the string early. */
 export function multilineQuote(value: string): string {
   const text = escaped(value, "\n\t")
@@ -43,33 +34,80 @@ export function multilineQuote(value: string): string {
   return `"""\n${text}"""`;
 }
 
-function renderKey(key: string): string {
-  return BARE_KEY.test(key) ? key : quote(key);
+/** The keys the table at `at` sets, or undefined when there is no such table; `[]` is the root. */
+export function readTable(
+  text: string,
+  at: readonly string[],
+): Record<string, TomlScalar | null> | undefined {
+  if (at.length === 0) return readRoot(text);
+  const { start, entries } = span(text, at);
+  if (start < 0) return undefined;
+  const out: Record<string, TomlScalar | null> = {};
+  for (const { start: first, end, entry } of entries) {
+    out[entry.keys[0]] = end - first === 1 ? parseValue(entry.raw) : null;
+  }
+  return out;
 }
 
-function renderValue(value: TomlScalar): string {
-  return typeof value === "string" ? quote(value) : String(value);
+/** The root table's single-line keys: every statement before the first heading. Read only. */
+function readRoot(text: string): Record<string, TomlScalar | null> {
+  checked(text);
+  const out: Record<string, TomlScalar | null> = {};
+  for (const { start, end, heading, entry } of statements(text.split(/\r?\n/))) {
+    if (heading !== undefined) break;
+    const [key, ...dotted] = entry?.keys ?? [];
+    if (entry === undefined || key === undefined || dotted.length > 0) continue;
+    out[key] = end - start === 1 ? parseValue(entry.raw) : null;
+  }
+  return out;
+}
+
+function checked(text: string): void {
+  if (text.length > MAX_BYTES) {
+    throw new AiregError("A TOML config is too large to edit.", { code: ErrorCode.Invalid });
+  }
+  if (text.includes("\0")) {
+    throw new AiregError("A TOML config is not text.", { code: ErrorCode.Invalid });
+  }
 }
 
 function heading(at: readonly string[]): string {
   return `[${at.map(renderKey).join(".")}]`;
 }
 
-/** A basic or literal string at the start of `raw`, and what follows it. */
-function readString(raw: string): { value: string; rest: string } | undefined {
-  const basic = /^"((?:[^"\\]|\\.)*)"/.exec(raw);
-  if (basic !== null) {
-    const value = (basic[1] ?? "").replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_, escaped: string) => {
-      if (escaped.startsWith("u") && escaped.length === 5) {
-        return String.fromCharCode(Number.parseInt(escaped.slice(1), 16));
-      }
-      return escaped === "n" ? "\n" : escaped === "t" ? "\t" : escaped === "r" ? "\r" : escaped;
-    });
-    return { value, rest: raw.slice(basic[0].length) };
+function renderKey(key: string): string {
+  return BARE_KEY.test(key) ? key : quote(key);
+}
+
+function statements(lines: readonly string[]): Statement[] {
+  const out: Statement[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i] as string;
+    const heading = parseHeading(line);
+    const entry = heading === undefined ? parseEntry(line) : undefined;
+    const closed: Open = { depth: 0, quote: undefined };
+    let open = entry === undefined ? closed : carry(entry.raw, closed);
+    let end = i + 1;
+    while (end < lines.length && (open.depth > 0 || open.quote !== undefined)) {
+      open = carry(lines[end] as string, open);
+      end += 1;
+    }
+    out.push({ start: i, end, heading, entry });
+    i = end;
   }
-  const literal = /^'([^']*)'/.exec(raw);
-  if (literal !== null) return { value: literal[1] ?? "", rest: raw.slice(literal[0].length) };
-  return undefined;
+  return out;
+}
+
+/** The segments of a `[table]` or `[[table]]` heading, or undefined for any other line. */
+function parseHeading(line: string): { at: string[]; array: boolean } | undefined {
+  const trimmed = line.trim();
+  const array = trimmed.startsWith("[[");
+  if (!trimmed.startsWith("[")) return undefined;
+  const key = readKey(trimmed.slice(array ? 2 : 1));
+  if (key === undefined) return undefined;
+  const close = array ? /^\]\](\s*#.*)?$/ : /^\](\s*#.*)?$/;
+  return close.test(key.rest) ? { at: key.keys, array } : undefined;
 }
 
 /** A dotted key, bare or quoted segments, at the start of `raw`, and what follows it. */
@@ -92,33 +130,21 @@ function readKey(raw: string): { keys: string[]; rest: string } | undefined {
   }
 }
 
-/** The segments of a `[table]` or `[[table]]` heading, or undefined for any other line. */
-function parseHeading(line: string): { at: string[]; array: boolean } | undefined {
-  const trimmed = line.trim();
-  const array = trimmed.startsWith("[[");
-  if (!trimmed.startsWith("[")) return undefined;
-  const key = readKey(trimmed.slice(array ? 2 : 1));
-  if (key === undefined) return undefined;
-  const close = array ? /^\]\](\s*#.*)?$/ : /^\](\s*#.*)?$/;
-  return close.test(key.rest) ? { at: key.keys, array } : undefined;
-}
-
-/** The key a `key = value` line sets, and its raw value. */
-function parseEntry(line: string): { keys: string[]; raw: string } | undefined {
-  const key = readKey(line);
-  const value = key === undefined ? null : /^=\s*(.*)$/.exec(key.rest);
-  return key === undefined || value === null ? undefined : { keys: key.keys, raw: value[1] ?? "" };
-}
-
-/** Null for a value this editor does not read, so it never equals one aireg would write. */
-function parseValue(raw: string): TomlScalar | null {
-  const string = readString(raw.trim());
-  if (string !== undefined) return /^\s*(#.*)?$/.test(string.rest) ? string.value : null;
-  const bare = raw.replace(/#.*$/, "").trim();
-  if (bare === "true") return true;
-  if (bare === "false") return false;
-  if (/^[+-]?\d+(\.\d+)?$/.test(bare)) return Number(bare);
-  return null;
+/** A basic or literal string at the start of `raw`, and what follows it. */
+function readString(raw: string): { value: string; rest: string } | undefined {
+  const basic = /^"((?:[^"\\]|\\.)*)"/.exec(raw);
+  if (basic !== null) {
+    const value = (basic[1] ?? "").replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_, escaped: string) => {
+      if (escaped.startsWith("u") && escaped.length === 5) {
+        return String.fromCharCode(Number.parseInt(escaped.slice(1), 16));
+      }
+      return escaped === "n" ? "\n" : escaped === "t" ? "\t" : escaped === "r" ? "\r" : escaped;
+    });
+    return { value, rest: raw.slice(basic[0].length) };
+  }
+  const literal = /^'([^']*)'/.exec(raw);
+  if (literal !== null) return { value: literal[1] ?? "", rest: raw.slice(literal[0].length) };
+  return undefined;
 }
 
 /** What a value left open at the end of a line: brackets, or a multi-line string. */
@@ -127,32 +153,11 @@ interface Open {
   quote: string | undefined;
 }
 
-/** Where a basic string's closing `quote` sits at or after `from`, skipping escapes; -1 when absent. */
-function basicClose(text: string, from: number, quote: string): number {
-  for (let i = from; i < text.length; i++) {
-    if (text[i] === "\\") i += 1;
-    else if (text.startsWith(quote, i)) return i;
-  }
-  return -1;
-}
-
-/** Where `quote` closes at or after `from`; only a basic (double-quoted) string has escapes. */
-function stringEnd(text: string, from: number, quote: string): number {
-  return quote.startsWith('"') ? basicClose(text, from, quote) : text.indexOf(quote, from);
-}
-
-/** The string delimiter that starts at `i`, longest first, if one does. */
-function quoteAt(text: string, i: number): string | undefined {
-  const triple = text.slice(i, i + 3);
-  if (triple === '"""' || triple === "'''") return triple;
-  const char = text[i];
-  return char === '"' || char === "'" ? char : undefined;
-}
-
-function nesting(char: string | undefined, depth: number): number {
-  if (char === "[" || char === "{") return depth + 1;
-  if (char === "]" || char === "}") return Math.max(0, depth - 1);
-  return depth;
+/** The key a `key = value` line sets, and its raw value. */
+function parseEntry(line: string): { keys: string[]; raw: string } | undefined {
+  const key = readKey(line);
+  const value = key === undefined ? null : /^=\s*(.*)$/.exec(key.rest);
+  return key === undefined || value === null ? undefined : { keys: key.keys, raw: value[1] ?? "" };
 }
 
 /** What is still open after one more line of a value, outside strings and comments. */
@@ -183,6 +188,28 @@ function carry(text: string, open: Open): Open {
   return { depth, quote };
 }
 
+/** Where `quote` closes at or after `from`; only a basic (double-quoted) string has escapes. */
+function stringEnd(text: string, from: number, quote: string): number {
+  return quote.startsWith('"') ? basicClose(text, from, quote) : text.indexOf(quote, from);
+}
+
+/** Where a basic string's closing `quote` sits at or after `from`, skipping escapes; -1 when absent. */
+function basicClose(text: string, from: number, quote: string): number {
+  for (let i = from; i < text.length; i++) {
+    if (text[i] === "\\") i += 1;
+    else if (text.startsWith(quote, i)) return i;
+  }
+  return -1;
+}
+
+/** The string delimiter that starts at `i`, longest first, if one does. */
+function quoteAt(text: string, i: number): string | undefined {
+  const triple = text.slice(i, i + 3);
+  if (triple === '"""' || triple === "'''") return triple;
+  const char = text[i];
+  return char === '"' || char === "'" ? char : undefined;
+}
+
 /** One heading or `key = value` line with the lines its value runs on to, or any other line. */
 interface Statement {
   start: number;
@@ -191,28 +218,21 @@ interface Statement {
   entry?: { keys: string[]; raw: string } | undefined;
 }
 
-function statements(lines: readonly string[]): Statement[] {
-  const out: Statement[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i] as string;
-    const heading = parseHeading(line);
-    const entry = heading === undefined ? parseEntry(line) : undefined;
-    const closed: Open = { depth: 0, quote: undefined };
-    let open = entry === undefined ? closed : carry(entry.raw, closed);
-    let end = i + 1;
-    while (end < lines.length && (open.depth > 0 || open.quote !== undefined)) {
-      open = carry(lines[end] as string, open);
-      end += 1;
-    }
-    out.push({ start: i, end, heading, entry });
-    i = end;
-  }
-  return out;
+function nesting(char: string | undefined, depth: number): number {
+  if (char === "[" || char === "{") return depth + 1;
+  if (char === "]" || char === "}") return Math.max(0, depth - 1);
+  return depth;
 }
 
-function startsWith(path: readonly string[], prefix: readonly string[]): boolean {
-  return path.length >= prefix.length && prefix.every((key, index) => path[index] === key);
+/** Null for a value this editor does not read, so it never equals one aireg would write. */
+function parseValue(raw: string): TomlScalar | null {
+  const string = readString(raw.trim());
+  if (string !== undefined) return /^\s*(#.*)?$/.test(string.rest) ? string.value : null;
+  const bare = raw.replace(/#.*$/, "").trim();
+  if (bare === "true") return true;
+  if (bare === "false") return false;
+  if (/^[+-]?\d+(\.\d+)?$/.test(bare)) return Number(bare);
+  return null;
 }
 
 interface Span {
@@ -257,57 +277,8 @@ function span(text: string, at: readonly string[]): Span {
   return { lines, nl, trailing, start, end, entries, elsewhere };
 }
 
-function render({ nl, trailing }: Span, lines: readonly string[]): string {
-  const rendered = lines.join(nl);
-  return rendered === "" ? "" : trailing ? `${rendered}${nl}` : rendered;
-}
-
-/** The root table's single-line keys: every statement before the first heading. Read only. */
-function readRoot(text: string): Record<string, TomlScalar | null> {
-  checked(text);
-  const out: Record<string, TomlScalar | null> = {};
-  for (const { start, end, heading, entry } of statements(text.split(/\r?\n/))) {
-    if (heading !== undefined) break;
-    const [key, ...dotted] = entry?.keys ?? [];
-    if (entry === undefined || key === undefined || dotted.length > 0) continue;
-    out[key] = end - start === 1 ? parseValue(entry.raw) : null;
-  }
-  return out;
-}
-
-/** The keys the table at `at` sets, or undefined when there is no such table; `[]` is the root. */
-export function readTable(
-  text: string,
-  at: readonly string[],
-): Record<string, TomlScalar | null> | undefined {
-  if (at.length === 0) return readRoot(text);
-  const { start, entries } = span(text, at);
-  if (start < 0) return undefined;
-  const out: Record<string, TomlScalar | null> = {};
-  for (const { start: first, end, entry } of entries) {
-    out[entry.keys[0]] = end - first === 1 ? parseValue(entry.raw) : null;
-  }
-  return out;
-}
-
-/** The table's lines with each of its entries passed through `edit`, which may drop or replace it. */
-function rewrite(
-  found: Span,
-  edit: (key: string) => string | null | undefined,
-  added: readonly string[] = [],
-): string {
-  const { lines, start, end, entries } = found;
-  const body: string[] = [];
-  let at = start + 1;
-  for (const statement of entries) {
-    body.push(...lines.slice(at, statement.start));
-    const next = edit(statement.entry.keys[0]);
-    if (next === undefined) body.push(...lines.slice(statement.start, statement.end));
-    else if (next !== null) body.push(next);
-    at = statement.end;
-  }
-  body.push(...lines.slice(at, end));
-  return render(found, [...lines.slice(0, start + 1), ...added, ...body, ...lines.slice(end)]);
+function startsWith(path: readonly string[], prefix: readonly string[]): boolean {
+  return path.length >= prefix.length && prefix.every((key, index) => path[index] === key);
 }
 
 /**
@@ -341,6 +312,35 @@ export function setKeys(
     (key) => (Object.hasOwn(values, key) ? line(key, values[key] as TomlScalar) : undefined),
     [...missing].map((key) => line(key, values[key] as TomlScalar)),
   );
+}
+
+function renderValue(value: TomlScalar): string {
+  return typeof value === "string" ? quote(value) : String(value);
+}
+
+/** The table's lines with each of its entries passed through `edit`, which may drop or replace it. */
+function rewrite(
+  found: Span,
+  edit: (key: string) => string | null | undefined,
+  added: readonly string[] = [],
+): string {
+  const { lines, start, end, entries } = found;
+  const body: string[] = [];
+  let at = start + 1;
+  for (const statement of entries) {
+    body.push(...lines.slice(at, statement.start));
+    const next = edit(statement.entry.keys[0]);
+    if (next === undefined) body.push(...lines.slice(statement.start, statement.end));
+    else if (next !== null) body.push(next);
+    at = statement.end;
+  }
+  body.push(...lines.slice(at, end));
+  return render(found, [...lines.slice(0, start + 1), ...added, ...body, ...lines.slice(end)]);
+}
+
+function render({ nl, trailing }: Span, lines: readonly string[]): string {
+  const rendered = lines.join(nl);
+  return rendered === "" ? "" : trailing ? `${rendered}${nl}` : rendered;
 }
 
 /** Deletes each key from the table at `at`, leaving the table itself. */

@@ -34,32 +34,6 @@ const HOSTS: Readonly<Record<string, string>> = { github: "github.com", gitlab: 
 const text = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
 
-/** The address an entry's source names, or why aireg does not read it. Nothing else is taken from it. */
-function addressOf(entry: Record<string, unknown>): string | { skip: string } {
-  const type = text(entry.sourceType);
-  const source = text(entry.sourceUrl) ?? text(entry.source);
-  if (type === undefined || source === undefined) return { skip: "it names no source" };
-  const host = HOSTS[type];
-  if (host !== undefined) {
-    if (SHORTHAND.test(source)) return `${host}/${source}`;
-    return /^https:\/\//.test(source) ? source : { skip: "its source is not owner/repo" };
-  }
-  if (type === "git" || type === "well-known") {
-    return /^(https|ssh|file):\/\/|^git@/.test(source)
-      ? source
-      : { skip: "its source is not an address aireg reads" };
-  }
-  return { skip: `its source type, ${quoted(sanitizeText(type, 40))}, is not one aireg reads` };
-}
-
-/** `skills/pdf/SKILL.md` is the folder `skills/pdf`; the root's SKILL.md is the whole source. */
-function folderOf(path: string | undefined): string | undefined {
-  if (path === undefined) return undefined;
-  const folder = path.endsWith("SKILL.md") ? posix.dirname(path) : path.replace(/\/+$/, "");
-  if (folder === "." || folder === "") return ".";
-  return isSafePath(folder) ? folder : undefined;
-}
-
 /**
  * Reads a project's `skills-lock.json` or a user's `.skill-lock.json`: a version and a map of skill
  * name to where it came from. Fields aireg does not know are passed over, never copied anywhere.
@@ -107,4 +81,30 @@ export async function readSkillLock(path: string): Promise<SkillLock> {
     skills.push({ name, address, ref: text(raw.ref), folder });
   }
   return { skills, skipped, user };
+}
+
+/** The address an entry's source names, or why aireg does not read it. Nothing else is taken from it. */
+function addressOf(entry: Record<string, unknown>): string | { skip: string } {
+  const type = text(entry.sourceType);
+  const source = text(entry.sourceUrl) ?? text(entry.source);
+  if (type === undefined || source === undefined) return { skip: "it names no source" };
+  const host = HOSTS[type];
+  if (host !== undefined) {
+    if (SHORTHAND.test(source)) return `${host}/${source}`;
+    return /^https:\/\//.test(source) ? source : { skip: "its source is not owner/repo" };
+  }
+  if (type === "git" || type === "well-known") {
+    return /^(https|ssh|file):\/\/|^git@/.test(source)
+      ? source
+      : { skip: "its source is not an address aireg reads" };
+  }
+  return { skip: `its source type, ${quoted(sanitizeText(type, 40))}, is not one aireg reads` };
+}
+
+/** `skills/pdf/SKILL.md` is the folder `skills/pdf`; the root's SKILL.md is the whole source. */
+function folderOf(path: string | undefined): string | undefined {
+  if (path === undefined) return undefined;
+  const folder = path.endsWith("SKILL.md") ? posix.dirname(path) : path.replace(/\/+$/, "");
+  if (folder === "." || folder === "") return ".";
+  return isSafePath(folder) ? folder : undefined;
 }

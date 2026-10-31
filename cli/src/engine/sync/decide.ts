@@ -152,8 +152,10 @@ export function classify(
     if (item.disposition === "synced" && unrecorded(scan, item)) writes.add(item.name);
     if (chosen === "publish" || chosen === "archive") mutates = true;
   }
-  if (mode !== "pull" && adopt(scan, job, scoped, overrides, outcomes, publishable)) {
-    mutates = true;
+  if (mode !== "pull") {
+    const adopted = adopt(scan, job, scoped, overrides, publishable);
+    for (const item of adopted.outcomes) outcomes.set(artifactKey(item.kind, item.artifact), item);
+    if (adopted.mutates) mutates = true;
   }
   return { outcomes, writes, mutates };
 }
@@ -234,15 +236,15 @@ function unrecorded(scan: Scan, item: SyncItem): boolean {
   return served !== undefined && entry.content !== served;
 }
 
-/** Local artifacts the registry does not carry yet. Returns whether one will be published. */
+/** Local artifacts the registry does not carry yet, and whether one will be published. */
 function adopt(
   scan: Scan,
   job: ScopeWork,
   scoped: Scoped,
   overrides: Overrides,
-  outcomes: Map<string, SyncOutcome>,
   publishable: Publishable,
-): boolean {
+): { outcomes: SyncOutcome[]; mutates: boolean } {
+  const outcomes: SyncOutcome[] = [];
   let mutates = false;
   const takesNone = !SCANNED_KINDS.some((kind) => publishable(kind));
   for (const candidate of scan.local) {
@@ -252,7 +254,7 @@ function adopt(
     const chosen = takesNone
       ? "ignore"
       : withoutPublishing(decide(job, overrides, candidate, "adopt"), publishable(candidate.kind));
-    outcomes.set(artifactKey(candidate.kind, candidate.name), {
+    outcomes.push({
       artifact: candidate.name,
       kind: candidate.kind,
       disposition: "adopt",
@@ -260,7 +262,7 @@ function adopt(
     });
     if (chosen === "publish") mutates = true;
   }
-  return mutates;
+  return { outcomes, mutates };
 }
 
 export function execution(outcomes: SyncOutcome[]): SyncExecution {

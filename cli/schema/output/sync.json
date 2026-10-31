@@ -665,6 +665,7 @@
               "type": "string"
             },
             "jobId": {
+              "description": "Absent for a run no job started.",
               "type": "string"
             },
             "accountId": {
@@ -753,12 +754,15 @@
               "type": "number"
             },
             "startedAtMs": {
+              "description": "Milliseconds since the Unix epoch.",
               "type": "number"
             },
             "deadlineAtMs": {
+              "description": "Milliseconds since the Unix epoch.",
               "type": "number"
             },
             "finishedAtMs": {
+              "description": "Milliseconds since the Unix epoch.",
               "type": "number"
             },
             "counts": {

@@ -1,7 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { LogsResult } from "#cli/commands/logs/result.ts";
 import { LEVELS } from "#core/log/model.ts";
-import { matching, outputDocument } from "./match.ts";
+import { matching, oneOf, outputDocument } from "./match.ts";
 
 const SerializedError = Type.Recursive((Self) =>
   Type.Object(
@@ -19,7 +19,7 @@ const SerializedError = Type.Recursive((Self) =>
 const LogRecord = Type.Object(
   {
     timestamp: Type.String({ description: "An RFC 3339 time in UTC." }),
-    severity_text: Type.Union(LEVELS.map((level) => Type.Literal(level))),
+    severity_text: oneOf(LEVELS),
     severity_number: Type.Number(),
     body: Type.String(),
     attributes: Type.Record(Type.String(), Type.Unknown()),

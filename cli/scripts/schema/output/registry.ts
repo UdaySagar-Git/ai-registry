@@ -10,9 +10,9 @@ import type {
   RegistryShown,
   RegistryValidated,
 } from "#cli/commands/registry/result.ts";
-import { matching, outputDocument } from "./match.ts";
+import { matching, oneOf, outputDocument } from "./match.ts";
 
-const Kind = Type.Union(KINDS.map((kind) => Type.Literal(kind)));
+const Kind = oneOf(KINDS);
 
 const Declared = {
   registry: Type.String(),
@@ -59,10 +59,7 @@ const Show = matching<RegistryShown>()(
       address: Type.String(),
       revision: Type.Optional(Type.String({ description: "The commit read, for a git registry." })),
       layout: Type.Optional(
-        Type.Union(
-          LAYOUT_IDS.map((layout) => Type.Literal(layout)),
-          { description: "Only for a source that is not a registry." },
-        ),
+        oneOf(LAYOUT_IDS, { description: "Only for a source that is not a registry." }),
       ),
       layouts: Type.Array(Type.String(), { description: "How the registry was read." }),
       entries: Type.Array(

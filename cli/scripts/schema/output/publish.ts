@@ -1,9 +1,9 @@
 import { Type } from "@sinclair/typebox";
 import { KINDS } from "#adapter/kinds.ts";
 import type { PublishReport } from "#cli/commands/publish/result.ts";
-import { matching, outputDocument } from "./match.ts";
+import { matching, oneOf, outputDocument } from "./match.ts";
 
-const Kind = Type.Union(KINDS.map((kind) => Type.Literal(kind)));
+const Kind = oneOf(KINDS);
 
 const Paths = Type.Array(Type.String());
 

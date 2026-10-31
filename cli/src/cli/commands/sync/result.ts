@@ -1,5 +1,5 @@
 import type { ArtifactKind } from "#adapter/kinds.ts";
-import type { ItemOutcome, RunCounts, RunMode, RunState, RunTrigger } from "#core/run/model.ts";
+import type { ItemOutcome, RunCounts, RunRecord, RunState } from "#core/run/model.ts";
 import type { Scope } from "#core/store/paths.ts";
 import type { Disposition } from "#core/sync/model.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
@@ -71,27 +71,8 @@ export interface SyncRuns {
   runs: SyncedRegistry[];
 }
 
-/** A run record as the daemon sends it, each field that is not set left out. */
-export interface SentRun {
-  id: string;
-  jobId?: string;
-  accountId: string;
-  configRevision: number;
-  mode: RunMode;
-  trigger: RunTrigger;
-  state: RunState;
-  step?: string;
-  requestedAtMs: number;
-  startedAtMs?: number;
-  deadlineAtMs: number;
-  finishedAtMs?: number;
-  counts: RunCounts;
-  errorCode?: string;
-  retryable: boolean;
-}
-
 /** `aireg sync resolve`: its run once finished, and the artifacts it settled. */
 export interface SyncResolved {
-  run: SentRun;
+  run: RunRecord;
   artifacts: SettledArtifact[];
 }

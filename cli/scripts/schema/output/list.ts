@@ -2,7 +2,7 @@ import { Type } from "@sinclair/typebox";
 import { KINDS } from "#adapter/kinds.ts";
 import type { ListResult } from "#cli/commands/list/result.ts";
 import { LINK_MODES } from "#core/lock.ts";
-import { matching, outputDocument } from "./match.ts";
+import { matching, oneOf, outputDocument } from "./match.ts";
 
 const Watched = Type.Object(
   {
@@ -53,7 +53,7 @@ const Listing = Type.Object(
 const Detail = Type.Object(
   {
     name: Type.String({ description: "As the command line named it." }),
-    kind: Type.Union(KINDS.map((kind) => Type.Literal(kind))),
+    kind: oneOf(KINDS),
     registry: Type.String(),
     address: Type.Optional(Type.String()),
     adapter: Type.Optional(Type.String()),
@@ -72,7 +72,7 @@ const Detail = Type.Object(
         {
           target: Type.String(),
           path: Type.String(),
-          mode: Type.Union(LINK_MODES.map((mode) => Type.Literal(mode))),
+          mode: oneOf(LINK_MODES),
           digest: Type.Optional(Type.String()),
           harness: Type.String({ description: "`target` by the id aireg 0.1 used." }),
         },

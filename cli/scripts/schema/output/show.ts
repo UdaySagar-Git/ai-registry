@@ -1,18 +1,18 @@
 import { Type } from "@sinclair/typebox";
 import { KINDS } from "#adapter/kinds.ts";
 import type { ShowResult } from "#cli/commands/show/result.ts";
-import { matching, outputDocument } from "./match.ts";
+import { matching, oneOf, outputDocument } from "./match.ts";
 
 const CARRIED = ["hooks", "mcpServers", "lspServers", "monitors", "bin"] as const;
 
-const Carries = Type.Array(Type.Union(CARRIED.map((key) => Type.Literal(key))), {
+const Carries = Type.Array(oneOf(CARRIED), {
   description: "What a target that loads it starts on its own, by plugin manifest key.",
 });
 
 const Artifact = Type.Object(
   {
     name: Type.String(),
-    kind: Type.Union(KINDS.map((kind) => Type.Literal(kind))),
+    kind: oneOf(KINDS),
     version: Type.Optional(Type.String({ description: "The version the registry serves." })),
     body: Type.String({ description: "The Markdown file as written." }),
     carries: Carries,

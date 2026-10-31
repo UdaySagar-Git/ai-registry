@@ -71,7 +71,7 @@ export const RunCounts = Type.Object(
 
 const Millis = Type.Number({ description: "Milliseconds since the Unix epoch." });
 
-const RunRecord = Type.Object(
+export const RunRecord = Type.Object(
   {
     id: Type.String(),
     jobId: absent(Type.String({ description: "Absent for a run no job started." })),

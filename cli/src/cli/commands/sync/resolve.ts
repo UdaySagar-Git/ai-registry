@@ -1,7 +1,7 @@
 import { actionOf, type CommandContext } from "#cli/commands/command.ts";
 import { defineCommand, STREAMED } from "#cli/commands/define.ts";
 import { attentionHints, type Followed, follow, stoppedError } from "#cli/commands/sync/follow.ts";
-import type { SentRun, SyncResolved } from "#cli/commands/sync/result.ts";
+import type { SyncResolved } from "#cli/commands/sync/result.ts";
 import { needsInput, parse } from "#cli/options/parse.ts";
 import { loadAdapter } from "#core/adapter/load.ts";
 import { findJob } from "#core/config/jobs.ts";
@@ -10,7 +10,6 @@ import { readConfig } from "#core/config/repository.ts";
 import { registryToken } from "#core/env.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { readLock } from "#core/lock.ts";
-import type { RunRecord } from "#core/run/model.ts";
 import { roots, scopeFor } from "#core/store/paths.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
@@ -148,30 +147,9 @@ async function settled(
     });
   }
   if (context.printer.format === "json") {
-    const data: SyncResolved = { run: sentRun(outcome.run), artifacts: outcome.artifacts };
+    const data: SyncResolved = { run: outcome.run, artifacts: outcome.artifacts };
     context.printer.json({ ok: true, data });
   }
   if (outcome.attention) context.exit = ExitCode.Changed;
   return outcome;
-}
-
-/** The record as the daemon sent it, in its order: JSON had already left out each unset field. */
-function sentRun(record: RunRecord): SentRun {
-  return {
-    id: record.id,
-    ...(record.jobId === undefined ? {} : { jobId: record.jobId }),
-    accountId: record.accountId,
-    configRevision: record.configRevision,
-    mode: record.mode,
-    trigger: record.trigger,
-    state: record.state,
-    ...(record.step === undefined ? {} : { step: record.step }),
-    requestedAtMs: record.requestedAtMs,
-    ...(record.startedAtMs === undefined ? {} : { startedAtMs: record.startedAtMs }),
-    deadlineAtMs: record.deadlineAtMs,
-    ...(record.finishedAtMs === undefined ? {} : { finishedAtMs: record.finishedAtMs }),
-    counts: record.counts,
-    ...(record.errorCode === undefined ? {} : { errorCode: record.errorCode }),
-    retryable: record.retryable,
-  };
 }

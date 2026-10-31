@@ -2,7 +2,7 @@ import { Type } from "@sinclair/typebox";
 import type { WatchList, WatchRemoved } from "#cli/commands/watch/result.ts";
 import { SCOPES } from "#core/store/paths.ts";
 import { Saved } from "./job.ts";
-import { matching, outputDocument } from "./match.ts";
+import { matching, oneOf, outputDocument } from "./match.ts";
 
 const List = matching<WatchList>()(
   Type.Object(
@@ -13,7 +13,7 @@ const List = matching<WatchList>()(
             folder: Type.String(),
             to: Type.String({ description: "Where it publishes, as <registry>/<namespace>." }),
             jobId: Type.String(),
-            scope: Type.Union(SCOPES.map((scope) => Type.Literal(scope))),
+            scope: oneOf(SCOPES),
             root: Type.String({ description: "The scope's folder." }),
           },
           { additionalProperties: false },

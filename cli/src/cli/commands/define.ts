@@ -46,7 +46,7 @@ export function defineCommand<O>(
 ): CommandModule {
   if (!("actions" in definition)) {
     return {
-      run: (context) => perform(definition, definition.parse(context.argv), context),
+      run: async (context) => perform(definition, definition.parse(context.argv), context),
     };
   }
   return {

@@ -48,6 +48,7 @@ describe("compileArgs", () => {
   });
 
   test("compiles the entrypoint for the requested Bun target", () => {
+    // The entry is a literal, not the constant: a stale entry path is the whole risk.
     expect(args()).toEqual([
       "build",
       "--compile",
@@ -63,7 +64,6 @@ describe("compileArgs", () => {
       "--define",
       '__COMMIT__=""',
       "--outfile=/out/aireg-linux-arm64",
-      // The literal, not the constant: a stale entry path is the whole risk.
       "src/main.ts",
     ]);
   });

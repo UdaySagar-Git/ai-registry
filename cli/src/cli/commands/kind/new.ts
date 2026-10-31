@@ -9,8 +9,8 @@ import { cancel, interaction, interactive } from "#cli/prompt/interaction.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { findRegistry } from "#core/filespec/init.ts";
 import { type KindManifest, primaryFiles } from "#core/filespec/kind-manifests.ts";
+import { refuseRedirect, writeFresh } from "#core/fs/fresh.ts";
 import { askFields, nameOf, render, scaffold, settings } from "./fields.ts";
-import { refuseRedirect, writeFresh } from "./files.ts";
 import { outsidePlace, registryPlace } from "./place.ts";
 
 export async function init(
@@ -47,7 +47,10 @@ export async function init(
   for (const file of files) refuseRedirect(inRegistry ? root : context.cwd, join(at, file));
   await mkdir(at, { recursive: true });
   for (const [index, file] of files.entries()) {
-    await writeFresh(join(at, file), render(file, fields), created[index] as string);
+    await writeFresh(join(at, file), render(file, fields), {
+      shown: created[index] as string,
+      hint: "Move it aside, or name a new artifact.",
+    });
   }
 
   if (context.printer.format === "json") {

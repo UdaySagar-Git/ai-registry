@@ -9,9 +9,10 @@ import type { Own } from "#cli/commands/kind.ts";
 import { needsInput } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { requireRegistry } from "#core/filespec/init.ts";
+import { refuseRedirect } from "#core/fs/fresh.ts";
 import { present } from "#core/fs/tree.ts";
 import { nameOf, valid } from "./fields.ts";
-import { FRESH, refuseRedirect } from "./files.ts";
+import { FRESH } from "./files.ts";
 import { keepFromEnvelope } from "./new-from.ts";
 import { locate } from "./place.ts";
 

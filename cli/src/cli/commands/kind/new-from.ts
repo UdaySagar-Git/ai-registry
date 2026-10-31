@@ -20,10 +20,11 @@ import {
 } from "#core/filespec/kind-manifests.ts";
 import { check } from "#core/filespec/schema.ts";
 import { withName } from "#core/frontmatter.ts";
+import { refuseRedirect } from "#core/fs/fresh.ts";
 import { expandUserPath } from "#core/fs/path.ts";
 import { authored, type Irregular, refusal } from "#core/fs/tree.ts";
 import { nameOf } from "./fields.ts";
-import { FRESH, refuseRedirect } from "./files.ts";
+import { FRESH } from "./files.ts";
 import { namespaceFor } from "./place.ts";
 
 /** One existing folder, read and checked before anything is copied. */

@@ -48,12 +48,8 @@ export interface Destination {
 
 export function parseTo(to: string): Destination {
   const ref = parseRef(to);
-  if (ref.namespace === undefined) {
-    throw new AiregError(`--to ${quoted(to)} names no namespace.`, {
-      code: ErrorCode.Usage,
-      hint: "Write it as <registry>/<namespace>, such as acme/engineering.",
-    });
-  }
+  if (ref.namespace === undefined)
+    throw noNamespace(to, "<registry>/<namespace>, such as acme/engineering");
   refuseName(ref.name);
   return {
     registry: ref.registry,
@@ -61,6 +57,13 @@ export function parseTo(to: string): Destination {
     name: ref.name,
     version: ref.version,
   };
+}
+
+function noNamespace(to: string, form: string): AiregError {
+  return new AiregError(`--to ${quoted(to)} names no namespace.`, {
+    code: ErrorCode.Usage,
+    hint: `Write it as ${form}.`,
+  });
 }
 
 /** Renamed silently, it would no longer match the name in its own front matter. */
@@ -88,8 +91,13 @@ export function cannotPublish(adapter: SourceAdapter, alias: string, how?: strin
   }
   return new AiregError(adapter.readOnly.message.replace("{registry}", alias), {
     code: ErrorCode.Usage,
-    hint: `${instead.charAt(0).toUpperCase()}${instead.slice(1)}.`,
+    hint: sentence(instead),
   });
+}
+
+/** A lowercase clause, such as `publishInstead` gives, as a hint's sentence. */
+function sentence(clause: string): string {
+  return `${clause.charAt(0).toUpperCase()}${clause.slice(1)}.`;
 }
 
 /**
@@ -132,15 +140,11 @@ export async function writableRegistries(
   );
   throw new AiregError(`None of ${aliases} takes a publish.`, {
     code: ErrorCode.Usage,
-    hint: `${instead.charAt(0).toUpperCase()}${instead.slice(1)}.`,
+    hint: sentence(instead),
   });
 }
 
-const noNamespace = (to: string) =>
-  new AiregError(`--to ${quoted(to)} names no namespace.`, {
-    code: ErrorCode.Usage,
-    hint: "Write it as <folder>/<namespace>, such as ../acme-registry/engineering.",
-  });
+const FOLDER_FORM = "<folder>/<namespace>, such as ../acme-registry/engineering";
 
 const holdsRegistry = (folder: string) =>
   access(join(folder, REGISTRY_DOCUMENT)).then(
@@ -168,7 +172,7 @@ export async function folderTo(
     root = dirname(root);
   }
   const rest = posixRelative(root, path);
-  if (rest === "") throw noNamespace(to);
+  if (rest === "") throw noNamespace(to, FOLDER_FORM);
   // As typed, less the namespace: relative to here, a symlink in either path would read differently.
   let shown = normalize(to);
   for (const _ of rest.split("/")) shown = dirname(shown);
@@ -178,9 +182,9 @@ export async function folderTo(
     ref = parseRef(`${LOCAL}/${rest}`);
   } catch (error) {
     if (!(error instanceof RefParseError)) throw error;
-    throw noNamespace(to);
+    throw noNamespace(to, FOLDER_FORM);
   }
-  if (ref.namespace === undefined) throw noNamespace(to);
+  if (ref.namespace === undefined) throw noNamespace(to, FOLDER_FORM);
   refuseName(ref.name);
   return {
     declared: { location: root, adapter: LOCAL, config: {} },
@@ -212,7 +216,10 @@ export interface Published {
   newest?: readonly Newest[] | undefined;
 }
 
-const keyOf = (namespace: string, kind: string, name: string) => `${namespace}/${kind}/${name}`;
+/** How `Published` keys an artifact. */
+export function artifactKey(namespace: string, kind: string, name: string): string {
+  return `${namespace}/${kind}/${name}`;
+}
 
 /** A declared registry a publish writes to, and how to reach it. */
 export interface PublishRegistry {
@@ -287,18 +294,13 @@ export async function readPublished(options: ReadPublishedOptions): Promise<Publ
       newest.push({ name, group: namespace, kind: artifact.kind, version });
       continue;
     }
-    latest.set(keyOf(namespace, artifact.kind, name), heldOf(artifact, version));
+    latest.set(artifactKey(namespace, artifact.kind, name), heldOf(artifact, version));
   }
 
   const withheld = new Map<string, Current>();
   for (const item of listing.catalog.withheld ?? []) {
     if (item.group === undefined) continue;
-    withheld.set(keyOf(item.group, item.kind, item.name), {
-      id: undefined,
-      version: item.version,
-      digests: [],
-      withheld: item,
-    });
+    withheld.set(artifactKey(item.group, item.kind, item.name), heldBack(item));
   }
   return {
     alias,
@@ -319,6 +321,11 @@ function heldOf(artifact: Artifact, version: string | undefined): Current {
     files: files.map(({ path, digest }) => ({ path, digest })),
     relationships,
   };
+}
+
+/** A version the registry holds back gives no files, so only its status is known. */
+function heldBack(withheld: Withheld): Current {
+  return { id: undefined, version: withheld.version, digests: [], withheld };
 }
 
 /** One artifact's outcome: a first version, the next one, or already there. */
@@ -381,7 +388,7 @@ export async function plan({
   relationships,
 }: PublishPlanOptions): Promise<Planned> {
   refuseRelationships(work, published, relationships);
-  const key = keyOf(namespace, work.kind, work.name);
+  const key = artifactKey(namespace, work.kind, work.name);
   const current = published.latest.get(key) ?? published.withheld.get(key);
   const folder = published.source.adapter.capabilities.fileSpec === true;
   if (!force) refuseBehind(work, current);
@@ -545,7 +552,7 @@ async function heldAt(
       item.version === version &&
       (item.group === undefined || item.group === namespace),
   );
-  return kept === undefined ? undefined : { id: undefined, version, digests: [], withheld: kept };
+  return kept === undefined ? undefined : heldBack(kept);
 }
 
 function alreadyPublished(

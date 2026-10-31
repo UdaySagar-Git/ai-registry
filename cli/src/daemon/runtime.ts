@@ -32,10 +32,9 @@ import { createJob, patchSettings } from "#daemon/handlers/job.ts";
 import * as inputs from "#daemon/handlers/params.ts";
 import { startDaemon } from "#daemon/process/lifecycle.ts";
 import { liveDaemonPid, releaseDaemonPid, writeDaemonPid } from "#daemon/process/pid-file.ts";
-import { RpcErrorCode } from "#daemon/rpc/codes.ts";
 import { privateDirectory, rpcEndpoint } from "#daemon/rpc/endpoint.ts";
+import { invalidParams, noJob, noRun } from "#daemon/rpc/errors.ts";
 import { type DaemonInfo, PROTOCOL_VERSION, type RpcContext } from "#daemon/rpc/methods.ts";
-import { ProtocolError } from "#daemon/rpc/protocol.ts";
 import { DaemonAlreadyRunningError, RpcServer } from "#daemon/rpc/server.ts";
 import { SyncRunner } from "#daemon/runs/runner.ts";
 import { JobScheduler } from "#daemon/runs/scheduler.ts";
@@ -53,10 +52,6 @@ const EVENT_PAGE_SIZE = 200;
 
 /** How often the daemon checks that its home still exists. */
 const HOME_WATCH_MS = 15_000;
-
-function noRun(runId: string): ProtocolError {
-  return new ProtocolError(RpcErrorCode.NotFound, `No run named ${quoted(runId)}.`);
-}
 
 export class DaemonRuntime {
   readonly #server: RpcServer;
@@ -154,17 +149,11 @@ export class DaemonRuntime {
 
   async #listRuns(raw: unknown): Promise<{ runs: RunRecord[] }> {
     const params = inputs.object(raw);
-    const limit = params.limit === undefined ? undefined : inputs.integer(params, "limit");
+    const limit = inputs.pageLimit(params, "limit", undefined);
     const jobId = inputs.optionalText(params, "jobId");
     const accountId = inputs.optionalText(params, "accountId");
     const state =
       params.state === undefined ? undefined : inputs.oneOf(params, "state", RUN_STATES);
-    if (limit !== undefined && (limit < 1 || limit > MAX_PAGE_SIZE)) {
-      throw new ProtocolError(
-        RpcErrorCode.InvalidParams,
-        `The limit must be between 1 and ${MAX_PAGE_SIZE}.`,
-      );
-    }
     return {
       runs: this.#runs.list({
         ...(jobId === undefined ? {} : { jobId }),
@@ -246,14 +235,9 @@ export class DaemonRuntime {
     const mode = inputs.text(params, "mode");
     const config = await readConfig();
     const job = config.jobs.find(({ id }) => id === jobId);
-    if (job === undefined) {
-      throw new ProtocolError(RpcErrorCode.NotFound, `No job named ${quoted(jobId)}.`);
-    }
+    if (job === undefined) throw noJob(jobId);
     if (!isRunMode(mode)) {
-      throw new ProtocolError(
-        RpcErrorCode.InvalidParams,
-        `Unknown run mode ${quoted(mode)}. Use ${list(RUN_MODES, "or")}.`,
-      );
+      throw invalidParams(`Unknown run mode ${quoted(mode)}. Use ${list(RUN_MODES, "or")}.`);
     }
     const refs = inputs.optionalNames(params, "refs");
     return {
@@ -267,15 +251,8 @@ export class DaemonRuntime {
     const run = this.#runs.get(runId);
     if (run === undefined) throw noRun(runId);
     const after = params.afterEventId === undefined ? 0 : inputs.integer(params, "afterEventId");
-    if (after < 0)
-      throw new ProtocolError(RpcErrorCode.InvalidParams, "afterEventId must not be negative.");
-    const limit = params.limit === undefined ? EVENT_PAGE_SIZE : inputs.integer(params, "limit");
-    if (limit < 1 || limit > MAX_PAGE_SIZE) {
-      throw new ProtocolError(
-        RpcErrorCode.InvalidParams,
-        `The limit must be between 1 and ${MAX_PAGE_SIZE}.`,
-      );
-    }
+    if (after < 0) throw invalidParams("afterEventId must not be negative.");
+    const limit = inputs.pageLimit(params, "limit", EVENT_PAGE_SIZE);
     const page = this.#runs.events(runId, after, limit + 1);
     return { events: page.slice(0, limit), hasMore: page.length > limit };
   }

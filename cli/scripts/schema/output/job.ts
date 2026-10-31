@@ -1,4 +1,10 @@
-import { type Static, type TLiteral, type TSchema, Type } from "@sinclair/typebox";
+import {
+  type SchemaOptions,
+  type Static,
+  type TLiteral,
+  type TSchema,
+  Type,
+} from "@sinclair/typebox";
 import { KINDS } from "#adapter/kinds.ts";
 import type {
   JobList,
@@ -30,8 +36,11 @@ export function readonlyRecord<T extends TSchema>(value: T) {
   return Type.Unsafe<Readonly<Record<string, Static<T>>>>(Type.Record(Type.String(), value));
 }
 
-export function oneOf<T extends string>(values: readonly T[]) {
-  return Type.Union(values.map((value): TLiteral<T> => Type.Literal(value)));
+export function oneOf<T extends string>(values: readonly T[], options?: SchemaOptions) {
+  return Type.Union(
+    values.map((value): TLiteral<T> => Type.Literal(value)),
+    options,
+  );
 }
 
 const Selector = Type.Object(

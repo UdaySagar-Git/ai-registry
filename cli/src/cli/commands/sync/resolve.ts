@@ -1,5 +1,7 @@
 import { actionOf, type CommandContext } from "#cli/commands/command.ts";
+import { defineCommand, STREAMED } from "#cli/commands/define.ts";
 import { attentionHints, type Followed, follow, stoppedError } from "#cli/commands/sync/follow.ts";
+import type { SentRun, SyncResolved } from "#cli/commands/sync/result.ts";
 import { needsInput, parse } from "#cli/options/parse.ts";
 import { loadAdapter } from "#core/adapter/load.ts";
 import { findJob } from "#core/config/jobs.ts";
@@ -8,10 +10,12 @@ import { readConfig } from "#core/config/repository.ts";
 import { registryToken } from "#core/env.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { readLock } from "#core/lock.ts";
+import type { RunRecord } from "#core/run/model.ts";
 import { roots, scopeFor } from "#core/store/paths.ts";
 import { withDaemon } from "#daemon/process/lifecycle.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
 import { matchInstalled, rowsNamed } from "#engine/installed-names.ts";
+import type { CommonOptions } from "#engine/options.ts";
 import { cannotPublish } from "#engine/publish/target.ts";
 import { load } from "#engine/scope/load.ts";
 import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
@@ -23,33 +27,54 @@ interface Own extends Record<string, unknown> {
   job?: string;
 }
 
-export async function run(context: CommandContext): Promise<void> {
-  const { common, positionals, own } = parse<Own>(context.argv, actionOf(SYNC_COMMAND, "resolve"));
-  const name = positionals[0];
-  if (name === undefined) {
-    throw needsInput(
-      "sync resolve",
-      "an artifact name",
-      "Name it: `aireg sync resolve <name> --mine | --theirs`, with `--job <job>` for one a job left waiting.",
-    );
-  }
-  if (own.mine === own.theirs) {
-    throw needsInput(
-      "sync resolve",
-      "exactly one of --mine or --theirs",
-      "Pass `--mine` to publish your copy as a new version, or `--theirs` to take the registry's copy.",
-    );
-  }
-  const resolution = own.mine === true ? "mine" : "theirs";
+interface Options {
+  common: CommonOptions;
+  name: string;
+  resolution: "mine" | "theirs";
+  job: string | undefined;
+}
 
+// Each item prints as the daemon settles it, and the run's data once it ends.
+export const { run } = defineCommand({
+  spec: SYNC_COMMAND,
+  parse(argv): Options {
+    const { common, positionals, own } = parse<Own>(argv, actionOf(SYNC_COMMAND, "resolve"));
+    const name = positionals[0];
+    if (name === undefined) {
+      throw needsInput(
+        "sync resolve",
+        "an artifact name",
+        "Name it: `aireg sync resolve <name> --mine | --theirs`, with `--job <job>` for one a job left waiting.",
+      );
+    }
+    if (own.mine === own.theirs) {
+      throw needsInput(
+        "sync resolve",
+        "exactly one of --mine or --theirs",
+        "Pass `--mine` to publish your copy as a new version, or `--theirs` to take the registry's copy.",
+      );
+    }
+    return { common, name, resolution: own.mine === true ? "mine" : "theirs", job: own.job };
+  },
+  async run(options, context) {
+    await resolve(context, options);
+    return STREAMED;
+  },
+  text: () => {},
+});
+
+async function resolve(
+  context: CommandContext,
+  { common, name, resolution, job: named }: Options,
+): Promise<void> {
   await withDaemon(async (client) => {
     // A configured job names itself; anything else is this scope, whose job was
     // built for the run that found the conflict and never stored.
-    if (own.job !== undefined) {
+    if (named !== undefined) {
       const config = await readConfig();
-      const job = findJob(config, own.job);
+      const job = findJob(config, named);
       const { run: started } = await client.request("conflict.resolve", {
-        jobId: job?.id ?? own.job,
+        jobId: job?.id ?? named,
         name: await jobKey(job, name),
         resolution,
       });
@@ -123,8 +148,30 @@ async function settled(
     });
   }
   if (context.printer.format === "json") {
-    context.printer.json({ ok: true, data: { run: outcome.run, artifacts: outcome.artifacts } });
+    const data: SyncResolved = { run: sentRun(outcome.run), artifacts: outcome.artifacts };
+    context.printer.json({ ok: true, data });
   }
   if (outcome.attention) context.exit = ExitCode.Changed;
   return outcome;
+}
+
+/** The record as the daemon sent it, in its order: JSON had already left out each unset field. */
+function sentRun(record: RunRecord): SentRun {
+  return {
+    id: record.id,
+    ...(record.jobId === undefined ? {} : { jobId: record.jobId }),
+    accountId: record.accountId,
+    configRevision: record.configRevision,
+    mode: record.mode,
+    trigger: record.trigger,
+    state: record.state,
+    ...(record.step === undefined ? {} : { step: record.step }),
+    requestedAtMs: record.requestedAtMs,
+    ...(record.startedAtMs === undefined ? {} : { startedAtMs: record.startedAtMs }),
+    deadlineAtMs: record.deadlineAtMs,
+    ...(record.finishedAtMs === undefined ? {} : { finishedAtMs: record.finishedAtMs }),
+    counts: record.counts,
+    ...(record.errorCode === undefined ? {} : { errorCode: record.errorCode }),
+    retryable: record.retryable,
+  };
 }

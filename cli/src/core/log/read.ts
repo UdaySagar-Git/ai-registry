@@ -1,4 +1,6 @@
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
+import { isRecord } from "#adapter/fields.ts";
+import { isAbsent } from "#adapter/files.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { parseDuration } from "#core/fields.ts";
@@ -27,15 +29,26 @@ export function parseLine(line: string): Entry | undefined {
   const text = line.trim();
   if (text === "") return undefined;
   if (!text.startsWith("{")) return { raw: text };
+  let value: unknown;
   try {
-    const value = JSON.parse(text) as Partial<LogRecord>;
-    if (typeof value.body !== "string" || !isLevel(String(value.severity_text))) {
-      return { raw: text };
-    }
-    return value as LogRecord;
+    value = JSON.parse(text);
   } catch {
+    // Captured output that only starts like JSON.
     return { raw: text };
   }
+  return isLogRecord(value) ? value : { raw: text };
+}
+
+/** Every field a reader of a record takes from it, so a line that lacks one stays raw. */
+function isLogRecord(value: unknown): value is LogRecord {
+  return (
+    isRecord(value) &&
+    typeof value.body === "string" &&
+    typeof value.timestamp === "string" &&
+    isLevel(String(value.severity_text)) &&
+    isRecord(value.attributes) &&
+    (value.error === undefined || isRecord(value.error))
+  );
 }
 
 export function matches(entry: Entry, filter: Filter): boolean {
@@ -66,8 +79,9 @@ export function newestEntries(path: string, filter: Filter, limit: number): Entr
   let fd: number;
   try {
     fd = openSync(path, "r");
-  } catch {
-    return [];
+  } catch (error) {
+    if (isAbsent(error)) return [];
+    throw error;
   }
   const found: Entry[] = [];
   const take = (line: Buffer) => {

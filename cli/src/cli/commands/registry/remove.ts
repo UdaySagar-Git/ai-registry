@@ -45,7 +45,7 @@ export async function remove(
       return;
     }
     context.printer.info(`Would remove ${what}.`);
-    context.printer.info(context.printer.style.dim("Dry run. Nothing was changed."));
+    context.printer.dryRun();
     return;
   }
 

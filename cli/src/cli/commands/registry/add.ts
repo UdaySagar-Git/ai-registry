@@ -92,7 +92,7 @@ export async function add(
     context.printer.info(
       `Would add registry ${alias} at ${withoutCredentials(declared.location)}.`,
     );
-    context.printer.info(context.printer.style.dim("Dry run. Nothing was changed."));
+    context.printer.dryRun();
     return;
   }
   context.printer.success(`Added registry ${alias} at ${withoutCredentials(declared.location)}.`);
@@ -153,7 +153,7 @@ async function moved(
   const kept = plural(move.kept, "installed artifact");
   if (dryRun) {
     context.printer.info(`Would move ${what}, keeping ${kept}.`);
-    context.printer.info(context.printer.style.dim("Dry run. Nothing was changed."));
+    context.printer.dryRun();
     return;
   }
   context.printer.success(`Moved ${what}.`);

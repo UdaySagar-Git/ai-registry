@@ -6,6 +6,7 @@ import { type Scope, scopeFlag, scopeName } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/contract.ts";
 import type { Printer } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
+import { GLYPH } from "#core/term/theme.ts";
 import { heading, type Installed, identity } from "./installed.ts";
 import { loadedBy, skipLine, stateFor, toolName } from "./tools.ts";
 
@@ -143,7 +144,7 @@ export interface Chosen {
 function cell(printer: Printer, seen: LinkState | undefined): string {
   const { style } = printer;
   if (seen === undefined) return style.dim("-");
-  if (seen === "linked") return style.green("✓");
+  if (seen === "linked") return style.green(GLYPH.ok);
   return seen === "missing" ? style.red(seen) : style.yellow(seen);
 }
 

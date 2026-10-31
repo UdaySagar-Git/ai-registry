@@ -19,7 +19,7 @@ export async function prepareWrite(
 ): Promise<Recovered> {
   refuseOldCli(manifest.engine);
   // Recovery removes files, which only a run holding the lease may do; the next real run recovers.
-  return dryRun ? { removed: [], skipped: [] } : recover(roots, lock);
+  return dryRun ? { removed: [], skipped: [] } : recover(roots, lock, process.env);
 }
 
 export interface CommitOptions {
@@ -45,7 +45,13 @@ export async function commit({
   let applied: ApplyResult;
   try {
     await runPipelineHooks("preApply", event);
-    applied = await apply(plan, loaded.roots, fetchFrom(acquired), onStep);
+    applied = await apply({
+      plan,
+      roots: loaded.roots,
+      fetch: fetchFrom(acquired),
+      env: process.env,
+      onStep,
+    });
   } catch (error) {
     await undo();
     throw error;

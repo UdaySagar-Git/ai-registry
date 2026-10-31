@@ -61,6 +61,7 @@ export interface PluginSource {
 /** What is fixed for one run: where it writes, how it fetches, and the lock it found. */
 export interface RunInputs {
   roots: Roots;
+  env: NodeJS.ProcessEnv;
   ahead: (source: string, path: string) => Promise<Staged>;
   /** The lock as this run found it. */
   before: Lock | undefined;

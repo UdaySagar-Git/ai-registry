@@ -17,7 +17,7 @@ import type { KeyFile } from "#core/target/contract.ts";
 import { assemble } from "./assemble.ts";
 import { commandSkill } from "./command-skill.ts";
 import { keyNeeds, writeKeyFiles } from "./keys.ts";
-import { backUp, guardLink, type LinkGuard } from "./link-guard.ts";
+import { backUp, type GuardScope, guardLink, type LinkGuard } from "./link-guard.ts";
 import type {
   ActionOf,
   BackedUp,
@@ -29,8 +29,12 @@ import type {
 } from "./run.ts";
 
 /** Refuses the entire plan before journaling or starting any fetch. */
-export async function preflight(plan: Plan, roots: Roots): Promise<Map<string, LinkGuard>> {
-  await assertManagedPath(roots.lock, roots);
+export async function preflight(
+  plan: Plan,
+  roots: Roots,
+  env: NodeJS.ProcessEnv,
+): Promise<Map<string, LinkGuard>> {
+  await assertManagedPath(roots.lock, roots, { env });
   // Each folder is checked once here; every write checks its own path again as it happens.
   const checked = new Set<string>();
   for (const action of plan.actions) {
@@ -38,17 +42,19 @@ export async function preflight(plan: Plan, roots: Roots): Promise<Map<string, L
       await assertManagedPath(action.to, roots, {
         leaf: action.kind !== "unlink",
         verified: checked,
+        env,
       });
-    if (action.kind === "link") await assertManagedPath(action.from, roots, { verified: checked });
+    if (action.kind === "link")
+      await assertManagedPath(action.from, roots, { verified: checked, env });
   }
-  return guardsOf(plan, roots);
+  return guardsOf(plan, { roots, env });
 }
 
 /**
  * Decided before the journal, so recovery never counts a person's folder as ours to remove.
  * Read-only, so a dry run shows the same verdicts.
  */
-export async function guardsOf(plan: Plan, roots: Roots): Promise<Map<string, LinkGuard>> {
+export async function guardsOf(plan: Plan, scope: GuardScope): Promise<Map<string, LinkGuard>> {
   const guards = new Map<string, LinkGuard>();
   for (const action of plan.actions) {
     if (action.kind === "record" || guards.has(action.to)) continue;
@@ -58,9 +64,9 @@ export async function guardsOf(plan: Plan, roots: Roots): Promise<Map<string, Li
         rendered !== undefined && "text" in rendered
           ? { file: writtenFile(action), text: rendered.text }
           : undefined;
-      guards.set(action.to, await guardLink(action.to, action.recorded, roots, text));
+      guards.set(action.to, await guardLink(action.to, action.recorded, scope, text));
     } else if (action.kind === "unlink" && action.link !== undefined) {
-      guards.set(action.to, await guardLink(action.to, action.link.mode, roots));
+      guards.set(action.to, await guardLink(action.to, action.link.mode, scope));
     }
   }
   return guards;
@@ -89,7 +95,7 @@ function writtenFile(action: ActionOf<"link">): string {
 
 /** Pointing a target at a whole namespace is what makes that directory a plugin. */
 export async function assemblePlugin(
-  roots: Roots,
+  { roots, env }: Pick<RunInputs, "roots" | "env">,
   action: ActionOf<"link">,
   found: PluginSource | undefined,
 ): Promise<PluginSource | undefined> {
@@ -100,7 +106,7 @@ export async function assemblePlugin(
     targets: new Set([...(found?.targets ?? []), action.target]),
     document: found === undefined ? action.document : found.document,
   };
-  await assertManagedPath(action.from, roots);
+  await assertManagedPath(action.from, roots, { env });
   await assemble(action.from, action.content, plugin.targets, plugin.document);
   return plugin;
 }
@@ -113,11 +119,7 @@ export async function linkInto(run: Run, action: ActionOf<"link">): Promise<Link
     return { kept: { name: action.name, path: action.to } };
   }
   // Assembled here, before the link that will read it.
-  const plugin = await assemblePlugin(
-    run.inputs.roots,
-    action,
-    run.results.plugins.get(action.from),
-  );
+  const plugin = await assemblePlugin(run.inputs, action, run.results.plugins.get(action.from));
   const linked = await placeLink(run.inputs, action, rendered, guard);
   return plugin === undefined ? linked : { ...linked, plugin };
 }
@@ -130,7 +132,7 @@ async function settledGuard(
 ): Promise<LinkGuard> {
   const guard = run.results.guards.get(action.to) ?? "replace";
   if (guard !== "keep" || rendered === undefined || !("text" in rendered)) return guard;
-  return guardLink(action.to, action.recorded, run.inputs.roots, {
+  return guardLink(action.to, action.recorded, run.inputs, {
     file: writtenFile(action),
     text: rendered.text,
   });
@@ -170,18 +172,18 @@ async function placeLink(
   rendered: Rendered | undefined,
   guard: Exclude<LinkGuard, "keep">,
 ): Promise<Linked> {
-  const { roots } = inputs;
+  const { roots, env } = inputs;
   // The source is inside our own tree, so a missing one was never staged.
   if (!(await exists(action.from))) return {};
   const needs = await keyFiles(action, rendered);
   if ("unrendered" in needs) return needs;
   // A committed symlink can appear on the way after planning; the write would follow it.
-  const verdict = removal(action.to, roots);
+  const verdict = removal(action.to, roots, env);
   if (roots.scope === "project" && verdict.how === "refuse") {
     return { kept: { name: action.name, path: action.to, reason: verdict.reason } };
   }
   // Whatever is there is about to go, so it is checked again now.
-  await assertRemovable(action.to, roots);
+  await assertRemovable(action.to, roots, env);
   const backedUp =
     guard === "backup" ? await moveAside(inputs, action.to, action.target) : undefined;
   const made = await makeLink(action, rendered, needs.files);
@@ -209,11 +211,11 @@ async function keyFiles(
 
 /** A person's own file or folder where the lockfile recorded a link goes to backups, never away. */
 async function moveAside(inputs: RunInputs, path: string, target: string): Promise<BackedUp> {
-  const { roots } = inputs;
+  const { roots, env } = inputs;
   const info = await lstat(path);
   const stamp = inputs.stamp();
-  await assertManagedPath(roots.artifacts, roots);
-  return { path, to: await backUp(path, target, roots, stamp), what: whatIs(info) };
+  await assertManagedPath(roots.artifacts, roots, { env });
+  return { path, to: await backUp(path, target, inputs, stamp), what: whatIs(info) };
 }
 
 function whatIs(info: Stats): BackedUp["what"] {
@@ -294,10 +296,10 @@ export async function unlink(run: Run, action: ActionOf<"unlink">): Promise<Back
   const { inputs } = run;
   let backedUp: BackedUp | undefined;
   if (run.results.guards.get(action.to) === "backup" && action.link !== undefined) {
-    await assertRemovable(action.to, inputs.roots);
+    await assertRemovable(action.to, inputs.roots, inputs.env);
     backedUp = await moveAside(inputs, action.to, action.link.target);
   } else {
-    await removeContained(action.to, inputs.roots);
+    await removeContained(action.to, inputs.roots, inputs.env);
   }
   // The kind subdir is ours to tidy; the namespace above it is not, outside the store.
   await pruneEmptyParent(action.to, inputs.roots.artifacts);

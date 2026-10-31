@@ -37,9 +37,9 @@ async function recopyPlugins(run: Run): Promise<Pick<Recorded, "copies" | "plugi
   const plugins = new Map<string, PluginSource>();
   for (const [to, action] of run.results.copiedPlugins) {
     const found = plugins.get(action.from) ?? run.results.plugins.get(action.from);
-    const plugin = await assemblePlugin(run.inputs.roots, action, found);
+    const plugin = await assemblePlugin(run.inputs, action, found);
     if (plugin !== undefined) plugins.set(action.from, plugin);
-    await assertRemovable(to, run.inputs.roots);
+    await assertRemovable(to, run.inputs.roots, run.inputs.env);
     await link(action.from, to, true);
     copies.set(to, await digest(to));
   }

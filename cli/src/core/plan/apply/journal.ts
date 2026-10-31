@@ -27,7 +27,7 @@ interface Journal {
 export async function recover(
   roots: Roots,
   lock: Lock,
-  env: NodeJS.ProcessEnv = process.env,
+  env: NodeJS.ProcessEnv,
 ): Promise<Recovered> {
   const journal = await readJournal(roots.applyJournal);
   const writes = (journal?.writes ?? []).map((path) => resolve(roots.cwd, path));

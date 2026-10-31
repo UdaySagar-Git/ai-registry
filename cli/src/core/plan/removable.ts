@@ -20,11 +20,7 @@ type Removal = { how: "remove" } | { how: "unlink" } | { how: "refuse"; reason: 
  * A lock is repository-written, so a path goes only if spelled below an aireg folder with no link
  * on the way.
  */
-export function removal(
-  path: string,
-  roots: RemovableRoots,
-  env: NodeJS.ProcessEnv = process.env,
-): Removal {
+export function removal(path: string, roots: RemovableRoots, env: NodeJS.ProcessEnv): Removal {
   const target = resolve(roots.cwd, path);
   // A target home set through its env var is canonical, while the lock spells paths as typed.
   const targets = [target, join(canonical(dirname(target)), basename(target))];
@@ -95,7 +91,7 @@ function shown(anchor: string, at: string): string {
 export async function assertRemovable(
   path: string,
   roots: RemovableRoots,
-  env: NodeJS.ProcessEnv = process.env,
+  env: NodeJS.ProcessEnv,
 ): Promise<Removal> {
   const verdict = removal(path, roots, env);
   const target = resolve(roots.cwd, path);
@@ -110,7 +106,7 @@ export async function assertRemovable(
 export async function removeContained(
   path: string,
   roots: RemovableRoots,
-  env: NodeJS.ProcessEnv = process.env,
+  env: NodeJS.ProcessEnv,
 ): Promise<void> {
   const verdict = await assertRemovable(path, roots, env);
   const target = resolve(roots.cwd, path);

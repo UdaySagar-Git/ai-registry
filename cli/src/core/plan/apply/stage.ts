@@ -48,7 +48,7 @@ export async function stage(run: Run, action: ActionOf<"stage">): Promise<Stagin
     // The only place bytes are waited for; a dry run never reaches here.
     from = await run.inputs.ahead(action.source, action.path);
   } catch (error) {
-    await assertManagedPath(action.to, run.inputs.roots, { leaf: false });
+    await assertManagedPath(action.to, run.inputs.roots, { leaf: false, env: run.inputs.env });
     await remove(action.to);
     return { staged: undefined, unstaged: [[action.name, { reason: reasonOf(error), error }]] };
   }

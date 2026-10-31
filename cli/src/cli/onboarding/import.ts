@@ -162,7 +162,7 @@ async function copyAll(
       artifact.name,
       artifact.artifactPath,
     );
-    await assertManagedPath(copy, loaded.roots);
+    await assertManagedPath(copy, loaded.roots, { env: process.env });
     if (!(await exists(copy))) made.push(copy);
     await refuseIrregular(loaded.roots, source.from, await copyAuthored(source.from, copy));
     // A later `origins` step keeps this row up to date from the folder it came from.

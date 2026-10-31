@@ -37,7 +37,7 @@ function canonicalTargets(manifest: Manifest): Manifest {
  */
 export async function writeManifest(roots: Roots, manifest: Manifest): Promise<string> {
   const path = roots.manifest;
-  await assertManagedPath(path, roots);
+  await assertManagedPath(path, roots, { env: process.env });
   const before = await readFile(path, "utf8").catch((cause: unknown) => {
     if (isMissing(cause)) return undefined;
     throw cause;

@@ -444,7 +444,7 @@ export function formatLock(lock: Lock): string {
 
 /** Atomic, so a killed write leaves the old lock or the new one; the caller holds the scope's lease. */
 export async function writeLock(roots: Roots, lock: Lock): Promise<void> {
-  await assertManagedPath(roots.lock, roots);
+  await assertManagedPath(roots.lock, roots, { env: process.env });
   const text = formatLock(lock);
   // One an earlier aireg wrote that already says this stays as it is, so it still reads it.
   // One that will not read is simply replaced.

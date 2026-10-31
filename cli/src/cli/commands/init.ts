@@ -117,7 +117,7 @@ export const { run } = defineCommand({
       source !== undefined || planned === undefined ? undefined : importInto(existing.registries);
 
     // The manifest and the ignore file below go in the scope folder, which must be this project's.
-    await assertManagedPath(roots.manifest, roots);
+    await assertManagedPath(roots.manifest, roots, { env: process.env });
     if (!resuming) {
       const contents = formatManifest({
         ...emptyManifest(),

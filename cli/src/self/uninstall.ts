@@ -80,9 +80,9 @@ export async function unlinkUserScope(env: NodeJS.ProcessEnv = process.env): Pro
   const scope = roots("user", homeDir(env), env);
   return withLease(scope, { wait: true }, async () => {
     // A run that crashed may have linked paths the lock never recorded.
-    await recover(scope, await readLock(scope));
+    await recover(scope, await readLock(scope), env);
     const plan = await teardownPlan(scope, env);
-    await apply(plan, scope, fetchFrom([]));
+    await apply({ plan, roots: scope, fetch: fetchFrom([]), env });
     return linksOf(plan, env);
   });
 }

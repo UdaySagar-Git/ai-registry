@@ -24,6 +24,7 @@ import {
   addStaging,
   addUnlinked,
   type Run,
+  type RunInputs,
   startRun,
 } from "./run.ts";
 import { cloneInto, prefetch, stage } from "./stage.ts";
@@ -31,18 +32,27 @@ import { cloneInto, prefetch, stage } from "./stage.ts";
 const linked = (lock: Lock | undefined, name: string): number =>
   lock?.artifacts[name]?.links.length ?? 0;
 
-export async function apply(
-  plan: Plan,
-  roots: Roots,
-  fetch: Fetch,
-  onStep?: (action: Action) => void,
-): Promise<ApplyResult> {
-  const guards = await preflight(plan, roots);
+export interface ApplyOptions {
+  plan: Plan;
+  roots: Roots;
+  fetch: Fetch;
+  env: NodeJS.ProcessEnv;
+  onStep?: ((action: Action) => void) | undefined;
+}
+
+export async function apply({
+  plan,
+  roots,
+  fetch,
+  env,
+  onStep,
+}: ApplyOptions): Promise<ApplyResult> {
+  const guards = await preflight(plan, roots, env);
   const before = await readLock(roots);
   await journal(plan, roots, guards);
   let stamp: string | undefined;
   const run = startRun(
-    { roots, ahead: prefetch(plan, fetch), before, stamp: () => (stamp ??= backupStamp()) },
+    { roots, env, ahead: prefetch(plan, fetch), before, stamp: () => (stamp ??= backupStamp()) },
     guards,
   );
 
@@ -55,7 +65,7 @@ export async function apply(
     }
     onStep?.(action);
     if (action.kind !== "record")
-      await assertManagedPath(action.to, roots, { leaf: action.kind !== "unlink" });
+      await assertManagedPath(action.to, roots, { leaf: action.kind !== "unlink", env });
     await perform(run, action);
   }
   const registered = await finish(run, plan);
@@ -110,34 +120,37 @@ async function perform(run: Run, action: Action): Promise<void> {
  * registrations it left to a person.
  */
 async function finish(run: Run, plan: Plan): Promise<ApplyResult["kept"]> {
-  const { roots, before } = run.inputs;
+  const { roots, env, before } = run.inputs;
   const { plugins, fanned, projections, performed, recorded } = run.results;
   // At link time a projection would see only the kind whose artifact happened to be first.
   for (const [dir, { content, targets, document }] of plugins) {
-    await assertManagedPath(dir, roots);
+    await assertManagedPath(dir, roots, { env });
     await assemble(dir, content, targets, document);
   }
   for (const [to, from] of fanned) {
-    await assertRemovable(to, roots);
+    await assertRemovable(to, roots, env);
     await fanOut(from, to);
   }
-  if (projections !== undefined) await pruneProjections(projections, roots);
+  if (projections !== undefined) await pruneProjections(projections, run.inputs);
   if (plugins.size > 0 || Object.values(performed).some((count) => count > 0)) {
-    await assertManagedPath(roots.artifacts, roots);
+    await assertManagedPath(roots.artifacts, roots, { env });
     await ensureScopeIgnore(roots);
   }
   return applyRegistrations(plan.actions, roots, recorded ?? before);
 }
 
 /** A link assembles a namespace's projection and no unlink takes it, so it goes with its last row. */
-async function pruneProjections(wanted: ReadonlySet<string>, roots: Roots): Promise<void> {
+async function pruneProjections(
+  wanted: ReadonlySet<string>,
+  { roots, env }: RunInputs,
+): Promise<void> {
   const root = join(roots.artifacts, PROJECTIONS_DIR);
-  await assertManagedPath(root, roots);
+  await assertManagedPath(root, roots, { env });
   for (const { name: source } of await entries(root)) {
-    await assertManagedPath(join(root, source), roots);
+    await assertManagedPath(join(root, source), roots, { env });
     for (const { name: plugin } of await entries(join(root, source))) {
       const path = join(root, source, plugin);
-      await assertManagedPath(path, roots);
+      await assertManagedPath(path, roots, { env });
       if (!wanted.has(path)) await remove(path);
     }
     await rmdir(join(root, source)).catch(() => undefined);

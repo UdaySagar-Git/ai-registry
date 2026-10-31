@@ -25,6 +25,7 @@ const backedUp = { path: link.to, to: "/backups/lint", what: "folder" as const }
 function fresh(): Run {
   const inputs = {
     roots: roots("project", "/work"),
+    env: process.env,
     ahead: () => Promise.reject(new Error("no fetch")),
     before: undefined,
     stamp: () => "20260101T000000Z",

@@ -9,14 +9,14 @@ export interface ManagedPathOptions {
   leaf?: boolean;
   /** Folders this pass already checked, for a caller asserting many paths at once. */
   verified?: Set<string>;
-  env?: NodeJS.ProcessEnv;
+  env: NodeJS.ProcessEnv;
 }
 
 /** Target roots may be shared; only scope-owned and staging trees are guarded here. */
 export async function assertManagedPath(
   path: string,
   roots: Roots,
-  { leaf = true, verified, env = process.env }: ManagedPathOptions = {},
+  { leaf = true, verified, env }: ManagedPathOptions,
 ): Promise<void> {
   if (isWithin(dirname(roots.artifacts), path)) {
     await assertUnredirected(scopeRoot(roots), path, leaf, verified);

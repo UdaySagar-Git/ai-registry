@@ -218,7 +218,7 @@ export async function applyOrigins(
     );
     // Never the other way round: the origin is read, the copy is written.
     if (resolve(copy) === resolve(outcome.origin.from)) continue;
-    await assertManagedPath(copy, roots);
+    await assertManagedPath(copy, roots, { env: process.env });
     // Checked again as it copies: a link that appeared since the survey is refused, not followed.
     const irregular = await copyAuthored(outcome.origin.from, copy);
     if (irregular !== undefined) {
@@ -320,9 +320,9 @@ export async function forgetOrigins(
     // A pull of the same namespace links the copy into other targets, and they would dangle.
     for (const link of row.links) {
       const at = resolve(roots.base, link.path);
-      if (canonical(at) !== from) await removeContained(at, roots);
+      if (canonical(at) !== from) await removeContained(at, roots, process.env);
     }
-    await removeContained(resolve(roots.base, row.path), roots);
+    await removeContained(resolve(roots.base, row.path), roots, process.env);
     delete lock.artifacts[key];
     forgotten.push(key);
   }

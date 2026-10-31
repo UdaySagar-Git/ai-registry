@@ -214,15 +214,20 @@ export interface Published {
 
 const keyOf = (namespace: string, kind: string, name: string) => `${namespace}/${kind}/${name}`;
 
+/** A declared registry a publish writes to, and how to reach it. */
+export interface PublishRegistry {
+  alias: string;
+  declared: RegistrySource;
+  /** Every registry this scope declares, any of which may read the same token. */
+  aliases: readonly string[];
+  cwd: string;
+  /** The command that publishes this work into a clone, for when the registry is a git one. */
+  how?: string | undefined;
+}
+
 /** The namespaces a registry lists, to choose one from: the one whole listing a publish reads. */
-export async function namespacesIn(
-  alias: string,
-  declared: RegistrySource,
-  aliases: readonly string[],
-  cwd: string,
-  how?: string,
-): Promise<string[]> {
-  const { source } = await connectToPublish(alias, declared, aliases, cwd, how);
+export async function namespacesIn(registry: PublishRegistry): Promise<string[]> {
+  const { source } = await connectToPublish(registry);
   try {
     const { listed } = await resolveArtifacts(source, [], { all: true });
     const namespaces = listed.flatMap(({ artifact }) => artifact.envelope.metadata.namespace ?? []);
@@ -232,14 +237,13 @@ export async function namespacesIn(
   }
 }
 
-async function connectToPublish(
-  alias: string,
-  declared: RegistrySource,
-  /** Every registry this scope declares, any of which may read the same token. */
-  aliases: readonly string[],
-  cwd: string,
-  how: string | undefined,
-): Promise<{ location: string; source: ConnectedSource }> {
+async function connectToPublish({
+  alias,
+  declared,
+  aliases,
+  cwd,
+  how,
+}: PublishRegistry): Promise<{ location: string; source: ConnectedSource }> {
   const refused = readOnlyLayout(alias, declared.config);
   if (refused !== undefined) throw refused;
   const location = expandLocation(declared.location, cwd);
@@ -262,17 +266,14 @@ async function connectToPublish(
   return { location, source };
 }
 
-export async function readPublished(
-  alias: string,
-  declared: RegistrySource,
-  aliases: readonly string[],
-  cwd: string,
+export interface ReadPublishedOptions extends PublishRegistry {
   /** Every artifact this run may publish or name here, as `publishWants` gives them. */
-  want: readonly Want[],
-  /** The command that publishes this work into a clone, for when the registry is a git one. */
-  how?: string,
-): Promise<Published> {
-  const { location, source } = await connectToPublish(alias, declared, aliases, cwd, how);
+  want: readonly Want[];
+}
+
+export async function readPublished(options: ReadPublishedOptions): Promise<Published> {
+  const { alias, want } = options;
+  const { location, source } = await connectToPublish(options);
 
   const listing = await resolveArtifacts(source, want);
   const latest = new Map<string, Current>();
@@ -356,16 +357,29 @@ export function heldUnlisted(error: unknown, alias: string, items: readonly Plan
   });
 }
 
-export async function plan(
-  work: Work,
-  published: Published,
-  namespace: string,
-  how: Bump,
-  exact: string | undefined,
-  force: boolean,
+export interface PublishPlanOptions {
+  work: Work;
+  published: Published;
+  namespace: string;
+  /** How far past the registry's latest version the next one goes, when none is named. */
+  bump: Bump;
+  /** The version `--to` names, which wins over an export's own. */
+  exact?: string | undefined;
+  /** Publish over a version released since the one the work was edited from. */
+  force?: boolean | undefined;
   /** Absent leaves existing edges unmanaged; an explicit list participates in version identity. */
-  relationships?: readonly PublishRelationship[],
-): Promise<Planned> {
+  relationships?: readonly PublishRelationship[] | undefined;
+}
+
+export async function plan({
+  work,
+  published,
+  namespace,
+  bump,
+  exact,
+  force = false,
+  relationships,
+}: PublishPlanOptions): Promise<Planned> {
   refuseRelationships(work, published, relationships);
   const key = keyOf(namespace, work.kind, work.name);
   const current = published.latest.get(key) ?? published.withheld.get(key);
@@ -427,7 +441,7 @@ export async function plan(
     group: namespace,
     kind: work.kind,
   });
-  const version = asked ?? (same ? (current?.version as string) : bumpVersion(from, how));
+  const version = asked ?? (same ? (current?.version as string) : bumpVersion(from, bump));
   // The version is not part of the content identity, so the files read once serve it.
   const moved = version === probe.input.version ? probe.input : { ...probe.input, version };
 

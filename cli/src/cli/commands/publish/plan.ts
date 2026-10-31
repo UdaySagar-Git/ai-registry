@@ -47,7 +47,15 @@ export async function planAll(
         const edges = await edgesFor?.(work, target, published, planned);
         return {
           alias: target.registry,
-          item: await plan(work, published, target.namespace, how, exact, force, edges),
+          item: await plan({
+            work,
+            published,
+            namespace: target.namespace,
+            bump: how,
+            exact,
+            force,
+            relationships: edges,
+          }),
         };
       };
       pending.set(work, next());
@@ -108,14 +116,14 @@ export function opener(
     const cached = opened.get(alias);
     if (cached !== undefined) return cached;
     const declared = known[alias] as RegistrySource;
-    const read = await readPublished(
+    const read = await readPublished({
       alias,
       declared,
-      Object.keys(known),
+      aliases: Object.keys(known),
       cwd,
-      wants.get(alias) ?? [],
-      cloneCommand(alias),
-    );
+      want: wants.get(alias) ?? [],
+      how: cloneCommand(alias),
+    });
     opened.set(alias, read);
     return read;
   };

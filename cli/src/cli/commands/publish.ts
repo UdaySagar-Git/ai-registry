@@ -73,13 +73,13 @@ async function publish(
 
   const how = (alias: string) => intoClone(works, alias, to, context.cwd);
   const namespacesOf = (alias: string) =>
-    namespacesIn(
+    namespacesIn({
       alias,
-      known[alias] as RegistrySource,
-      Object.keys(known),
-      context.cwd,
-      how(alias),
-    );
+      declared: known[alias] as RegistrySource,
+      aliases: Object.keys(known),
+      cwd: context.cwd,
+      how: how(alias),
+    });
   const where = await destinationOf(
     step,
     works,

@@ -183,7 +183,6 @@
         "src/core/sync/adopt.ts",
         "src/core/target/register/register.ts",
         "src/daemon/runs/runner.ts",
-        "src/engine/publish/target.ts",
         "src/engine/sync/decide.ts",
         "src/engine/sync/execute.ts",
         "src/engine/sync/local.ts",

@@ -17,7 +17,7 @@ import {
   PULL_DISPOSITIONS,
   type SyncItem,
 } from "#core/sync/model.ts";
-import { CHANGING_OPERATIONS, operation, type SyncOperation } from "#core/sync/policy.ts";
+import { operation, type SyncOperation } from "#core/sync/policy.ts";
 import type { Loaded } from "#engine/scope/load.ts";
 import { shadowedByYours } from "./claim.ts";
 import { type OriginOutcome, surveyOrigins } from "./origins.ts";
@@ -52,11 +52,20 @@ export interface SyncExecutionHooks {
 }
 
 /** The operation a policy chose, in the vocabulary a count is taken over. */
+const OUTCOMES = {
+  none: "unchanged",
+  pull: "changed",
+  "remove-local": "changed",
+  publish: "changed",
+  archive: "changed",
+  forget: "changed",
+  attention: "attention",
+  report: "attention",
+  ignore: "skipped",
+} as const satisfies Record<SyncOperation, ItemOutcome>;
+
 export function outcomeOf(operation: SyncOperation): ItemOutcome {
-  if (CHANGING_OPERATIONS.includes(operation)) return "changed";
-  if (operation === "none") return "unchanged";
-  if (operation === "ignore") return "skipped";
-  return "attention";
+  return OUTCOMES[operation];
 }
 
 /**
@@ -256,14 +265,11 @@ function adopt(
 
 export function execution(outcomes: SyncOutcome[]): SyncExecution {
   const failed = outcomes.filter(({ failure }) => failure !== undefined).length;
-  const changed = outcomes.filter(({ operation: item }) =>
-    CHANGING_OPERATIONS.includes(item),
-  ).length;
-  const attention = outcomes.filter(
-    ({ operation: item }) => item === "attention" || item === "report",
-  ).length;
-  const skipped = outcomes.filter(
-    ({ operation: item }) => item === "none" || item === "ignore",
+  const settled = outcomes.map(({ operation: item }) => outcomeOf(item));
+  const changed = settled.filter((outcome) => outcome === "changed").length;
+  const attention = settled.filter((outcome) => outcome === "attention").length;
+  const skipped = settled.filter(
+    (outcome) => outcome === "unchanged" || outcome === "skipped",
   ).length;
   // A run that got through the rest is not a failure: the artifacts that could
   // not be read are named one by one, and a person decides.

@@ -42,7 +42,7 @@ import type { ScopeWork } from "#engine/sync/work.ts";
 import { CANCELED, classifyFailure, SHUTDOWN, TIMED_OUT } from "./failure.ts";
 
 /** Which terminal state wins when steps disagree. */
-const WORSE: Readonly<Record<string, number>> = {
+const WORSE = {
   succeeded: 0,
   attention: 1,
   partial: 2,
@@ -50,7 +50,7 @@ const WORSE: Readonly<Record<string, number>> = {
   timed_out: 4,
   failed: 5,
   abandoned: 6,
-};
+} as const satisfies Record<TerminalRunState, number>;
 
 const RUN_TIMEOUT_MS = 30 * 60 * 1_000;
 /**
@@ -389,7 +389,7 @@ export class SyncRunner {
         attention: counts.attention + result.counts.attention,
         failed: counts.failed + result.counts.failed,
       };
-      if ((WORSE[result.state] ?? 0) > (WORSE[state] ?? 0)) {
+      if (WORSE[result.state] > WORSE[state]) {
         state = result.state;
         errorCode = result.errorCode;
         retryable = result.retryable;

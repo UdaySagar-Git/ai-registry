@@ -147,7 +147,7 @@ async function write(
     }
 
     if (common.dryRun) {
-      const guards = await guardsOf(planned, roots);
+      const guards = await guardsOf(planned, { roots, env: process.env });
       const aside = new Set(
         [...guards].flatMap(([path, guard]) => (guard === "backup" ? [path] : [])),
       );

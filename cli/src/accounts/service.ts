@@ -240,6 +240,7 @@ export async function signOut(accountId: string, signal: AbortSignal): Promise<R
   const config = await readConfig();
   const account = config.accounts.find(({ id }) => id === accountId);
   if (account === undefined) throw unknownAccount(accountId);
+  // A registry that cannot be resolved still signs out here; only the revoke is skipped.
   const resolved = await resolveAccount(account).catch(() => undefined);
   const stored = await changing(account.id, async () => {
     const held = await readCredential(account.id);

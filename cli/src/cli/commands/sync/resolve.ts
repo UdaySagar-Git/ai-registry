@@ -88,6 +88,7 @@ async function resolve(
     const registry = lock.artifacts[key]?.registry as string;
     const row = lock.artifacts[key];
     const id = lock.registries[registry]?.adapter;
+    // One that will not load is refused, if at all, when the publish opens it.
     const adapter = id === undefined ? undefined : await loadAdapter(id).catch(() => undefined);
     if (resolution === "mine" && adapter !== undefined && !adapter.capabilities.publish) {
       throw cannotPublish(

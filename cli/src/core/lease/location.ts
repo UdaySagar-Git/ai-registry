@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { redirection } from "#adapter/files.ts";
+import { isAbsent, redirection } from "#adapter/files.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { shortHash } from "#core/fs/hash.ts";
 import { posixRelative } from "#core/fs/path.ts";
@@ -17,7 +17,8 @@ export function canonicalLock(lock: string): string {
   for (let dir = dirname(full); ; dir = dirname(dir)) {
     try {
       return join(realpathSync.native(dir), ...rest);
-    } catch {
+    } catch (error) {
+      if (!isAbsent(error)) throw error;
       if (dirname(dir) === dir) return full;
       rest.unshift(basename(dir));
     }

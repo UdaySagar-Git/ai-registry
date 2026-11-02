@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
+import { ifPresent } from "#adapter/files.ts";
 import { SKILL_ENTRY } from "#adapter/kinds.ts";
 import { list, quoted, sanitizeBlock, sanitizeName } from "#adapter/text.ts";
 import type { ShowResult } from "#cli/commands/show/result.ts";
@@ -105,8 +106,7 @@ export const { run } = defineCommand({
 
     const path = await source.content(entry);
     const file = (await isDirectory(path)) ? await markdownIn(path) : path;
-    const body =
-      file === undefined ? undefined : await readFile(file, "utf8").catch(() => undefined);
+    const body = file === undefined ? undefined : await ifPresent(readFile(file, "utf8"));
     if (body === undefined) {
       throw new AiregError(`Cannot read ${entry.path}.`, {
         code: ErrorCode.Invalid,

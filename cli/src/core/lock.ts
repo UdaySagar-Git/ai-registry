@@ -9,7 +9,7 @@ import { canonicalConfig, type SourceConfig } from "#core/adapter/identity.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { earlierDigest, rememberEarlier } from "#core/fs/digest.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { guardManagedPath } from "#core/store/managed-paths.ts";
+import { assertManagedPath } from "#core/store/managed-paths.ts";
 import type { Roots, Scope } from "#core/store/paths.ts";
 import type { Targets } from "#core/target/contract.ts";
 import { canonicalId, earlierId } from "#core/target/ids.ts";
@@ -329,7 +329,7 @@ function parseBlocked(raw: unknown, scope: Scope): LockArtifact["blocked"] {
  * about to be restaged has no digest until its copy lands, so that is no change.
  */
 export function lockChanges(before: Lock, after: Lock): string[] {
-  const table = resolveTargets();
+  const table = resolveTargets(process.env);
   const changed = new Set<string>();
   const differ = (a: object | undefined, b: object | undefined) =>
     JSON.stringify(a) !== JSON.stringify(b);
@@ -423,7 +423,7 @@ function blockedDoc(
 }
 
 export function formatLock(lock: Lock): string {
-  const table = resolveTargets();
+  const table = resolveTargets(process.env);
   const registries = dict(
     Object.keys(lock.registries)
       .sort()
@@ -444,9 +444,10 @@ export function formatLock(lock: Lock): string {
 
 /** Atomic, so a killed write leaves the old lock or the new one; the caller holds the scope's lease. */
 export async function writeLock(roots: Roots, lock: Lock): Promise<void> {
-  await guardManagedPath(roots.lock, roots);
+  await assertManagedPath(roots.lock, roots, { env: process.env });
   const text = formatLock(lock);
   // One an earlier aireg wrote that already says this stays as it is, so it still reads it.
+  // One that will not read is simply replaced.
   const held = await readLock(roots).catch(() => undefined);
   if (held !== undefined && formatLock(held) === text) return;
   await writeAtomic(roots.lock, text);
@@ -471,7 +472,7 @@ export async function readLock(roots: Pick<Roots, "scope" | "lock">): Promise<Lo
 
 /** Each target by its canonical id, so a lock aireg 0.1 wrote reads as this one writes it. */
 function canonicalTargets(lock: Lock): Lock {
-  const table = resolveTargets();
+  const table = resolveTargets(process.env);
   for (const row of Object.values(lock.artifacts)) {
     for (const item of [
       ...row.links,

@@ -236,6 +236,7 @@ function edit(
       return changed;
     });
   });
+  // As in `updateConfig`: the caller sees the failure, the queue only orders the next edit.
   pending = next.catch(() => {});
   return next;
 }

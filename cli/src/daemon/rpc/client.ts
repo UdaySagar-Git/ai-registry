@@ -320,6 +320,7 @@ export async function followRun(
     resolveFinished = resolve;
     rejectFinished = reject;
   });
+  // Awaited later; a rejection before then must not surface as an unhandled one.
   void finished.catch(() => {});
   const show = (event: RunEvent) => {
     if (event.id <= shown) return;

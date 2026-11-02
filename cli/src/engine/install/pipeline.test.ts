@@ -24,7 +24,7 @@ const failure = vi.hoisted(() => ({ afterRecord: false }));
 
 vi.mock("#core/plan/apply/apply.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("#core/plan/apply/apply.ts")>()),
-  apply: vi.fn(async (plan: Plan, at: Roots) => {
+  apply: vi.fn(async ({ plan, roots: at }: { plan: Plan; roots: Roots }) => {
     const record = plan.actions.find((action) => action.kind === "record");
     if (failure.afterRecord && record?.kind === "record") {
       await writeFile(at.lock, formatLock(record.lock));

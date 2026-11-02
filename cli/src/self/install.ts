@@ -13,7 +13,7 @@ import {
   symlink,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { EXECUTABLE } from "#adapter/files.ts";
+import { EXECUTABLE, isAbsent } from "#adapter/files.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { gte, parseVersion } from "#adapter/semver.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -40,8 +40,9 @@ export async function installedVersion(env: NodeJS.ProcessEnv = process.env): Pr
       ? (await readFile(currentLink(env), "utf8")).trim()
       : await readlink(currentLink(env));
     if (target !== "") return target;
-  } catch {
+  } catch (error) {
     // Source and npm installs have no ~/.aireg/cli/current yet.
+    if (!isAbsent(error)) throw error;
   }
   return VERSION;
 }
@@ -136,6 +137,7 @@ async function writeShims(version: string, env: NodeJS.ProcessEnv): Promise<void
 /** Deletes what `swapIn` moved aside; one a process still runs stays until a later install. */
 async function sweepReplaced(dir: string): Promise<void> {
   if (!WINDOWS) return;
+  // A sweep that fails leaves only a stale file, which the next install sweeps again.
   for (const entry of await readdir(dir).catch(() => [])) {
     if (entry.endsWith(".old")) await rm(join(dir, entry), { force: true }).catch(() => undefined);
   }
@@ -178,8 +180,10 @@ export async function versionOnDisk(
   try {
     await access(versionBin(version, env), constants.X_OK);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // Not there, or there but not executable: either way not a version to run.
+    if (isAbsent(error) || (error as NodeJS.ErrnoException).code === "EACCES") return false;
+    throw error;
   }
 }
 
@@ -225,6 +229,7 @@ export async function pruneOld(env: NodeJS.ProcessEnv = process.env): Promise<vo
   // An installer killed mid-download leaves its staging folder behind.
   for (const entry of await readdir(cliRoot(env))) {
     if (entry.startsWith(".incoming-")) {
+      // As below: one that will not go now is tried again on the next update.
       await rm(join(cliRoot(env), entry), { recursive: true, force: true }).catch(() => undefined);
     }
   }

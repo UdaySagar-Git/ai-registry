@@ -190,6 +190,7 @@ export class GitVersions {
 
   async #pseudoCommit(version: string, pseudo: { stamp: string; sha: string }): Promise<string> {
     const history = await this.history();
+    // A sha this history does not hold is the not_found below, as is any failure to ask.
     const found = SHA12.test(pseudo.sha)
       ? (
           await git(["rev-parse", "--verify", "--quiet", `${pseudo.sha}^{commit}`], {
@@ -290,6 +291,7 @@ async function commitTime(
   limits: GitLimits,
   commit = "HEAD",
 ): Promise<Date | undefined> {
+  // No such commit, or no history to ask: no time, which callers treat as not found.
   const out = await git(["log", "-1", "--format=%ct", commit], { ...limits, cwd: dir }).catch(
     () => "",
   );

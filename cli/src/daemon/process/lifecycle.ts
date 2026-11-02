@@ -131,6 +131,7 @@ export function stderrCapture(): number | "ignore" {
     // 0600 like every other log: a stack trace carries paths and arguments.
     return openSync(path, "a", PRIVATE_FILE);
   } catch {
+    // Without its log file the daemon still starts; its stderr is dropped.
     return "ignore";
   }
 }

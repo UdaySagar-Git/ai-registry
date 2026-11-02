@@ -250,6 +250,7 @@ export async function gitVersion(): Promise<string | undefined> {
   try {
     return (await git(["--version"], { timeoutMs: 5000 })).trim();
   } catch {
+    // No git, or one that will not run: either way there is no version to show.
     return undefined;
   }
 }

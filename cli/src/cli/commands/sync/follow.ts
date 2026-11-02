@@ -30,6 +30,7 @@ export async function conflictHint(
   const short = key.split("/").at(-1) ?? key;
   const first = names.filter((name) => name.split("/").at(-1) === short).length === 1 ? short : key;
   const id = loaded.lock.registries[registry]?.adapter;
+  // Only the hint's wording depends on the adapter, so one that will not load gets the general one.
   const adapter = id === undefined ? undefined : await loadAdapter(id).catch(() => undefined);
   // Run as printed from anywhere: without `-g` a user scope's conflict is not found.
   const resolve = `aireg sync resolve ${first}${scopeFlag(loaded.roots.scope)}`;

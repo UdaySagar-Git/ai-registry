@@ -1,5 +1,6 @@
 import { mkdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { ifPresent } from "#adapter/files.ts";
 import { stuckError } from "./errors.ts";
 import type { Guard } from "./location.ts";
 
@@ -92,9 +93,6 @@ function stillFailing(failing: Failing): boolean {
 
 /** The coordination lock holds no meta, so its own mtime is its age. */
 async function dirAgeMs(dir: string): Promise<number | undefined> {
-  try {
-    return Math.abs(Date.now() - (await stat(dir)).mtimeMs);
-  } catch {
-    return undefined;
-  }
+  const info = await ifPresent(stat(dir));
+  return info === undefined ? undefined : Math.abs(Date.now() - info.mtimeMs);
 }

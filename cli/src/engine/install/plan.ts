@@ -44,7 +44,7 @@ export async function plan({
   targets,
   nameCollision,
 }: PlanOptions): Promise<{ planned: Plan; acquired: Acquired[] }> {
-  const { roots, manifest, lock, targetTable } = loaded;
+  const { roots, env, manifest, lock, targetTable } = loaded;
   const aliases = Object.keys(manifest.registries);
   // Carried rows are planned from the lock alone, so their copies are not hashed.
   const opened = request.aliases === undefined ? undefined : new Set(request.aliases);
@@ -72,7 +72,7 @@ export async function plan({
     const namespacePlugins =
       roots.scope === "user" &&
       (await loadAdapter(source.origin.adapter).then(wrapsNamespaces, () =>
-        wrappedInLock(view.rows(alias), { roots, targetTable }),
+        wrappedInLock(view.rows(alias), { roots, env, targetTable }),
       ));
     settled.set(alias, { ...source, namespacePlugins });
   }
@@ -92,6 +92,7 @@ export async function plan({
     const planFrom = (sources: readonly Acquired[]) =>
       build(manifest, lock, sources, state, {
         roots,
+        env,
         targets,
         targetTable,
         force: common.force,

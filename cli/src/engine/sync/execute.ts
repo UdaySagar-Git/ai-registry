@@ -155,6 +155,7 @@ async function executeScanned(
  * failing the whole run at write time every interval.
  */
 async function publishableTo(account: Account, source: RegistrySource): Promise<Publishable> {
+  // An adapter that fails to load is reported when the publish opens it.
   const adapter = await adapterFor(
     source.location,
     source.adapter,

@@ -1,16 +1,17 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import { readFileSync, renameSync, rmSync } from "node:fs";
+import { renameSync, rmSync } from "node:fs";
 import { mkdir, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { hostname } from "node:os";
 import { dirname } from "node:path";
+import { ifPresent } from "#adapter/files.ts";
 import { quoted } from "#adapter/text.ts";
 import { PRIVATE_FILE } from "#core/fs/mode.ts";
 import { processAlive } from "#core/process.ts";
 import { type Roots, type Scope, scopeName } from "#core/store/paths.ts";
 import { POLL_MS, removeDir, STUCK_MS, taken, withCoordination } from "./coordination.ts";
 import { LeaseBusyError, LeaseError, stuckError, unlockCommand } from "./errors.ts";
-import { type LeaseHolder, readHolder } from "./holder.ts";
+import { type LeaseHolder, readHolder, readHolderSync } from "./holder.ts";
 import {
   asideOf,
   canonicalLock,
@@ -52,9 +53,10 @@ export function releaseLeasesOnInterrupt(alsoStop: () => void): void {
     for (const [dir, id] of held) {
       let holder: LeaseHolder | undefined;
       try {
-        holder = JSON.parse(readFileSync(metaPath(dir), "utf8")) as LeaseHolder;
+        holder = readHolderSync(dir);
       } catch {
-        // No metadata yet: the directory is the one this process just made.
+        // None readable: the directory is the one this process made. Nothing
+        // here may throw, since a signal handler runs it.
       }
       try {
         if (holder === undefined || holder.id === id) {
@@ -158,17 +160,10 @@ async function stale(dir: string): Promise<boolean> {
 
 /** Absolute: a clock stepped back leaves an mtime in the future, and that must still age out. */
 async function ageMs(dir: string): Promise<number | undefined> {
-  try {
-    return Math.abs(Date.now() - (await stat(metaPath(dir))).mtimeMs);
-  } catch {
-    // A half-written acquire must not wedge the scope forever.
-    try {
-      await stat(dir);
-      return Number.POSITIVE_INFINITY;
-    } catch {
-      return undefined;
-    }
-  }
+  const meta = await ifPresent(stat(metaPath(dir)));
+  if (meta !== undefined) return Math.abs(Date.now() - meta.mtimeMs);
+  // A half-written acquire must not wedge the scope forever.
+  return (await ifPresent(stat(dir))) === undefined ? undefined : Number.POSITIVE_INFINITY;
 }
 
 /**
@@ -191,6 +186,7 @@ function beat(dir: string, id: string, guard: Guard): NodeJS.Timeout {
     void guard(dir)
       .then(() => readHolder(dir))
       .then((holder) => (holder?.id === id ? utimes(metaPath(dir), now, now) : undefined))
+      // A missed beat is retried next tick; the lease goes stale only after two.
       .catch(() => {});
   }, HEARTBEAT_MS);
   // Never the reason a one-shot command stays alive.

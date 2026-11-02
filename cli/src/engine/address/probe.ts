@@ -319,6 +319,7 @@ export async function probeAddress(
     const failure = adapterOf(error)?.failure;
     if (failure !== "invalid" && failure !== "not_found") throw error;
     // Read again only after such a failure, so a versioned address costs one read otherwise.
+    // The first failure is the one to report, whatever this read hits.
     const bare = await read([{ name }]).catch(() => undefined);
     if (bare === undefined) throw error;
     try {
@@ -461,6 +462,7 @@ export async function probe({
     if (cause instanceof AiregError) throw cause;
     const failure = isAdapterError(cause) ? cause.failure : undefined;
     const refused = isAuthFailure(failure);
+    // Only the hint depends on the adapter, so one that will not load gets the general one.
     const failed =
       refused && isAdapterError(cause)
         ? await loadAdapter(cause.adapter).catch(() => undefined)

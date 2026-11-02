@@ -61,6 +61,7 @@ type Source = Pick<RegistrySource, "adapter"> & Partial<Pick<RegistrySource, "co
 /** Git and folder sources take none: git brings its own credentials, and a folder needs none. */
 async function signsIn(source: Source, location: string) {
   const layout = source.config === undefined ? undefined : declaredLayout(source.config);
+  // One whose adapter will not load signs in to nothing here; reading the registry says why.
   const adapter = await adapterFor(location, source.adapter, layout).catch(() => undefined);
   return adapter !== undefined && canSignIn(adapter);
 }

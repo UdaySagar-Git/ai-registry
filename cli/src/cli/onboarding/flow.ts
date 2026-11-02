@@ -116,7 +116,9 @@ export async function onboard(
 async function registryName(flow: OnboardingFlow, cwd: string): Promise<string> {
   const fallback = sanitizeName(lastSegment(flow.registry));
   if (flow.tokenStdin) return fallback;
-  const source = await probe(flow.registry, { adapter: flow.adapter }, cwd).catch(() => undefined);
+  const source = await probe({ input: flow.registry, flags: { adapter: flow.adapter }, cwd }).catch(
+    () => undefined,
+  );
   if (source === undefined) return fallback;
   await source.close();
   return source.alias;

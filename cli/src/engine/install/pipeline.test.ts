@@ -72,17 +72,17 @@ describe("run", () => {
     const printer = new Printer({ format: "json", out: quiet, err: quiet });
 
     await expect(
-      run(
-        roots("project", project),
-        COMMON,
+      run({
+        roots: roots("project", project),
+        common: COMMON,
         printer,
-        project,
-        { plan() {}, step() {} },
-        ({ manifest }) => {
+        cwd: project,
+        report: { plan() {}, step() {} },
+        edit: ({ manifest }) => {
           manifest.artifacts.push(parseRef("kit/kit/skill/lint"));
           return {};
         },
-      ),
+      }),
     ).rejects.toThrow(/ENOSPC/);
     return { project, before };
   }

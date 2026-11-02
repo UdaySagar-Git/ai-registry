@@ -127,9 +127,7 @@ export function throughManifest(
   registries: Readonly<Record<string, RegistrySource>>,
   flags: SourceFlags,
 ): Resolved {
-  // Split before the version, so `house@1.0.0` still finds the alias it names
-  // and is answered by the reference grammar rather than by the URL parser.
-  const alias = (input.split("@")[0] ?? input).split("/")[0] ?? input;
+  const alias = aliasIn(input);
   const source = registries[alias];
   if (source === undefined) {
     return {
@@ -171,6 +169,14 @@ export function throughManifest(
     alias,
     aliases: Object.keys(registries),
   };
+}
+
+/**
+ * The registry an address starts with. Split before the version, so `house@1.0.0` still names
+ * its alias and is answered by the reference grammar rather than by the URL parser.
+ */
+export function aliasIn(address: string): string {
+  return (address.split("@")[0] ?? address).split("/")[0] ?? address;
 }
 
 /** Flags win over the manifest, so `--ref` can override a pinned registry. */
@@ -301,8 +307,11 @@ export async function probeAddress(
   cwd: string,
   want: readonly Want[],
 ): Promise<Probed> {
+  const { input, flags } = resolved;
+  const read = (asked: readonly Want[]) =>
+    probe({ input, flags, cwd, want: asked, declared: resolved });
   try {
-    return await probe(resolved.input, resolved.flags, cwd, want, resolved);
+    return await read(want);
   } catch (error) {
     const { name, namespace, kind } = resolved;
     const versioned = want.some((item) => item.version !== undefined);
@@ -310,9 +319,7 @@ export async function probeAddress(
     const failure = adapterOf(error)?.failure;
     if (failure !== "invalid" && failure !== "not_found") throw error;
     // Read again only after such a failure, so a versioned address costs one read otherwise.
-    const bare = await probe(resolved.input, resolved.flags, cwd, [{ name }], resolved).catch(
-      () => undefined,
-    );
+    const bare = await read([{ name }]).catch(() => undefined);
     if (bare === undefined) throw error;
     try {
       among(bare.catalog.entries, resolved.alias ?? bare.alias, { name, namespace });
@@ -399,19 +406,27 @@ function addressOf(place: ArtifactPlace): string {
   return place.version === undefined ? address : `${address}@${place.version}`;
 }
 
+export interface ProbeOptions {
+  input: string;
+  flags: SourceFlags;
+  cwd: string;
+  /** What to ask for, at the version wanted. Empty asks for everything. */
+  want?: readonly Want[] | undefined;
+  /** A declared registry reads with its own account; two aliases can share one address. */
+  declared?: Pick<Resolved, "alias" | "aliases"> | undefined;
+}
+
 /**
  * Reads a registry without installing it: resolving and fetching are
  * separate, so listing hundreds of artifacts does not download them.
  */
-export async function probe(
-  input: string,
-  flags: SourceFlags,
-  cwd: string,
-  /** What to ask for, at the version wanted. Empty asks for everything. */
-  want: readonly Want[] = [],
-  /** A declared registry reads with its own account; two aliases can share one address. */
-  declared?: Pick<Resolved, "alias" | "aliases">,
-): Promise<Probed> {
+export async function probe({
+  input,
+  flags,
+  cwd,
+  want = [],
+  declared,
+}: ProbeOptions): Promise<Probed> {
   const declaredAlias = declared?.alias;
   // A pasted link names the repository, a ref and a folder; each is recorded where it belongs.
   const pasted = await settlePastedLink(

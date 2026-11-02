@@ -87,42 +87,6 @@ export async function openAddress(
   };
 }
 
-/** What an address selects: the names it carries, read the way `--select` would be. */
-function selection(resolved: Resolved, picks: CommonOptions) {
-  const asked: CommonOptions =
-    picks.select !== undefined || resolved.name === undefined
-      ? picks
-      : { ...picks, select: [resolved.name] };
-  // Only one address is read on its own: a `--select` value may name a
-  // namespace, which the catalog has to be read to recognize.
-  return {
-    asked,
-    named: asked.select?.includes("*") === true ? undefined : asked.select,
-    partial: resolved.name !== undefined && picks.select === undefined,
-  };
-}
-
-/**
- * `acme/pdf` names a namespace. When the registry has no namespace `pdf` but exactly one artifact
- * of that name, it names that artifact instead; the manifest records its full name.
- */
-function shortForm(
-  source: Probed,
-  resolved: Resolved,
-  namespace: string | undefined,
-  picks: CommonOptions,
-): Resolved | undefined {
-  if (namespace === undefined || resolved.name !== undefined || picks.select !== undefined) {
-    return undefined;
-  }
-  const entries = source.catalog.entries;
-  const plugin = (entry: Entry) => entry.kind === "plugin" && entry.name === namespace;
-  if (entries.some((entry) => entry.group === namespace || plugin(entry))) return undefined;
-  const [only] = among(entries, resolved.alias ?? source.alias, { name: namespace });
-  if (only === undefined) return undefined;
-  return { ...resolved, name: only.name, namespace: only.group, kind: only.kind };
-}
-
 /** What the command line names, with a link to one artifact read as that artifact. */
 async function commandLineAddress(
   own: AddFlags,
@@ -142,29 +106,127 @@ async function commandLineAddress(
   return addressed(link.registry, link.registry, [link.address], known, flags, common);
 }
 
-/** The catalog entries an address reaches; one address picks one entry. */
-function entriesFor(
-  source: Probed,
-  resolved: Resolved,
-  partial: boolean,
-  namespace: string | undefined,
-): { catalogAlias: string; entries: readonly Entry[] } {
-  const catalogAlias = resolved.alias ?? source.alias;
-  const all = source.catalog.entries;
-  const entries = partial ? atAddress(resolved, all, catalogAlias) : inside(all, namespace);
-  const plugin = (entry: Entry) => entry.kind === "plugin" && entry.name === namespace;
-  if (namespace !== undefined && entries.length === 0 && !all.some(plugin)) {
-    throw new AiregError(`No namespace named ${quoted(namespace)} in ${catalogAlias}.`, {
-      code: ErrorCode.NotFound,
-      hint: `Run \`aireg registry show ${showable(resolved)}\` to see what it publishes.`,
-    });
+/**
+ * What the command line names. With --registry, one positional is an address
+ * inside it and several are picks, read as -s reads them.
+ */
+function addressed(
+  typed: string,
+  registry: string | undefined,
+  positionals: string[],
+  known: Record<string, RegistrySource>,
+  flags: SourceFlags,
+  common: CommonOptions,
+): Addressed {
+  if (registry === undefined) {
+    refuseExtra(positionals);
+    return through(asAddress(typed, known), known, flags, common);
   }
-  return { catalogAlias, entries };
+  // One word reads as -s reads it, an artifact before a namespace, unless -s
+  // picks inside it; then it is the namespace to pick from.
+  const [first] = positionals;
+  const oneWord = first !== undefined && !first.includes("/") && common.select === undefined;
+  if (positionals.length > 1 || oneWord) {
+    if (common.select !== undefined && !common.all) {
+      throw new AiregError("Names were given both as arguments and with -s.", {
+        code: ErrorCode.Usage,
+        hint: "Use one: `aireg add <namespace>/<name>... -r <registry>` or `aireg add <namespace> -r <registry> -s <name>`.",
+      });
+    }
+    const whole = through(asAddress(typed, known), known, flags, common);
+    return { ...whole, picks: { ...common, select: common.select ?? positionals }, exact: true };
+  }
+  const relative = first;
+  if (relative === undefined) return through(asAddress(typed, known), known, flags, common);
+  const resolved = throughRegistry(typed, relative, known, flags);
+  return resolved.declared
+    ? { input: `${typed}/${relative}`, resolved, picks: common, inside: undefined, exact: true }
+    : { input: typed, resolved, picks: common, inside: relative, exact: true };
 }
 
-/** What `aireg registry show` takes for this registry: its declared name, or the address as typed. */
-export function showable(resolved: Resolved): string {
-  return resolved.alias ?? withoutCredentials(resolved.input);
+/** One address per command; several artifacts are picked inside it with -s. */
+function refuseExtra(positionals: readonly string[]): void {
+  if (positionals.length <= 1) return;
+  throw new AiregError("`aireg add` takes one address.", {
+    code: ErrorCode.Usage,
+    hint: "Pick several inside it: `aireg add <registry>[/<namespace>] -s <name> -s <name>`.",
+  });
+}
+
+/**
+ * A namespace address narrows the catalog, so `-s` cannot reach past it. A plugin's namespace
+ * holds its parts, and the plugin itself, which sits in none.
+ */
+function inside(entries: readonly Entry[], namespace: string | undefined): readonly Entry[] {
+  if (namespace === undefined) return entries;
+  return entries.filter(
+    (entry) => entry.group === namespace || (entry.kind === "plugin" && entry.name === namespace),
+  );
+}
+
+function through(
+  input: string,
+  known: Record<string, RegistrySource>,
+  flags: SourceFlags,
+  common: CommonOptions,
+): Addressed {
+  const resolved = throughManifest(input, known, flags);
+  const exact = resolved.declared && input.includes("/");
+  return { input, resolved, picks: common, inside: undefined, exact };
+}
+
+/**
+ * The namespace `-s` reads inside, when the address names one. An address that
+ * already names one artifact leaves `-s` nothing to pick.
+ */
+function selectScope(
+  input: string,
+  resolved: Resolved,
+  common: CommonOptions,
+  within: string | undefined,
+): string | undefined {
+  if (resolved.name !== undefined) {
+    if (common.select === undefined || common.all) return undefined;
+    throw new AiregError(`${quoted(input)} names one artifact, so -s has nothing to pick.`, {
+      code: ErrorCode.Usage,
+      hint: "Drop -s, or end the address at a registry or namespace to pick inside it.",
+    });
+  }
+  // A declared address carries its registry; an address given after -r does not.
+  const scope = resolved.declared ? input : within && `registry/${within}`;
+  if (!scope) return undefined;
+  try {
+    const namespace = parseRef(scope).namespace;
+    return namespace === undefined ? undefined : sanitizeName(namespace);
+  } catch {
+    return undefined;
+  }
+}
+
+/** What an address selects: the names it carries, read the way `--select` would be. */
+function selection(resolved: Resolved, picks: CommonOptions) {
+  const asked: CommonOptions =
+    picks.select !== undefined || resolved.name === undefined
+      ? picks
+      : { ...picks, select: [resolved.name] };
+  // Only one address is read on its own: a `--select` value may name a
+  // namespace, which the catalog has to be read to recognize.
+  return {
+    asked,
+    named: asked.select?.includes("*") === true ? undefined : asked.select,
+    partial: resolved.name !== undefined && picks.select === undefined,
+  };
+}
+
+interface Addressed {
+  input: string;
+  resolved: Resolved;
+  /** The options with any picks the positionals made. */
+  picks: CommonOptions;
+  /** For a source named with --registry, the address inside it. */
+  inside: string | undefined;
+  /** Whether the command line says exactly what to install, so nothing is asked. */
+  exact: boolean;
 }
 
 /** Reads the source once, under a spinner on a terminal; a source that publishes nothing is an error. */
@@ -229,110 +291,48 @@ async function read(
   return { source };
 }
 
-/** One address per command; several artifacts are picked inside it with -s. */
-function refuseExtra(positionals: readonly string[]): void {
-  if (positionals.length <= 1) return;
-  throw new AiregError("`aireg add` takes one address.", {
-    code: ErrorCode.Usage,
-    hint: "Pick several inside it: `aireg add <registry>[/<namespace>] -s <name> -s <name>`.",
-  });
-}
-
-interface Addressed {
-  input: string;
-  resolved: Resolved;
-  /** The options with any picks the positionals made. */
-  picks: CommonOptions;
-  /** For a source named with --registry, the address inside it. */
-  inside: string | undefined;
-  /** Whether the command line says exactly what to install, so nothing is asked. */
-  exact: boolean;
-}
-
 /**
- * What the command line names. With --registry, one positional is an address
- * inside it and several are picks, read as -s reads them.
+ * `acme/pdf` names a namespace. When the registry has no namespace `pdf` but exactly one artifact
+ * of that name, it names that artifact instead; the manifest records its full name.
  */
-function addressed(
-  typed: string,
-  registry: string | undefined,
-  positionals: string[],
-  known: Record<string, RegistrySource>,
-  flags: SourceFlags,
-  common: CommonOptions,
-): Addressed {
-  if (registry === undefined) {
-    refuseExtra(positionals);
-    return through(asAddress(typed, known), known, flags, common);
-  }
-  // One word reads as -s reads it, an artifact before a namespace, unless -s
-  // picks inside it; then it is the namespace to pick from.
-  const [first] = positionals;
-  const oneWord = first !== undefined && !first.includes("/") && common.select === undefined;
-  if (positionals.length > 1 || oneWord) {
-    if (common.select !== undefined && !common.all) {
-      throw new AiregError("Names were given both as arguments and with -s.", {
-        code: ErrorCode.Usage,
-        hint: "Use one: `aireg add <namespace>/<name>... -r <registry>` or `aireg add <namespace> -r <registry> -s <name>`.",
-      });
-    }
-    const whole = through(asAddress(typed, known), known, flags, common);
-    return { ...whole, picks: { ...common, select: common.select ?? positionals }, exact: true };
-  }
-  const relative = first;
-  if (relative === undefined) return through(asAddress(typed, known), known, flags, common);
-  const resolved = throughRegistry(typed, relative, known, flags);
-  return resolved.declared
-    ? { input: `${typed}/${relative}`, resolved, picks: common, inside: undefined, exact: true }
-    : { input: typed, resolved, picks: common, inside: relative, exact: true };
-}
-
-function through(
-  input: string,
-  known: Record<string, RegistrySource>,
-  flags: SourceFlags,
-  common: CommonOptions,
-): Addressed {
-  const resolved = throughManifest(input, known, flags);
-  const exact = resolved.declared && input.includes("/");
-  return { input, resolved, picks: common, inside: undefined, exact };
-}
-
-/**
- * The namespace `-s` reads inside, when the address names one. An address that
- * already names one artifact leaves `-s` nothing to pick.
- */
-function selectScope(
-  input: string,
+function shortForm(
+  source: Probed,
   resolved: Resolved,
-  common: CommonOptions,
-  within: string | undefined,
-): string | undefined {
-  if (resolved.name !== undefined) {
-    if (common.select === undefined || common.all) return undefined;
-    throw new AiregError(`${quoted(input)} names one artifact, so -s has nothing to pick.`, {
-      code: ErrorCode.Usage,
-      hint: "Drop -s, or end the address at a registry or namespace to pick inside it.",
-    });
-  }
-  // A declared address carries its registry; an address given after -r does not.
-  const scope = resolved.declared ? input : within && `registry/${within}`;
-  if (!scope) return undefined;
-  try {
-    const namespace = parseRef(scope).namespace;
-    return namespace === undefined ? undefined : sanitizeName(namespace);
-  } catch {
+  namespace: string | undefined,
+  picks: CommonOptions,
+): Resolved | undefined {
+  if (namespace === undefined || resolved.name !== undefined || picks.select !== undefined) {
     return undefined;
   }
+  const entries = source.catalog.entries;
+  const plugin = (entry: Entry) => entry.kind === "plugin" && entry.name === namespace;
+  if (entries.some((entry) => entry.group === namespace || plugin(entry))) return undefined;
+  const [only] = among(entries, resolved.alias ?? source.alias, { name: namespace });
+  if (only === undefined) return undefined;
+  return { ...resolved, name: only.name, namespace: only.group, kind: only.kind };
 }
 
-/**
- * A namespace address narrows the catalog, so `-s` cannot reach past it. A plugin's namespace
- * holds its parts, and the plugin itself, which sits in none.
- */
-function inside(entries: readonly Entry[], namespace: string | undefined): readonly Entry[] {
-  if (namespace === undefined) return entries;
-  return entries.filter(
-    (entry) => entry.group === namespace || (entry.kind === "plugin" && entry.name === namespace),
-  );
+/** The catalog entries an address reaches; one address picks one entry. */
+function entriesFor(
+  source: Probed,
+  resolved: Resolved,
+  partial: boolean,
+  namespace: string | undefined,
+): { catalogAlias: string; entries: readonly Entry[] } {
+  const catalogAlias = resolved.alias ?? source.alias;
+  const all = source.catalog.entries;
+  const entries = partial ? atAddress(resolved, all, catalogAlias) : inside(all, namespace);
+  const plugin = (entry: Entry) => entry.kind === "plugin" && entry.name === namespace;
+  if (namespace !== undefined && entries.length === 0 && !all.some(plugin)) {
+    throw new AiregError(`No namespace named ${quoted(namespace)} in ${catalogAlias}.`, {
+      code: ErrorCode.NotFound,
+      hint: `Run \`aireg registry show ${showable(resolved)}\` to see what it publishes.`,
+    });
+  }
+  return { catalogAlias, entries };
+}
+
+/** What `aireg registry show` takes for this registry: its declared name, or the address as typed. */
+export function showable(resolved: Resolved): string {
+  return resolved.alias ?? withoutCredentials(resolved.input);
 }

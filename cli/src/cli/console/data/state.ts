@@ -35,35 +35,6 @@ import { localWork } from "./local.ts";
 /** Enough history to see the shape of a day without reading the whole run database. */
 const RUN_HISTORY = 40;
 
-function alive(pid: number | undefined): boolean {
-  return pid !== undefined && processAlive(pid);
-}
-
-/** The scope the daemon actually syncs, so the console reads the same tree. */
-function rootsFor(config: RegistryConfig, cwd: string): Roots {
-  for (const job of config.jobs) {
-    for (const step of job.steps) {
-      if (step.root !== undefined) return makeRoots(scopeFor(step.root), step.root);
-    }
-  }
-  return makeRoots("user", cwd);
-}
-
-/** A publish declares what it published, so this is what marks it as gone. */
-function declaredNames(manifest: Manifest): Set<string> {
-  const names = new Set<string>();
-  for (const ref of manifest.artifacts) {
-    const name = refName(ref);
-    if (name !== "") names.add(name);
-  }
-  return names;
-}
-
-export interface CollectOptions {
-  /** Which account the views are about. Defaults to the first configured one. */
-  accountId?: string | undefined;
-}
-
 /**
  * What is on this machine. Opens no socket and takes no lease, so it is safe to
  * run while the daemon is mid-sync.
@@ -203,14 +174,14 @@ export async function collect(
   }
 }
 
-/** The lockfile narrowed to one registry, or all of it when `alias` is undefined. */
-function scopedLock(lock: Lock, alias: string | undefined): Lock {
-  if (alias === undefined) return lock;
-  const artifacts: Lock["artifacts"] = dict();
-  for (const [key, entry] of Object.entries(lock.artifacts)) {
-    if (entry.registry === alias) artifacts[key] = entry;
+/** The scope the daemon actually syncs, so the console reads the same tree. */
+function rootsFor(config: RegistryConfig, cwd: string): Roots {
+  for (const job of config.jobs) {
+    for (const step of job.steps) {
+      if (step.root !== undefined) return makeRoots(scopeFor(step.root), step.root);
+    }
   }
-  return { ...lock, artifacts };
+  return makeRoots("user", cwd);
 }
 
 function countByAlias(lock: Awaited<ReturnType<typeof readLock>>) {
@@ -231,6 +202,16 @@ function countByAlias(lock: Awaited<ReturnType<typeof readLock>>) {
   return found;
 }
 
+export interface CollectOptions {
+  /** Which account the views are about. Defaults to the first configured one. */
+  accountId?: string | undefined;
+}
+
+function pick(accounts: readonly AccountRow[], wanted: string | undefined): AccountRow | undefined {
+  if (wanted === undefined) return accounts[0];
+  return accounts.find((row) => row.id === wanted || row.registry === wanted) ?? accounts[0];
+}
+
 /**
  * Where an unqualified publish lands. The account holds it once onboarding has
  * chosen one; before that it is only in `defaults.namespace`.
@@ -247,9 +228,28 @@ function defaultNamespace(
   return declared.slice(0, slash) === account?.registry ? declared.slice(slash + 1) : undefined;
 }
 
-function pick(accounts: readonly AccountRow[], wanted: string | undefined): AccountRow | undefined {
-  if (wanted === undefined) return accounts[0];
-  return accounts.find((row) => row.id === wanted || row.registry === wanted) ?? accounts[0];
+/** The lockfile narrowed to one registry, or all of it when `alias` is undefined. */
+function scopedLock(lock: Lock, alias: string | undefined): Lock {
+  if (alias === undefined) return lock;
+  const artifacts: Lock["artifacts"] = dict();
+  for (const [key, entry] of Object.entries(lock.artifacts)) {
+    if (entry.registry === alias) artifacts[key] = entry;
+  }
+  return { ...lock, artifacts };
+}
+
+/** A publish declares what it published, so this is what marks it as gone. */
+function declaredNames(manifest: Manifest): Set<string> {
+  const names = new Set<string>();
+  for (const ref of manifest.artifacts) {
+    const name = refName(ref);
+    if (name !== "") names.add(name);
+  }
+  return names;
+}
+
+function alive(pid: number | undefined): boolean {
+  return pid !== undefined && processAlive(pid);
 }
 
 export interface Progress {

@@ -80,12 +80,6 @@ export async function moveAside(
   return moved;
 }
 
-/** Plugin-qualified names arrive as `plugin:skill`; the folder is named for the skill. */
-function bareName(name: string): string {
-  const leaf = name.slice(name.lastIndexOf("/") + 1);
-  return leaf.slice(leaf.lastIndexOf(":") + 1);
-}
-
 /**
  * New registry artifacts a folder of yours already stands in for, so installing would add a
  * second copy. A locked row is yours to keep in step, and the link guard keeps the folder anyway.
@@ -100,4 +94,10 @@ export function shadowedByYours(
     if (yours.has(`${item.kind}:${bareName(item.name)}`)) shadowed.add(item.name);
   }
   return shadowed;
+}
+
+/** Plugin-qualified names arrive as `plugin:skill`; the folder is named for the skill. */
+function bareName(name: string): string {
+  const leaf = name.slice(name.lastIndexOf("/") + 1);
+  return leaf.slice(leaf.lastIndexOf(":") + 1);
 }

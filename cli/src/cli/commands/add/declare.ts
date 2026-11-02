@@ -132,16 +132,6 @@ function entryOf(
   };
 }
 
-function changed(declared: Ref, ref: Ref): boolean {
-  return (
-    formatRef(declared) !== formatRef(ref) ||
-    declared.exclude !== undefined ||
-    declared.targets?.join() !== ref.targets?.join() ||
-    declared.trust?.join() !== ref.trust?.join() ||
-    declared.copy !== ref.copy
-  );
-}
-
 function readmit(artifacts: Ref[], added: Ref): void {
   if (added.name === undefined || added.kind === undefined) return;
   artifacts.forEach((ref, index) => {
@@ -157,4 +147,14 @@ function readmit(artifacts: Ref[], added: Ref): void {
       ref.exclude.filter((item) => item !== at),
     );
   });
+}
+
+function changed(declared: Ref, ref: Ref): boolean {
+  return (
+    formatRef(declared) !== formatRef(ref) ||
+    declared.exclude !== undefined ||
+    declared.targets?.join() !== ref.targets?.join() ||
+    declared.trust?.join() !== ref.trust?.join() ||
+    declared.copy !== ref.copy
+  );
 }

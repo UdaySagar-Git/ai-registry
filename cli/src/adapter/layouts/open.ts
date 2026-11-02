@@ -13,6 +13,17 @@ import { openTree, type Tree } from "./tree.ts";
 /** Tried in order: the first that matches reads the source. */
 const LAYOUTS: readonly Layout[] = [marketplaceLayout, folderLayout];
 
+/** The layout of the folder at `root`: the one `forced` names, or the first that matches. */
+export async function detectLayout(root: string, forced?: LayoutId): Promise<LayoutId> {
+  if (forced !== undefined) return forced;
+  if (await isRegistry(root)) return "registry";
+  const tree = await openTree(root);
+  for (const layout of LAYOUTS) {
+    if ((await layout.match(tree)) === "yes") return layout.id;
+  }
+  throw nothingFound(LAYOUTS);
+}
+
 /** A registry is the file spec's own layout, read by the file spec reader. */
 async function isRegistry(root: string): Promise<boolean> {
   // A registry.json that is there but unreadable is a broken registry, never another layout.
@@ -29,111 +40,6 @@ function nothingFound(layouts: readonly Layout[]): SpecError {
       hint: "Check the address, or create a registry with `aireg registry init`.",
     },
   );
-}
-
-/** The layout of the folder at `root`: the one `forced` names, or the first that matches. */
-export async function detectLayout(root: string, forced?: LayoutId): Promise<LayoutId> {
-  if (forced !== undefined) return forced;
-  if (await isRegistry(root)) return "registry";
-  const tree = await openTree(root);
-  for (const layout of LAYOUTS) {
-    if ((await layout.match(tree)) === "yes") return layout.id;
-  }
-  throw nothingFound(LAYOUTS);
-}
-
-function layoutOf(id: LayoutId): Layout | undefined {
-  return LAYOUTS.find((layout) => layout.id === id);
-}
-
-/**
- * What the source lists, narrowed to the wants; a want it does not list is left to the caller.
- * A plugin brings its members, which is what a target without plugins installs instead.
- */
-function chosen(found: readonly Artifact[], wanted: readonly Want[], all: boolean): Artifact[] {
-  if (all || wanted.length === 0) return [...found];
-  const reached = found.filter((artifact) =>
-    wanted.some((want) =>
-      covers(want, {
-        name: artifact.envelope.metadata.name,
-        namespace: artifact.group,
-        kind: artifact.kind,
-      }),
-    ),
-  );
-  const plugins = new Set(
-    reached.filter((item) => item.kind === "plugin").map((item) => item.envelope.metadata.name),
-  );
-  return found.filter(
-    (artifact) =>
-      reached.includes(artifact) || (artifact.group !== undefined && plugins.has(artifact.group)),
-  );
-}
-
-/** Whether an artifact is one a want asks for, whatever version the want names. */
-const reaches = (want: Want) => (artifact: Artifact) =>
-  covers(want, {
-    name: artifact.envelope.metadata.name,
-    namespace: artifact.group,
-    kind: artifact.kind,
-  });
-
-/**
- * The plugins fetched from elsewhere that a resolve needs, by entry name: those wanted, or the
- * plugin a wanted skill sits in. Undefined when it needs all of them.
- */
-function askedFor(wanted: readonly Want[], all: boolean): ((name: string) => boolean) | undefined {
-  if (all || wanted.length === 0) return undefined;
-  const names = new Set(wanted.flatMap((want) => [want.name, want.namespace ?? want.name]));
-  return (name) => names.has(name);
-}
-
-/** How `LayoutRoot.resolve` reads a folder. */
-interface LayoutResolveOptions {
-  all?: boolean | undefined;
-  /** Read it this way, without detecting: what the manifest recorded, or `--layout`. */
-  layout?: LayoutId | undefined;
-  /** What a layout calls things the source does not name. */
-  context: LayoutContext;
-}
-
-/** A folder on disk read by its layout: what it resolved, and reading only that. */
-export interface LayoutRoot {
-  /** Every layout but `registry` ignores a want's version; the adapter settles versions first. */
-  resolve(
-    root: string,
-    wanted: readonly Want[],
-    options: LayoutResolveOptions,
-  ): Promise<Resolution & { layout: LayoutId }>;
-  localRoot(artifact: Artifact): Promise<string | undefined>;
-  fetch(artifact: Artifact, file: FileRef): Promise<Uint8Array>;
-  /** After a write, nothing resolved before it may be read until the next resolve. */
-  forget(): void;
-}
-
-/** Layouts other than `registry`, read once per folder that never changes, such as a checkout. */
-const SETTLED = new Map<string, Found>();
-const SETTLED_LIMIT = 32;
-
-async function enumerated(
-  layout: Layout,
-  tree: Tree,
-  context: LayoutContext,
-  immutable: boolean,
-): Promise<Found> {
-  const key = `${tree.root}\u0000${layout.id}\u0000${JSON.stringify(context)}`;
-  const kept = immutable ? SETTLED.get(key) : undefined;
-  if (kept !== undefined) return structuredClone(kept);
-  const found = await layout.enumerate(tree, context);
-  // A fetched plugin may follow a branch, so only what the checkout alone holds is kept, and
-  // only a whole reading of it.
-  if (immutable && found.roots === undefined && context.asked === undefined) {
-    SETTLED.delete(key);
-    SETTLED.set(key, structuredClone(found));
-    const [oldest] = SETTLED.keys();
-    if (SETTLED.size > SETTLED_LIMIT && oldest !== undefined) SETTLED.delete(oldest);
-  }
-  return found;
 }
 
 /**
@@ -221,4 +127,98 @@ export function openLayoutRoot(options: { immutable?: boolean } = {}): LayoutRoo
       listed.clear();
     },
   };
+}
+
+function layoutOf(id: LayoutId): Layout | undefined {
+  return LAYOUTS.find((layout) => layout.id === id);
+}
+
+/** Whether an artifact is one a want asks for, whatever version the want names. */
+const reaches = (want: Want) => (artifact: Artifact) =>
+  covers(want, {
+    name: artifact.envelope.metadata.name,
+    namespace: artifact.group,
+    kind: artifact.kind,
+  });
+
+/**
+ * The plugins fetched from elsewhere that a resolve needs, by entry name: those wanted, or the
+ * plugin a wanted skill sits in. Undefined when it needs all of them.
+ */
+function askedFor(wanted: readonly Want[], all: boolean): ((name: string) => boolean) | undefined {
+  if (all || wanted.length === 0) return undefined;
+  const names = new Set(wanted.flatMap((want) => [want.name, want.namespace ?? want.name]));
+  return (name) => names.has(name);
+}
+
+/** How `LayoutRoot.resolve` reads a folder. */
+interface LayoutResolveOptions {
+  all?: boolean | undefined;
+  /** Read it this way, without detecting: what the manifest recorded, or `--layout`. */
+  layout?: LayoutId | undefined;
+  /** What a layout calls things the source does not name. */
+  context: LayoutContext;
+}
+
+/** A folder on disk read by its layout: what it resolved, and reading only that. */
+export interface LayoutRoot {
+  /** Every layout but `registry` ignores a want's version; the adapter settles versions first. */
+  resolve(
+    root: string,
+    wanted: readonly Want[],
+    options: LayoutResolveOptions,
+  ): Promise<Resolution & { layout: LayoutId }>;
+  localRoot(artifact: Artifact): Promise<string | undefined>;
+  fetch(artifact: Artifact, file: FileRef): Promise<Uint8Array>;
+  /** After a write, nothing resolved before it may be read until the next resolve. */
+  forget(): void;
+}
+
+/** Layouts other than `registry`, read once per folder that never changes, such as a checkout. */
+const SETTLED = new Map<string, Found>();
+const SETTLED_LIMIT = 32;
+
+async function enumerated(
+  layout: Layout,
+  tree: Tree,
+  context: LayoutContext,
+  immutable: boolean,
+): Promise<Found> {
+  const key = `${tree.root}\u0000${layout.id}\u0000${JSON.stringify(context)}`;
+  const kept = immutable ? SETTLED.get(key) : undefined;
+  if (kept !== undefined) return structuredClone(kept);
+  const found = await layout.enumerate(tree, context);
+  // A fetched plugin may follow a branch, so only what the checkout alone holds is kept, and
+  // only a whole reading of it.
+  if (immutable && found.roots === undefined && context.asked === undefined) {
+    SETTLED.delete(key);
+    SETTLED.set(key, structuredClone(found));
+    const [oldest] = SETTLED.keys();
+    if (SETTLED.size > SETTLED_LIMIT && oldest !== undefined) SETTLED.delete(oldest);
+  }
+  return found;
+}
+
+/**
+ * What the source lists, narrowed to the wants; a want it does not list is left to the caller.
+ * A plugin brings its members, which is what a target without plugins installs instead.
+ */
+function chosen(found: readonly Artifact[], wanted: readonly Want[], all: boolean): Artifact[] {
+  if (all || wanted.length === 0) return [...found];
+  const reached = found.filter((artifact) =>
+    wanted.some((want) =>
+      covers(want, {
+        name: artifact.envelope.metadata.name,
+        namespace: artifact.group,
+        kind: artifact.kind,
+      }),
+    ),
+  );
+  const plugins = new Set(
+    reached.filter((item) => item.kind === "plugin").map((item) => item.envelope.metadata.name),
+  );
+  return found.filter(
+    (artifact) =>
+      reached.includes(artifact) || (artifact.group !== undefined && plugins.has(artifact.group)),
+  );
 }

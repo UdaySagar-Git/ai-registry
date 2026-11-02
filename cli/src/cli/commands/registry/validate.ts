@@ -12,12 +12,6 @@ import { validateRoot } from "#core/filespec/validate/validate.ts";
 
 const MAX_PROBLEM = 2000;
 
-/** A path as it is, or quoted with its escapes shown when a terminal would act on it, as git does. */
-function pathText(path: string): string {
-  const shown = quoted(path);
-  return shown.slice(1, -1) === path ? path : shown;
-}
-
 /**
  * The merge gate: every problem with where it is and how to fix it, exit 1 on any.
  * In a pull request, released versions are compared with the branch it targets.
@@ -65,6 +59,13 @@ export async function validate(
   context.printer.info(`Found ${plural(problems.length, "problem")}.`);
 }
 
+/** Valid by the spec, but aireg's own commands hide them from aireg users. */
+async function hiddenKinds(root: string): Promise<Hidden[]> {
+  return Object.keys(await kindsOf(root))
+    .filter((kind) => RESERVED.has(kind))
+    .map(hiddenKind);
+}
+
 /**
  * Each file once, with every problem in it. A pull request names these paths,
  * and a newline in one would start a line of its own.
@@ -89,9 +90,8 @@ function printProblems(
   }
 }
 
-/** Valid by the spec, but aireg's own commands hide them from aireg users. */
-async function hiddenKinds(root: string): Promise<Hidden[]> {
-  return Object.keys(await kindsOf(root))
-    .filter((kind) => RESERVED.has(kind))
-    .map(hiddenKind);
+/** A path as it is, or quoted with its escapes shown when a terminal would act on it, as git does. */
+function pathText(path: string): string {
+  const shown = quoted(path);
+  return shown.slice(1, -1) === path ? path : shown;
 }

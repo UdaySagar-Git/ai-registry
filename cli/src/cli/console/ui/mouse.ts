@@ -17,13 +17,6 @@ export interface MouseEvent {
   kind: "press" | "release" | "wheel-up" | "wheel-down";
 }
 
-function decode(button: number, final: string): MouseEvent["kind"] | undefined {
-  if ((button & 64) !== 0) return (button & 1) === 0 ? "wheel-up" : "wheel-down";
-  // Only the left button drives anything here; a drag is a press we ignore.
-  if ((button & 3) !== 0 || (button & 32) !== 0) return undefined;
-  return final === "M" ? "press" : "release";
-}
-
 export function useMouse(onEvent: (event: MouseEvent) => void): void {
   const { stdin, setRawMode, isRawModeSupported } = useStdin();
   const { stdout } = useStdout();
@@ -56,6 +49,13 @@ export function useMouse(onEvent: (event: MouseEvent) => void): void {
       setRawMode(false);
     };
   }, [stdin, stdout, setRawMode, isRawModeSupported]);
+}
+
+function decode(button: number, final: string): MouseEvent["kind"] | undefined {
+  if ((button & 64) !== 0) return (button & 1) === 0 ? "wheel-up" : "wheel-down";
+  // Only the left button drives anything here; a drag is a press we ignore.
+  if ((button & 3) !== 0 || (button & 32) !== 0) return undefined;
+  return final === "M" ? "press" : "release";
 }
 
 /**

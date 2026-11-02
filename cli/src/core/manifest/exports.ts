@@ -16,16 +16,79 @@ import { onlyKnown, optionalString } from "./field-guards.ts";
 import { artifactFor } from "./match.ts";
 import { EXPORT_KEYS, type Export, type ExportDependency } from "./model.ts";
 
-function exportVersion(raw: unknown, path: string): string | undefined {
-  if (raw === undefined || raw === null) return undefined;
-  const parsed = typeof raw === "string" ? parseVersion(raw) : undefined;
+export function parseExports(raw: unknown, artifacts: readonly Ref[]): Export[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new ManifestError("`exports:` must be a list of paths.");
+  const seen = new Set<string>();
+  return raw.map((item) => {
+    const entry = exportEntry(item, artifacts);
+    if (seen.has(entry.path)) {
+      throw new ManifestError(`Export ${quoted(entry.path)} is listed more than once.`);
+    }
+    seen.add(entry.path);
+    return entry;
+  });
+}
 
-  if (parsed === undefined || formatVersion(parsed) !== raw) {
+function exportEntry(raw: unknown, artifacts: readonly Ref[]): Export {
+  if (typeof raw === "string") {
+    return { path: exportPath(raw), version: undefined, dependsOn: [], publish: undefined };
+  }
+  if (!isRecord(raw)) {
+    throw new ManifestError("`exports:` entries must be paths or `{ path, ... }` mappings.");
+  }
+  onlyKnown(raw, EXPORT_KEYS, "An `exports:` entry");
+  const text = optionalString(raw, "path");
+  if (text === undefined) throw new ManifestError("An `exports:` entry has no `path`.");
+  const path = exportPath(text);
+  // A glob's members are refined by entries of their own, so one path never reads two ways.
+  if (isGlob(path)) {
     throw new ManifestError(
-      `\`version\` of export ${quoted(path)} must be an exact version, such as 2.0.0.`,
+      `Export ${quoted(path)} is a glob, which only a plain \`exports:\` entry can be.`,
+      "Give each path it matches an entry of its own to set its version, dependencies or targets.",
     );
   }
-  return raw;
+  const optional = withoutUndefined({
+    kind: exportKind(raw.kind, path),
+    exclude: exportExclude(raw.exclude, path),
+    ignore: exportIgnore(raw.ignore, path),
+    include: exportInclude(raw.include, path),
+  });
+  return {
+    path,
+    version: exportVersion(raw.version, path),
+    dependsOn: dependencies(raw.depends_on, path, artifacts),
+    publish: exportPublish(raw.publish, path),
+    ...optional,
+  };
+}
+
+function exportPath(text: string): string {
+  if (text.trim() === "") throw new ManifestError("An `exports:` entry has an empty path.");
+  const problem = pathProblem(text);
+  if (problem !== undefined) {
+    throw new ManifestError(`Export ${quoted(text)} ${problem}.`, PATH_HINT);
+  }
+  return text;
+}
+
+function dependencies(raw: unknown, path: string, artifacts: readonly Ref[]): ExportDependency[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.some((item) => textOf(item) === undefined)) {
+    throw new ManifestError(
+      `\`depends_on\` of export ${quoted(path)} must be a list of paths and addresses.`,
+    );
+  }
+  const seen = new Set<string>();
+  return (raw as string[]).map((text) => {
+    if (seen.has(text)) {
+      throw new ManifestError(
+        `Export ${quoted(path)} lists ${quoted(text)} twice under \`depends_on\`.`,
+      );
+    }
+    seen.add(text);
+    return dependency(text, path, artifacts);
+  });
 }
 
 function dependency(text: string, path: string, artifacts: readonly Ref[]): ExportDependency {
@@ -73,23 +136,16 @@ function dependency(text: string, path: string, artifacts: readonly Ref[]): Expo
   return { type: "remote", ref };
 }
 
-function dependencies(raw: unknown, path: string, artifacts: readonly Ref[]): ExportDependency[] {
-  if (raw === undefined || raw === null) return [];
-  if (!Array.isArray(raw) || raw.some((item) => textOf(item) === undefined)) {
+function exportVersion(raw: unknown, path: string): string | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const parsed = typeof raw === "string" ? parseVersion(raw) : undefined;
+
+  if (parsed === undefined || formatVersion(parsed) !== raw) {
     throw new ManifestError(
-      `\`depends_on\` of export ${quoted(path)} must be a list of paths and addresses.`,
+      `\`version\` of export ${quoted(path)} must be an exact version, such as 2.0.0.`,
     );
   }
-  const seen = new Set<string>();
-  return (raw as string[]).map((text) => {
-    if (seen.has(text)) {
-      throw new ManifestError(
-        `Export ${quoted(path)} lists ${quoted(text)} twice under \`depends_on\`.`,
-      );
-    }
-    seen.add(text);
-    return dependency(text, path, artifacts);
-  });
+  return raw;
 }
 
 function exportPublish(raw: unknown, path: string): false | undefined {
@@ -100,60 +156,4 @@ function exportPublish(raw: unknown, path: string): false | undefined {
     `\`publish\` of export ${quoted(path)} takes only false.`,
     "Remove it to publish the export to `publish.to`, or write `publish: false` to keep it here.",
   );
-}
-
-function exportEntry(raw: unknown, artifacts: readonly Ref[]): Export {
-  if (typeof raw === "string") {
-    return { path: exportPath(raw), version: undefined, dependsOn: [], publish: undefined };
-  }
-  if (!isRecord(raw)) {
-    throw new ManifestError("`exports:` entries must be paths or `{ path, ... }` mappings.");
-  }
-  onlyKnown(raw, EXPORT_KEYS, "An `exports:` entry");
-  const text = optionalString(raw, "path");
-  if (text === undefined) throw new ManifestError("An `exports:` entry has no `path`.");
-  const path = exportPath(text);
-  // A glob's members are refined by entries of their own, so one path never reads two ways.
-  if (isGlob(path)) {
-    throw new ManifestError(
-      `Export ${quoted(path)} is a glob, which only a plain \`exports:\` entry can be.`,
-      "Give each path it matches an entry of its own to set its version, dependencies or targets.",
-    );
-  }
-  const optional = withoutUndefined({
-    kind: exportKind(raw.kind, path),
-    exclude: exportExclude(raw.exclude, path),
-    ignore: exportIgnore(raw.ignore, path),
-    include: exportInclude(raw.include, path),
-  });
-  return {
-    path,
-    version: exportVersion(raw.version, path),
-    dependsOn: dependencies(raw.depends_on, path, artifacts),
-    publish: exportPublish(raw.publish, path),
-    ...optional,
-  };
-}
-
-function exportPath(text: string): string {
-  if (text.trim() === "") throw new ManifestError("An `exports:` entry has an empty path.");
-  const problem = pathProblem(text);
-  if (problem !== undefined) {
-    throw new ManifestError(`Export ${quoted(text)} ${problem}.`, PATH_HINT);
-  }
-  return text;
-}
-
-export function parseExports(raw: unknown, artifacts: readonly Ref[]): Export[] {
-  if (raw === undefined || raw === null) return [];
-  if (!Array.isArray(raw)) throw new ManifestError("`exports:` must be a list of paths.");
-  const seen = new Set<string>();
-  return raw.map((item) => {
-    const entry = exportEntry(item, artifacts);
-    if (seen.has(entry.path)) {
-      throw new ManifestError(`Export ${quoted(entry.path)} is listed more than once.`);
-    }
-    seen.add(entry.path);
-    return entry;
-  });
 }

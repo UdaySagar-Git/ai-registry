@@ -74,11 +74,6 @@ export const CHANGING_OPERATIONS: readonly SyncOperation[] = [
   "forget",
 ];
 
-function selected(value: StepPolicy, change: SyncOperation) {
-  if (value === "on") return change;
-  return value === "report" ? "report" : "ignore";
-}
-
 export function operation(disposition: Disposition, policy: SyncPolicy): SyncOperation {
   switch (disposition) {
     case "synced":
@@ -102,4 +97,9 @@ export function operation(disposition: Disposition, policy: SyncPolicy): SyncOpe
     case "unavailable":
       return "attention";
   }
+}
+
+function selected(value: StepPolicy, change: SyncOperation) {
+  if (value === "on") return change;
+  return value === "report" ? "report" : "ignore";
 }

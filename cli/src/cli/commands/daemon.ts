@@ -19,25 +19,6 @@ export function daemonAction(argv: readonly string[]): string {
   return "status";
 }
 
-export async function run(context: CommandContext): Promise<void> {
-  const spec = DAEMON_COMMAND;
-  parse(context.argv, spec);
-  const action = daemonAction(context.argv);
-  const rest = context.argv.slice(context.argv.indexOf(action) + 1);
-  return runAction(
-    spec,
-    action,
-    {
-      status: () => status(context),
-      start: () => start(context),
-      stop: () => stop(context),
-      restart: () => restart(context),
-      autostart: () => autostart(context, rest),
-    },
-    "To manage jobs, run `aireg job`.",
-  );
-}
-
 async function status(context: CommandContext): Promise<void> {
   const probe = await probeDaemon(VERSION);
   const pid = await readDaemonPid();
@@ -102,59 +83,6 @@ async function status(context: CommandContext): Promise<void> {
   }
 }
 
-/** What start, stop and restart leave running, for `--json`. */
-async function settled(context: CommandContext, changed: boolean): Promise<void> {
-  if (context.printer.format !== "json") return;
-  const { status } = await probeDaemon(VERSION);
-  const pid = status === "ready" ? await readDaemonPid() : undefined;
-  context.printer.json({ ok: true, data: { status, pid, changed } });
-}
-
-async function start(context: CommandContext): Promise<void> {
-  const before = await probeDaemon(VERSION);
-  // A newer daemon is left alone: an older binary run by hand must not downgrade it.
-  if (before.status === "ready" && (before.version === VERSION || gte(before.version, VERSION))) {
-    context.printer.info("The daemon is already running.");
-    return settled(context, false);
-  }
-  await ensureDaemon(VERSION);
-  if (before.status === "ready") {
-    context.printer.success(`Restarted the daemon: ${before.version} → ${VERSION}.`);
-  } else if (before.status === "outdated") {
-    context.printer.success("Replaced the older daemon.");
-  } else {
-    context.printer.success("Started the daemon.");
-  }
-  return settled(context, true);
-}
-
-async function stop(context: CommandContext): Promise<void> {
-  const before = await probeDaemon(VERSION);
-  if (before.status === "down") {
-    context.printer.info("The daemon is not running.");
-    return settled(context, false);
-  }
-  await stopDaemon();
-  context.printer.success("Stopped the daemon.");
-  return settled(context, true);
-}
-
-async function restart(context: CommandContext): Promise<void> {
-  await stopDaemon();
-  await ensureDaemon(VERSION);
-  context.printer.success("Restarted the daemon.");
-  return settled(context, true);
-}
-
-const PROFILE_HINT =
-  "Run `aireg daemon start` from your shell profile instead; it does nothing when the daemon is up.";
-
-const MECHANISM: Record<AutostartState["mechanism"], string> = {
-  launchd: "launchd agent",
-  systemd: "systemd user service",
-  "run-key": "Windows Run key",
-};
-
 /** `on` and `off` read as a switch; `enable` and `disable` are what service managers say. */
 async function autostart(context: CommandContext, argv: string[]): Promise<void> {
   const action = daemonAction(argv);
@@ -167,13 +95,6 @@ async function autostart(context: CommandContext, argv: string[]): Promise<void>
     ["on", "off", "status", "enable", "disable"],
     "Use on, off or status.",
   );
-}
-
-function unsupported(): AiregError {
-  return new AiregError(`Autostart is not supported on ${process.platform}.`, {
-    code: ErrorCode.Unavailable,
-    hint: PROFILE_HINT,
-  });
 }
 
 async function autostartEnable(context: CommandContext): Promise<void> {
@@ -211,6 +132,13 @@ async function autostartEnable(context: CommandContext): Promise<void> {
   context.printer.note("path", change.state.location);
 }
 
+function unsupported(): AiregError {
+  return new AiregError(`Autostart is not supported on ${process.platform}.`, {
+    code: ErrorCode.Unavailable,
+    hint: PROFILE_HINT,
+  });
+}
+
 async function autostartDisable(context: CommandContext): Promise<void> {
   const change = await disableAutostart();
   if (change === undefined) throw unsupported();
@@ -226,6 +154,41 @@ async function autostartDisable(context: CommandContext): Promise<void> {
   context.printer.success(
     "Turned off autostart. Commands still start the daemon when they need it.",
   );
+}
+
+async function start(context: CommandContext): Promise<void> {
+  const before = await probeDaemon(VERSION);
+  // A newer daemon is left alone: an older binary run by hand must not downgrade it.
+  if (before.status === "ready" && (before.version === VERSION || gte(before.version, VERSION))) {
+    context.printer.info("The daemon is already running.");
+    return settled(context, false);
+  }
+  await ensureDaemon(VERSION);
+  if (before.status === "ready") {
+    context.printer.success(`Restarted the daemon: ${before.version} → ${VERSION}.`);
+  } else if (before.status === "outdated") {
+    context.printer.success("Replaced the older daemon.");
+  } else {
+    context.printer.success("Started the daemon.");
+  }
+  return settled(context, true);
+}
+
+const PROFILE_HINT =
+  "Run `aireg daemon start` from your shell profile instead; it does nothing when the daemon is up.";
+
+const MECHANISM: Record<AutostartState["mechanism"], string> = {
+  launchd: "launchd agent",
+  systemd: "systemd user service",
+  "run-key": "Windows Run key",
+};
+
+/** What start, stop and restart leave running, for `--json`. */
+async function settled(context: CommandContext, changed: boolean): Promise<void> {
+  if (context.printer.format !== "json") return;
+  const { status } = await probeDaemon(VERSION);
+  const pid = status === "ready" ? await readDaemonPid() : undefined;
+  context.printer.json({ ok: true, data: { status, pid, changed } });
 }
 
 async function autostartReport(context: CommandContext): Promise<void> {
@@ -261,4 +224,41 @@ async function autostartReport(context: CommandContext): Promise<void> {
     context.printer.warning("Autostart starts a different install of aireg than this one.");
     context.printer.hint("Run `aireg daemon autostart on` to point it at this one.");
   }
+}
+
+async function restart(context: CommandContext): Promise<void> {
+  await stopDaemon();
+  await ensureDaemon(VERSION);
+  context.printer.success("Restarted the daemon.");
+  return settled(context, true);
+}
+
+export async function run(context: CommandContext): Promise<void> {
+  const spec = DAEMON_COMMAND;
+  parse(context.argv, spec);
+  const action = daemonAction(context.argv);
+  const rest = context.argv.slice(context.argv.indexOf(action) + 1);
+  return runAction(
+    spec,
+    action,
+    {
+      status: () => status(context),
+      start: () => start(context),
+      stop: () => stop(context),
+      restart: () => restart(context),
+      autostart: () => autostart(context, rest),
+    },
+    "To manage jobs, run `aireg job`.",
+  );
+}
+
+async function stop(context: CommandContext): Promise<void> {
+  const before = await probeDaemon(VERSION);
+  if (before.status === "down") {
+    context.printer.info("The daemon is not running.");
+    return settled(context, false);
+  }
+  await stopDaemon();
+  context.printer.success("Stopped the daemon.");
+  return settled(context, true);
 }

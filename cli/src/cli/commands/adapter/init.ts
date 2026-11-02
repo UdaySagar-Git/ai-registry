@@ -15,45 +15,69 @@ interface Own {
   dir?: string | undefined;
 }
 
-function displayName(id: string): string {
-  return id.charAt(0).toUpperCase() + id.slice(1);
-}
-
-/** A caret range: later patches of this minor while aireg is 0.x, later minors from 1.0 on. */
-function contractRange(): string {
-  const version = parseVersion(VERSION) ?? { major: 0, minor: 0 };
-  return `^${version.major}.${version.minor}`;
-}
-
-function json(value: unknown): string {
-  return `${JSON.stringify(value, null, 2)}\n`;
-}
-
-/**
- * The folder may be one a cloned repository ships: a link anywhere from it down to a
- * file, the folder itself included, would put that file somewhere else.
- */
-function refuseRedirect(dir: string, path: string): void {
-  const found = redirection(dir, path);
-  if (found === undefined) return;
-  const what = found.problem === "symlink" ? "a symlink" : "not a folder";
-  throw new AiregError(`${found.at} is ${what}, so nothing was written through it.`, {
-    code: ErrorCode.Invalid,
-    hint: "Remove it, or choose another folder with `--dir`.",
-  });
-}
-
-// Exclusive create: a file that appears after the emptiness check is reported, not replaced.
-async function writeFresh(path: string, body: string): Promise<void> {
-  try {
-    await writeFile(path, body, { encoding: "utf8", flag: "wx" });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    throw new AiregError(`${path} already exists.`, {
-      code: ErrorCode.Conflict,
-      hint: "Pass `--force` to overwrite it.",
+export async function initAdapter(
+  context: HostCommandContext,
+  raw: string | undefined,
+  common: { force: boolean; dryRun: boolean },
+  own: Own,
+): Promise<void> {
+  if (raw === undefined) {
+    throw new AiregError("`aireg adapter init` needs an id.", {
+      code: ErrorCode.Usage,
+      hint: "Name the adapter: `aireg adapter init <id>`.",
     });
   }
+  const id = parseAdapterId(raw);
+  if (isBuiltinAdapter(id)) {
+    throw new AiregError(`${quoted(id)} is built into aireg, so it cannot be scaffolded.`, {
+      code: ErrorCode.Usage,
+      hint: "Choose a new id, like acme.",
+    });
+  }
+  const dir = resolve(context.cwd, own.dir ?? id);
+  const planned = files(id);
+  for (const path of Object.keys(planned)) refuseRedirect(dir, join(dir, path));
+  if (!common.force) {
+    const existing = await readdir(dir).catch(() => undefined);
+    if (existing !== undefined && existing.length > 0) {
+      throw new AiregError(`${dir} already exists.`, {
+        code: ErrorCode.Conflict,
+        hint: "Pass `--force` to overwrite it.",
+      });
+    }
+  }
+  if (common.dryRun) {
+    if (context.printer.format === "json") {
+      context.printer.json({
+        ok: true,
+        data: { id, dir, files: Object.keys(planned), dryRun: true },
+      });
+      return;
+    }
+    context.printer.info(
+      `Would write ${plural(Object.keys(planned).length, "file")} under ${dir}.`,
+    );
+    return;
+  }
+  for (const [path, body] of Object.entries(planned)) {
+    const target = join(dir, path);
+    await mkdir(dirname(target), { recursive: true });
+    // `--force` replaces the file itself, never what it may point to.
+    if (common.force) await writeAtomic(target, body);
+    else await writeFresh(target, body);
+  }
+  if (context.printer.format === "json") {
+    context.printer.json({
+      ok: true,
+      data: { id, dir, files: Object.keys(planned), dryRun: false },
+    });
+    return;
+  }
+  context.printer.success(`Wrote adapter ${id} at ${dir}.`);
+  context.printer.note(
+    "next",
+    `cd ${relative(context.cwd, dir) || "."} && npm install && npm test`,
+  );
 }
 
 /** The scaffolded package's files by path, for a package outside this repository. */
@@ -177,67 +201,43 @@ Point the compliance test at a registry your adapter can read, so it fetches and
   };
 }
 
-export async function initAdapter(
-  context: HostCommandContext,
-  raw: string | undefined,
-  common: { force: boolean; dryRun: boolean },
-  own: Own,
-): Promise<void> {
-  if (raw === undefined) {
-    throw new AiregError("`aireg adapter init` needs an id.", {
-      code: ErrorCode.Usage,
-      hint: "Name the adapter: `aireg adapter init <id>`.",
+function displayName(id: string): string {
+  return id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+/** A caret range: later patches of this minor while aireg is 0.x, later minors from 1.0 on. */
+function contractRange(): string {
+  const version = parseVersion(VERSION) ?? { major: 0, minor: 0 };
+  return `^${version.major}.${version.minor}`;
+}
+
+function json(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+/**
+ * The folder may be one a cloned repository ships: a link anywhere from it down to a
+ * file, the folder itself included, would put that file somewhere else.
+ */
+function refuseRedirect(dir: string, path: string): void {
+  const found = redirection(dir, path);
+  if (found === undefined) return;
+  const what = found.problem === "symlink" ? "a symlink" : "not a folder";
+  throw new AiregError(`${found.at} is ${what}, so nothing was written through it.`, {
+    code: ErrorCode.Invalid,
+    hint: "Remove it, or choose another folder with `--dir`.",
+  });
+}
+
+// Exclusive create: a file that appears after the emptiness check is reported, not replaced.
+async function writeFresh(path: string, body: string): Promise<void> {
+  try {
+    await writeFile(path, body, { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    throw new AiregError(`${path} already exists.`, {
+      code: ErrorCode.Conflict,
+      hint: "Pass `--force` to overwrite it.",
     });
   }
-  const id = parseAdapterId(raw);
-  if (isBuiltinAdapter(id)) {
-    throw new AiregError(`${quoted(id)} is built into aireg, so it cannot be scaffolded.`, {
-      code: ErrorCode.Usage,
-      hint: "Choose a new id, like acme.",
-    });
-  }
-  const dir = resolve(context.cwd, own.dir ?? id);
-  const planned = files(id);
-  for (const path of Object.keys(planned)) refuseRedirect(dir, join(dir, path));
-  if (!common.force) {
-    const existing = await readdir(dir).catch(() => undefined);
-    if (existing !== undefined && existing.length > 0) {
-      throw new AiregError(`${dir} already exists.`, {
-        code: ErrorCode.Conflict,
-        hint: "Pass `--force` to overwrite it.",
-      });
-    }
-  }
-  if (common.dryRun) {
-    if (context.printer.format === "json") {
-      context.printer.json({
-        ok: true,
-        data: { id, dir, files: Object.keys(planned), dryRun: true },
-      });
-      return;
-    }
-    context.printer.info(
-      `Would write ${plural(Object.keys(planned).length, "file")} under ${dir}.`,
-    );
-    return;
-  }
-  for (const [path, body] of Object.entries(planned)) {
-    const target = join(dir, path);
-    await mkdir(dirname(target), { recursive: true });
-    // `--force` replaces the file itself, never what it may point to.
-    if (common.force) await writeAtomic(target, body);
-    else await writeFresh(target, body);
-  }
-  if (context.printer.format === "json") {
-    context.printer.json({
-      ok: true,
-      data: { id, dir, files: Object.keys(planned), dryRun: false },
-    });
-    return;
-  }
-  context.printer.success(`Wrote adapter ${id} at ${dir}.`);
-  context.printer.note(
-    "next",
-    `cd ${relative(context.cwd, dir) || "."} && npm install && npm test`,
-  );
 }

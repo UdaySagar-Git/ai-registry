@@ -42,11 +42,6 @@ export function emptyCatalog(root: string): Catalog {
   return { root, layouts: [], entries: [], warnings: [] };
 }
 
-/** Identity includes the namespace: two organizations publishing a `lint` are two artifacts. */
-function identity(entry: Pick<Entry, "group" | "kind" | "name">): string {
-  return `${entry.group ?? ""}\u0000${entry.kind}:${entry.name}`;
-}
-
 /** First writer wins, so an entry listed twice under one identity is kept once. */
 export function merge(catalog: Catalog, layout: string, entries: Entry[]): void {
   if (entries.length === 0) return;
@@ -58,6 +53,11 @@ export function merge(catalog: Catalog, layout: string, entries: Entry[]): void 
     seen.add(key);
     catalog.entries.push(entry);
   }
+}
+
+/** Identity includes the namespace: two organizations publishing a `lint` are two artifacts. */
+function identity(entry: Pick<Entry, "group" | "kind" | "name">): string {
+  return `${entry.group ?? ""}\u0000${entry.kind}:${entry.name}`;
 }
 
 export function finalize(catalog: Catalog): Catalog {
@@ -83,6 +83,16 @@ interface Index {
   byGroup: Map<string, Entry[]>;
 }
 
+/** The one entry a registry lists at this namespace, kind and name. */
+export function entryFor(
+  entries: readonly Entry[],
+  group: string | undefined,
+  kind: ArtifactKind,
+  name: string,
+): Entry | undefined {
+  return indexOf(entries).byIdentity.get(identity({ group, kind, name }));
+}
+
 /** Built once per entry list and rebuilt only if it grew, so a lookup per artifact stays linear overall. */
 const INDEXES = new WeakMap<readonly Entry[], Index>();
 
@@ -104,16 +114,6 @@ function indexOf(entries: readonly Entry[]): Index {
   }
   INDEXES.set(entries, index);
   return index;
-}
-
-/** The one entry a registry lists at this namespace, kind and name. */
-export function entryFor(
-  entries: readonly Entry[],
-  group: string | undefined,
-  kind: ArtifactKind,
-  name: string,
-): Entry | undefined {
-  return indexOf(entries).byIdentity.get(identity({ group, kind, name }));
 }
 
 /** Every entry named `name`, in catalog order. */

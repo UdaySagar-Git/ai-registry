@@ -32,22 +32,6 @@ interface Tagged {
 
 const SHA12 = /^[0-9a-f]{12}$/;
 
-function versionOf(text: string): Version | undefined {
-  return parseVersion(text.startsWith("v") ? text.slice(1) : text);
-}
-
-function taggedOf(tag: Tag): Tagged | undefined {
-  // `<name>/v1.2.0` or `<name>--v1.2.0` names one artifact's release.
-  const split = /^(.+?)(?:\/|--)(v?\d[^/]*)$/.exec(tag.name);
-  if (split !== null) {
-    const version = versionOf(split[2] as string);
-    const artifact = split[1] as string;
-    if (version !== undefined && !artifact.includes("/")) return { tag, version, artifact };
-  }
-  const version = tag.name.includes("/") ? undefined : versionOf(tag.name);
-  return version === undefined ? undefined : { tag, version, artifact: undefined };
-}
-
 /** Every tag of the repository, with the commit each one names. */
 async function listTags(spec: SourceSpec, limits: GitLimits): Promise<Tag[]> {
   const refs = await lsRemote(spec, ["refs/tags/*"], limits);
@@ -62,11 +46,6 @@ async function listTags(spec: SourceSpec, limits: GitLimits): Promise<Tag[]> {
     .map((tag) => ({ ...tag, commit: tag.commit.toLowerCase() }));
 }
 
-/** The newest of `found`, by SemVer precedence. */
-function newest(found: readonly Tagged[]): Tagged | undefined {
-  return [...found].sort((a, b) => compareVersion(b.version, a.version))[0];
-}
-
 /** The newest whole-repository release tag, which a source without a ref follows. */
 export function releaseTag(tags: readonly Tag[]): Tagged | undefined {
   const releases = tags
@@ -76,15 +55,25 @@ export function releaseTag(tags: readonly Tag[]): Tagged | undefined {
   return newest(releases);
 }
 
-/** An artifact's own tags win over the repository's, for the version it is served at. */
-function forArtifact(tagged: readonly Tagged[], name: string): Tagged[] {
-  const own = tagged.filter((item) => item.artifact === name);
-  return own.length > 0 ? own : tagged.filter((item) => item.artifact === undefined);
+function taggedOf(tag: Tag): Tagged | undefined {
+  // `<name>/v1.2.0` or `<name>--v1.2.0` names one artifact's release.
+  const split = /^(.+?)(?:\/|--)(v?\d[^/]*)$/.exec(tag.name);
+  if (split !== null) {
+    const version = versionOf(split[2] as string);
+    const artifact = split[1] as string;
+    if (version !== undefined && !artifact.includes("/")) return { tag, version, artifact };
+  }
+  const version = tag.name.includes("/") ? undefined : versionOf(tag.name);
+  return version === undefined ? undefined : { tag, version, artifact: undefined };
 }
 
-/** `yyyymmddhhmmss` in UTC, as a pseudo-version writes a commit's time. */
-function stamp(time: Date): string {
-  return time.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+function versionOf(text: string): Version | undefined {
+  return parseVersion(text.startsWith("v") ? text.slice(1) : text);
+}
+
+/** The newest of `found`, by SemVer precedence. */
+function newest(found: readonly Tagged[]): Tagged | undefined {
+  return [...found].sort((a, b) => compareVersion(b.version, a.version))[0];
 }
 
 /**
@@ -98,11 +87,23 @@ export function pseudoVersion(base: Version | undefined, time: Date, commit: str
   return `${base.major}.${base.minor}.${base.patch + 1}-0.${suffix}`;
 }
 
+/** `yyyymmddhhmmss` in UTC, as a pseudo-version writes a commit's time. */
+function stamp(time: Date): string {
+  return time.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+}
+
 /** The time and commit a pseudo-version names, when it is one. */
 export function readPseudo(version: string): { stamp: string; sha: string } | undefined {
   const match = /(?:^0\.0\.0-|-0\.|\.0\.)(\d{14})-([0-9a-f]{12})$/.exec(version);
   if (match === null || parseVersion(version) === undefined) return undefined;
   return { stamp: match[1] as string, sha: match[2] as string };
+}
+
+function releasesFor(tagged: readonly Tagged[], name: string): string[] {
+  return forArtifact(tagged, name)
+    .filter((item) => item.version.prerelease.length === 0)
+    .sort((a, b) => compareVersion(b.version, a.version))
+    .map((item) => formatVersion(item.version));
 }
 
 /** What `GitVersions` reads with: the source, its limits, and where the host lets it keep a clone. */
@@ -271,11 +272,10 @@ export class GitVersions {
   }
 }
 
-function releasesFor(tagged: readonly Tagged[], name: string): string[] {
-  return forArtifact(tagged, name)
-    .filter((item) => item.version.prerelease.length === 0)
-    .sort((a, b) => compareVersion(b.version, a.version))
-    .map((item) => formatVersion(item.version));
+/** An artifact's own tags win over the repository's, for the version it is served at. */
+function forArtifact(tagged: readonly Tagged[], name: string): Tagged[] {
+  const own = tagged.filter((item) => item.artifact === name);
+  return own.length > 0 ? own : tagged.filter((item) => item.artifact === undefined);
 }
 
 function historyKey(spec: SourceSpec): string {

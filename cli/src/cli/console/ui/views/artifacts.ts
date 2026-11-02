@@ -18,6 +18,65 @@ interface Columns {
   changed: number;
 }
 
+export function artifactsView(props: {
+  width: number;
+  height: number;
+  state: ConsoleState;
+  lines: readonly Line[];
+  shown: number;
+  cursor: number;
+  folded: ReadonlySet<string>;
+  filter: string;
+  filtering: boolean;
+  nowMs: number;
+}): ReactElement {
+  const cols = columns(props.width);
+  const publishes = props.state.account?.publishes !== false;
+  const listHeight = Math.max(3, props.height);
+  const view = windowAround(props.lines.length, props.cursor, listHeight);
+  const rows: ReactElement[] = [];
+  for (let index = view.from; index < view.to; index += 1) {
+    const line = props.lines[index];
+    if (line === undefined) continue;
+    const selected = index === props.cursor;
+    rows.push(
+      box(
+        { key: lineKey(line) },
+        line.kind === "group"
+          ? groupLine(line.group, props.folded.has(line.group.key), selected, cols, publishes)
+          : artifactLine(line.row, selected, cols, props.nowMs, publishes),
+      ),
+    );
+  }
+
+  return box(
+    { flexDirection: "column", width: props.width },
+    box(
+      { justifyContent: "space-between" },
+      box(
+        null,
+        text({ color: props.filtering ? COLOR.yellow : COLOR.dim }, "/ "),
+        props.filter === "" && !props.filtering
+          ? faint("filter…")
+          : text({ color: COLOR.white }, `${props.filter}${props.filtering ? "█" : ""}`),
+      ),
+      tally(props.state),
+    ),
+    box(
+      { marginTop: 1 },
+      faint(
+        `  ${pad("NAME", cols.name)}${pad("VERSION", cols.version)}${pad("TARGETS", cols.targets)}` +
+          `${pad("STATE", cols.state)}${pad("CHANGED", cols.changed)}`,
+      ),
+    ),
+    ...rows,
+    view.below > 0 ? box(null, faint(`  … ${view.below} more below`)) : box(null, plain("")),
+  );
+}
+
+/** Reserved on the right for `[p] publish N`, so nothing collides with it. */
+const ACTION_COLUMN = 24;
+
 /**
  * The name takes what the fixed columns leave: a truncated version or target list is
  * useless where a truncated name is still recognizable.
@@ -26,20 +85,6 @@ function columns(width: number): Columns {
   const fixed = { version: 12, targets: 20, state: 14, changed: 18 };
   const spent = Object.values(fixed).reduce((total, value) => total + value, 0);
   return { ...fixed, name: Math.max(16, width - 4 - ACTION_COLUMN - spent) };
-}
-
-/** Reserved on the right for `[p] publish N`, so nothing collides with it. */
-const ACTION_COLUMN = 24;
-
-function counts(group: ArtifactGroup): ReactElement {
-  const parts: ReactNode[] = [];
-  for (const [state, count] of Object.entries(group.counts)) {
-    if (count === 0 || state === "ok") continue;
-    const style = stateStyle(state as keyof typeof group.counts);
-    parts.push(text({ key: state, color: style.color }, `${count} ${state}  `));
-  }
-  if (parts.length === 0) parts.push(text({ key: "ok", color: COLOR.green }, "ok"));
-  return box(null, ...parts);
 }
 
 function groupLine(
@@ -72,6 +117,17 @@ function groupLine(
       ? action("p", group.authoredHere ? "publish all" : `publish ${ready}`, ready > 0)
       : plain(""),
   );
+}
+
+function counts(group: ArtifactGroup): ReactElement {
+  const parts: ReactNode[] = [];
+  for (const [state, count] of Object.entries(group.counts)) {
+    if (count === 0 || state === "ok") continue;
+    const style = stateStyle(state as keyof typeof group.counts);
+    parts.push(text({ key: state, color: style.color }, `${count} ${state}  `));
+  }
+  if (parts.length === 0) parts.push(text({ key: "ok", color: COLOR.green }, "ok"));
+  return box(null, ...parts);
 }
 
 function artifactLine(
@@ -142,62 +198,6 @@ function tally(state: ConsoleState): ReactElement {
     ...parts
       .filter(([, count]) => count > 0)
       .map(([label, count, color]) => text({ key: label, color }, `${count} ${label}  `)),
-  );
-}
-
-export function artifactsView(props: {
-  width: number;
-  height: number;
-  state: ConsoleState;
-  lines: readonly Line[];
-  shown: number;
-  cursor: number;
-  folded: ReadonlySet<string>;
-  filter: string;
-  filtering: boolean;
-  nowMs: number;
-}): ReactElement {
-  const cols = columns(props.width);
-  const publishes = props.state.account?.publishes !== false;
-  const listHeight = Math.max(3, props.height);
-  const view = windowAround(props.lines.length, props.cursor, listHeight);
-  const rows: ReactElement[] = [];
-  for (let index = view.from; index < view.to; index += 1) {
-    const line = props.lines[index];
-    if (line === undefined) continue;
-    const selected = index === props.cursor;
-    rows.push(
-      box(
-        { key: lineKey(line) },
-        line.kind === "group"
-          ? groupLine(line.group, props.folded.has(line.group.key), selected, cols, publishes)
-          : artifactLine(line.row, selected, cols, props.nowMs, publishes),
-      ),
-    );
-  }
-
-  return box(
-    { flexDirection: "column", width: props.width },
-    box(
-      { justifyContent: "space-between" },
-      box(
-        null,
-        text({ color: props.filtering ? COLOR.yellow : COLOR.dim }, "/ "),
-        props.filter === "" && !props.filtering
-          ? faint("filter…")
-          : text({ color: COLOR.white }, `${props.filter}${props.filtering ? "█" : ""}`),
-      ),
-      tally(props.state),
-    ),
-    box(
-      { marginTop: 1 },
-      faint(
-        `  ${pad("NAME", cols.name)}${pad("VERSION", cols.version)}${pad("TARGETS", cols.targets)}` +
-          `${pad("STATE", cols.state)}${pad("CHANGED", cols.changed)}`,
-      ),
-    ),
-    ...rows,
-    view.below > 0 ? box(null, faint(`  … ${view.below} more below`)) : box(null, plain("")),
   );
 }
 

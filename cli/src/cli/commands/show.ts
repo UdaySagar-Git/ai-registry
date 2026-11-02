@@ -110,15 +110,6 @@ export async function run(context: CommandContext): Promise<void> {
   disclose(context, entry.name, carried);
 }
 
-/** A folder's own Markdown: its SKILL.md, AGENT.md or README.md, else its first Markdown file. */
-async function markdownIn(dir: string): Promise<string | undefined> {
-  const names = (await readdir(dir)).sort();
-  const own =
-    [SKILL_ENTRY, AGENT_ENTRY, "README.md"].find((name) => names.includes(name)) ??
-    names.find((name) => name.endsWith(".md"));
-  return own === undefined ? undefined : join(dir, own);
-}
-
 /** A folder or file on disk, printed the way an agent reads it: its own Markdown. */
 async function showFolder(context: CommandContext, input: string): Promise<void> {
   const path = resolve(context.cwd, expandUserPath(input));
@@ -145,12 +136,13 @@ async function showFolder(context: CommandContext, input: string): Promise<void>
   disclose(context, basename(path), carried);
 }
 
-/** Said apart from the body, on stderr, so the body still pipes into an agent unchanged. */
-function disclose(context: CommandContext, name: string, carried: readonly Carried[]): void {
-  if (carried.length === 0) return;
-  context.printer.warning(
-    `${name} carries ${describeCarried(carried)}, which a target that loads it runs as you.`,
-  );
+/** A folder's own Markdown: its SKILL.md, AGENT.md or README.md, else its first Markdown file. */
+async function markdownIn(dir: string): Promise<string | undefined> {
+  const names = (await readdir(dir)).sort();
+  const own =
+    [SKILL_ENTRY, AGENT_ENTRY, "README.md"].find((name) => names.includes(name)) ??
+    names.find((name) => name.endsWith(".md"));
+  return own === undefined ? undefined : join(dir, own);
 }
 
 /** What a registry serves can hide lines from the person reading it, or write to their clipboard. */
@@ -162,6 +154,14 @@ function print(context: CommandContext, body: string): void {
       "Removed terminal control characters from the output; `--json` prints the file as written.",
     );
   }
+}
+
+/** Said apart from the body, on stderr, so the body still pipes into an agent unchanged. */
+function disclose(context: CommandContext, name: string, carried: readonly Carried[]): void {
+  if (carried.length === 0) return;
+  context.printer.warning(
+    `${name} carries ${describeCarried(carried)}, which a target that loads it runs as you.`,
+  );
 }
 
 /** A declared address that goes past its registry names a namespace; a source is a registry. */

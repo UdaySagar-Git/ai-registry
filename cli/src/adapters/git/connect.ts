@@ -19,14 +19,6 @@ import { holdSnapshot, snapshot } from "./snapshot.ts";
 import { parseSource } from "./url.ts";
 import { GitVersions, releaseTag } from "./versions.ts";
 
-/** The layout the manifest recorded or `--layout` forced; undefined detects it. */
-function layoutOf(context: SourceContext): LayoutId | undefined {
-  const named = context.source.config.layout;
-  if (named === undefined) return undefined;
-  if (!isLayoutId(named)) throw fail("invalid", `${named} is not a layout this adapter reads.`);
-  return named;
-}
-
 /**
  * A repository that is a file spec root, or a plain folder of skills. The clone is only a cache,
  * so this is a layout's reader over a checkout plus a revision to pin.
@@ -152,4 +144,12 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
       for (const release of held.splice(0)) release();
     },
   };
+}
+
+/** The layout the manifest recorded or `--layout` forced; undefined detects it. */
+function layoutOf(context: SourceContext): LayoutId | undefined {
+  const named = context.source.config.layout;
+  if (named === undefined) return undefined;
+  if (!isLayoutId(named)) throw fail("invalid", `${named} is not a layout this adapter reads.`);
+  return named;
 }

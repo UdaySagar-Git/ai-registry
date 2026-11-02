@@ -17,60 +17,6 @@ export function jobLines(state: ConsoleState): JobLine[] {
   ];
 }
 
-function jobLine(job: JobRow, selected: boolean): ReactElement {
-  return box(
-    {
-      width: "100%",
-      justifyContent: "space-between",
-      ...(selected ? { backgroundColor: COLOR.selection } : {}),
-    },
-    box(
-      null,
-      text({ color: job.enabled ? COLOR.green : COLOR.faint }, `   ${GLYPH.bullet} `),
-      text({ color: job.enabled ? COLOR.white : COLOR.faint }, pad(job.name, 26)),
-      dim(pad(job.type, 9)),
-      dim(pad(interval(job.intervalSeconds), 12)),
-      faint(pad(truncate(job.summary, 46), 48)),
-      text(
-        { color: job.enabled ? COLOR.green : COLOR.faint },
-        pad(job.enabled ? "enabled" : "disabled", 10),
-      ),
-      job.nextRunAtMs === undefined ? plain("") : dim(`next ${clock(job.nextRunAtMs)}`),
-    ),
-    box(null, action("space", job.enabled ? "disable" : "enable"), plain("  "), action("R", "run")),
-  );
-}
-
-function runLine(run: RunRow, selected: boolean, width: number): ReactElement {
-  const failed = isFailed(run.state);
-  return box(
-    {
-      width: "100%",
-      justifyContent: "space-between",
-      ...(selected ? { backgroundColor: COLOR.selection } : {}),
-    },
-    box(
-      null,
-      text({ color: runColor(run.state) }, `   ${runGlyph(run.state)} `),
-      dim(pad(clock(run.requestedAtMs), 8)),
-      text({ color: COLOR.white }, pad(run.jobId ?? "manual", 26)),
-      dim(pad(run.mode, 9)),
-      text({ color: runColor(run.state) }, pad(run.state, 12)),
-      failed
-        ? text({ color: COLOR.red }, pad(failureWords(run.errorCode ?? "failed"), 18))
-        : dim(
-            pad(
-              `${run.counts.examined} checked · ${run.counts.changed} changed` +
-                (run.counts.failed > 0 ? ` · ${run.counts.failed} failed` : ""),
-              Math.max(18, Math.min(52, width - 80)),
-            ),
-          ),
-      run.reason === undefined ? plain("") : faint(truncate(run.reason, 40)),
-    ),
-    failed ? action("r", "retry") : plain(""),
-  );
-}
-
 /** Which runs are on screen; shared with the click mapping so a click retries the run it hit. */
 export function runWindow(
   lines: readonly JobLine[],
@@ -125,6 +71,60 @@ export function jobsView(props: {
     box({ marginTop: 1, justifyContent: "space-between" }, heading("runs"), faint("newest first")),
     ...runRows,
     view.below > 0 ? box(null, faint(`   … ${view.below} older`)) : box(null, plain("")),
+  );
+}
+
+function jobLine(job: JobRow, selected: boolean): ReactElement {
+  return box(
+    {
+      width: "100%",
+      justifyContent: "space-between",
+      ...(selected ? { backgroundColor: COLOR.selection } : {}),
+    },
+    box(
+      null,
+      text({ color: job.enabled ? COLOR.green : COLOR.faint }, `   ${GLYPH.bullet} `),
+      text({ color: job.enabled ? COLOR.white : COLOR.faint }, pad(job.name, 26)),
+      dim(pad(job.type, 9)),
+      dim(pad(interval(job.intervalSeconds), 12)),
+      faint(pad(truncate(job.summary, 46), 48)),
+      text(
+        { color: job.enabled ? COLOR.green : COLOR.faint },
+        pad(job.enabled ? "enabled" : "disabled", 10),
+      ),
+      job.nextRunAtMs === undefined ? plain("") : dim(`next ${clock(job.nextRunAtMs)}`),
+    ),
+    box(null, action("space", job.enabled ? "disable" : "enable"), plain("  "), action("R", "run")),
+  );
+}
+
+function runLine(run: RunRow, selected: boolean, width: number): ReactElement {
+  const failed = isFailed(run.state);
+  return box(
+    {
+      width: "100%",
+      justifyContent: "space-between",
+      ...(selected ? { backgroundColor: COLOR.selection } : {}),
+    },
+    box(
+      null,
+      text({ color: runColor(run.state) }, `   ${runGlyph(run.state)} `),
+      dim(pad(clock(run.requestedAtMs), 8)),
+      text({ color: COLOR.white }, pad(run.jobId ?? "manual", 26)),
+      dim(pad(run.mode, 9)),
+      text({ color: runColor(run.state) }, pad(run.state, 12)),
+      failed
+        ? text({ color: COLOR.red }, pad(failureWords(run.errorCode ?? "failed"), 18))
+        : dim(
+            pad(
+              `${run.counts.examined} checked · ${run.counts.changed} changed` +
+                (run.counts.failed > 0 ? ` · ${run.counts.failed} failed` : ""),
+              Math.max(18, Math.min(52, width - 80)),
+            ),
+          ),
+      run.reason === undefined ? plain("") : faint(truncate(run.reason, 40)),
+    ),
+    failed ? action("r", "retry") : plain(""),
   );
 }
 

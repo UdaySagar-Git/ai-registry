@@ -50,110 +50,9 @@ export interface OriginOutcome {
   reason?: string;
 }
 
-/** `<registry>/<namespace>` as a step declares it. */
-function destination(step: Step): { registry: string; namespace: string } {
-  const [registry = "", namespace = ""] = (step.to ?? "").split("/");
-  return { registry, namespace };
-}
-
-/** The kind a directory of artifacts holds, read off its own name. */
-function kindOfDir(dir: string): ArtifactKind | undefined {
-  const leaf = basename(dir);
-  for (const [kind, spec] of Object.entries(KIND_SPECS)) {
-    if (spec.dir === leaf) return kind as ArtifactKind;
-  }
-  return undefined;
-}
-
-/** The target whose tree a path sits in, for the record rather than for behavior. */
-function targetOf(from: string): string {
-  const marker = /[\\/]\.([a-z0-9-]+)[\\/]/.exec(from);
-  return marker?.[1] ?? "local";
-}
-
-function matches(pattern: string | undefined, name: string): boolean {
-  if (pattern === undefined) return true;
-  const negated = pattern.startsWith("!(") && pattern.endsWith(")");
-  const body = negated ? pattern.slice(2, -1) : pattern;
-  const expression = new RegExp(
-    `^${body
-      .split("|")
-      .map((part) =>
-        part
-          .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-          .replace(/\*/g, ".*")
-          .replace(/\?/g, "."),
-      )
-      .join("|")}$`,
-  );
-  return negated ? !expression.test(name) : expression.test(name);
-}
-
-/** Every artifact one selector names, without reading a byte of it. */
-async function found(step: Step, selector: Selector): Promise<Origin[]> {
-  const { registry, namespace } = destination(step);
-  const kind = kindOfDir(selector.from);
-  if (kind === undefined) return [];
-  if (selector.kinds !== undefined && !selector.kinds.includes(kind)) return [];
-
-  let entries: string[];
-  try {
-    entries = await readdir(selector.from);
-  } catch {
-    return [];
-  }
-
-  const shape = KIND_SPECS[kind].shape;
-  // A selector's id, or a folder's name such as `claude` from `.claude`, may be an alias.
-  const target = canonicalId(resolveTargets(), selector.target?.[0] ?? targetOf(selector.from));
-  const origins: Origin[] = [];
-  for (const entry of entries) {
-    if (entry.startsWith(".")) continue;
-    // A file-shaped kind is one file per artifact; a directory-shaped one is a
-    // directory, and the extension a file kind carries is not part of the name.
-    const name = shape === "file" ? entry.replace(/\.[^.]+$/, "") : entry;
-    if (sanitizeName(name) !== name) continue;
-    if (!matches(selector.match, name)) continue;
-    origins.push({
-      name,
-      kind,
-      namespace,
-      registry,
-      from: join(selector.from, entry),
-      target,
-      step: step.name,
-    });
-  }
-  return origins;
-}
-
-/** Relative to the scope base, in the one separator a lock is written with. */
-function portable(roots: Roots, path: string): string {
-  return posixRelative(canonical(roots.base), canonical(path));
-}
-
 /** The lock key a folder artifact takes, which is what a publish then names. */
 export function originKey(origin: Origin): string {
   return `${origin.namespace}/${origin.name}`;
-}
-
-/** Said the way publish says it, naming the entry from the folder it sits in. */
-function refusedAt(origin: Origin, entry: Irregular): string {
-  const at = entry.path === "" ? basename(origin.from) : `${basename(origin.from)}/${entry.path}`;
-  return `${at} ${refusal(entry)}`;
-}
-
-/** Read-only, so it runs before the lease and decides whether one is needed. */
-async function settle(origin: Origin, lock: Lock): Promise<OriginOutcome> {
-  if (!(await exists(origin.from))) return { origin, state: "missing", digest: undefined };
-  const [refused] = (await authoredArtifact(origin.from)).irregular;
-  if (refused !== undefined) {
-    return { origin, state: "refused", digest: undefined, reason: refusedAt(origin, refused) };
-  }
-  const recorded = lock.artifacts[originKey(origin)];
-  const now = await authoredDigest(origin.from, recorded?.digest);
-  const unchanged = recorded?.origin !== undefined && recorded.digest === now;
-  return { origin, state: unchanged ? "unchanged" : "refreshed", digest: now };
 }
 
 export async function surveyOrigins(
@@ -200,33 +99,100 @@ export async function surveyOrigins(
   return outcomes;
 }
 
-async function rowFor(
-  origin: Origin,
-  copy: string,
-  roots: Roots,
-  digest: string,
-  recorded: LockArtifact | undefined,
-): Promise<LockArtifact> {
-  // The folder a person wrote is already where the target reads it, so
-  // nothing is linked and nothing of theirs is ever pointed over.
-  return {
-    registry: origin.registry,
-    id: recorded?.id,
-    name: origin.name,
-    kind: origin.kind,
-    namespace: origin.namespace,
-    address: recorded?.address,
-    content: recorded?.content,
-    version: recorded?.version,
-    path: portable(roots, copy),
-    digest,
-    origin: {
-      target: origin.target,
-      path: portable(roots, origin.from),
-      step: origin.step,
-    },
-    links: [],
-  };
+/** Every artifact one selector names, without reading a byte of it. */
+async function found(step: Step, selector: Selector): Promise<Origin[]> {
+  const { registry, namespace } = destination(step);
+  const kind = kindOfDir(selector.from);
+  if (kind === undefined) return [];
+  if (selector.kinds !== undefined && !selector.kinds.includes(kind)) return [];
+
+  let entries: string[];
+  try {
+    entries = await readdir(selector.from);
+  } catch {
+    return [];
+  }
+
+  const shape = KIND_SPECS[kind].shape;
+  // A selector's id, or a folder's name such as `claude` from `.claude`, may be an alias.
+  const target = canonicalId(resolveTargets(), selector.target?.[0] ?? targetOf(selector.from));
+  const origins: Origin[] = [];
+  for (const entry of entries) {
+    if (entry.startsWith(".")) continue;
+    // A file-shaped kind is one file per artifact; a directory-shaped one is a
+    // directory, and the extension a file kind carries is not part of the name.
+    const name = shape === "file" ? entry.replace(/\.[^.]+$/, "") : entry;
+    if (sanitizeName(name) !== name) continue;
+    if (!matches(selector.match, name)) continue;
+    origins.push({
+      name,
+      kind,
+      namespace,
+      registry,
+      from: join(selector.from, entry),
+      target,
+      step: step.name,
+    });
+  }
+  return origins;
+}
+
+/** `<registry>/<namespace>` as a step declares it. */
+function destination(step: Step): { registry: string; namespace: string } {
+  const [registry = "", namespace = ""] = (step.to ?? "").split("/");
+  return { registry, namespace };
+}
+
+/** The kind a directory of artifacts holds, read off its own name. */
+function kindOfDir(dir: string): ArtifactKind | undefined {
+  const leaf = basename(dir);
+  for (const [kind, spec] of Object.entries(KIND_SPECS)) {
+    if (spec.dir === leaf) return kind as ArtifactKind;
+  }
+  return undefined;
+}
+
+/** The target whose tree a path sits in, for the record rather than for behavior. */
+function targetOf(from: string): string {
+  const marker = /[\\/]\.([a-z0-9-]+)[\\/]/.exec(from);
+  return marker?.[1] ?? "local";
+}
+
+function matches(pattern: string | undefined, name: string): boolean {
+  if (pattern === undefined) return true;
+  const negated = pattern.startsWith("!(") && pattern.endsWith(")");
+  const body = negated ? pattern.slice(2, -1) : pattern;
+  const expression = new RegExp(
+    `^${body
+      .split("|")
+      .map((part) =>
+        part
+          .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+          .replace(/\*/g, ".*")
+          .replace(/\?/g, "."),
+      )
+      .join("|")}$`,
+  );
+  return negated ? !expression.test(name) : expression.test(name);
+}
+
+/** Read-only, so it runs before the lease and decides whether one is needed. */
+async function settle(origin: Origin, lock: Lock): Promise<OriginOutcome> {
+  if (!(await exists(origin.from))) return { origin, state: "missing", digest: undefined };
+  const [refused] = (await authoredArtifact(origin.from)).irregular;
+  if (refused !== undefined) {
+    return { origin, state: "refused", digest: undefined, reason: refusedAt(origin, refused) };
+  }
+  const recorded = lock.artifacts[originKey(origin)];
+  const now = await authoredDigest(origin.from, recorded?.digest);
+  const unchanged = recorded?.origin !== undefined && recorded.digest === now;
+  return { origin, state: unchanged ? "unchanged" : "refreshed", digest: now };
+}
+
+/** Said the way publish says it, naming the entry from the folder it sits in. */
+function refusedAt(origin: Origin, entry: Irregular): string {
+  const at = entry.path === "" ? basename(origin.from) : `${basename(origin.from)}/${entry.path}`;
+  return `${at} ${refusal(entry)}`;
 }
 
 /**
@@ -277,6 +243,40 @@ export async function applyOrigins(
     refreshed.push(originKey(outcome.origin));
   }
   return { refreshed, refused };
+}
+
+async function rowFor(
+  origin: Origin,
+  copy: string,
+  roots: Roots,
+  digest: string,
+  recorded: LockArtifact | undefined,
+): Promise<LockArtifact> {
+  // The folder a person wrote is already where the target reads it, so
+  // nothing is linked and nothing of theirs is ever pointed over.
+  return {
+    registry: origin.registry,
+    id: recorded?.id,
+    name: origin.name,
+    kind: origin.kind,
+    namespace: origin.namespace,
+    address: recorded?.address,
+    content: recorded?.content,
+    version: recorded?.version,
+    path: portable(roots, copy),
+    digest,
+    origin: {
+      target: origin.target,
+      path: portable(roots, origin.from),
+      step: origin.step,
+    },
+    links: [],
+  };
+}
+
+/** Relative to the scope base, in the one separator a lock is written with. */
+function portable(roots: Roots, path: string): string {
+  return posixRelative(canonical(roots.base), canonical(path));
 }
 
 /** A publish has landed once the registry serves exactly this copy, so the row takes its identity. */

@@ -4,21 +4,6 @@ import type { Lock, LockArtifact } from "#core/lock.ts";
 import { reaches } from "#core/manifest/match.ts";
 import { parseRef, type Ref } from "#core/ref.ts";
 
-/** The ways to write one installed artifact, shortest first; the last is unique in any scope. */
-function forms(key: string, row: LockArtifact): string[] {
-  const namespace = row.namespace === undefined ? [] : [row.namespace];
-  // Installed under a name of its own, that name is the one its target shows.
-  const own = !key.includes("/") && key !== row.name ? [key] : [];
-  return [
-    ...own,
-    row.name,
-    [...namespace, row.name].join("/"),
-    [...namespace, row.kind, row.name].join("/"),
-    [row.registry, ...namespace, row.kind, row.name].join("/"),
-    key,
-  ];
-}
-
 /** Each installed artifact's shortest name that no other artifact in the scope shares. */
 export function shownNames(lock: Lock): Map<string, string> {
   const rows = Object.entries(lock.artifacts);
@@ -33,6 +18,21 @@ export function shownNames(lock: Lock): Map<string, string> {
       return [key, names.find((name) => counts.get(name) === 1) ?? key];
     }),
   );
+}
+
+/** The ways to write one installed artifact, shortest first; the last is unique in any scope. */
+function forms(key: string, row: LockArtifact): string[] {
+  const namespace = row.namespace === undefined ? [] : [row.namespace];
+  // Installed under a name of its own, that name is the one its target shows.
+  const own = !key.includes("/") && key !== row.name ? [key] : [];
+  return [
+    ...own,
+    row.name,
+    [...namespace, row.name].join("/"),
+    [...namespace, row.kind, row.name].join("/"),
+    [row.registry, ...namespace, row.kind, row.name].join("/"),
+    key,
+  ];
 }
 
 /**
@@ -50,6 +50,14 @@ export function matchInstalled(input: string, lock: Lock): { rows: string[]; who
     reaches(ref, lock.artifacts[key] as LockArtifact),
   );
   return { rows, whole: ref.name === undefined };
+}
+
+function parsed(input: string): Ref | undefined {
+  try {
+    return parseRef(input);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -77,12 +85,4 @@ export function rowsNamed(input: string, lock: Lock): string[] {
     );
   }
   return rows;
-}
-
-function parsed(input: string): Ref | undefined {
-  try {
-    return parseRef(input);
-  } catch {
-    return undefined;
-  }
 }

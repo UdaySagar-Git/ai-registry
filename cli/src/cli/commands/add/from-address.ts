@@ -21,28 +21,6 @@ import { declare, narrowedTargets, type Repin, recordRegistry } from "./declare.
 import type { Parsed } from "./options.ts";
 import { printAdded, reportAdded } from "./render.ts";
 
-/**
- * Taking everything an address names is the address itself, not the whole
- * registry: `add acme/my-team --all` must not drag in every other team.
- */
-function requestedRefs(
-  resolved: Resolved,
-  input: string,
-  alias: string,
-  within: string | undefined,
-  select: readonly string[] | undefined,
-): string[] {
-  const whole = resolved.declared ? input : [alias, within].filter(Boolean).join("/");
-  if (select === undefined) return [whole];
-  return select.map((qualified) => {
-    const address = `${alias}/${qualified}`;
-    const leaf = qualified.split("/").at(-1);
-    return resolved.version !== undefined && leaf === resolved.name
-      ? `${address}@${resolved.version}`
-      : address;
-  });
-}
-
 export async function addAddress(
   context: CommandContext,
   { positionals, common, own }: Parsed,
@@ -200,4 +178,26 @@ async function trustFor(
     if (await confirmTrust(step, entry.name, describeCarried(carries))) trust.push(entry.name);
   }
   return trust;
+}
+
+/**
+ * Taking everything an address names is the address itself, not the whole
+ * registry: `add acme/my-team --all` must not drag in every other team.
+ */
+function requestedRefs(
+  resolved: Resolved,
+  input: string,
+  alias: string,
+  within: string | undefined,
+  select: readonly string[] | undefined,
+): string[] {
+  const whole = resolved.declared ? input : [alias, within].filter(Boolean).join("/");
+  if (select === undefined) return [whole];
+  return select.map((qualified) => {
+    const address = `${alias}/${qualified}`;
+    const leaf = qualified.split("/").at(-1);
+    return resolved.version !== undefined && leaf === resolved.name
+      ? `${address}@${resolved.version}`
+      : address;
+  });
 }

@@ -56,33 +56,9 @@ export function builtin(name: string): Command {
   return command;
 }
 
-function lookupBuiltin(name: string): Command | undefined {
-  return COMMANDS.find(
-    (c) => c.name === name || c.aliases?.includes(name) === true || c.formerly?.includes(name),
-  );
-}
-
-function asGroup(group: string): Group {
-  return (GROUPS as readonly string[]).includes(group) ? (group as Group) : "Maintain";
-}
-
-function fromContribution(command: CommandContribution): Command {
-  return {
-    name: command.name,
-    ...(command.aliases === undefined ? {} : { aliases: [...command.aliases] }),
-    summary: command.summary,
-    group: asGroup(command.group),
-    usage: command.usage ?? [
-      `aireg ${command.name}${command.actions === undefined ? "" : " <action>"} [options]`,
-    ],
-    ...(command.examples === undefined ? {} : { examples: command.examples }),
-    ...(command.docs === undefined ? {} : { docs: command.docs }),
-    ...(command.options === undefined ? {} : { options: command.options }),
-    ...(command.actions === undefined
-      ? {}
-      : { actions: command.actions.map((name) => ({ name })) }),
-    load: command.load,
-  };
+/** Every command `--help` and `--map` list, with the kinds the registry here holds. */
+export async function allCommands(cwd = process.cwd()): Promise<readonly Command[]> {
+  return (await table(cwd)).commands;
 }
 
 /** Built-ins win over adapters' commands, and both over kinds; `hidden` is what lost. */
@@ -108,24 +84,27 @@ async function table(cwd: string): Promise<{ commands: Command[]; hidden: Hidden
   return { commands, hidden };
 }
 
-/** Every command `--help` and `--map` list, with the kinds the registry here holds. */
-export async function allCommands(cwd = process.cwd()): Promise<readonly Command[]> {
-  return (await table(cwd)).commands;
+function fromContribution(command: CommandContribution): Command {
+  return {
+    name: command.name,
+    ...(command.aliases === undefined ? {} : { aliases: [...command.aliases] }),
+    summary: command.summary,
+    group: asGroup(command.group),
+    usage: command.usage ?? [
+      `aireg ${command.name}${command.actions === undefined ? "" : " <action>"} [options]`,
+    ],
+    ...(command.examples === undefined ? {} : { examples: command.examples }),
+    ...(command.docs === undefined ? {} : { docs: command.docs }),
+    ...(command.options === undefined ? {} : { options: command.options }),
+    ...(command.actions === undefined
+      ? {}
+      : { actions: command.actions.map((name) => ({ name })) }),
+    load: command.load,
+  };
 }
 
-export async function warnHidden(printer: Printer, name?: string): Promise<void> {
-  const hidden = (await table(process.cwd())).hidden.filter(
-    (entry) => name === undefined || entry.name === name,
-  );
-  printHidden(printer, hidden);
-}
-
-export async function lookup(name: string, cwd = process.cwd()): Promise<Command | undefined> {
-  const own = lookupBuiltin(name);
-  if (own !== undefined) return own;
-  return (await allCommands(cwd)).find(
-    (c) => c.name === name || c.aliases?.includes(name) === true,
-  );
+function asGroup(group: string): Group {
+  return (GROUPS as readonly string[]).includes(group) ? (group as Group) : "Maintain";
 }
 
 const KIND_NEW: readonly OptionSpec[] = [
@@ -198,4 +177,25 @@ async function kindCommands(cwd: string): Promise<Command[]> {
     };
     return spec;
   });
+}
+
+export async function warnHidden(printer: Printer, name?: string): Promise<void> {
+  const hidden = (await table(process.cwd())).hidden.filter(
+    (entry) => name === undefined || entry.name === name,
+  );
+  printHidden(printer, hidden);
+}
+
+export async function lookup(name: string, cwd = process.cwd()): Promise<Command | undefined> {
+  const own = lookupBuiltin(name);
+  if (own !== undefined) return own;
+  return (await allCommands(cwd)).find(
+    (c) => c.name === name || c.aliases?.includes(name) === true,
+  );
+}
+
+function lookupBuiltin(name: string): Command | undefined {
+  return COMMANDS.find(
+    (c) => c.name === name || c.aliases?.includes(name) === true || c.formerly?.includes(name),
+  );
 }

@@ -12,19 +12,6 @@ import { loadedBy, skipLine, stateFor, toolName } from "./tools.ts";
 /** A state as a person reads it; `--json` keeps the name the state has in the lockfile check. */
 const SHOWN_STATE: Partial<Record<State, string>> = { dangling: "replaced" };
 
-function cell(printer: Printer, seen: LinkState | undefined): string {
-  const { style } = printer;
-  if (seen === undefined) return style.dim("-");
-  if (seen === "linked") return style.green("✓");
-  return seen === "missing" ? style.red(seen) : style.yellow(seen);
-}
-
-/** Which targets each artifact was chosen for, so columns name targets rather than folders. */
-export interface Chosen {
-  targetTable: Targets;
-  for: (name: string) => readonly string[];
-}
-
 export function renderStatus(
   printer: Printer,
   statuses: readonly ArtifactStatus[],
@@ -145,6 +132,19 @@ export function renderStatus(
   printer.info(`${plural(attention, "artifact")} need${attention === 1 ? "s" : ""} attention.`);
 
   repairHint(printer, statuses, scope, chosen, kindOf);
+}
+
+/** Which targets each artifact was chosen for, so columns name targets rather than folders. */
+export interface Chosen {
+  targetTable: Targets;
+  for: (name: string) => readonly string[];
+}
+
+function cell(printer: Printer, seen: LinkState | undefined): string {
+  const { style } = printer;
+  if (seen === undefined) return style.dim("-");
+  if (seen === "linked") return style.green("✓");
+  return seen === "missing" ? style.red(seen) : style.yellow(seen);
 }
 
 /** What to run next: `install --force` for a copy aireg wrote, `sync` for an edit, else `install`. */

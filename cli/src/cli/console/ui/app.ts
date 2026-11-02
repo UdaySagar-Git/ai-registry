@@ -47,15 +47,19 @@ import {
 } from "./overlays.ts";
 import { toolkit } from "./toolkit.ts";
 
-/** One line of what a run has got through, from its own counts. */
-function describe(live: Progress | undefined): string | undefined {
-  if (live === undefined) return undefined;
-  const { examined, changed, failed } = live.counts;
-  const phase = live.phase === undefined ? "" : `${live.phase} \u00b7 `;
-  return (
-    `${phase}${examined} checked \u00b7 ${changed} changed` +
-    (failed > 0 ? ` \u00b7 ${failed} failed` : "")
-  );
+export function App(props: AppProps): ReactElement {
+  const session = useSession(props);
+  const views = useViews(session);
+  const commands = useCommands(views);
+  const links = useLinks(commands);
+  const navigation = useNavigation(links);
+  const globalKeys = useGlobalKeys(navigation);
+  const overlayKeys = useOverlayKeys(globalKeys);
+  const viewKeys = useViewKeys(overlayKeys);
+  const mouse = useMouseInteractions(viewKeys);
+  const input = useConsoleInput(mouse);
+  const body = drawBody(input);
+  return drawFrame(body);
 }
 
 interface Activity {
@@ -69,106 +73,6 @@ interface Activity {
   changed: string[] | undefined;
   cancel: () => void;
 }
-
-/** Every artifact's state, to compare the reload afterwards against. */
-function snapshot(state: ConsoleState): Map<string, string> {
-  return new Map(
-    state.groups.flatMap((group) =>
-      group.rows.map((row): [string, string] => [`${group.key}/${row.key}`, row.state]),
-    ),
-  );
-}
-
-/**
- * What moved between two reads. A command that exits 0 having changed nothing
- * is the case worth naming: it is what a refused re-publish looks like here.
- */
-function difference(before: Map<string, string>, after: ConsoleState): string[] {
-  const seen = snapshot(after);
-  const name = (key: string) => key.slice(key.indexOf("/") + 1);
-  const group = (key: string) => key.slice(0, key.indexOf("/"));
-  const gone = [...before.keys()].filter((key) => !seen.has(key));
-  const lines: string[] = [];
-
-  for (const [key, state] of seen) {
-    const was = before.get(key);
-    if (was !== undefined) {
-      if (was !== state) lines.push(`${name(key)}: ${was} \u2192 ${state}`);
-      continue;
-    }
-    // Approval moves an artifact from the local group into its namespace, and
-    // it keeps its key. Two lines would read as two artifacts.
-    const moved = gone.find((old) => name(old) === name(key));
-    if (moved !== undefined) {
-      gone.splice(gone.indexOf(moved), 1);
-      const from = before.get(moved);
-      lines.push(`${name(key)}: ${from} in ${group(moved)} \u2192 ${state} in ${group(key)}`);
-      continue;
-    }
-    lines.push(`${name(key)} is now here, ${state}`);
-  }
-  for (const key of gone) lines.push(`${name(key)} is gone`);
-  return lines;
-}
-
-type Overlay =
-  | { kind: "none" }
-  | { kind: "help" }
-  | { kind: "detail"; row: ArtifactRow }
-  | { kind: "publish"; plan: PublishPlan };
-
-/** A tab whose adapter could not answer, or threw while drawing. */
-function unreadable(label: string, why: string | undefined): ReactNode {
-  return box(
-    { flexDirection: "column", marginTop: 1 },
-    text({ color: COLOR.orange }, `  ${label} could not be read.`),
-    faint(`  ${why ?? "The adapter that provides this tab did not answer."}`),
-  );
-}
-
-/**
- * A panel is third-party code inside our render tree, and Ink has no error boundary:
- * an exception in one takes the whole console with it.
- */
-function attempt(label: string, draw: () => PanelNode): ReactNode {
-  try {
-    return draw() as ReactNode;
-  } catch (error) {
-    return unreadable(label, error instanceof Error ? error.message : String(error));
-  }
-}
-
-function counted(panel: { label: string; length: (view: PanelView) => number }, view: PanelView) {
-  try {
-    const length = panel.length(view);
-    return Number.isInteger(length) && length >= 0 ? length : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function useSize(): { width: number; height: number } {
-  const { columns, rows } = useWindowSize();
-  // Ink writes a newline after each frame; a frame as tall as the terminal
-  // scrolls it a row, and the header off the top.
-  return {
-    width: Math.max(80, columns),
-    height: Math.max(20, rows - 1),
-  };
-}
-
-export interface AppProps {
-  context: HostCommandContext;
-  initial: ConsoleState;
-  /** Tabs contributed by adapters, already loaded so the render stays sync. */
-  // biome-ignore lint/suspicious/noExplicitAny: each panel names its own state.
-  panels: readonly PanelContribution<any>[];
-  upstream: UpstreamContribution | undefined;
-  /** Resolved once per account by the upstream, for links that scope by viewer. */
-  viewer: string | undefined;
-}
-
-type Key = Parameters<Parameters<typeof useInput>[0]>[1];
 
 function useSession(props: AppProps) {
   const { exit } = useApp();
@@ -268,6 +172,22 @@ function useSession(props: AppProps) {
     reload,
   };
 }
+
+function useSize(): { width: number; height: number } {
+  const { columns, rows } = useWindowSize();
+  // Ink writes a newline after each frame; a frame as tall as the terminal
+  // scrolls it a row, and the header off the top.
+  return {
+    width: Math.max(80, columns),
+    height: Math.max(20, rows - 1),
+  };
+}
+
+type Overlay =
+  | { kind: "none" }
+  | { kind: "help" }
+  | { kind: "detail"; row: ArtifactRow }
+  | { kind: "publish"; plan: PublishPlan };
 
 function useViews(context: ReturnType<typeof useSession>) {
   const {
@@ -379,6 +299,15 @@ function useViews(context: ReturnType<typeof useSession>) {
   };
 }
 
+function counted(panel: { label: string; length: (view: PanelView) => number }, view: PanelView) {
+  try {
+    const length = panel.length(view);
+    return Number.isInteger(length) && length >= 0 ? length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** Every write goes through a confirm screen; there is no `--yes` equivalent in here. */
 function useCommands(context: ReturnType<typeof useViews>) {
   const { props, state, stateRef, setActivity, reload } = context;
@@ -473,6 +402,60 @@ function useCommands(context: ReturnType<typeof useViews>) {
     };
   };
   return { ...context, run, planForRow, importNow, publishPlan };
+}
+
+/** Every artifact's state, to compare the reload afterwards against. */
+function snapshot(state: ConsoleState): Map<string, string> {
+  return new Map(
+    state.groups.flatMap((group) =>
+      group.rows.map((row): [string, string] => [`${group.key}/${row.key}`, row.state]),
+    ),
+  );
+}
+
+export interface AppProps {
+  context: HostCommandContext;
+  initial: ConsoleState;
+  /** Tabs contributed by adapters, already loaded so the render stays sync. */
+  // biome-ignore lint/suspicious/noExplicitAny: each panel names its own state.
+  panels: readonly PanelContribution<any>[];
+  upstream: UpstreamContribution | undefined;
+  /** Resolved once per account by the upstream, for links that scope by viewer. */
+  viewer: string | undefined;
+}
+
+type Key = Parameters<Parameters<typeof useInput>[0]>[1];
+
+/**
+ * What moved between two reads. A command that exits 0 having changed nothing
+ * is the case worth naming: it is what a refused re-publish looks like here.
+ */
+function difference(before: Map<string, string>, after: ConsoleState): string[] {
+  const seen = snapshot(after);
+  const name = (key: string) => key.slice(key.indexOf("/") + 1);
+  const group = (key: string) => key.slice(0, key.indexOf("/"));
+  const gone = [...before.keys()].filter((key) => !seen.has(key));
+  const lines: string[] = [];
+
+  for (const [key, state] of seen) {
+    const was = before.get(key);
+    if (was !== undefined) {
+      if (was !== state) lines.push(`${name(key)}: ${was} \u2192 ${state}`);
+      continue;
+    }
+    // Approval moves an artifact from the local group into its namespace, and
+    // it keeps its key. Two lines would read as two artifacts.
+    const moved = gone.find((old) => name(old) === name(key));
+    if (moved !== undefined) {
+      gone.splice(gone.indexOf(moved), 1);
+      const from = before.get(moved);
+      lines.push(`${name(key)}: ${from} in ${group(moved)} \u2192 ${state} in ${group(key)}`);
+      continue;
+    }
+    lines.push(`${name(key)} is now here, ${state}`);
+  }
+  for (const key of gone) lines.push(`${name(key)} is gone`);
+  return lines;
 }
 
 function useLinks(context: ReturnType<typeof useCommands>) {
@@ -958,6 +941,27 @@ function drawBody(context: ReturnType<typeof useConsoleInput>) {
   return { ...context, lastPull, blocks, body, strip };
 }
 
+/**
+ * A panel is third-party code inside our render tree, and Ink has no error boundary:
+ * an exception in one takes the whole console with it.
+ */
+function attempt(label: string, draw: () => PanelNode): ReactNode {
+  try {
+    return draw() as ReactNode;
+  } catch (error) {
+    return unreadable(label, error instanceof Error ? error.message : String(error));
+  }
+}
+
+/** A tab whose adapter could not answer, or threw while drawing. */
+function unreadable(label: string, why: string | undefined): ReactNode {
+  return box(
+    { flexDirection: "column", marginTop: 1 },
+    text({ color: COLOR.orange }, `  ${label} could not be read.`),
+    faint(`  ${why ?? "The adapter that provides this tab did not answer."}`),
+  );
+}
+
 function drawFrame(context: ReturnType<typeof drawBody>) {
   const {
     props,
@@ -1050,19 +1054,15 @@ function drawFrame(context: ReturnType<typeof drawBody>) {
   );
 }
 
-export function App(props: AppProps): ReactElement {
-  const session = useSession(props);
-  const views = useViews(session);
-  const commands = useCommands(views);
-  const links = useLinks(commands);
-  const navigation = useNavigation(links);
-  const globalKeys = useGlobalKeys(navigation);
-  const overlayKeys = useOverlayKeys(globalKeys);
-  const viewKeys = useViewKeys(overlayKeys);
-  const mouse = useMouseInteractions(viewKeys);
-  const input = useConsoleInput(mouse);
-  const body = drawBody(input);
-  return drawFrame(body);
+/** One line of what a run has got through, from its own counts. */
+function describe(live: Progress | undefined): string | undefined {
+  if (live === undefined) return undefined;
+  const { examined, changed, failed } = live.counts;
+  const phase = live.phase === undefined ? "" : `${live.phase} \u00b7 `;
+  return (
+    `${phase}${examined} checked \u00b7 ${changed} changed` +
+    (failed > 0 ? ` \u00b7 ${failed} failed` : "")
+  );
 }
 
 /** A contributed tab's footer is movement plus whatever keys it declares. */

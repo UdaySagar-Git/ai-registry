@@ -37,6 +37,78 @@ interface Check {
   info?: boolean;
 }
 
+export async function run(context: CommandContext): Promise<void> {
+  const { positionals } = parse(context.argv, DOCTOR_COMMAND);
+  noArguments(
+    positionals,
+    "doctor",
+    "It only reads. To clear a stuck write lock, run `aireg unlock`.",
+  );
+
+  const found = await loadAdapters();
+  const checks = await checksFor(context.cwd, found);
+  const adapters = found.loaded.map((adapter) => ({
+    id: adapter.id,
+    displayName: adapter.displayName,
+    capabilities: advertisedCapabilities(adapter.capabilities),
+  }));
+  const fatal = checks.some(
+    (check) => (check.name === "git" || check.name === "node") && !check.ok,
+  );
+  if (fatal) context.exit = ExitCode.Error;
+  if (context.printer.format === "json") {
+    const problems = checks.filter((check) => !check.ok).length;
+    context.printer.json({ ok: !fatal, data: { problems, checks, adapters } });
+    return;
+  }
+  render(context, checks);
+}
+
+async function checksFor(
+  cwd: string,
+  adapters: Awaited<ReturnType<typeof loadAdapters>>,
+): Promise<Check[]> {
+  const prerequisites: Check[] = [];
+  for (const adapter of adapters.loaded) {
+    for (const item of (await adapter.ready?.()) ?? []) prerequisites.push(item);
+  }
+  // One broken module is reported where it stands; every other check still runs.
+  for (const { id, error } of adapters.broken) {
+    const why = error instanceof Error ? sanitizeText(error.message) : "it did not load";
+    prerequisites.push({ name: `adapter ${id}`, ok: false, detail: why });
+  }
+  const cached = await readUpdateCache();
+  const tooOld = nodeTooOld();
+  // The telemetry row: aireg itself sends none; an adapter reports its own through `ready()`.
+  return [
+    { name: "cli", ok: true, detail: VERSION },
+    {
+      name: "node",
+      ok: tooOld === undefined,
+      detail: tooOld ?? process.versions.node,
+    },
+    ...prerequisites,
+    await canLink(),
+    {
+      name: "store",
+      ok: true,
+      detail: underHome(cacheDir()),
+    },
+    await autostart(),
+    await home(),
+    await credentials(),
+    userScope(),
+    await ownSkills(cwd),
+    {
+      name: "telemetry",
+      ok: true,
+      info: true,
+      detail: "none",
+    },
+    updates(releaseStamp(), cached),
+  ];
+}
+
 /** Can this machine make the links projection depends on? */
 async function canLink(): Promise<Check> {
   const dir = await mkdtemp(join(tmpdir(), `${NAME}-doctor-`));
@@ -193,78 +265,6 @@ function updates(stamp: ReleaseStamp | undefined, cached: UpdateCache | undefine
         detail: `${channel}, ${cached.latest} is available`,
         fix: "aireg self update",
       };
-}
-
-async function checksFor(
-  cwd: string,
-  adapters: Awaited<ReturnType<typeof loadAdapters>>,
-): Promise<Check[]> {
-  const prerequisites: Check[] = [];
-  for (const adapter of adapters.loaded) {
-    for (const item of (await adapter.ready?.()) ?? []) prerequisites.push(item);
-  }
-  // One broken module is reported where it stands; every other check still runs.
-  for (const { id, error } of adapters.broken) {
-    const why = error instanceof Error ? sanitizeText(error.message) : "it did not load";
-    prerequisites.push({ name: `adapter ${id}`, ok: false, detail: why });
-  }
-  const cached = await readUpdateCache();
-  const tooOld = nodeTooOld();
-  // The telemetry row: aireg itself sends none; an adapter reports its own through `ready()`.
-  return [
-    { name: "cli", ok: true, detail: VERSION },
-    {
-      name: "node",
-      ok: tooOld === undefined,
-      detail: tooOld ?? process.versions.node,
-    },
-    ...prerequisites,
-    await canLink(),
-    {
-      name: "store",
-      ok: true,
-      detail: underHome(cacheDir()),
-    },
-    await autostart(),
-    await home(),
-    await credentials(),
-    userScope(),
-    await ownSkills(cwd),
-    {
-      name: "telemetry",
-      ok: true,
-      info: true,
-      detail: "none",
-    },
-    updates(releaseStamp(), cached),
-  ];
-}
-
-export async function run(context: CommandContext): Promise<void> {
-  const { positionals } = parse(context.argv, DOCTOR_COMMAND);
-  noArguments(
-    positionals,
-    "doctor",
-    "It only reads. To clear a stuck write lock, run `aireg unlock`.",
-  );
-
-  const found = await loadAdapters();
-  const checks = await checksFor(context.cwd, found);
-  const adapters = found.loaded.map((adapter) => ({
-    id: adapter.id,
-    displayName: adapter.displayName,
-    capabilities: advertisedCapabilities(adapter.capabilities),
-  }));
-  const fatal = checks.some(
-    (check) => (check.name === "git" || check.name === "node") && !check.ok,
-  );
-  if (fatal) context.exit = ExitCode.Error;
-  if (context.printer.format === "json") {
-    const problems = checks.filter((check) => !check.ok).length;
-    context.printer.json({ ok: !fatal, data: { problems, checks, adapters } });
-    return;
-  }
-  render(context, checks);
 }
 
 function render(context: CommandContext, checks: readonly Check[]): void {

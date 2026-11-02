@@ -48,27 +48,9 @@ export function limitsFor(id: string): SourceLimits {
   return { ...DEFAULT_LIMITS, ...LIMITS.get(id)?.() };
 }
 
-/** User config is the only source of dynamic modules; project manifests are untrusted. */
-async function configured(): Promise<Record<string, string>> {
-  return { ...(await readConfig()).adapters };
-}
-
-async function adapterIds(): Promise<string[]> {
-  return [...new Set([...BUILTIN.keys(), ...Object.keys(await configured())])].sort();
-}
-
-function looksLikeAdapter(value: unknown): value is SourceAdapter {
-  if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Partial<SourceAdapter>;
-  return (
-    typeof candidate.id === "string" &&
-    typeof candidate.displayName === "string" &&
-    candidate.protocol === ADAPTER_PROTOCOL &&
-    Array.isArray(candidate.artifactKinds) &&
-    parseDispatch(candidate.dispatch) !== undefined &&
-    typeof candidate.capabilities === "object" &&
-    typeof candidate.connect === "function"
-  );
+/** Load a file we just wrote, so install can record dispatch without going through config. */
+export async function inspectAdapterModule(path: string, id: string): Promise<SourceAdapter> {
+  return validate(await import(pathToFileURL(path).href), id, path);
 }
 
 function validate(module: unknown, id: string, where: string): SourceAdapter {
@@ -90,27 +72,18 @@ function validate(module: unknown, id: string, where: string): SourceAdapter {
   return adapter;
 }
 
-const loaded = new Map<string, SourceAdapter>();
-
-function moduleFile(specifier: string): string | undefined {
-  if (isAbsolute(specifier)) return specifier;
-  if (specifier.startsWith(".")) return join(toolHome(), specifier);
-  return undefined;
-}
-
-function moduleUrl(specifier: string): string {
-  const file = moduleFile(specifier);
-  return file === undefined ? specifier : pathToFileURL(file).href;
-}
-
-/** Load a file we just wrote, so install can record dispatch without going through config. */
-export async function inspectAdapterModule(path: string, id: string): Promise<SourceAdapter> {
-  return validate(await import(pathToFileURL(path).href), id, path);
-}
-
-async function specifierFor(id: string): Promise<string | undefined> {
-  if (isBuiltinAdapter(id)) return undefined;
-  return (await configured())[id];
+function looksLikeAdapter(value: unknown): value is SourceAdapter {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<SourceAdapter>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.displayName === "string" &&
+    candidate.protocol === ADAPTER_PROTOCOL &&
+    Array.isArray(candidate.artifactKinds) &&
+    parseDispatch(candidate.dispatch) !== undefined &&
+    typeof candidate.capabilities === "object" &&
+    typeof candidate.connect === "function"
+  );
 }
 
 export async function loadAdapter(id: string): Promise<SourceAdapter> {
@@ -138,13 +111,31 @@ export async function loadAdapter(id: string): Promise<SourceAdapter> {
   return adapter;
 }
 
-function urlParts(spec: string): { scheme?: string; host?: string } {
-  try {
-    const url = new URL(spec);
-    return { scheme: url.protocol.replace(/:$/, ""), host: url.hostname.toLowerCase() };
-  } catch {
-    return {};
-  }
+const loaded = new Map<string, SourceAdapter>();
+
+async function specifierFor(id: string): Promise<string | undefined> {
+  if (isBuiltinAdapter(id)) return undefined;
+  return (await configured())[id];
+}
+
+/** User config is the only source of dynamic modules; project manifests are untrusted. */
+async function configured(): Promise<Record<string, string>> {
+  return { ...(await readConfig()).adapters };
+}
+
+function moduleFile(specifier: string): string | undefined {
+  if (isAbsolute(specifier)) return specifier;
+  if (specifier.startsWith(".")) return join(toolHome(), specifier);
+  return undefined;
+}
+
+function moduleUrl(specifier: string): string {
+  const file = moduleFile(specifier);
+  return file === undefined ? specifier : pathToFileURL(file).href;
+}
+
+async function adapterIds(): Promise<string[]> {
+  return [...new Set([...BUILTIN.keys(), ...Object.keys(await configured())])].sort();
 }
 
 /** Every adapter, loaded or with why not, so one broken module costs only its own adapter. */
@@ -163,63 +154,15 @@ export async function loadAdapters(): Promise<{
   return { loaded, broken };
 }
 
-const onHost = (host: string | undefined, candidates: readonly string[] | undefined) =>
-  candidates?.some(
-    (candidate) => host === candidate || host?.endsWith(`.${candidate}`) === true,
-  ) === true;
-
-/** A site claim takes a URL of its scheme unless its host or the end of its path is left out. */
-function onSite(dispatch: Dispatch, spec: string, scheme: string | undefined): boolean {
-  const sites = dispatch.sites;
-  if (sites === undefined || scheme === undefined || !sites.schemes.includes(scheme)) return false;
-  const { host } = urlParts(spec);
-  if (onHost(host, sites.exceptHosts)) return false;
-  const path = spec.replace(/[?#].*$/, "").replace(/\/+$/, "");
-  return !(sites.exceptSuffixes ?? []).some((suffix) => path.endsWith(suffix));
-}
-
 /** The layout a declared registry is read as: `registry` unless its config names another. */
 export function declaredLayout(config: SourceConfig): string {
   return config.layout ?? "registry";
 }
 
-/**
- * Lower is more specific. A host claim beats a site claim, which beats a scheme claim, so a
- * registry on https wins over the general-purpose adapter that also speaks https.
- */
-function tier(dispatch: Dispatch, spec: string, layout: string | undefined): number | undefined {
-  if (isLocalPath(spec)) return dispatch.paths === true ? 0 : undefined;
-  const { scheme, host } = urlParts(spec);
-  if (host !== undefined && onHost(host, dispatch.hosts)) return 0;
-  const site = layout === undefined || layout === "well-known";
-  if (site && onSite(dispatch, spec, scheme)) return 1;
-  if (scheme !== undefined && dispatch.schemes?.includes(scheme) === true) return 2;
-  return undefined;
-}
-
-async function dispatchOf(id: string): Promise<Dispatch> {
-  const specifier = await specifierFor(id);
-  if (specifier !== undefined) {
-    const file = moduleFile(specifier);
-    if (file !== undefined) {
-      const record = await readInstallRecord(file);
-      if (record !== undefined) return record.dispatch;
-    }
-  }
-  return (await loadAdapter(id)).dispatch;
-}
-
-/** Only a URL or a path can be claimed; shorthand always goes to the fallback. */
-function claimable(spec: string): boolean {
-  return isLocalPath(spec) || urlParts(spec).scheme !== undefined;
-}
-
-/** Loopback as the secure contexts spec counts it: no network carries the bytes. */
-function isLoopback(host: string): boolean {
-  if (host === "localhost" || host.endsWith(".localhost") || host === "[::1]") return true;
-  // The URL parser has already turned 0x7f.1 and 2130706433 into dotted decimal.
-  return /^127\.\d+\.\d+\.\d+$/.test(host);
-}
+const onHost = (host: string | undefined, candidates: readonly string[] | undefined) =>
+  candidates?.some(
+    (candidate) => host === candidate || host?.endsWith(`.${candidate}`) === true,
+  ) === true;
 
 /** Cleartext could be rewritten by anyone on the network before a registry's commit is pinned. */
 export function refuseInsecure(spec: string): void {
@@ -237,6 +180,22 @@ export function refuseInsecure(spec: string): void {
       hint: "Add its https:// address instead. Plain http:// is allowed only on this machine, such as http://localhost.",
     });
   }
+}
+
+function urlParts(spec: string): { scheme?: string; host?: string } {
+  try {
+    const url = new URL(spec);
+    return { scheme: url.protocol.replace(/:$/, ""), host: url.hostname.toLowerCase() };
+  } catch {
+    return {};
+  }
+}
+
+/** Loopback as the secure contexts spec counts it: no network carries the bytes. */
+function isLoopback(host: string): boolean {
+  if (host === "localhost" || host.endsWith(".localhost") || host === "[::1]") return true;
+  // The URL parser has already turned 0x7f.1 and 2130706433 into dotted decimal.
+  return /^127\.\d+\.\d+\.\d+$/.test(host);
 }
 
 /**
@@ -295,4 +254,45 @@ export async function adapterFor(
     code: ErrorCode.Usage,
     hint: `Name its adapter with \`adapter:\` in the manifest, or \`--adapter\`: ${list(await adapterIds(), "or")}.`,
   });
+}
+
+/**
+ * Lower is more specific. A host claim beats a site claim, which beats a scheme claim, so a
+ * registry on https wins over the general-purpose adapter that also speaks https.
+ */
+function tier(dispatch: Dispatch, spec: string, layout: string | undefined): number | undefined {
+  if (isLocalPath(spec)) return dispatch.paths === true ? 0 : undefined;
+  const { scheme, host } = urlParts(spec);
+  if (host !== undefined && onHost(host, dispatch.hosts)) return 0;
+  const site = layout === undefined || layout === "well-known";
+  if (site && onSite(dispatch, spec, scheme)) return 1;
+  if (scheme !== undefined && dispatch.schemes?.includes(scheme) === true) return 2;
+  return undefined;
+}
+
+/** A site claim takes a URL of its scheme unless its host or the end of its path is left out. */
+function onSite(dispatch: Dispatch, spec: string, scheme: string | undefined): boolean {
+  const sites = dispatch.sites;
+  if (sites === undefined || scheme === undefined || !sites.schemes.includes(scheme)) return false;
+  const { host } = urlParts(spec);
+  if (onHost(host, sites.exceptHosts)) return false;
+  const path = spec.replace(/[?#].*$/, "").replace(/\/+$/, "");
+  return !(sites.exceptSuffixes ?? []).some((suffix) => path.endsWith(suffix));
+}
+
+async function dispatchOf(id: string): Promise<Dispatch> {
+  const specifier = await specifierFor(id);
+  if (specifier !== undefined) {
+    const file = moduleFile(specifier);
+    if (file !== undefined) {
+      const record = await readInstallRecord(file);
+      if (record !== undefined) return record.dispatch;
+    }
+  }
+  return (await loadAdapter(id)).dispatch;
+}
+
+/** Only a URL or a path can be claimed; shorthand always goes to the fallback. */
+function claimable(spec: string): boolean {
+  return isLocalPath(spec) || urlParts(spec).scheme !== undefined;
 }

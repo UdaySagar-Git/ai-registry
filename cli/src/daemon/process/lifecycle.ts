@@ -57,23 +57,24 @@ async function unproven(): Promise<DaemonProbe> {
   return pid === undefined ? { status: "foreign" } : { status: "outdated", pid };
 }
 
-async function waitUntilDown(endpoint: string, timeoutMs: number): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (!(await listening(endpoint))) return true;
-    await sleep(50);
+export async function stopDaemon(endpoint = rpcEndpoint()): Promise<void> {
+  if (!(await listening(endpoint))) {
+    await clearDaemonPid();
+    return;
   }
-  return !(await listening(endpoint));
-}
-
-async function waitFor(version: string, timeoutMs: number): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const found = await probeDaemon(version);
-    if (found.status === "ready" && found.version === version) return true;
-    await sleep(50);
+  if ((await askShutdown(endpoint)) && (await waitUntilDown(endpoint, STOP_MS))) {
+    await clearDaemonPid();
+    return;
   }
-  return false;
+  await signalListener(endpoint);
+  if (await waitUntilDown(endpoint, SIGNAL_MS)) {
+    await clearDaemonPid();
+    return;
+  }
+  throw new AiregError("The aireg daemon did not stop.", {
+    code: ErrorCode.Unavailable,
+    hint: "Run `aireg logs --daemon` to see why.",
+  });
 }
 
 /** False for a daemon that cannot prove itself, which only a signal stops. */
@@ -94,14 +95,13 @@ async function askShutdown(endpoint: string): Promise<boolean> {
   return true;
 }
 
-async function terminate(pid: number): Promise<void> {
-  if (pid === process.pid) return;
-  if (!(await isDaemonProcess(pid))) return;
-  try {
-    process.kill(pid, "SIGTERM");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+async function waitUntilDown(endpoint: string, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!(await listening(endpoint))) return true;
+    await sleep(50);
   }
+  return !(await listening(endpoint));
 }
 
 async function signalListener(endpoint: string): Promise<void> {
@@ -112,24 +112,14 @@ async function signalListener(endpoint: string): Promise<void> {
   for (const pid of pids) await terminate(pid);
 }
 
-export async function stopDaemon(endpoint = rpcEndpoint()): Promise<void> {
-  if (!(await listening(endpoint))) {
-    await clearDaemonPid();
-    return;
+async function terminate(pid: number): Promise<void> {
+  if (pid === process.pid) return;
+  if (!(await isDaemonProcess(pid))) return;
+  try {
+    process.kill(pid, "SIGTERM");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
   }
-  if ((await askShutdown(endpoint)) && (await waitUntilDown(endpoint, STOP_MS))) {
-    await clearDaemonPid();
-    return;
-  }
-  await signalListener(endpoint);
-  if (await waitUntilDown(endpoint, SIGNAL_MS)) {
-    await clearDaemonPid();
-    return;
-  }
-  throw new AiregError("The aireg daemon did not stop.", {
-    code: ErrorCode.Unavailable,
-    hint: "Run `aireg logs --daemon` to see why.",
-  });
 }
 
 /**
@@ -173,6 +163,16 @@ export async function startDaemon(entry: string, version: string): Promise<void>
       hint: "Run `aireg logs --stderr` to see why.",
     });
   }
+}
+
+async function waitFor(version: string, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const found = await probeDaemon(version);
+    if (found.status === "ready" && found.version === version) return true;
+    await sleep(50);
+  }
+  return false;
 }
 
 /**

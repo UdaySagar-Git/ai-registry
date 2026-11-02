@@ -52,6 +52,24 @@ const BUNDLED: Readonly<Record<string, KindManifest>> = dict([
 
 type Served = { manifest: KindManifest } | { problem: string };
 
+/**
+ * The kinds a registry holds: those its `registry.json` lists with a manifest it
+ * serves, else the ones the spec defines.
+ */
+export async function kindsOf(root: string | undefined): Promise<Record<string, KindManifest>> {
+  if (root === undefined) return dict(Object.entries(BUNDLED));
+  const listed = await listedKinds(root);
+  if (listed.length === 0) return dict(Object.entries(BUNDLED));
+  const kinds = dict<KindManifest>();
+  for (const { name, served, invalid } of listed) {
+    if (invalid === true) continue;
+    const manifest =
+      (served !== undefined && "manifest" in served ? served.manifest : undefined) ?? BUNDLED[name];
+    if (manifest !== undefined) kinds[name] = manifest;
+  }
+  return kinds;
+}
+
 interface Listed {
   name: string;
   url?: string;
@@ -73,53 +91,6 @@ async function listedKinds(root: string): Promise<Listed[]> {
     else kinds.push({ name, url, served: await served(root, url) });
   }
   return kinds;
-}
-
-/**
- * The kinds a registry holds: those its `registry.json` lists with a manifest it
- * serves, else the ones the spec defines.
- */
-export async function kindsOf(root: string | undefined): Promise<Record<string, KindManifest>> {
-  if (root === undefined) return dict(Object.entries(BUNDLED));
-  const listed = await listedKinds(root);
-  if (listed.length === 0) return dict(Object.entries(BUNDLED));
-  const kinds = dict<KindManifest>();
-  for (const { name, served, invalid } of listed) {
-    if (invalid === true) continue;
-    const manifest =
-      (served !== undefined && "manifest" in served ? served.manifest : undefined) ?? BUNDLED[name];
-    if (manifest !== undefined) kinds[name] = manifest;
-  }
-  return kinds;
-}
-
-/** Each manifest `registry.json` names in the root that cannot be used, and what becomes of its kind. */
-export async function manifestProblems(root: string): Promise<{ path: string; message: string }[]> {
-  return (await listedKinds(root)).flatMap(({ name, url, served, invalid }) => {
-    if (invalid === true) {
-      const message = `lists ${quoted(name)}, which is not a kind name, so it is not used`;
-      return [{ path: REGISTRY_DOCUMENT, message }];
-    }
-    if (url === undefined || served === undefined || !("problem" in served)) return [];
-    const instead =
-      BUNDLED[name] === undefined
-        ? "is left out and its artifacts fail"
-        : "is checked against the one aireg bundles";
-    return [{ path: url, message: `${served.problem}, so ${quoted(name)} ${instead}` }];
-  });
-}
-
-/** Where a kind `registry.json` names is served, and why it is left out, when it is. */
-export async function leftOutKind(
-  root: string,
-  name: string,
-): Promise<{ path: string; problem: string } | undefined> {
-  if (BUNDLED[name] !== undefined) return undefined;
-  const found = (await listedKinds(root)).find((kind) => kind.name === name);
-  if (found?.url === undefined || found.served === undefined || !("problem" in found.served)) {
-    return undefined;
-  }
-  return { path: found.url, problem: found.served.problem };
 }
 
 async function served(root: string, url: string): Promise<Served> {
@@ -163,6 +134,35 @@ function filePaths(files: unknown): unknown[] {
   return rules
     .flatMap((set) => (Array.isArray(set) ? set : []))
     .flatMap((rule) => (isRecord(rule) && "path" in rule ? [rule.path] : []));
+}
+
+/** Each manifest `registry.json` names in the root that cannot be used, and what becomes of its kind. */
+export async function manifestProblems(root: string): Promise<{ path: string; message: string }[]> {
+  return (await listedKinds(root)).flatMap(({ name, url, served, invalid }) => {
+    if (invalid === true) {
+      const message = `lists ${quoted(name)}, which is not a kind name, so it is not used`;
+      return [{ path: REGISTRY_DOCUMENT, message }];
+    }
+    if (url === undefined || served === undefined || !("problem" in served)) return [];
+    const instead =
+      BUNDLED[name] === undefined
+        ? "is left out and its artifacts fail"
+        : "is checked against the one aireg bundles";
+    return [{ path: url, message: `${served.problem}, so ${quoted(name)} ${instead}` }];
+  });
+}
+
+/** Where a kind `registry.json` names is served, and why it is left out, when it is. */
+export async function leftOutKind(
+  root: string,
+  name: string,
+): Promise<{ path: string; problem: string } | undefined> {
+  if (BUNDLED[name] !== undefined) return undefined;
+  const found = (await listedKinds(root)).find((kind) => kind.name === name);
+  if (found?.url === undefined || found.served === undefined || !("problem" in found.served)) {
+    return undefined;
+  }
+  return { path: found.url, problem: found.served.problem };
 }
 
 /** Shared required files plus the selected alternative, or the first alternative by default. */

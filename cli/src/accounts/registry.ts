@@ -25,12 +25,6 @@ export async function readRootManifest(
   return readManifest(roots(scope, cwd).manifest);
 }
 
-function declaredIn(manifest: Manifest, alias: string, scope: Scope): RegistrySource {
-  const source = manifest.registries[alias];
-  if (source === undefined) throw unknownRegistry(alias, scope, Object.keys(manifest.registries));
-  return source;
-}
-
 export async function resolveRegistry(
   manifest: Manifest,
   alias: string,
@@ -46,6 +40,12 @@ export async function resolveRegistry(
     adapter: await adapterFor(location, source.adapter, declaredLayout(source.config)),
     key: sourceKey(location, source.config),
   };
+}
+
+function declaredIn(manifest: Manifest, alias: string, scope: Scope): RegistrySource {
+  const source = manifest.registries[alias];
+  if (source === undefined) throw unknownRegistry(alias, scope, Object.keys(manifest.registries));
+  return source;
 }
 
 /** The user scope's declaration of `alias`, refused when it is somewhere other than `location`. */

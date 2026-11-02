@@ -99,38 +99,6 @@ export async function init(
   );
 }
 
-/** Each namespace once, or a usage error naming the ones that cannot be one. */
-function namespacesOf(listed: readonly string[]): string[] {
-  const namespaces = [...new Set(listed.map((item) => item.trim()).filter(Boolean))];
-  const invalid = namespaces.filter((item) => !isNamespace(item));
-  if (invalid.length > 0) {
-    throw new AiregError(
-      `${listOf(invalid.map(quoted))} ${invalid.length === 1 ? "is not a namespace" : "are not namespaces"}.`,
-      {
-        code: ErrorCode.Usage,
-        hint: "Use lowercase letters, digits and hyphens, such as platform.",
-      },
-    );
-  }
-  return namespaces;
-}
-
-/**
- * A folder may already hold links, such as an `artifacts` one a cloned repository ships: one
- * anywhere from the root down to a folder `init` makes would put that folder somewhere else.
- */
-function refuseLinked(root: string, folders: readonly string[]): void {
-  for (const folder of folders) {
-    const found = redirection(root, join(root, folder));
-    if (found === undefined) continue;
-    const what = found.problem === "symlink" ? "a symlink" : "not a folder";
-    throw new AiregError(`${found.at} is ${what}, so nothing was written through it.`, {
-      code: ErrorCode.Invalid,
-      hint: "Replace it with a real folder, then run it again.",
-    });
-  }
-}
-
 /** `init` in a registry adds only the namespaces it was given; the registry itself is left as it is. */
 async function extend(
   context: CommandContext,
@@ -163,8 +131,55 @@ async function extend(
   for (const namespace of added) context.printer.info(`    artifacts/${namespace}/`);
 }
 
+/**
+ * A folder may already hold links, such as an `artifacts` one a cloned repository ships: one
+ * anywhere from the root down to a folder `init` makes would put that folder somewhere else.
+ */
+function refuseLinked(root: string, folders: readonly string[]): void {
+  for (const folder of folders) {
+    const found = redirection(root, join(root, folder));
+    if (found === undefined) continue;
+    const what = found.problem === "symlink" ? "a symlink" : "not a folder";
+    throw new AiregError(`${found.at} is ${what}, so nothing was written through it.`, {
+      code: ErrorCode.Invalid,
+      hint: "Replace it with a real folder, then run it again.",
+    });
+  }
+}
+
+/** Each namespace once, or a usage error naming the ones that cannot be one. */
+function namespacesOf(listed: readonly string[]): string[] {
+  const namespaces = [...new Set(listed.map((item) => item.trim()).filter(Boolean))];
+  const invalid = namespaces.filter((item) => !isNamespace(item));
+  if (invalid.length > 0) {
+    throw new AiregError(
+      `${listOf(invalid.map(quoted))} ${invalid.length === 1 ? "is not a namespace" : "are not namespaces"}.`,
+      {
+        code: ErrorCode.Usage,
+        hint: "Use lowercase letters, digits and hyphens, such as platform.",
+      },
+    );
+  }
+  return namespaces;
+}
+
 /** Anything that reads as an address somewhere else, not a folder here. */
 const REMOTE = /^[a-z+]+:\/\/|^[\w.-]+@[\w.-]+:|^[\w-]+(\.[\w-]+)+\//i;
+
+/** The owner of the repository this folder pushes to, which is who the registry is usually named for. */
+async function remoteOwner(root: string): Promise<string | undefined> {
+  const attempt = await gitIn(existsSync(root) ? root : dirname(root), [
+    "remote",
+    "get-url",
+    "origin",
+  ]);
+  if (attempt.code !== 0) return undefined;
+  try {
+    return parseSource(attempt.stdout.trim()).slug?.split("/")[0];
+  } catch {
+    return undefined;
+  }
+}
 
 /** Asked on a terminal; anywhere else, and under --yes, the suggestion is the answer. */
 async function ask(
@@ -180,19 +195,4 @@ async function ask(
 
 function splitList(value: string | undefined): string[] | undefined {
   return value === undefined ? undefined : value.split(/[\s,]+/).filter(Boolean);
-}
-
-/** The owner of the repository this folder pushes to, which is who the registry is usually named for. */
-async function remoteOwner(root: string): Promise<string | undefined> {
-  const attempt = await gitIn(existsSync(root) ? root : dirname(root), [
-    "remote",
-    "get-url",
-    "origin",
-  ]);
-  if (attempt.code !== 0) return undefined;
-  try {
-    return parseSource(attempt.stdout.trim()).slug?.split("/")[0];
-  } catch {
-    return undefined;
-  }
 }

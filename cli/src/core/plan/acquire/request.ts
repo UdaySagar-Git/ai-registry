@@ -110,6 +110,15 @@ export function lockedRequest(
   return { want: [...request.want, ...asked.values()], all };
 }
 
+function sameDeclaration(declared: RegistrySource | undefined, locked: LockRegistry): boolean {
+  return (
+    declared !== undefined &&
+    declared.location === locked.location &&
+    (declared.adapter === undefined || declared.adapter === locked.adapter) &&
+    JSON.stringify(declared.config) === JSON.stringify(locked.config)
+  );
+}
+
 /** A locked row asked for again: at its version and commit, unless it is free to move. */
 function lockedWant(row: LockArtifact, free: boolean): Want {
   return {
@@ -119,15 +128,6 @@ function lockedWant(row: LockArtifact, free: boolean): Want {
     ...(free ? {} : { version: row.version }),
     ...(free || row.revision === undefined ? {} : { revision: row.revision }),
   };
-}
-
-function sameDeclaration(declared: RegistrySource | undefined, locked: LockRegistry): boolean {
-  return (
-    declared !== undefined &&
-    declared.location === locked.location &&
-    (declared.adapter === undefined || declared.adapter === locked.adapter) &&
-    JSON.stringify(declared.config) === JSON.stringify(locked.config)
-  );
 }
 
 export interface Request {

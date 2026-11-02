@@ -44,14 +44,14 @@ export function quoted(value: string): string {
   );
 }
 
-function stripControl(text: string): string {
-  return text.replace(CONTROL_SEQUENCES, "");
-}
-
 /** Escapes, controls and bidi controls removed, whitespace folded, truncated: safe on one line. */
 export function sanitizeText(text: string, maxLength = 200): string {
   const flat = stripControl(text).replace(/\s+/g, " ").trim();
   return flat.length > maxLength ? `${flat.slice(0, maxLength - 1)}…` : flat;
+}
+
+function stripControl(text: string): string {
+  return text.replace(CONTROL_SEQUENCES, "");
 }
 
 /**

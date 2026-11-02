@@ -38,107 +38,6 @@ export interface OfferTarget {
   files?: readonly { from: string; as: string }[] | undefined;
 }
 
-const REL_TYPE = /^[a-z][a-z0-9_]*$/;
-
-function edgeProblem(edge: PublishRelationship): string | undefined {
-  const { rel_type: type, to } = edge;
-  if (!REL_TYPE.test(type)) {
-    return `has a relationship of type ${quoted(type)}, which is not lowercase letters, digits and underscores`;
-  }
-  const at = to.lastIndexOf("@");
-  const [namespace, kind, name, ...rest] = to.slice(0, Math.max(0, at)).split("/");
-  if (
-    at < 1 ||
-    rest.length > 0 ||
-    !isNamespace(namespace ?? "") ||
-    !isKindSegment(kind ?? "") ||
-    !isArtifactName(name ?? "") ||
-    !isVersion(to.slice(at + 1))
-  ) {
-    return `has a ${type} edge to ${quoted(to)}, which is not a namespace/kind/name@version`;
-  }
-  return undefined;
-}
-
-function edgesOf(target: OfferTarget): PublishRelationship[] {
-  return (target.relationships ?? []).map((edge) => {
-    const problem = edgeProblem(edge);
-    if (problem !== undefined) {
-      throw new AiregError(`${target.name} ${problem}.`, { code: ErrorCode.Invalid });
-    }
-    return {
-      rel_type: edge.rel_type,
-      to: edge.to,
-    };
-  });
-}
-
-/** A registry agent requires a name the agent file may omit; the artifact's name fills it. */
-function agentDocument(content: Buffer, target: OfferTarget): UploadFile {
-  const text = content.toString("utf8");
-  const record = frontmatterRecord(text);
-  const fence = /^---\r?\n[\s\S]*?\r?\n(?=---\r?(?:\n|$))/.exec(text);
-  if (record === undefined || fence === null || record.name !== undefined) {
-    return { path: AGENT_ENTRY, content, executable: false };
-  }
-  const filled = `${fence[0]}name: ${target.name}\n${text.slice(fence[0].length)}`;
-  return { path: AGENT_ENTRY, content: Buffer.from(filled, "utf8"), executable: false };
-}
-
-function firstOf<T extends { path: string }>(kind: ArtifactKind, files: readonly T[]): T[] {
-  const entry = kind === "agent" ? AGENT_ENTRY : SKILL_ENTRY;
-  return [
-    ...files.filter((file) => file.path === entry),
-    ...files.filter((file) => file.path !== entry),
-  ];
-}
-
-async function uploadFiles(path: string, target: OfferTarget): Promise<UploadFile[]> {
-  // Read without following the root itself, so a link named like an artifact sends nothing.
-  const all = await authoredArtifact(path);
-  const root = all.irregular.find((entry) => entry.path === "");
-  if (root !== undefined) {
-    throw new AiregError(`${basename(path)} ${refusal(root)}.`, { code: ErrorCode.Invalid });
-  }
-  if (all.files.length === 1 && all.files[0]?.path === "") {
-    const content = await readFile(path);
-    if (target.kind === "agent" && target.asAgentDocument === true) {
-      return [agentDocument(content, target)];
-    }
-    return [{ path: basename(path), content, executable: false }];
-  }
-
-  const only =
-    target.files === undefined
-      ? undefined
-      : new Map(target.files.map((file) => [file.from, file.as]));
-  const [refused] = all.irregular.filter((entry) => only === undefined || only.has(entry.path));
-  if (refused !== undefined) {
-    throw new AiregError(`${basename(path)}/${refused.path} ${refusal(refused)}.`, {
-      code: ErrorCode.Invalid,
-    });
-  }
-  const byPath = new Map(all.files.map((entry) => [entry.path, entry]));
-  const files =
-    target.files === undefined
-      ? firstOf(target.kind, all.files).map((entry) => ({ entry, as: entry.path }))
-      : target.files.flatMap(({ from, as }) => {
-          const entry = byPath.get(from);
-          return entry === undefined ? [] : [{ entry, as }];
-        });
-  // Bounded, so a tree of thousands of files neither runs out of descriptors nor
-  // has every read in flight at once.
-  return Promise.all(
-    files.map(({ entry, as }) =>
-      reading(async () => ({
-        path: as,
-        content: await readFile(join(path, entry.path)),
-        executable: entry.executable,
-      })),
-    ),
-  );
-}
-
 /** One artifact on disk as an adapter takes it for a publish. */
 export async function offerFrom(
   path: string,
@@ -192,4 +91,105 @@ export async function offerFrom(
     digests: descriptors.map((file) => file.digest).sort(),
     files: descriptors.map(({ path, digest }) => ({ path, digest })),
   };
+}
+
+function edgesOf(target: OfferTarget): PublishRelationship[] {
+  return (target.relationships ?? []).map((edge) => {
+    const problem = edgeProblem(edge);
+    if (problem !== undefined) {
+      throw new AiregError(`${target.name} ${problem}.`, { code: ErrorCode.Invalid });
+    }
+    return {
+      rel_type: edge.rel_type,
+      to: edge.to,
+    };
+  });
+}
+
+const REL_TYPE = /^[a-z][a-z0-9_]*$/;
+
+function edgeProblem(edge: PublishRelationship): string | undefined {
+  const { rel_type: type, to } = edge;
+  if (!REL_TYPE.test(type)) {
+    return `has a relationship of type ${quoted(type)}, which is not lowercase letters, digits and underscores`;
+  }
+  const at = to.lastIndexOf("@");
+  const [namespace, kind, name, ...rest] = to.slice(0, Math.max(0, at)).split("/");
+  if (
+    at < 1 ||
+    rest.length > 0 ||
+    !isNamespace(namespace ?? "") ||
+    !isKindSegment(kind ?? "") ||
+    !isArtifactName(name ?? "") ||
+    !isVersion(to.slice(at + 1))
+  ) {
+    return `has a ${type} edge to ${quoted(to)}, which is not a namespace/kind/name@version`;
+  }
+  return undefined;
+}
+
+async function uploadFiles(path: string, target: OfferTarget): Promise<UploadFile[]> {
+  // Read without following the root itself, so a link named like an artifact sends nothing.
+  const all = await authoredArtifact(path);
+  const root = all.irregular.find((entry) => entry.path === "");
+  if (root !== undefined) {
+    throw new AiregError(`${basename(path)} ${refusal(root)}.`, { code: ErrorCode.Invalid });
+  }
+  if (all.files.length === 1 && all.files[0]?.path === "") {
+    const content = await readFile(path);
+    if (target.kind === "agent" && target.asAgentDocument === true) {
+      return [agentDocument(content, target)];
+    }
+    return [{ path: basename(path), content, executable: false }];
+  }
+
+  const only =
+    target.files === undefined
+      ? undefined
+      : new Map(target.files.map((file) => [file.from, file.as]));
+  const [refused] = all.irregular.filter((entry) => only === undefined || only.has(entry.path));
+  if (refused !== undefined) {
+    throw new AiregError(`${basename(path)}/${refused.path} ${refusal(refused)}.`, {
+      code: ErrorCode.Invalid,
+    });
+  }
+  const byPath = new Map(all.files.map((entry) => [entry.path, entry]));
+  const files =
+    target.files === undefined
+      ? firstOf(target.kind, all.files).map((entry) => ({ entry, as: entry.path }))
+      : target.files.flatMap(({ from, as }) => {
+          const entry = byPath.get(from);
+          return entry === undefined ? [] : [{ entry, as }];
+        });
+  // Bounded, so a tree of thousands of files neither runs out of descriptors nor
+  // has every read in flight at once.
+  return Promise.all(
+    files.map(({ entry, as }) =>
+      reading(async () => ({
+        path: as,
+        content: await readFile(join(path, entry.path)),
+        executable: entry.executable,
+      })),
+    ),
+  );
+}
+
+/** A registry agent requires a name the agent file may omit; the artifact's name fills it. */
+function agentDocument(content: Buffer, target: OfferTarget): UploadFile {
+  const text = content.toString("utf8");
+  const record = frontmatterRecord(text);
+  const fence = /^---\r?\n[\s\S]*?\r?\n(?=---\r?(?:\n|$))/.exec(text);
+  if (record === undefined || fence === null || record.name !== undefined) {
+    return { path: AGENT_ENTRY, content, executable: false };
+  }
+  const filled = `${fence[0]}name: ${target.name}\n${text.slice(fence[0].length)}`;
+  return { path: AGENT_ENTRY, content: Buffer.from(filled, "utf8"), executable: false };
+}
+
+function firstOf<T extends { path: string }>(kind: ArtifactKind, files: readonly T[]): T[] {
+  const entry = kind === "agent" ? AGENT_ENTRY : SKILL_ENTRY;
+  return [
+    ...files.filter((file) => file.path === entry),
+    ...files.filter((file) => file.path !== entry),
+  ];
 }

@@ -13,13 +13,6 @@ interface Outcome {
   skipped: readonly Skipped[];
 }
 
-function filesOf(item: Planned): { files?: string[] } {
-  const { files } = item.input;
-  return item.work.kind === "agent" && files.length > 1
-    ? { files: files.map((file) => file.path) }
-    : {};
-}
-
 /** Prints the `--json` result; does nothing in other formats. */
 export function report(
   printer: Printer,
@@ -49,6 +42,13 @@ export function report(
     };
   });
   printer.json({ ok: true, data: { dryRun, target, artifacts, skipped } });
+}
+
+function filesOf(item: Planned): { files?: string[] } {
+  const { files } = item.input;
+  return item.work.kind === "agent" && files.length > 1
+    ? { files: files.map((file) => file.path) }
+    : {};
 }
 
 export function nothing(printer: Printer, outcome: Outcome): void {

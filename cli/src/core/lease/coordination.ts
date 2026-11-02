@@ -10,15 +10,6 @@ export const POLL_MS = 100;
 /** How long a stale directory that cannot be removed is retried before it is reported. */
 export const STUCK_MS = 30_000;
 
-/** The coordination lock holds no meta, so its own mtime is its age. */
-async function dirAgeMs(dir: string): Promise<number | undefined> {
-  try {
-    return Math.abs(Date.now() - (await stat(dir)).mtimeMs);
-  } catch {
-    return undefined;
-  }
-}
-
 /** What a sleep-wake or file scanner causes on macOS and Windows, and clears by itself. */
 const TRANSIENT_RM = new Set(["EPERM", "EBUSY", "ENOTEMPTY"]);
 
@@ -40,38 +31,6 @@ export function taken(error: unknown): boolean {
   return (
     code === "EEXIST" || (process.platform === "win32" && (code === "EPERM" || code === "EBUSY"))
   );
-}
-
-/** Since when entering has kept failing, so a refusal that never clears ends the wait. */
-interface Failing {
-  since?: number;
-}
-
-function stillFailing(failing: Failing): boolean {
-  failing.since ??= Date.now();
-  return Date.now() - failing.since < STUCK_MS;
-}
-
-/** One try at the coordination folder: entered, try again now, or wait a poll first. */
-async function enterOnce(
-  dir: string,
-  failing: Failing,
-  guard: Guard,
-): Promise<"entered" | "retry" | "wait"> {
-  try {
-    await mkdir(dir);
-    return "entered";
-  } catch (error) {
-    if (!taken(error)) throw error;
-    // A delete still pending clears in moments; one that never does is a real refusal.
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST" && !stillFailing(failing)) throw error;
-    const age = await dirAgeMs(dir);
-    if (age === undefined || age <= COORDINATION_STALE_MS) return "wait";
-    await guard(dir);
-    if (await removeDir(dir)) return "retry";
-    if (!stillFailing(failing)) throw stuckError(dir, "lease_coordination_stuck");
-    return "wait";
-  }
 }
 
 /** Short-held, so create-versus-reclaim cannot interleave. */
@@ -96,5 +55,46 @@ export async function withCoordination<T>(
     await guard(dir)
       .then(() => removeDir(dir))
       .catch(() => false);
+  }
+}
+
+/** Since when entering has kept failing, so a refusal that never clears ends the wait. */
+interface Failing {
+  since?: number;
+}
+
+/** One try at the coordination folder: entered, try again now, or wait a poll first. */
+async function enterOnce(
+  dir: string,
+  failing: Failing,
+  guard: Guard,
+): Promise<"entered" | "retry" | "wait"> {
+  try {
+    await mkdir(dir);
+    return "entered";
+  } catch (error) {
+    if (!taken(error)) throw error;
+    // A delete still pending clears in moments; one that never does is a real refusal.
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST" && !stillFailing(failing)) throw error;
+    const age = await dirAgeMs(dir);
+    if (age === undefined || age <= COORDINATION_STALE_MS) return "wait";
+    await guard(dir);
+    if (await removeDir(dir)) return "retry";
+    if (!stillFailing(failing)) throw stuckError(dir, "lease_coordination_stuck");
+    return "wait";
+  }
+}
+
+function stillFailing(failing: Failing): boolean {
+  failing.since ??= Date.now();
+  return Date.now() - failing.since < STUCK_MS;
+}
+
+/** The coordination lock holds no meta, so its own mtime is its age. */
+async function dirAgeMs(dir: string): Promise<number | undefined> {
+  try {
+    return Math.abs(Date.now() - (await stat(dir)).mtimeMs);
+  } catch {
+    return undefined;
   }
 }

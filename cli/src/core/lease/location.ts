@@ -29,6 +29,10 @@ export function leaseKey(roots: Pick<Roots, "lock">): string {
   return shortHash(canonicalLock(roots.lock));
 }
 
+export function leaseDir(roots: Pick<Roots, "scope" | "lock">, env: NodeJS.ProcessEnv): string {
+  return join(parentOf(roots, env), `${leaseKey(roots)}.lease`);
+}
+
 /**
  * In the project's own `.registry/`, so every writer of the project shares it
  * whatever its `AIREG_HOME`. The user scope's stay in `AIREG_HOME`.
@@ -37,10 +41,6 @@ function parentOf(roots: Pick<Roots, "scope" | "lock">, env: NodeJS.ProcessEnv):
   return roots.scope === "user"
     ? leasesDir(env)
     : join(dirname(canonicalLock(roots.lock)), "leases");
-}
-
-export function leaseDir(roots: Pick<Roots, "scope" | "lock">, env: NodeJS.ProcessEnv): string {
-  return join(parentOf(roots, env), `${leaseKey(roots)}.lease`);
 }
 
 /** Refuses a path the lease would write or remove through a link. */

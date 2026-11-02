@@ -20,31 +20,6 @@ const MARK: Record<Disposition, (printer: Printer) => string> = {
   unavailable: (p) => p.style.red("unavailable"),
 };
 
-/** Written or published elsewhere: what it is, and the folder it is in. */
-function candidates(
-  printer: Printer,
-  title: string,
-  action: string,
-  items: readonly Candidate[],
-  roots: Roots,
-): void {
-  printer.info();
-  printer.info(printer.style.bold(title));
-  table(
-    printer,
-    [
-      { header: "action", value: () => printer.style.yellow(action) },
-      { header: "artifact", value: (item: Candidate) => item.name },
-      { header: "kind", value: (item: Candidate) => printer.style.dim(item.kind) },
-      {
-        header: "folder",
-        value: (item: Candidate) => printer.style.dim(displayPath(roots, item.from)),
-      },
-    ],
-    items,
-  );
-}
-
 export function renderSync(
   printer: Printer,
   items: readonly SyncItem[],
@@ -115,4 +90,29 @@ export function renderSync(
   if (undeclared.length > 0) {
     candidates(printer, "Already published, not declared here", "declare", undeclared, roots);
   }
+}
+
+/** Written or published elsewhere: what it is, and the folder it is in. */
+function candidates(
+  printer: Printer,
+  title: string,
+  action: string,
+  items: readonly Candidate[],
+  roots: Roots,
+): void {
+  printer.info();
+  printer.info(printer.style.bold(title));
+  table(
+    printer,
+    [
+      { header: "action", value: () => printer.style.yellow(action) },
+      { header: "artifact", value: (item: Candidate) => item.name },
+      { header: "kind", value: (item: Candidate) => printer.style.dim(item.kind) },
+      {
+        header: "folder",
+        value: (item: Candidate) => printer.style.dim(displayPath(roots, item.from)),
+      },
+    ],
+    items,
+  );
 }

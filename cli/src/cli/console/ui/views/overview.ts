@@ -6,14 +6,40 @@ import type { ConsoleState } from "#core/console/model.ts";
 import { bar, clock, interval, pad, truncate } from "#core/term/format.ts";
 import { COLOR, GLYPH, runColor, runGlyph } from "#core/term/theme.ts";
 
-function statusLine(ok: boolean, label: string, value: ReactNode, extra: ReactNode): ReactElement {
-  return box(
-    null,
-    text({ color: ok ? COLOR.green : COLOR.red }, `   ${GLYPH.bullet} `),
-    text({ color: COLOR.white }, pad(label, 20)),
-    value,
-    extra,
-  );
+/** The one screen that answers "is this machine in a good state" without scrolling. */
+export function overviewView(props: {
+  width: number;
+  state: ConsoleState;
+  cursor: number;
+  /** A block per contributed panel, under aireg's own. */
+  extra: ReactNode[];
+}): ReactElement {
+  const children: ReactNode[] = [
+    box({ key: "h1" }, heading("local state")),
+    box(
+      { key: "b1", flexDirection: "column", marginBottom: 1 },
+      ...localState(props.state),
+      ...props.extra,
+    ),
+    box({ key: "h2" }, heading("namespaces")),
+    box(
+      { key: "b2", flexDirection: "column", marginBottom: 1 },
+      ...namespaces(props.state, props.width, props.cursor),
+    ),
+    box({ key: "b3", flexDirection: "column", marginBottom: 1 }, ...jobs(props.state)),
+    box({ key: "b4", flexDirection: "column" }, ...runs(props.state, props.width)),
+  ];
+  if (props.state.problems.length > 0) {
+    children.push(
+      box(
+        { key: "problems", flexDirection: "column", marginTop: 1 },
+        ...props.state.problems.map((problem, index) =>
+          box({ key: `p${index}` }, text({ color: COLOR.red }, `   ! ${problem}`)),
+        ),
+      ),
+    );
+  }
+  return box({ flexDirection: "column", width: props.width }, ...children);
 }
 
 function localState(state: ConsoleState): ReactElement[] {
@@ -40,6 +66,16 @@ function localState(state: ConsoleState): ReactElement[] {
     ),
   ];
   return lines;
+}
+
+function statusLine(ok: boolean, label: string, value: ReactNode, extra: ReactNode): ReactElement {
+  return box(
+    null,
+    text({ color: ok ? COLOR.green : COLOR.red }, `   ${GLYPH.bullet} `),
+    text({ color: COLOR.white }, pad(label, 20)),
+    value,
+    extra,
+  );
 }
 
 function namespaces(state: ConsoleState, width: number, cursor: number): ReactElement[] {
@@ -146,40 +182,4 @@ function runs(state: ConsoleState, width: number): ReactElement[] {
     );
   }
   return lines;
-}
-
-/** The one screen that answers "is this machine in a good state" without scrolling. */
-export function overviewView(props: {
-  width: number;
-  state: ConsoleState;
-  cursor: number;
-  /** A block per contributed panel, under aireg's own. */
-  extra: ReactNode[];
-}): ReactElement {
-  const children: ReactNode[] = [
-    box({ key: "h1" }, heading("local state")),
-    box(
-      { key: "b1", flexDirection: "column", marginBottom: 1 },
-      ...localState(props.state),
-      ...props.extra,
-    ),
-    box({ key: "h2" }, heading("namespaces")),
-    box(
-      { key: "b2", flexDirection: "column", marginBottom: 1 },
-      ...namespaces(props.state, props.width, props.cursor),
-    ),
-    box({ key: "b3", flexDirection: "column", marginBottom: 1 }, ...jobs(props.state)),
-    box({ key: "b4", flexDirection: "column" }, ...runs(props.state, props.width)),
-  ];
-  if (props.state.problems.length > 0) {
-    children.push(
-      box(
-        { key: "problems", flexDirection: "column", marginTop: 1 },
-        ...props.state.problems.map((problem, index) =>
-          box({ key: `p${index}` }, text({ color: COLOR.red }, `   ! ${problem}`)),
-        ),
-      ),
-    );
-  }
-  return box({ flexDirection: "column", width: props.width }, ...children);
 }

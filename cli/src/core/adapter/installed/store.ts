@@ -69,21 +69,6 @@ async function pinAdapter(
   }
 }
 
-export async function unpinAdapter(
-  id: string,
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<string | undefined> {
-  let removed: string | undefined;
-  await mutateAdapters((adapters) => {
-    removed = adapters[id];
-    const rest = { ...adapters };
-    delete rest[id];
-    return rest;
-  }, env);
-  if (removed !== undefined) await removeVersions(id, env);
-  return removed;
-}
-
 async function mutateAdapters(
   next: (adapters: Readonly<Record<string, string>>) => Record<string, string>,
   env: NodeJS.ProcessEnv,
@@ -97,6 +82,21 @@ async function removeManaged(id: string, specifier: string, env: NodeJS.ProcessE
   const dir = adapterDataDir(id, env);
   if (!isWithin(dir, resolved) || relative(dir, resolved).split(sep).length !== 2) return;
   await rm(dirname(resolved), { recursive: true, force: true });
+}
+
+export async function unpinAdapter(
+  id: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<string | undefined> {
+  let removed: string | undefined;
+  await mutateAdapters((adapters) => {
+    removed = adapters[id];
+    const rest = { ...adapters };
+    delete rest[id];
+    return rest;
+  }, env);
+  if (removed !== undefined) await removeVersions(id, env);
+  return removed;
 }
 
 /** Every version folder aireg installed for this adapter; its data beside them stays. */

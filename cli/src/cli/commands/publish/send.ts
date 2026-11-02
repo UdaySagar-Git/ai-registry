@@ -13,17 +13,6 @@ import {
   releaseSubject,
 } from "#engine/publish/target.ts";
 
-/** What the change is, in the words a commit or a changelog would use. */
-function subjectOf(items: readonly Planned[]): string {
-  return releaseSubject(
-    items.map((item) => ({
-      name: item.work.name,
-      version: item.version,
-      first: item.from === undefined,
-    })),
-  );
-}
-
 /**
  * Publishes one registry's share of the work and says what happens next.
  * `options.checkout` is where to `cd` to commit, when the registry folder is a git checkout.
@@ -78,4 +67,15 @@ export async function sendTo(
     );
   }
   return published;
+}
+
+/** What the change is, in the words a commit or a changelog would use. */
+function subjectOf(items: readonly Planned[]): string {
+  return releaseSubject(
+    items.map((item) => ({
+      name: item.work.name,
+      version: item.version,
+      first: item.from === undefined,
+    })),
+  );
 }

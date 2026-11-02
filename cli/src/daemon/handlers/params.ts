@@ -19,14 +19,6 @@ export function object(value: unknown, what = "params"): Fields {
 export const { flag, integer, oneOf, optionalFlag, optionalText, text } = fields;
 const { choice } = fields;
 
-function names(entry: Fields, key: string): readonly string[] {
-  const value = fields.textList(entry[key], key);
-  const unique = [...new Set(value)];
-  if (unique.length !== value.length)
-    throw new ProtocolError(RpcErrorCode.InvalidParams, `${key} names something more than once.`);
-  return unique;
-}
-
 /** An empty list is a caller bug: it asks for a scoped run over nothing. */
 export function optionalNames(entry: Fields, key: string): readonly string[] | undefined {
   if (entry[key] === undefined) return undefined;
@@ -34,6 +26,14 @@ export function optionalNames(entry: Fields, key: string): readonly string[] | u
   if (value.length === 0)
     throw new ProtocolError(RpcErrorCode.InvalidParams, `${key} must not be empty.`);
   return value;
+}
+
+function names(entry: Fields, key: string): readonly string[] {
+  const value = fields.textList(entry[key], key);
+  const unique = [...new Set(value)];
+  if (unique.length !== value.length)
+    throw new ProtocolError(RpcErrorCode.InvalidParams, `${key} names something more than once.`);
+  return unique;
 }
 
 /** Absent is undefined and an empty list is refused; the caller checks each entry. */
@@ -71,6 +71,10 @@ export function oauthTokens(entry: Fields, key: string): Credential {
 
 const MAXIMUM_INTERVAL_SECONDS = 24 * 60 * 60;
 
+export function intervalSeconds(entry: Fields, key: string, fallback: number) {
+  return entry[key] === undefined ? fallback : interval(integer(entry, key));
+}
+
 /** A day at most, beyond config's floor: a job left longer reads as one that stopped. */
 function interval(seconds: number): number {
   if (seconds < MINIMUM_INTERVAL_SECONDS || seconds > MAXIMUM_INTERVAL_SECONDS) {
@@ -80,10 +84,6 @@ function interval(seconds: number): number {
     );
   }
   return seconds;
-}
-
-export function intervalSeconds(entry: Fields, key: string, fallback: number) {
-  return entry[key] === undefined ? fallback : interval(integer(entry, key));
 }
 
 export function syncPolicy(entry: Fields, key: string, fallback: SyncPolicy = NOTHING): SyncPolicy {
@@ -124,13 +124,6 @@ export function jobId(entry: Fields, key: string): string {
 
 const JOB_FIELDS = ["id", "name", "account", "schedule", "steps"];
 
-/** A step as config.yml holds it: its adapter's fields beside aireg's, not in a bag. */
-function flattened(value: unknown): unknown {
-  if (!isRecord(value)) return value;
-  const { extra, ...rest } = value;
-  return { ...object(extra ?? {}, "extra"), ...rest };
-}
-
 /** Held to every rule config.yml is, so the daemon never stores a job it cannot read back. */
 export function job(value: unknown): Job {
   const raw = object(value, "job");
@@ -141,4 +134,11 @@ export function job(value: unknown): Job {
   jobId(raw, "id");
   interval(parsed.schedule.every);
   return parsed;
+}
+
+/** A step as config.yml holds it: its adapter's fields beside aireg's, not in a bag. */
+function flattened(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const { extra, ...rest } = value;
+  return { ...object(extra ?? {}, "extra"), ...rest };
 }

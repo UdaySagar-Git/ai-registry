@@ -56,6 +56,27 @@ export async function guardsOf(plan: Plan, roots: Roots): Promise<Map<string, Li
   return guards;
 }
 
+/** A written placement's text; undefined for a link, or before its source is copied. */
+async function rendering(action: ActionOf<"link">): Promise<Rendered | undefined> {
+  if (!writes(action)) return undefined;
+  const read = await readFile(action.from, "utf8").catch(() => undefined);
+  if (read === undefined) return undefined;
+  const source = action.rename === undefined ? read : withName(read, action.rename);
+  if (action.command !== undefined) return commandSkill(action.command, source);
+  if (action.codec === undefined) return { text: source };
+  return applyCodec(action.codec, source);
+}
+
+/** Whether aireg writes this placement's file itself, rather than linking or copying a tree. */
+function writes(action: ActionOf<"link">): boolean {
+  return action.codec !== undefined || action.entry !== undefined;
+}
+
+/** Where a written placement's file sits: inside its folder, for an `entry`. */
+function writtenFile(action: ActionOf<"link">): string {
+  return action.entry === undefined ? action.to : join(action.to, action.entry);
+}
+
 /** Pointing a target at a whole namespace is what makes that directory a plugin. */
 export async function assemblePlugin(run: Run, action: ActionOf<"link">): Promise<void> {
   if (action.plugin !== true || action.content === undefined) return;
@@ -69,87 +90,6 @@ export async function assemblePlugin(run: Run, action: ActionOf<"link">): Promis
   run.plugins.set(action.from, found);
   await guardManagedPath(action.from, run.roots);
   await assemble(action.from, action.content, found.targets, found.document);
-}
-
-/** Whether aireg writes this placement's file itself, rather than linking or copying a tree. */
-function writes(action: ActionOf<"link">): boolean {
-  return action.codec !== undefined || action.entry !== undefined;
-}
-
-/** Where a written placement's file sits: inside its folder, for an `entry`. */
-function writtenFile(action: ActionOf<"link">): string {
-  return action.entry === undefined ? action.to : join(action.to, action.entry);
-}
-
-/** A written placement's text; undefined for a link, or before its source is copied. */
-async function rendering(action: ActionOf<"link">): Promise<Rendered | undefined> {
-  if (!writes(action)) return undefined;
-  const read = await readFile(action.from, "utf8").catch(() => undefined);
-  if (read === undefined) return undefined;
-  const source = action.rename === undefined ? read : withName(read, action.rename);
-  if (action.command !== undefined) return commandSkill(action.command, source);
-  if (action.codec === undefined) return { text: source };
-  return applyCodec(action.codec, source);
-}
-
-/** A copy under a name not its own says that name, so the target shows it as installed. */
-async function renameCopy(to: string, name: string): Promise<void> {
-  const file = (await lstat(to)).isDirectory() ? join(to, SKILL_ENTRY) : to;
-  const text = await readFile(file, "utf8").catch(() => undefined);
-  if (text !== undefined) await writeAtomic(file, withName(text, name));
-}
-
-/** Never linked: a target reading its own format may refuse a link. */
-async function writeRendered(
-  run: Run,
-  action: ActionOf<"link">,
-  rendered: Rendered | undefined,
-): Promise<LinkMode | undefined> {
-  if (rendered === undefined || "problem" in rendered) {
-    const reason = rendered?.problem ?? "its file could not be read";
-    run.unrendered.push({ name: action.name, target: action.target, reason });
-    return undefined;
-  }
-  await remove(action.to);
-  await mkdir(dirname(writtenFile(action)), { recursive: true });
-  await writeAtomic(writtenFile(action), rendered.text);
-  return "copy";
-}
-
-/** The files its keys add; undefined once it is left out for a target that cannot keep one. */
-async function keyFiles(
-  run: Run,
-  action: ActionOf<"link">,
-  rendered: Rendered | undefined,
-  key: string,
-): Promise<KeyFile[] | undefined> {
-  const needs = await keyNeeds(
-    action,
-    rendered !== undefined && "text" in rendered ? rendered.text : undefined,
-  );
-  if ("files" in needs) return needs.files;
-  run.unrendered.push({
-    name: action.command ?? action.name,
-    target: action.target,
-    reason: needs.refused,
-  });
-  run.skipped.add(key);
-  return undefined;
-}
-
-async function place(
-  run: Run,
-  action: ActionOf<"link">,
-  rendered: Rendered | undefined,
-  how: { fan: boolean; copy: boolean; files: readonly KeyFile[] },
-): Promise<LinkMode | undefined> {
-  const mode = writes(action)
-    ? await writeRendered(run, action, rendered)
-    : how.fan
-      ? await fanOut(action.from, action.to)
-      : await link(action.from, action.to, how.copy);
-  if (mode === "copy") await writeKeyFiles(action.to, how.files);
-  return mode;
 }
 
 export async function linkInto(run: Run, action: ActionOf<"link">): Promise<void> {
@@ -246,6 +186,27 @@ async function adoptOrKeep(run: Run, action: ActionOf<"link">, key: string): Pro
   run.installed.add(action.name);
 }
 
+/** The files its keys add; undefined once it is left out for a target that cannot keep one. */
+async function keyFiles(
+  run: Run,
+  action: ActionOf<"link">,
+  rendered: Rendered | undefined,
+  key: string,
+): Promise<KeyFile[] | undefined> {
+  const needs = await keyNeeds(
+    action,
+    rendered !== undefined && "text" in rendered ? rendered.text : undefined,
+  );
+  if ("files" in needs) return needs.files;
+  run.unrendered.push({
+    name: action.command ?? action.name,
+    target: action.target,
+    reason: needs.refused,
+  });
+  run.skipped.add(key);
+  return undefined;
+}
+
 /** A person's own file or folder where the lockfile recorded a link goes to backups, never away. */
 async function moveAside(run: Run, path: string, target: string): Promise<void> {
   const { roots } = run;
@@ -257,6 +218,45 @@ async function moveAside(run: Run, path: string, target: string): Promise<void> 
     to: await backUp(path, target, roots, run.stamp),
     what: info.isSymbolicLink() ? "link" : info.isDirectory() ? "folder" : "file",
   });
+}
+
+async function place(
+  run: Run,
+  action: ActionOf<"link">,
+  rendered: Rendered | undefined,
+  how: { fan: boolean; copy: boolean; files: readonly KeyFile[] },
+): Promise<LinkMode | undefined> {
+  const mode = writes(action)
+    ? await writeRendered(run, action, rendered)
+    : how.fan
+      ? await fanOut(action.from, action.to)
+      : await link(action.from, action.to, how.copy);
+  if (mode === "copy") await writeKeyFiles(action.to, how.files);
+  return mode;
+}
+
+/** Never linked: a target reading its own format may refuse a link. */
+async function writeRendered(
+  run: Run,
+  action: ActionOf<"link">,
+  rendered: Rendered | undefined,
+): Promise<LinkMode | undefined> {
+  if (rendered === undefined || "problem" in rendered) {
+    const reason = rendered?.problem ?? "its file could not be read";
+    run.unrendered.push({ name: action.name, target: action.target, reason });
+    return undefined;
+  }
+  await remove(action.to);
+  await mkdir(dirname(writtenFile(action)), { recursive: true });
+  await writeAtomic(writtenFile(action), rendered.text);
+  return "copy";
+}
+
+/** A copy under a name not its own says that name, so the target shows it as installed. */
+async function renameCopy(to: string, name: string): Promise<void> {
+  const file = (await lstat(to)).isDirectory() ? join(to, SKILL_ENTRY) : to;
+  const text = await readFile(file, "utf8").catch(() => undefined);
+  if (text !== undefined) await writeAtomic(file, withName(text, name));
 }
 
 export async function unlink(run: Run, action: ActionOf<"unlink">): Promise<void> {

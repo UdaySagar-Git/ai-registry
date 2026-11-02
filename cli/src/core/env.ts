@@ -79,14 +79,14 @@ export function tokenVariable(alias: string): string {
   return `${TOKEN_PREFIX}${alias.toUpperCase().replaceAll(/[^A-Z0-9]/g, "_")}`;
 }
 
-// Windows reads aireg_token_acme as AIREG_TOKEN_ACME, so the prefix matches in any case.
-function isTokenVariable(name: string): boolean {
-  return name.toUpperCase().startsWith(TOKEN_PREFIX);
-}
-
 /** `env` with no `AIREG_TOKEN_<NAME>` in it. */
 export function withoutTokens(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return Object.fromEntries(Object.entries(env).filter(([name]) => !isTokenVariable(name)));
+}
+
+// Windows reads aireg_token_acme as AIREG_TOKEN_ACME, so the prefix matches in any case.
+function isTokenVariable(name: string): boolean {
+  return name.toUpperCase().startsWith(TOKEN_PREFIX);
 }
 
 /** Deletes every `AIREG_TOKEN_<NAME>` from this process's env, for one that must hold none. */

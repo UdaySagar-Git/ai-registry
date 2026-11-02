@@ -15,6 +15,70 @@ import { LEGACY_TARGETS_KEY, type Manifest } from "./model.ts";
 
 const keyOf = (key: unknown): string => String(isScalar(key) ? key.value : key);
 
+/** Edited in place, so a person's comments and blank lines survive. */
+export function editManifest(text: string, manifest: Manifest): string {
+  const doc: Document = parseDocument(text);
+  if (doc.errors.length > 0) return formatManifest(manifest);
+  const current = saysTargets(doc);
+  if (current) renameLegacyKeys(doc);
+  separateSections(doc);
+  const data = manifestData(manifest);
+  doc.contents = merged(
+    doc,
+    doc.contents,
+    current ? data : inEarlierNames(data),
+  ) as Document["contents"];
+  const first = isMap(doc.contents) ? doc.contents.items[0]?.key : undefined;
+  if (isNode(first)) first.spaceBefore = false;
+  return doc.toString(FORMAT);
+}
+
+/** Someone opted in to `targets:` by writing it; any other manifest keeps the names 0.1 reads. */
+function saysTargets(doc: Document): boolean {
+  return targetMaps(doc).some((map) => map.has("targets"));
+}
+
+/** The mappings that can hold a target list: the root, and each artifact entry. */
+function targetMaps(doc: Document): YAMLMap[] {
+  const maps: unknown[] = [doc.contents];
+  const artifacts = isMap(doc.contents) ? doc.contents.get("artifacts") : undefined;
+  if (isSeq(artifacts)) maps.push(...artifacts.items);
+  return maps.filter((map): map is YAMLMap => isMap(map));
+}
+
+// A comment paragraph belongs to the key right below it, and the parser hands every
+// paragraph between two top-level keys to the first; these split them back apart.
+const paragraphs = (comment: string | null | undefined): string[] =>
+  comment === null || comment === undefined || comment === "" ? [] : comment.split("\n\n");
+
+/** `harnesses:` renamed where it stands, so its comments move with it. */
+function renameLegacyKeys(doc: Document): void {
+  for (const map of targetMaps(doc)) {
+    const pair = map.items.find((item) => keyOf(item.key) === LEGACY_TARGETS_KEY);
+    if (pair !== undefined && isScalar(pair.key)) pair.key.value = "targets";
+  }
+}
+
+/** The paragraphs trailing a section that a blank line set apart, moved to the key below. */
+function separateSections(doc: Document): void {
+  if (!isMap(doc.contents)) return;
+  const pairs = doc.contents.items;
+  for (const [index, pair] of pairs.entries()) {
+    const next = pairs[index + 1];
+    if (!isNode(pair.value) || !isNode(next?.key)) continue;
+    const [own, ...rest] = paragraphs(pair.value.comment);
+    if (rest.length === 0) continue;
+    pair.value.comment = own ?? null;
+    next.key.commentBefore = joined(...rest, next.key.commentBefore);
+    next.key.spaceBefore = true;
+  }
+}
+
+function joined(...comments: (string | null | undefined)[]): string | null {
+  const all = comments.flatMap(paragraphs);
+  return all.length === 0 ? null : all.join("\n\n");
+}
+
 /** Changes only what differs, so a node keeps its comments. */
 function merged(doc: Document, node: unknown, value: unknown): unknown {
   if (isNode(node) && isDeepStrictEqual(node.toJS(doc), value)) return node;
@@ -65,6 +129,11 @@ function mergedMap(doc: Document, node: YAMLMap, value: Record<string, unknown>)
   return node;
 }
 
+/** What sits above a deleted key that is not about the key: a file's heading, say. */
+function leading(key: unknown): string | null {
+  return isNode(key) ? joined(...paragraphs(key.commentBefore).slice(0, -1)) : null;
+}
+
 /** Entries match by value; one edited in place keeps its slot's comment. */
 function mergedSeq(doc: Document, node: YAMLSeq, value: readonly unknown[]): YAMLSeq {
   const before = node.items;
@@ -88,73 +157,4 @@ function mergedSeq(doc: Document, node: YAMLSeq, value: readonly unknown[]): YAM
     return doc.createNode(item);
   });
   return node;
-}
-
-// A comment paragraph belongs to the key right below it, and the parser hands every
-// paragraph between two top-level keys to the first; these split them back apart.
-const paragraphs = (comment: string | null | undefined): string[] =>
-  comment === null || comment === undefined || comment === "" ? [] : comment.split("\n\n");
-
-function joined(...comments: (string | null | undefined)[]): string | null {
-  const all = comments.flatMap(paragraphs);
-  return all.length === 0 ? null : all.join("\n\n");
-}
-
-/** What sits above a deleted key that is not about the key: a file's heading, say. */
-function leading(key: unknown): string | null {
-  return isNode(key) ? joined(...paragraphs(key.commentBefore).slice(0, -1)) : null;
-}
-
-/** The paragraphs trailing a section that a blank line set apart, moved to the key below. */
-function separateSections(doc: Document): void {
-  if (!isMap(doc.contents)) return;
-  const pairs = doc.contents.items;
-  for (const [index, pair] of pairs.entries()) {
-    const next = pairs[index + 1];
-    if (!isNode(pair.value) || !isNode(next?.key)) continue;
-    const [own, ...rest] = paragraphs(pair.value.comment);
-    if (rest.length === 0) continue;
-    pair.value.comment = own ?? null;
-    next.key.commentBefore = joined(...rest, next.key.commentBefore);
-    next.key.spaceBefore = true;
-  }
-}
-
-/** The mappings that can hold a target list: the root, and each artifact entry. */
-function targetMaps(doc: Document): YAMLMap[] {
-  const maps: unknown[] = [doc.contents];
-  const artifacts = isMap(doc.contents) ? doc.contents.get("artifacts") : undefined;
-  if (isSeq(artifacts)) maps.push(...artifacts.items);
-  return maps.filter((map): map is YAMLMap => isMap(map));
-}
-
-/** Someone opted in to `targets:` by writing it; any other manifest keeps the names 0.1 reads. */
-function saysTargets(doc: Document): boolean {
-  return targetMaps(doc).some((map) => map.has("targets"));
-}
-
-/** `harnesses:` renamed where it stands, so its comments move with it. */
-function renameLegacyKeys(doc: Document): void {
-  for (const map of targetMaps(doc)) {
-    const pair = map.items.find((item) => keyOf(item.key) === LEGACY_TARGETS_KEY);
-    if (pair !== undefined && isScalar(pair.key)) pair.key.value = "targets";
-  }
-}
-
-/** Edited in place, so a person's comments and blank lines survive. */
-export function editManifest(text: string, manifest: Manifest): string {
-  const doc: Document = parseDocument(text);
-  if (doc.errors.length > 0) return formatManifest(manifest);
-  const current = saysTargets(doc);
-  if (current) renameLegacyKeys(doc);
-  separateSections(doc);
-  const data = manifestData(manifest);
-  doc.contents = merged(
-    doc,
-    doc.contents,
-    current ? data : inEarlierNames(data),
-  ) as Document["contents"];
-  const first = isMap(doc.contents) ? doc.contents.items[0]?.key : undefined;
-  if (isNode(first)) first.spaceBefore = false;
-  return doc.toString(FORMAT);
 }

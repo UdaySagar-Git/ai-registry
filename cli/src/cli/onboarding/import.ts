@@ -29,31 +29,6 @@ export interface ImportPlan {
   artifacts: readonly Found[];
 }
 
-/** Refuses an irregular entry: `found`, or else the first one under `from`. */
-async function refuseIrregular(roots: Roots, from: string, found?: Irregular): Promise<void> {
-  const refused = found ?? (await authoredArtifact(from)).irregular[0];
-  if (refused === undefined) return;
-  const at = displayPath(roots, refused.path === "" ? from : join(from, refused.path));
-  throw new AiregError(`Did not import ${at}: it ${refusal(refused)}.`, {
-    code: ErrorCode.Invalid,
-    hint: "Nothing was imported. Fix that entry and run the import again.",
-  });
-}
-
-function common(scope: Scope): CommonOptions {
-  return {
-    scope,
-    targets: undefined,
-    select: undefined,
-    yes: true,
-    all: true,
-    dryRun: false,
-    frozen: false,
-    force: false,
-    copy: false,
-  };
-}
-
 export async function planImport(
   root: string,
   targets: readonly string[],
@@ -101,6 +76,31 @@ export async function planImport(
   }
   artifacts.sort((left, right) => left.name.localeCompare(right.name));
   return { root, scope, artifacts };
+}
+
+function common(scope: Scope): CommonOptions {
+  return {
+    scope,
+    targets: undefined,
+    select: undefined,
+    yes: true,
+    all: true,
+    dryRun: false,
+    frozen: false,
+    force: false,
+    copy: false,
+  };
+}
+
+/** Refuses an irregular entry: `found`, or else the first one under `from`. */
+async function refuseIrregular(roots: Roots, from: string, found?: Irregular): Promise<void> {
+  const refused = found ?? (await authoredArtifact(from)).irregular[0];
+  if (refused === undefined) return;
+  const at = displayPath(roots, refused.path === "" ? from : join(from, refused.path));
+  throw new AiregError(`Did not import ${at}: it ${refusal(refused)}.`, {
+    code: ErrorCode.Invalid,
+    hint: "Nothing was imported. Fix that entry and run the import again.",
+  });
 }
 
 /**

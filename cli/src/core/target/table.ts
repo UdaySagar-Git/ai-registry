@@ -8,18 +8,26 @@ import type { KindMapping, Target, TargetDefinition, Targets } from "./contract.
 import { canonicalIds } from "./ids.ts";
 import { BUILT_IN, loadTargetFiles } from "./load.ts";
 
-/** Every mapping as the rest of aireg reads it: a `render` becomes the codec it names. */
-function kindsOf(definition: TargetDefinition): Target["kinds"] {
-  const kinds: Target["kinds"] = {};
-  for (const [kind, mapping] of Object.entries(definition.kinds) as [ArtifactKind, KindMapping][]) {
-    if (mapping.shape !== "file" || mapping.render === undefined) {
-      kinds[kind] = structuredClone(mapping);
-      continue;
-    }
-    const { render: _, ...rest } = mapping;
-    kinds[kind] = { ...structuredClone(rest), codec: codecOf(mapping) };
+/** The built-in targets and the ones your user scope defines, as data that crosses the daemon RPC. */
+export function resolveTargets(env: NodeJS.ProcessEnv = process.env): Targets {
+  const definitions = new Map<string, { definition: TargetDefinition; origin: string }>();
+  for (const definition of BUILTIN_TARGETS) {
+    definitions.set(definition.id, { definition, origin: BUILT_IN });
   }
-  return kinds;
+  for (const file of loadTargetFiles(env).files) {
+    definitions.set(file.definition.id, { definition: file.definition, origin: file.path });
+  }
+  const out: Targets = {};
+  for (const { definition, origin } of definitions.values()) {
+    out[definition.id] = toTarget(definition, env, origin);
+    for (const profile of profilesOf(definition, env, origin)) out[profile.name] = profile;
+  }
+  for (const target of Object.values(out)) {
+    for (const [kind, reads] of Object.entries(target.reads) as [ArtifactKind, string[]][]) {
+      target.reads[kind] = canonicalIds(out, reads);
+    }
+  }
+  return out;
 }
 
 /** A definition as data that crosses the daemon RPC, with every default filled in. */
@@ -56,6 +64,20 @@ function toTarget(
     reload: definition.reload,
     origin,
   };
+}
+
+/** Every mapping as the rest of aireg reads it: a `render` becomes the codec it names. */
+function kindsOf(definition: TargetDefinition): Target["kinds"] {
+  const kinds: Target["kinds"] = {};
+  for (const [kind, mapping] of Object.entries(definition.kinds) as [ArtifactKind, KindMapping][]) {
+    if (mapping.shape !== "file" || mapping.render === undefined) {
+      kinds[kind] = structuredClone(mapping);
+      continue;
+    }
+    const { render: _, ...rest } = mapping;
+    kinds[kind] = { ...structuredClone(rest), codec: codecOf(mapping) };
+  }
+  return kinds;
 }
 
 /** A profile name as both its folder and a target id can carry it. */
@@ -100,26 +122,4 @@ function profilesOf(definition: TargetDefinition, env: NodeJS.ProcessEnv, origin
       },
     ];
   });
-}
-
-/** The built-in targets and the ones your user scope defines, as data that crosses the daemon RPC. */
-export function resolveTargets(env: NodeJS.ProcessEnv = process.env): Targets {
-  const definitions = new Map<string, { definition: TargetDefinition; origin: string }>();
-  for (const definition of BUILTIN_TARGETS) {
-    definitions.set(definition.id, { definition, origin: BUILT_IN });
-  }
-  for (const file of loadTargetFiles(env).files) {
-    definitions.set(file.definition.id, { definition: file.definition, origin: file.path });
-  }
-  const out: Targets = {};
-  for (const { definition, origin } of definitions.values()) {
-    out[definition.id] = toTarget(definition, env, origin);
-    for (const profile of profilesOf(definition, env, origin)) out[profile.name] = profile;
-  }
-  for (const target of Object.values(out)) {
-    for (const [kind, reads] of Object.entries(target.reads) as [ArtifactKind, string[]][]) {
-      target.reads[kind] = canonicalIds(out, reads);
-    }
-  }
-  return out;
 }

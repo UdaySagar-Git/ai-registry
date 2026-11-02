@@ -6,6 +6,29 @@ import type { AccountRow, ConsoleState } from "#core/console/model.ts";
 import { pad } from "#core/term/format.ts";
 import { COLOR, GLYPH } from "#core/term/theme.ts";
 
+export function accountsView(props: {
+  width: number;
+  state: ConsoleState;
+  cursor: number;
+}): ReactElement {
+  return box(
+    { flexDirection: "column", width: props.width },
+    heading("registries"),
+    box(
+      { marginTop: 1, flexDirection: "column" },
+      ...props.state.accounts.map((account, index) =>
+        box(
+          { key: account.id },
+          accountBlock(account, index === props.cursor, account.id === props.state.account?.id),
+        ),
+      ),
+    ),
+    props.state.accounts.length === 0
+      ? box(null, faint("   No accounts. Run `aireg auth login <registry>` to add one."))
+      : plain(""),
+  );
+}
+
 function accountBlock(account: AccountRow, selected: boolean, active: boolean): ReactElement {
   return box(
     { flexDirection: "column", marginBottom: 1 },
@@ -46,28 +69,5 @@ function credentialLine(account: AccountRow): ReactElement {
     account.credentialsFile === undefined
       ? text({ color: COLOR.red }, "signed out")
       : text({ color: COLOR.green }, underHome(account.credentialsFile)),
-  );
-}
-
-export function accountsView(props: {
-  width: number;
-  state: ConsoleState;
-  cursor: number;
-}): ReactElement {
-  return box(
-    { flexDirection: "column", width: props.width },
-    heading("registries"),
-    box(
-      { marginTop: 1, flexDirection: "column" },
-      ...props.state.accounts.map((account, index) =>
-        box(
-          { key: account.id },
-          accountBlock(account, index === props.cursor, account.id === props.state.account?.id),
-        ),
-      ),
-    ),
-    props.state.accounts.length === 0
-      ? box(null, faint("   No accounts. Run `aireg auth login <registry>` to add one."))
-      : plain(""),
   );
 }

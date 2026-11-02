@@ -32,86 +32,6 @@ interface Own extends Record<string, unknown> {
 
 const DEFAULT_TAIL = 50;
 
-interface Source {
-  label: string;
-  path: string;
-}
-
-function sources(own: Own, home: string): Source[] {
-  const suffix = own.previous === true ? ".1" : "";
-  const all: Source[] = [
-    { label: "daemon", path: `${logPath(home, DAEMON_LOG_FILE)}${suffix}` },
-    { label: "cli", path: `${logPath(home)}${suffix}` },
-    { label: "stderr", path: `${logPath(home, DAEMON_STDERR_FILE)}${suffix}` },
-  ];
-  const wanted = new Set<string>();
-  if (own.daemon === true) wanted.add("daemon");
-  if (own.cli === true) wanted.add("cli");
-  if (own.stderr === true) wanted.add("stderr");
-  // Raw stderr is noise next to structured records, so it is opt-in.
-  if (wanted.size === 0) return all.filter((source) => source.label !== "stderr");
-  return all.filter((source) => wanted.has(source.label));
-}
-
-function filterOf(own: Own): Filter {
-  const filter: Filter = {};
-  if (own.level !== undefined) {
-    if (!isLevel(own.level)) {
-      throw new AiregError(`Unknown log level ${quoted(own.level)}.`, {
-        code: ErrorCode.Usage,
-        hint: `Use ${list(LEVELS, "or")}.`,
-      });
-    }
-    filter.minLevel = own.level;
-  }
-  try {
-    if (own.since !== undefined) filter.sinceMs = parseSince(own.since);
-    if (own.until !== undefined) filter.untilMs = parseSince(own.until);
-  } catch (error) {
-    throw new AiregError(error instanceof Error ? error.message : String(error), {
-      code: ErrorCode.Usage,
-      hint: "Use a duration such as 15m, or a date.",
-    });
-  }
-  if (own.grep !== undefined) filter.contains = own.grep;
-  return filter;
-}
-
-function paint(printer: CommandContext["printer"], level: LogRecord["severity_text"]): string {
-  const text = level.toUpperCase().padEnd(5);
-  if (level === "error" || level === "fatal") return printer.style.red(text);
-  if (level === "warn") return printer.style.yellow(text);
-  if (level === "info") return printer.style.cyan(text);
-  return printer.style.dim(text);
-}
-
-function render(context: CommandContext, log: string, entry: Entry): void {
-  const { printer } = context;
-  if (printer.format === "json") {
-    printer.json({ ok: true, data: { log, entry } });
-    return;
-  }
-  if (isRaw(entry)) {
-    printer.info(`${printer.style.dim(`${log} raw`)}  ${sanitizeText(entry.raw, 2000)}`);
-    return;
-  }
-  const record = entry as LogRecord;
-  const time = record.timestamp.slice(11, 23);
-  const level = paint(printer, record.severity_text);
-  const fields = Object.entries(record.attributes)
-    .filter(([key]) => !key.startsWith("service.") && key !== "pid")
-    .map(([key, value]) => `${key}=${typeof value === "string" ? value : JSON.stringify(value)}`)
-    .join(" ");
-  const error =
-    record.error === undefined
-      ? ""
-      : ` ${sanitizeText(`${record.error.name}: ${record.error.message}`, 2000)}`;
-  printer.info(
-    `${printer.style.dim(time)} ${level} ${sanitizeText(record.body, 2000)}${error}` +
-      (fields === "" ? "" : ` ${printer.style.dim(sanitizeText(fields, 2000))}`),
-  );
-}
-
 export async function run(context: CommandContext): Promise<void> {
   const { positionals, own } = parse<Own>(context.argv, LOGS_COMMAND);
   noArguments(positionals, "logs");
@@ -172,4 +92,84 @@ export async function run(context: CommandContext): Promise<void> {
       }
     }),
   );
+}
+
+interface Source {
+  label: string;
+  path: string;
+}
+
+function sources(own: Own, home: string): Source[] {
+  const suffix = own.previous === true ? ".1" : "";
+  const all: Source[] = [
+    { label: "daemon", path: `${logPath(home, DAEMON_LOG_FILE)}${suffix}` },
+    { label: "cli", path: `${logPath(home)}${suffix}` },
+    { label: "stderr", path: `${logPath(home, DAEMON_STDERR_FILE)}${suffix}` },
+  ];
+  const wanted = new Set<string>();
+  if (own.daemon === true) wanted.add("daemon");
+  if (own.cli === true) wanted.add("cli");
+  if (own.stderr === true) wanted.add("stderr");
+  // Raw stderr is noise next to structured records, so it is opt-in.
+  if (wanted.size === 0) return all.filter((source) => source.label !== "stderr");
+  return all.filter((source) => wanted.has(source.label));
+}
+
+function filterOf(own: Own): Filter {
+  const filter: Filter = {};
+  if (own.level !== undefined) {
+    if (!isLevel(own.level)) {
+      throw new AiregError(`Unknown log level ${quoted(own.level)}.`, {
+        code: ErrorCode.Usage,
+        hint: `Use ${list(LEVELS, "or")}.`,
+      });
+    }
+    filter.minLevel = own.level;
+  }
+  try {
+    if (own.since !== undefined) filter.sinceMs = parseSince(own.since);
+    if (own.until !== undefined) filter.untilMs = parseSince(own.until);
+  } catch (error) {
+    throw new AiregError(error instanceof Error ? error.message : String(error), {
+      code: ErrorCode.Usage,
+      hint: "Use a duration such as 15m, or a date.",
+    });
+  }
+  if (own.grep !== undefined) filter.contains = own.grep;
+  return filter;
+}
+
+function render(context: CommandContext, log: string, entry: Entry): void {
+  const { printer } = context;
+  if (printer.format === "json") {
+    printer.json({ ok: true, data: { log, entry } });
+    return;
+  }
+  if (isRaw(entry)) {
+    printer.info(`${printer.style.dim(`${log} raw`)}  ${sanitizeText(entry.raw, 2000)}`);
+    return;
+  }
+  const record = entry as LogRecord;
+  const time = record.timestamp.slice(11, 23);
+  const level = paint(printer, record.severity_text);
+  const fields = Object.entries(record.attributes)
+    .filter(([key]) => !key.startsWith("service.") && key !== "pid")
+    .map(([key, value]) => `${key}=${typeof value === "string" ? value : JSON.stringify(value)}`)
+    .join(" ");
+  const error =
+    record.error === undefined
+      ? ""
+      : ` ${sanitizeText(`${record.error.name}: ${record.error.message}`, 2000)}`;
+  printer.info(
+    `${printer.style.dim(time)} ${level} ${sanitizeText(record.body, 2000)}${error}` +
+      (fields === "" ? "" : ` ${printer.style.dim(sanitizeText(fields, 2000))}`),
+  );
+}
+
+function paint(printer: CommandContext["printer"], level: LogRecord["severity_text"]): string {
+  const text = level.toUpperCase().padEnd(5);
+  if (level === "error" || level === "fatal") return printer.style.red(text);
+  if (level === "warn") return printer.style.yellow(text);
+  if (level === "info") return printer.style.cyan(text);
+  return printer.style.dim(text);
 }

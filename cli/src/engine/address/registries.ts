@@ -15,17 +15,6 @@ import type { CommonOptions } from "#engine/options.ts";
 import { load } from "#engine/scope/load.ts";
 import type { Probed } from "./probe.ts";
 
-/** The alias a location is already declared under, so a second spelling of it reuses the name. */
-function declaredAlias(
-  registries: Readonly<Record<string, RegistrySource>>,
-  location: string,
-): string | undefined {
-  const wanted = comparable(location);
-  return Object.keys(registries)
-    .sort()
-    .find((alias) => comparable(registries[alias]?.location ?? "") === wanted);
-}
-
 export function sameLocation(a: string, b: string): boolean {
   return comparable(a) === comparable(b);
 }
@@ -59,6 +48,17 @@ export function aliasFor(
 ): string {
   if (declared) return input.split("/")[0] as string;
   return declaredAlias(known, source.declared.location) ?? source.alias;
+}
+
+/** The alias a location is already declared under, so a second spelling of it reuses the name. */
+function declaredAlias(
+  registries: Readonly<Record<string, RegistrySource>>,
+  location: string,
+): string | undefined {
+  const wanted = comparable(location);
+  return Object.keys(registries)
+    .sort()
+    .find((alias) => comparable(registries[alias]?.location ?? "") === wanted);
 }
 
 /**

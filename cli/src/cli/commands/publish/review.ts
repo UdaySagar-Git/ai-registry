@@ -9,30 +9,9 @@ import { changeLines } from "#engine/publish/changes.ts";
 import type { Skipped } from "#engine/publish/exports.ts";
 import type { Planned, Published } from "#engine/publish/target.ts";
 
-function dependencyOf(edge: PublishRelationship): string {
-  const at = edge.to.lastIndexOf("@");
-  const name = edge.to.slice(0, at).split("/").at(-1);
-  return `${name} ${edge.to.slice(at + 1)}`;
-}
-
-function describe(item: Planned): string[] {
-  const address = `${item.namespace}/${item.work.kind}/${item.work.name}`;
-  const edges = item.input.relationships ?? [];
-  const needs = edges.length === 0 ? "" : `, depends on ${edges.map(dependencyOf).join(", ")}`;
-  if (item.same) return [`  same    ${address}  ${item.version}, already published${needs}`];
-  if (item.from === undefined) return [`  add     ${address}  ${item.version}${needs}`];
-  const below = item.belowLatest ? " (below latest)" : "";
-  return [
-    `  update  ${address}  ${item.from} → ${item.version}${below}${needs}`,
-    ...(item.changes === undefined ? [] : changeLines(item.changes)),
-  ];
-}
-
 export function describeSkip(skip: Skipped, namespace: string): string {
   return `  skip    ${namespace}/${skip.kind}/${skip.name}  ${skip.reason}`;
 }
-
-export type Sending = { alias: string; item: Planned }[];
 
 /** The plan, then one question; what is already published is shown and never sent. */
 export async function review(
@@ -88,4 +67,25 @@ export async function review(
   if (!canceled(proceed) && proceed) return sending;
   printer.info("Canceled. Nothing was published.");
   return undefined;
+}
+
+function describe(item: Planned): string[] {
+  const address = `${item.namespace}/${item.work.kind}/${item.work.name}`;
+  const edges = item.input.relationships ?? [];
+  const needs = edges.length === 0 ? "" : `, depends on ${edges.map(dependencyOf).join(", ")}`;
+  if (item.same) return [`  same    ${address}  ${item.version}, already published${needs}`];
+  if (item.from === undefined) return [`  add     ${address}  ${item.version}${needs}`];
+  const below = item.belowLatest ? " (below latest)" : "";
+  return [
+    `  update  ${address}  ${item.from} → ${item.version}${below}${needs}`,
+    ...(item.changes === undefined ? [] : changeLines(item.changes)),
+  ];
+}
+
+export type Sending = { alias: string; item: Planned }[];
+
+function dependencyOf(edge: PublishRelationship): string {
+  const at = edge.to.lastIndexOf("@");
+  const name = edge.to.slice(0, at).split("/").at(-1);
+  return `${name} ${edge.to.slice(at + 1)}`;
 }

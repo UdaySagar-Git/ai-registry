@@ -33,37 +33,110 @@ import {
 } from "./own-skills.ts";
 
 /**
- * One line from the terminal, read with blocking reads: macOS cannot watch a reopened
- * /dev/tty for input, which is what the installer hands over. Undefined when it closes.
+ * `aireg --setup`: places this binary, puts it on PATH and offers the default registries,
+ * then says how to start using aireg. The installer runs it on the binary it downloaded.
  */
-function readLine(): string | undefined {
-  const byte = Buffer.alloc(1);
-  let line = "";
-  for (;;) {
-    let read: number;
+export async function install(
+  context: CommandContext,
+  yes: boolean,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<number> {
+  const { printer } = context;
+  // Under Node, execPath is the interpreter, which must never be copied into place.
+  if (basename(process.execPath).replace(/\.exe$/i, "") !== BINARY_NAME) {
+    throw new AiregError("Only a standalone aireg build installs itself.", {
+      code: ErrorCode.Usage,
+      hint: "Run it from a release build of aireg, not from source.",
+    });
+  }
+  const bin = await installBinaryFrom(VERSION, process.execPath, env);
+  // The rest runs from the installed binary, so what it starts, such as the daemon,
+  // does not point at the download that was just moved.
+  if (canonical(process.execPath) !== canonical(bin)) {
+    return handOff(bin, ["--setup", ...(yes ? ["--yes"] : [])], env);
+  }
+  printer.success(`Installed aireg ${VERSION} to ${underHome(shimPath(env))}.`);
+  await followDaemon(bin, printer);
+
+  // GitHub Actions reads later steps' PATH from this file, so the next step can run `aireg`.
+  const githubPath = inGitHubActions(env) ? env.GITHUB_PATH?.trim() : undefined;
+  if (githubPath) {
     try {
-      read = readSync(0, byte, 0, 1, null);
+      await appendFile(githubPath, `${binDir(env)}\n`);
+      printer.success(`Added ${binDir(env)} to PATH for the steps that follow.`);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EAGAIN") return undefined;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
-      continue;
+      printer.warning(`Could not add ${binDir(env)} to $GITHUB_PATH: ${(error as Error).message}`);
     }
-    if (read === 0) return line === "" ? undefined : line;
-    const char = byte.toString("utf8");
-    if (char === "\n" || char === "\r") return line;
-    line += char;
+    return 0;
+  }
+
+  const { ready, changed } = await putOnPath(printer, env);
+  if (!isSet("NO_DEFAULT_REGISTRIES", env) && !isCI(env)) {
+    // Until a new shell picks up PATH, only the full path runs.
+    const aireg = ready ? "aireg" : underHome(shimPath(env));
+    await offerSkills(context, env, aireg, yes).catch((error: Error) => {
+      printer.warning(`The aireg skills were not installed: ${error.message}`);
+      printer.hint(`Run \`${ownSkillsCommand(aireg)}\` to install them later.`);
+    });
+  }
+  // Terminals already open read the startup files only when they start again.
+  if (!ready || changed) sayNextStep(printer, env);
+  return 0;
+}
+
+/**
+ * A daemon still on the version just replaced refuses new jobs; move it to this one, as
+ * self-update does. A sync in progress can outlast one stop, so it gets a few tries.
+ */
+async function followDaemon(bin: string, printer: Printer): Promise<void> {
+  const spin = canAnimate(process.stderr) ? spinner(defaultIo(), printer.errStyle) : undefined;
+  try {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const found = await probeDaemon(VERSION).catch(() => ({ status: "down" as const }));
+      const behind = found.status === "ready" && found.version !== VERSION;
+      if (!behind && found.status !== "outdated") return;
+      spin?.update("Restarting aireg's background service");
+      try {
+        await recycleDaemon(bin, VERSION);
+        return;
+      } catch {
+        // Still shutting down; ask again.
+      }
+    }
+  } finally {
+    spin?.stop();
   }
 }
 
-/** Enter means yes; a closed terminal means no. */
-function ask(question: string): boolean {
-  process.stderr.write(`${question} [Y/n] `);
-  const answer = readLine();
-  if (answer === undefined) {
-    process.stderr.write("\n");
-    return false;
+/**
+ * Edits the startup files even when this shell already finds aireg: that PATH may be
+ * left over from files since edited.
+ */
+async function putOnPath(
+  printer: Printer,
+  env: NodeJS.ProcessEnv,
+): Promise<{ ready: boolean; changed: boolean }> {
+  const resolved = resolvedOnPath(env);
+  const ready = isOurs(resolved, env);
+  if (!ready && resolved !== undefined) {
+    printer.warning(`${resolved} shadows ${underHome(shimPath(env))} in this shell.`);
   }
-  return ["", "y", "yes"].includes(answer.trim().toLowerCase());
+  if (isSet("NO_MODIFY_PATH", env)) return { ready, changed: false };
+  const change = await addToPath(env).catch((error: Error) => {
+    printer.warning(`Could not put aireg on PATH: ${error.message}`);
+    return { added: [], failed: [] };
+  });
+  if (change.added.length > 0) {
+    printer.success(
+      `Added ${underHome(binDir(env))} to PATH in ${list(change.added.map(underHome))}.`,
+    );
+  }
+  for (const file of change.failed) {
+    printer.warning(
+      `Could not write ${underHome(file)}; add ${underHome(binDir(env))} to PATH there.`,
+    );
+  }
+  return { ready, changed: change.added.length > 0 };
 }
 
 /**
@@ -191,59 +264,38 @@ async function offerSkills(
   for (const chunk of held) process.stderr.write(chunk);
 }
 
-/**
- * A daemon still on the version just replaced refuses new jobs; move it to this one, as
- * self-update does. A sync in progress can outlast one stop, so it gets a few tries.
- */
-async function followDaemon(bin: string, printer: Printer): Promise<void> {
-  const spin = canAnimate(process.stderr) ? spinner(defaultIo(), printer.errStyle) : undefined;
-  try {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const found = await probeDaemon(VERSION).catch(() => ({ status: "down" as const }));
-      const behind = found.status === "ready" && found.version !== VERSION;
-      if (!behind && found.status !== "outdated") return;
-      spin?.update("Restarting aireg's background service");
-      try {
-        await recycleDaemon(bin, VERSION);
-        return;
-      } catch {
-        // Still shutting down; ask again.
-      }
-    }
-  } finally {
-    spin?.stop();
+/** Enter means yes; a closed terminal means no. */
+function ask(question: string): boolean {
+  process.stderr.write(`${question} [Y/n] `);
+  const answer = readLine();
+  if (answer === undefined) {
+    process.stderr.write("\n");
+    return false;
   }
+  return ["", "y", "yes"].includes(answer.trim().toLowerCase());
 }
 
 /**
- * Edits the startup files even when this shell already finds aireg: that PATH may be
- * left over from files since edited.
+ * One line from the terminal, read with blocking reads: macOS cannot watch a reopened
+ * /dev/tty for input, which is what the installer hands over. Undefined when it closes.
  */
-async function putOnPath(
-  printer: Printer,
-  env: NodeJS.ProcessEnv,
-): Promise<{ ready: boolean; changed: boolean }> {
-  const resolved = resolvedOnPath(env);
-  const ready = isOurs(resolved, env);
-  if (!ready && resolved !== undefined) {
-    printer.warning(`${resolved} shadows ${underHome(shimPath(env))} in this shell.`);
+function readLine(): string | undefined {
+  const byte = Buffer.alloc(1);
+  let line = "";
+  for (;;) {
+    let read: number;
+    try {
+      read = readSync(0, byte, 0, 1, null);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EAGAIN") return undefined;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+      continue;
+    }
+    if (read === 0) return line === "" ? undefined : line;
+    const char = byte.toString("utf8");
+    if (char === "\n" || char === "\r") return line;
+    line += char;
   }
-  if (isSet("NO_MODIFY_PATH", env)) return { ready, changed: false };
-  const change = await addToPath(env).catch((error: Error) => {
-    printer.warning(`Could not put aireg on PATH: ${error.message}`);
-    return { added: [], failed: [] };
-  });
-  if (change.added.length > 0) {
-    printer.success(
-      `Added ${underHome(binDir(env))} to PATH in ${list(change.added.map(underHome))}.`,
-    );
-  }
-  for (const file of change.failed) {
-    printer.warning(
-      `Could not write ${underHome(file)}; add ${underHome(binDir(env))} to PATH there.`,
-    );
-  }
-  return { ready, changed: change.added.length > 0 };
 }
 
 /** The last line: how to reach aireg from the shell that ran the installer. */
@@ -269,56 +321,4 @@ function sayNextStep(printer: Printer, env: NodeJS.ProcessEnv): void {
       ? `To start using aireg, add ${underHome(binDir(env))} to your shell's PATH.`
       : `Open a new terminal or run \`${restart}\` to start using aireg.`,
   );
-}
-
-/**
- * `aireg --setup`: places this binary, puts it on PATH and offers the default registries,
- * then says how to start using aireg. The installer runs it on the binary it downloaded.
- */
-export async function install(
-  context: CommandContext,
-  yes: boolean,
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<number> {
-  const { printer } = context;
-  // Under Node, execPath is the interpreter, which must never be copied into place.
-  if (basename(process.execPath).replace(/\.exe$/i, "") !== BINARY_NAME) {
-    throw new AiregError("Only a standalone aireg build installs itself.", {
-      code: ErrorCode.Usage,
-      hint: "Run it from a release build of aireg, not from source.",
-    });
-  }
-  const bin = await installBinaryFrom(VERSION, process.execPath, env);
-  // The rest runs from the installed binary, so what it starts, such as the daemon,
-  // does not point at the download that was just moved.
-  if (canonical(process.execPath) !== canonical(bin)) {
-    return handOff(bin, ["--setup", ...(yes ? ["--yes"] : [])], env);
-  }
-  printer.success(`Installed aireg ${VERSION} to ${underHome(shimPath(env))}.`);
-  await followDaemon(bin, printer);
-
-  // GitHub Actions reads later steps' PATH from this file, so the next step can run `aireg`.
-  const githubPath = inGitHubActions(env) ? env.GITHUB_PATH?.trim() : undefined;
-  if (githubPath) {
-    try {
-      await appendFile(githubPath, `${binDir(env)}\n`);
-      printer.success(`Added ${binDir(env)} to PATH for the steps that follow.`);
-    } catch (error) {
-      printer.warning(`Could not add ${binDir(env)} to $GITHUB_PATH: ${(error as Error).message}`);
-    }
-    return 0;
-  }
-
-  const { ready, changed } = await putOnPath(printer, env);
-  if (!isSet("NO_DEFAULT_REGISTRIES", env) && !isCI(env)) {
-    // Until a new shell picks up PATH, only the full path runs.
-    const aireg = ready ? "aireg" : underHome(shimPath(env));
-    await offerSkills(context, env, aireg, yes).catch((error: Error) => {
-      printer.warning(`The aireg skills were not installed: ${error.message}`);
-      printer.hint(`Run \`${ownSkillsCommand(aireg)}\` to install them later.`);
-    });
-  }
-  // Terminals already open read the startup files only when they start again.
-  if (!ready || changed) sayNextStep(printer, env);
-  return 0;
 }

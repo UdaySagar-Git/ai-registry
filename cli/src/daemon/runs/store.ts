@@ -64,13 +64,11 @@ export function runDatabasePath(env: NodeJS.ProcessEnv = process.env): string {
   return join(toolHome(env), "state", DATABASE_FILE);
 }
 
-/** The history holds paths, session ids and skill names: owner-only, like the logs. */
-async function ownerOnly(path: string, mode: number): Promise<void> {
-  try {
-    await chmod(path, mode);
-  } catch (error) {
-    if (!isMissing(error)) throw error;
-  }
+/** SQLITE_CORRUPT and SQLITE_NOTADB, the two ways a database file is past reading. */
+function unreadable(error: unknown): boolean {
+  const { errcode, message } = (error ?? {}) as { errcode?: unknown; message?: unknown };
+  if (typeof errcode === "number" && [11, 26].includes(errcode & 0xff)) return true;
+  return typeof message === "string" && /malformed|not a database/i.test(message);
 }
 
 export class SqliteRunStore implements RunStore {
@@ -415,13 +413,6 @@ export class SqliteRunStore implements RunStore {
   }
 }
 
-/** SQLITE_CORRUPT and SQLITE_NOTADB, the two ways a database file is past reading. */
-function unreadable(error: unknown): boolean {
-  const { errcode, message } = (error ?? {}) as { errcode?: unknown; message?: unknown };
-  if (typeof errcode === "number" && [11, 26].includes(errcode & 0xff)) return true;
-  return typeof message === "string" && /malformed|not a database/i.test(message);
-}
-
 /** Sets the journal and the schema, rebuilding history whose layout is not this one. */
 async function prepare(database: DatabaseSync, path: string, onDisk: boolean): Promise<void> {
   // NORMAL under WAL never corrupts the database; a power cut may lose the newest
@@ -439,5 +430,14 @@ async function prepare(database: DatabaseSync, path: string, onDisk: boolean): P
     database.exec(
       `BEGIN IMMEDIATE; ${drops} ${RUN_SCHEMA} PRAGMA user_version=${RUN_SCHEMA_VERSION}; COMMIT;`,
     );
+  }
+}
+
+/** The history holds paths, session ids and skill names: owner-only, like the logs. */
+async function ownerOnly(path: string, mode: number): Promise<void> {
+  try {
+    await chmod(path, mode);
+  } catch (error) {
+    if (!isMissing(error)) throw error;
   }
 }

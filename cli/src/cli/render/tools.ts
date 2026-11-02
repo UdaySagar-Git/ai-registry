@@ -14,19 +14,6 @@ export function toolName(targetTable: Targets | undefined, name: string): string
   return target.shared ? target.projectRoot : target.displayName;
 }
 
-/** Whether a target loads an artifact placed in these folders, its own or one it reads the kind from. */
-function loads(
-  targetTable: Targets,
-  tool: string,
-  kind: ArtifactKind | undefined,
-  folders: readonly string[],
-): boolean {
-  if (folders.includes(tool)) return true;
-  return (
-    kind !== undefined && readsFor(targetTable, tool, kind).some((read) => folders.includes(read))
-  );
-}
-
 /**
  * The targets that load an artifact placed in these folders: the chosen ones
  * that read them, then any tool whose own folder holds it though it was not chosen.
@@ -48,6 +35,19 @@ export function loadedBy(
       !picked.some((tool) => tool === folder || loads(targetTable, tool, kind, [folder])),
   );
   return [...picked, ...others, ...unread];
+}
+
+/** Whether a target loads an artifact placed in these folders, its own or one it reads the kind from. */
+function loads(
+  targetTable: Targets,
+  tool: string,
+  kind: ArtifactKind | undefined,
+  folders: readonly string[],
+): boolean {
+  if (folders.includes(tool)) return true;
+  return (
+    kind !== undefined && readsFor(targetTable, tool, kind).some((read) => folders.includes(read))
+  );
 }
 
 /** The targets a scope installs for, read without refusing a name this aireg does not know. */

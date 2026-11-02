@@ -58,90 +58,12 @@ export function outcomeOf(operation: SyncOperation): ItemOutcome {
   return "attention";
 }
 
-function relevant(mode: RunMode, disposition: Disposition): boolean {
-  if (mode === "sync" || disposition === "conflict" || disposition === "unknown") return true;
-  if (disposition === "synced") return true;
-  return (mode === "pull" ? PULL_DISPOSITIONS : PUBLISH_DISPOSITIONS).includes(disposition);
-}
-
-function decide(
-  job: ScopeWork,
-  overrides: Overrides,
-  { kind, name }: { kind: ArtifactKind; name: string },
-  disposition: Disposition,
-) {
-  return overrides.get(artifactKey(kind, name)) ?? operation(disposition, job.policy);
-}
-
-/** Taking the registry's copy of one it deleted removes this one, and the run must say so. */
-function taken(item: SyncItem, chosen: SyncOperation): SyncOperation {
-  const deleted =
-    item.digests.upstream === undefined &&
-    (item.disposition === "conflict" || item.disposition === "pull-delete");
-  return chosen === "pull" && deleted ? "remove-local" : chosen;
-}
-
-const LOCAL_WRITES: readonly SyncOperation[] = ["pull", "remove-local", "forget"];
-
 /**
  * What outcomes and the operations taken from them are keyed by: a skill and an
  * agent may share a name, and what is chosen for one must never reach the other.
  */
 export function artifactKey(kind: ArtifactKind, name: string): string {
   return `${kind}:${name}`;
-}
-
-interface Classified {
-  /** Keyed by `artifactKey`. */
-  outcomes: Map<string, SyncOutcome>;
-  /** Settled in the same pass, so what a run reports and what it writes cannot drift apart. */
-  writes: Set<string>;
-  /** Same pass again: whether this round will touch the registry at all. */
-  mutates: boolean;
-}
-
-/** `undefined` is everything the job covers; otherwise the keys `scopedKeys` reached. */
-export type Scoped = ReadonlySet<string> | undefined;
-
-function selected(scoped: Scoped, kind: ArtifactKind, name: string): boolean {
-  return scoped === undefined || scoped.has(artifactKey(kind, name));
-}
-
-/** Local artifacts the registry does not carry yet. Returns whether one will be published. */
-function adopt(
-  scan: Scan,
-  job: ScopeWork,
-  scoped: Scoped,
-  overrides: Overrides,
-  outcomes: Map<string, SyncOutcome>,
-  publishable: Publishable,
-): boolean {
-  let mutates = false;
-  const takesNone = !SCANNED_KINDS.some((kind) => publishable(kind));
-  for (const candidate of scan.local) {
-    if (!selected(scoped, candidate.kind, candidate.name)) continue;
-    // A registry that takes no publishes at all, such as a git one, is not waiting
-    // on this, so it is skipped rather than reported every run.
-    const chosen = takesNone
-      ? "ignore"
-      : withoutPublishing(decide(job, overrides, candidate, "adopt"), publishable(candidate.kind));
-    outcomes.set(artifactKey(candidate.kind, candidate.name), {
-      artifact: candidate.name,
-      kind: candidate.kind,
-      disposition: "adopt",
-      operation: chosen,
-    });
-    if (chosen === "publish") mutates = true;
-  }
-  return mutates;
-}
-
-/** Whether the registry's adapter can publish this kind, known at resolve time, not at write. */
-export type Publishable = (kind: ArtifactKind) => boolean;
-
-function withoutPublishing(chosen: SyncOperation, publishable: boolean): SyncOperation {
-  if (publishable) return chosen;
-  return chosen === "publish" || chosen === "archive" ? "report" : chosen;
 }
 
 /**
@@ -174,33 +96,6 @@ export async function pendingOrigins(
   }
   // A reporting step surveys and says so; only an applying one copies.
   return steps.every((step) => step.policy === "on") ? changed : [];
-}
-
-/**
- * Agreed with the registry, but the lock records nothing or an older serve, as after a publish.
- * Left alone, `outdated` reports an update whose bytes are already here.
- */
-function unrecorded(scan: Scan, item: SyncItem): boolean {
-  const entry = scan.pinned.artifacts[item.name];
-  if (entry === undefined) return true;
-  const source = scan.acquired.find((acquired) => acquired.alias === item.source);
-  // A row of yours carries its copy's path, not an address, until a publish of it is recorded.
-  const at =
-    entry.origin === undefined ? item.path : listedAt(entry, source?.catalog.entries ?? []);
-  const served = at === undefined ? undefined : source?.placements.get(at)?.contentId;
-  return served !== undefined && entry.content !== served;
-}
-
-function decided(item: SyncItem, operation: SyncOperation): SyncOutcome {
-  const { failure, detail } = item;
-  return {
-    artifact: item.name,
-    kind: item.kind,
-    disposition: item.disposition,
-    operation,
-    ...(failure === undefined ? {} : { failure }),
-    ...(detail === undefined ? {} : { detail }),
-  };
 }
 
 /**
@@ -251,6 +146,111 @@ export function classify(
     mutates = true;
   }
   return { outcomes, writes, mutates };
+}
+
+const LOCAL_WRITES: readonly SyncOperation[] = ["pull", "remove-local", "forget"];
+
+function selected(scoped: Scoped, kind: ArtifactKind, name: string): boolean {
+  return scoped === undefined || scoped.has(artifactKey(kind, name));
+}
+
+interface Classified {
+  /** Keyed by `artifactKey`. */
+  outcomes: Map<string, SyncOutcome>;
+  /** Settled in the same pass, so what a run reports and what it writes cannot drift apart. */
+  writes: Set<string>;
+  /** Same pass again: whether this round will touch the registry at all. */
+  mutates: boolean;
+}
+
+/** `undefined` is everything the job covers; otherwise the keys `scopedKeys` reached. */
+export type Scoped = ReadonlySet<string> | undefined;
+
+function relevant(mode: RunMode, disposition: Disposition): boolean {
+  if (mode === "sync" || disposition === "conflict" || disposition === "unknown") return true;
+  if (disposition === "synced") return true;
+  return (mode === "pull" ? PULL_DISPOSITIONS : PUBLISH_DISPOSITIONS).includes(disposition);
+}
+
+function withoutPublishing(chosen: SyncOperation, publishable: boolean): SyncOperation {
+  if (publishable) return chosen;
+  return chosen === "publish" || chosen === "archive" ? "report" : chosen;
+}
+
+/** Whether the registry's adapter can publish this kind, known at resolve time, not at write. */
+export type Publishable = (kind: ArtifactKind) => boolean;
+
+/** Taking the registry's copy of one it deleted removes this one, and the run must say so. */
+function taken(item: SyncItem, chosen: SyncOperation): SyncOperation {
+  const deleted =
+    item.digests.upstream === undefined &&
+    (item.disposition === "conflict" || item.disposition === "pull-delete");
+  return chosen === "pull" && deleted ? "remove-local" : chosen;
+}
+
+function decide(
+  job: ScopeWork,
+  overrides: Overrides,
+  { kind, name }: { kind: ArtifactKind; name: string },
+  disposition: Disposition,
+) {
+  return overrides.get(artifactKey(kind, name)) ?? operation(disposition, job.policy);
+}
+
+function decided(item: SyncItem, operation: SyncOperation): SyncOutcome {
+  const { failure, detail } = item;
+  return {
+    artifact: item.name,
+    kind: item.kind,
+    disposition: item.disposition,
+    operation,
+    ...(failure === undefined ? {} : { failure }),
+    ...(detail === undefined ? {} : { detail }),
+  };
+}
+
+/**
+ * Agreed with the registry, but the lock records nothing or an older serve, as after a publish.
+ * Left alone, `outdated` reports an update whose bytes are already here.
+ */
+function unrecorded(scan: Scan, item: SyncItem): boolean {
+  const entry = scan.pinned.artifacts[item.name];
+  if (entry === undefined) return true;
+  const source = scan.acquired.find((acquired) => acquired.alias === item.source);
+  // A row of yours carries its copy's path, not an address, until a publish of it is recorded.
+  const at =
+    entry.origin === undefined ? item.path : listedAt(entry, source?.catalog.entries ?? []);
+  const served = at === undefined ? undefined : source?.placements.get(at)?.contentId;
+  return served !== undefined && entry.content !== served;
+}
+
+/** Local artifacts the registry does not carry yet. Returns whether one will be published. */
+function adopt(
+  scan: Scan,
+  job: ScopeWork,
+  scoped: Scoped,
+  overrides: Overrides,
+  outcomes: Map<string, SyncOutcome>,
+  publishable: Publishable,
+): boolean {
+  let mutates = false;
+  const takesNone = !SCANNED_KINDS.some((kind) => publishable(kind));
+  for (const candidate of scan.local) {
+    if (!selected(scoped, candidate.kind, candidate.name)) continue;
+    // A registry that takes no publishes at all, such as a git one, is not waiting
+    // on this, so it is skipped rather than reported every run.
+    const chosen = takesNone
+      ? "ignore"
+      : withoutPublishing(decide(job, overrides, candidate, "adopt"), publishable(candidate.kind));
+    outcomes.set(artifactKey(candidate.kind, candidate.name), {
+      artifact: candidate.name,
+      kind: candidate.kind,
+      disposition: "adopt",
+      operation: chosen,
+    });
+    if (chosen === "publish") mutates = true;
+  }
+  return mutates;
 }
 
 export function execution(outcomes: SyncOutcome[]): SyncExecution {

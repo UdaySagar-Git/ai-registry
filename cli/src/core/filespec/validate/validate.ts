@@ -27,33 +27,6 @@ export interface Validated {
   problems: Problem[];
 }
 
-/** Every folder under `artifacts/` the path grammar refuses, named at the level it breaks. */
-async function layout(root: string, problems: Problem[]): Promise<void> {
-  const levels: [(value: string) => boolean, string][] = [
-    [isNamespace, "a namespace"],
-    [isKindSegment, "a kind"],
-    [isArtifactName, "a name: lowercase letters, digits and hyphens"],
-    [isVersion, "a version"],
-  ];
-  async function visit(dir: string, rel: string, depth: number): Promise<void> {
-    const level = levels[depth];
-    if (level === undefined) return;
-    for (const child of await subdirectories(dir)) {
-      const at = `${rel}/${child}`;
-      if (isDeviceName(child)) {
-        problems.push({ path: at, message: `${quoted(child)} is a device name on Windows` });
-        continue;
-      }
-      if (!level[0](child)) {
-        problems.push({ path: at, message: `${quoted(child)} is not ${level[1]}` });
-        continue;
-      }
-      await visit(join(dir, child), at, depth + 1);
-    }
-  }
-  await visit(join(root, "artifacts"), "artifacts", 0);
-}
-
 /**
  * Everything a pull request could get wrong: path grammar, documents, digests, kind manifests,
  * released versions left alone, and an index matching what the indexer would write.
@@ -134,4 +107,31 @@ export async function validateRoot(
     versions: folders.length,
     problems,
   };
+}
+
+/** Every folder under `artifacts/` the path grammar refuses, named at the level it breaks. */
+async function layout(root: string, problems: Problem[]): Promise<void> {
+  const levels: [(value: string) => boolean, string][] = [
+    [isNamespace, "a namespace"],
+    [isKindSegment, "a kind"],
+    [isArtifactName, "a name: lowercase letters, digits and hyphens"],
+    [isVersion, "a version"],
+  ];
+  async function visit(dir: string, rel: string, depth: number): Promise<void> {
+    const level = levels[depth];
+    if (level === undefined) return;
+    for (const child of await subdirectories(dir)) {
+      const at = `${rel}/${child}`;
+      if (isDeviceName(child)) {
+        problems.push({ path: at, message: `${quoted(child)} is a device name on Windows` });
+        continue;
+      }
+      if (!level[0](child)) {
+        problems.push({ path: at, message: `${quoted(child)} is not ${level[1]}` });
+        continue;
+      }
+      await visit(join(dir, child), at, depth + 1);
+    }
+  }
+  await visit(join(root, "artifacts"), "artifacts", 0);
 }

@@ -40,34 +40,6 @@ export async function run(context: CommandContext): Promise<void> {
   });
 }
 
-function needed(argument: string | undefined, action: string, what: string, hint: string): string {
-  if (argument !== undefined) return argument;
-  throw new AiregError(`\`aireg targets ${action}\` needs ${what}.`, {
-    code: ErrorCode.Usage,
-    hint,
-  });
-}
-
-function origin(path: string): string {
-  return path === BUILT_IN ? "built in" : underHome(path);
-}
-
-/** Files in your user scope aireg could not use, or uses but would have you change. */
-function warnFiles(context: CommandContext): void {
-  const { files, skipped } = loadTargetFiles();
-  for (const file of skipped) {
-    context.printer.warning(`Skipped ${underHome(file.path)}: ${lowered(file.problems)}`);
-  }
-  for (const file of files.filter((each) => each.warnings.length > 0)) {
-    context.printer.warning(`Read ${underHome(file.path)}, but ${lowered(file.warnings)}`);
-  }
-}
-
-const lowered = (sentences: readonly string[]) => {
-  const text = sentences.join(" ");
-  return `${text.charAt(0).toLowerCase()}${text.slice(1)}`;
-};
-
 async function list(context: CommandContext, all: boolean): Promise<void> {
   // Every name `--for` takes; a shared folder such as `.agents` is never detected.
   const targetTable = resolveTargets();
@@ -121,6 +93,10 @@ async function list(context: CommandContext, all: boolean): Promise<void> {
   warnFiles(context);
 }
 
+function origin(path: string): string {
+  return path === BUILT_IN ? "built in" : underHome(path);
+}
+
 /** The rows as aireg 0.1 printed them, under `harnesses`, for scripts written against it. */
 function earlierRows(targetTable: Targets, rows: readonly Detection[]) {
   const earlier = earlierTable(targetTable);
@@ -138,12 +114,10 @@ function earlierRows(targetTable: Targets, rows: readonly Detection[]) {
   });
 }
 
-/** A shared folder has no row, so its ids are said once below the table. */
-function sharedHint(target: Target): string {
-  const aliases = target.aliases.map((alias) => `\`${alias}\``);
-  const also = aliases.length === 0 ? "" : `, or ${listed(aliases, "or")},`;
-  return `Use \`--for ${target.name}\`${also} for the shared ${target.projectRoot} folder.`;
-}
+const lowered = (sentences: readonly string[]) => {
+  const text = sentences.join(" ");
+  return `${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+};
 
 /** One row per coding agent; the shared folder is not a tool, so it has no row. */
 function printTargets(context: CommandContext, rows: readonly Detection[]): void {
@@ -172,10 +146,22 @@ function printTargets(context: CommandContext, rows: readonly Detection[]): void
   );
 }
 
-export function foundSummary(found: number, supported: number): string {
-  if (found === 0) return "No supported target found on this machine.";
-  const which = found === supported ? `all ${supported}` : `${found} of ${supported}`;
-  return `Found ${which} supported targets on this machine.`;
+/** A shared folder has no row, so its ids are said once below the table. */
+function sharedHint(target: Target): string {
+  const aliases = target.aliases.map((alias) => `\`${alias}\``);
+  const also = aliases.length === 0 ? "" : `, or ${listed(aliases, "or")},`;
+  return `Use \`--for ${target.name}\`${also} for the shared ${target.projectRoot} folder.`;
+}
+
+/** Files in your user scope aireg could not use, or uses but would have you change. */
+function warnFiles(context: CommandContext): void {
+  const { files, skipped } = loadTargetFiles();
+  for (const file of skipped) {
+    context.printer.warning(`Skipped ${underHome(file.path)}: ${lowered(file.problems)}`);
+  }
+  for (const file of files.filter((each) => each.warnings.length > 0)) {
+    context.printer.warning(`Read ${underHome(file.path)}, but ${lowered(file.warnings)}`);
+  }
 }
 
 /** The definition as aireg resolved it, after its defaults and your files. */
@@ -199,6 +185,14 @@ async function show(context: CommandContext, id: string): Promise<void> {
   const { name, displayName, origin: from, ...rest } = shown;
   context.printer.info(`${displayName} (${name}), ${origin(from)}`);
   context.printer.info(stringify(rest, { lineWidth: 0 }).trimEnd());
+}
+
+function needed(argument: string | undefined, action: string, what: string, hint: string): string {
+  if (argument !== undefined) return argument;
+  throw new AiregError(`\`aireg targets ${action}\` needs ${what}.`, {
+    code: ErrorCode.Usage,
+    hint,
+  });
 }
 
 /** A file checked as aireg would read it from your user scope, wherever it is now. */
@@ -232,4 +226,10 @@ async function check(context: CommandContext, file: string): Promise<void> {
   }
   for (const problem of problems) context.printer.error(problem);
   context.printer.info(`Found ${plural(problems.length, "problem")} in ${file}.`);
+}
+
+export function foundSummary(found: number, supported: number): string {
+  if (found === 0) return "No supported target found on this machine.";
+  const which = found === supported ? `all ${supported}` : `${found} of ${supported}`;
+  return `Found ${which} supported targets on this machine.`;
 }

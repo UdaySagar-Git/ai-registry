@@ -25,93 +25,6 @@ import { narrowToRelinks, relinksIn } from "./relink.ts";
 import type { Scan } from "./scan.ts";
 import { moved, pinnedNote, unservedNote } from "./served.ts";
 
-function mergePlan(plan: Plan, previous: Lock, names: ReadonlySet<string>): Plan {
-  const generated = recordOf(plan);
-  const next = cloneLock(previous);
-  for (const name of names) {
-    const artifact = generated.artifacts[name];
-    // Absent from the fresh plan means nothing asks for it any more, so the row
-    // goes. A name that was never locked has nothing to remove.
-    if (artifact === undefined) delete next.artifacts[name];
-    else next.artifacts[name] = artifact;
-  }
-  for (const [alias, source] of Object.entries(generated.registries)) {
-    if (Object.values(next.artifacts).some((artifact) => artifact.registry === alias)) {
-      next.registries[alias] = source;
-    }
-  }
-  for (const alias of Object.keys(next.registries)) {
-    if (!Object.values(next.artifacts).some((artifact) => artifact.registry === alias)) {
-      delete next.registries[alias];
-    }
-  }
-  return {
-    actions: plan.actions
-      .filter((action) => action.kind !== "record" && names.has(action.name))
-      .concat({ kind: "record", lock: next }),
-    unchanged: plan.unchanged.filter((name) => names.has(name)),
-    warnings: plan.warnings,
-    incompatible: plan.incompatible,
-    rewritten: plan.rewritten,
-    clashes: plan.clashes,
-    renamed: plan.renamed,
-    neededBy: plan.neededBy,
-    pruned: plan.pruned.filter((name) => names.has(name)),
-    unresolved: plan.unresolved,
-    conflicts: plan.conflicts,
-    withheld: plan.withheld.filter((item) => names.has(item.name)),
-    unlisted: plan.unlisted.filter((item) => names.has(item.name)),
-    untrusted: plan.untrusted,
-  };
-}
-
-/**
- * Follows what this run published as `aireg publish` does: a row the source serves at the version
- * sent is restated from it, and one pinned or not served yet is said. A folder of yours keeps its row.
- */
-function followPublished(
-  loaded: Loaded,
-  scan: Scan,
-  published: ReadonlyMap<string, string | undefined>,
-): { restate: Set<string>; notices: ApplyNotice[] } {
-  const restate = new Set<string>();
-  const notices: ApplyNotice[] = [];
-  for (const [name, version] of published) {
-    const entry = loaded.lock.artifacts[name];
-    if (entry === undefined || entry.origin !== undefined) continue;
-    const pinned = pinOf(loaded.manifest, entry);
-    if (pinned !== undefined) notices.push({ message: pinnedNote(name, pinned, version) });
-    else if (moved(scan, entry, version)) restate.add(name);
-    else notices.push({ message: unservedNote(scan, entry, name, version).message });
-  }
-  return { restate, notices };
-}
-
-/**
- * A publish sends this scope's copy, so what landed upstream is exactly what is
- * on disk; the row's digest is restated from it rather than from a refetch.
- */
-async function preservePublishedDigests(
-  plan: Plan,
-  scan: Scan,
-  published: Iterable<string>,
-): Promise<void> {
-  const lock = recordOf(plan);
-  for (const name of published) {
-    const entry = lock.artifacts[name];
-    if (entry === undefined) continue;
-    const copy = artifactPath(
-      scan.roots,
-      entry.registry,
-      entry.namespace,
-      entry.kind,
-      copyLeaf(name, entry.name),
-      entry.address ?? "",
-    );
-    if (await exists(copy)) entry.digest = await digest(copy);
-  }
-}
-
 export async function applyLocal(
   loaded: Loaded,
   common: CommonOptions,
@@ -179,5 +92,92 @@ export async function applyLocal(
   return {
     changed: Object.values(result.performed).reduce((sum, count) => sum + count, 0),
     notices,
+  };
+}
+
+/**
+ * Follows what this run published as `aireg publish` does: a row the source serves at the version
+ * sent is restated from it, and one pinned or not served yet is said. A folder of yours keeps its row.
+ */
+function followPublished(
+  loaded: Loaded,
+  scan: Scan,
+  published: ReadonlyMap<string, string | undefined>,
+): { restate: Set<string>; notices: ApplyNotice[] } {
+  const restate = new Set<string>();
+  const notices: ApplyNotice[] = [];
+  for (const [name, version] of published) {
+    const entry = loaded.lock.artifacts[name];
+    if (entry === undefined || entry.origin !== undefined) continue;
+    const pinned = pinOf(loaded.manifest, entry);
+    if (pinned !== undefined) notices.push({ message: pinnedNote(name, pinned, version) });
+    else if (moved(scan, entry, version)) restate.add(name);
+    else notices.push({ message: unservedNote(scan, entry, name, version).message });
+  }
+  return { restate, notices };
+}
+
+/**
+ * A publish sends this scope's copy, so what landed upstream is exactly what is
+ * on disk; the row's digest is restated from it rather than from a refetch.
+ */
+async function preservePublishedDigests(
+  plan: Plan,
+  scan: Scan,
+  published: Iterable<string>,
+): Promise<void> {
+  const lock = recordOf(plan);
+  for (const name of published) {
+    const entry = lock.artifacts[name];
+    if (entry === undefined) continue;
+    const copy = artifactPath(
+      scan.roots,
+      entry.registry,
+      entry.namespace,
+      entry.kind,
+      copyLeaf(name, entry.name),
+      entry.address ?? "",
+    );
+    if (await exists(copy)) entry.digest = await digest(copy);
+  }
+}
+
+function mergePlan(plan: Plan, previous: Lock, names: ReadonlySet<string>): Plan {
+  const generated = recordOf(plan);
+  const next = cloneLock(previous);
+  for (const name of names) {
+    const artifact = generated.artifacts[name];
+    // Absent from the fresh plan means nothing asks for it any more, so the row
+    // goes. A name that was never locked has nothing to remove.
+    if (artifact === undefined) delete next.artifacts[name];
+    else next.artifacts[name] = artifact;
+  }
+  for (const [alias, source] of Object.entries(generated.registries)) {
+    if (Object.values(next.artifacts).some((artifact) => artifact.registry === alias)) {
+      next.registries[alias] = source;
+    }
+  }
+  for (const alias of Object.keys(next.registries)) {
+    if (!Object.values(next.artifacts).some((artifact) => artifact.registry === alias)) {
+      delete next.registries[alias];
+    }
+  }
+  return {
+    actions: plan.actions
+      .filter((action) => action.kind !== "record" && names.has(action.name))
+      .concat({ kind: "record", lock: next }),
+    unchanged: plan.unchanged.filter((name) => names.has(name)),
+    warnings: plan.warnings,
+    incompatible: plan.incompatible,
+    rewritten: plan.rewritten,
+    clashes: plan.clashes,
+    renamed: plan.renamed,
+    neededBy: plan.neededBy,
+    pruned: plan.pruned.filter((name) => names.has(name)),
+    unresolved: plan.unresolved,
+    conflicts: plan.conflicts,
+    withheld: plan.withheld.filter((item) => names.has(item.name)),
+    unlisted: plan.unlisted.filter((item) => names.has(item.name)),
+    untrusted: plan.untrusted,
   };
 }

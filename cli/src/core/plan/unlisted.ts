@@ -15,19 +15,6 @@ export interface Unlisted {
   empty: boolean;
 }
 
-function listed(row: LockArtifact, source: Acquired): boolean {
-  const { entries } = source.catalog;
-  if (row.address !== undefined && entries.some((entry) => entry.path === row.address)) return true;
-  return entryFor(entries, row.namespace, row.kind, row.name) !== undefined;
-}
-
-/** An empty listing is still taken for a broken read, whatever the adapter says of it. */
-function deletedFrom(source: Acquired): boolean {
-  return (
-    source.whole === true && source.catalog.complete === true && source.catalog.entries.length > 0
-  );
-}
-
 /**
  * Rows a registry read this run stopped listing, though the manifest still reaches them. A short
  * listing is not a removal; only a complete read of the whole listing drops an unnamed row.
@@ -55,6 +42,19 @@ export function unlistedRows(
     }
   }
   return found.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function listed(row: LockArtifact, source: Acquired): boolean {
+  const { entries } = source.catalog;
+  if (row.address !== undefined && entries.some((entry) => entry.path === row.address)) return true;
+  return entryFor(entries, row.namespace, row.kind, row.name) !== undefined;
+}
+
+/** An empty listing is still taken for a broken read, whatever the adapter says of it. */
+function deletedFrom(source: Acquired): boolean {
+  return (
+    source.whole === true && source.catalog.complete === true && source.catalog.entries.length > 0
+  );
 }
 
 /** Why a row is held, for a sync to show beside its name. */

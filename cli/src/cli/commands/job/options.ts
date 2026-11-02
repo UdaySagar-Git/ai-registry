@@ -29,16 +29,6 @@ export interface Own extends Record<string, unknown>, RunsOptions {
   to?: string;
 }
 
-function stepPolicy(value: string | undefined, flag: string): StepPolicy | undefined {
-  if (value === undefined) return undefined;
-  if (!isStepPolicy(value))
-    throw new AiregError(`${flag} takes ${listOf(STEP_POLICIES, "or")}, not ${quoted(value)}.`, {
-      code: ErrorCode.Usage,
-      hint: `Pass \`${flag} on\` to act, \`${flag} report\` to only say what it finds, or \`${flag} off\`.`,
-    });
-  return value;
-}
-
 export function interval(value: string | undefined): number {
   const text = value ?? String(DEFAULT_INTERVAL_SECONDS);
   const seconds = /^\d+$/.test(text) ? Number(text) : Number.NaN;
@@ -68,6 +58,16 @@ export function policy(own: Own): Record<string, string> {
     ...(adopt === undefined ? {} : { adopt }),
     ...(claim === undefined ? {} : { claim }),
   };
+}
+
+function stepPolicy(value: string | undefined, flag: string): StepPolicy | undefined {
+  if (value === undefined) return undefined;
+  if (!isStepPolicy(value))
+    throw new AiregError(`${flag} takes ${listOf(STEP_POLICIES, "or")}, not ${quoted(value)}.`, {
+      code: ErrorCode.Usage,
+      hint: `Pass \`${flag} on\` to act, \`${flag} report\` to only say what it finds, or \`${flag} off\`.`,
+    });
+  return value;
 }
 
 /**

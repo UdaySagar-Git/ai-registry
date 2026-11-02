@@ -31,22 +31,6 @@ const GLOBAL_OPTIONAL_VALUE_FLAGS = new Set(["--map"]);
 
 export const GLOBALS_HINT = "Run `aireg --help` for the global options.";
 
-function isGlobal(arg: string): boolean {
-  const name = arg.split("=")[0] as string;
-  if (GLOBAL_FLAGS.has(arg) || GLOBAL_VALUE_FLAGS.has(name)) return true;
-  return GLOBAL_OPTIONAL_VALUE_FLAGS.has(name);
-}
-
-function globalNames(): string[] {
-  const all = [...GLOBAL_FLAGS, ...GLOBAL_VALUE_FLAGS, ...GLOBAL_OPTIONAL_VALUE_FLAGS];
-  return all.filter((flag) => flag.startsWith("--"));
-}
-
-function consumesNext(arg: string, next: string | undefined): boolean {
-  if (GLOBAL_VALUE_FLAGS.has(arg)) return true;
-  return GLOBAL_OPTIONAL_VALUE_FLAGS.has(arg) && mapTakesValue(next);
-}
-
 /**
  * The command is the first bare word that is not a global flag's value, or
  * `aireg --log-level debug add x` resolves the command as `debug`.
@@ -63,7 +47,10 @@ export function findCommand(argv: readonly string[]): number {
   return -1;
 }
 
-export type GlobalValues = Partial<Record<string, string | boolean>>;
+function consumesNext(arg: string, next: string | undefined): boolean {
+  if (GLOBAL_VALUE_FLAGS.has(arg)) return true;
+  return GLOBAL_OPTIONAL_VALUE_FLAGS.has(arg) && mapTakesValue(next);
+}
 
 /**
  * Before the command, only globals can appear; after it, the command's own
@@ -134,17 +121,23 @@ export async function misplacedOption(
   );
 }
 
+export type GlobalValues = Partial<Record<string, string | boolean>>;
+
+function isGlobal(arg: string): boolean {
+  const name = arg.split("=")[0] as string;
+  if (GLOBAL_FLAGS.has(arg) || GLOBAL_VALUE_FLAGS.has(name)) return true;
+  return GLOBAL_OPTIONAL_VALUE_FLAGS.has(name);
+}
+
+function globalNames(): string[] {
+  const all = [...GLOBAL_FLAGS, ...GLOBAL_VALUE_FLAGS, ...GLOBAL_OPTIONAL_VALUE_FLAGS];
+  return all.filter((flag) => flag.startsWith("--"));
+}
+
 /** A bad `--color` is refused earlier, by `misusedGlobal`. */
 export function colorWhen(values: GlobalValues): ColorWhen {
   if (values["no-color"] === true) return "never";
   return COLOR_WHEN.find((when) => when === values.color) ?? "auto";
-}
-
-function together(one: string, other: string): AiregError {
-  return new AiregError(`${one} and ${other} cannot be used together.`, {
-    code: ErrorCode.Usage,
-    hint: "Pass one or the other.",
-  });
 }
 
 export function misusedGlobal(values: GlobalValues): AiregError | undefined {
@@ -171,4 +164,11 @@ export function misusedGlobal(values: GlobalValues): AiregError | undefined {
       ? `--color takes ${list(COLOR_WHEN, "or")}, not ${quoted(color)}.`
       : "--color needs a value.";
   return new AiregError(problem, { code: ErrorCode.Usage, hint: GLOBALS_HINT });
+}
+
+function together(one: string, other: string): AiregError {
+  return new AiregError(`${one} and ${other} cannot be used together.`, {
+    code: ErrorCode.Usage,
+    hint: "Pass one or the other.",
+  });
 }

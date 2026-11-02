@@ -17,38 +17,6 @@ const MEANING: Record<PolicyAxis, readonly string[]> = {
   claim: ["manage a folder that matches the registry", "say it matches, leave it", "do not look"],
 };
 
-/** An absent adopt follows publish and an absent claim never takes a folder, as a sync reads them. */
-function effective(policy: SyncPolicy, axis: PolicyAxis): string {
-  if (axis === "adopt") return policy.adopt ?? policy.publish;
-  if (axis === "claim") return policy.claim ?? "off";
-  return policy[axis];
-}
-
-function axisRow(
-  axis: string,
-  options: readonly string[],
-  meaning: readonly string[],
-  current: string | undefined,
-  selected: boolean,
-): ReactElement {
-  const chosen = options.indexOf(current ?? "");
-  return box(
-    { ...(selected ? { backgroundColor: COLOR.selection } : {}) },
-    dim(`    ${pad(axis, 14)}`),
-    ...options.map((option) =>
-      text(
-        {
-          key: option,
-          color: option === current ? COLOR.white : COLOR.faint,
-          inverse: option === current,
-        },
-        pad(` ${option} `, 10),
-      ),
-    ),
-    faint(`     ${chosen === -1 ? "" : (meaning[chosen] ?? "")}`),
-  );
-}
-
 /**
  * Read-only deliberately: every axis here is written into config.yml, and a write from
  * a list you are scrolling is how a policy changes by accident.
@@ -114,4 +82,36 @@ export function settingsView(props: {
       text({ color: COLOR.white }, props.state.account?.registry ?? "-"),
     ),
   );
+}
+
+function axisRow(
+  axis: string,
+  options: readonly string[],
+  meaning: readonly string[],
+  current: string | undefined,
+  selected: boolean,
+): ReactElement {
+  const chosen = options.indexOf(current ?? "");
+  return box(
+    { ...(selected ? { backgroundColor: COLOR.selection } : {}) },
+    dim(`    ${pad(axis, 14)}`),
+    ...options.map((option) =>
+      text(
+        {
+          key: option,
+          color: option === current ? COLOR.white : COLOR.faint,
+          inverse: option === current,
+        },
+        pad(` ${option} `, 10),
+      ),
+    ),
+    faint(`     ${chosen === -1 ? "" : (meaning[chosen] ?? "")}`),
+  );
+}
+
+/** An absent adopt follows publish and an absent claim never takes a folder, as a sync reads them. */
+function effective(policy: SyncPolicy, axis: PolicyAxis): string {
+  if (axis === "adopt") return policy.adopt ?? policy.publish;
+  if (axis === "claim") return policy.claim ?? "off";
+  return policy[axis];
 }

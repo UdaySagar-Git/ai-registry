@@ -66,13 +66,39 @@ export function recordedAdapter(
   return held !== undefined && held.location === declared.location ? held.adapter : undefined;
 }
 
-/** A name your folder published may not exist yet, so the catalog is listed rather than asked by name. */
-function withAlso(
-  request: Request | undefined,
-  names: readonly string[] | undefined,
-): Request | undefined {
-  if (names === undefined || names.length === 0) return request;
-  return { want: request?.want ?? [], all: true };
+/** The impure half of the pipeline: everything after it is a pure function of what it returns. */
+export async function acquire(manifest: Manifest, options: AcquireOptions): Promise<Acquired[]> {
+  const owned = options.aliases === undefined ? undefined : new Set(options.aliases);
+  const locked = options.locked;
+  const view = locked === undefined ? undefined : lockView(locked.lock);
+  // A registry the manifest names no artifact from is never opened or downloaded.
+  const asked = Object.entries(manifest.registries)
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    .filter(([alias]) => owned === undefined || owned.has(alias))
+    .map(([alias, declared]) => ({
+      alias,
+      declared,
+      request: withNeeds(
+        withAlso(
+          locked === undefined || view === undefined
+            ? wanted(manifest, alias)
+            : lockedRequest(manifest, alias, locked, view),
+          options.also?.get(alias),
+        ),
+        options.needs?.get(alias),
+      ),
+    }))
+    .filter((entry): entry is typeof entry & { request: Request } => entry.request !== undefined);
+
+  const settled = await Promise.allSettled(
+    asked.map(({ alias, declared, request }) => acquireOne(alias, declared, request, options)),
+  );
+  const failed = settled.find((result) => result.status === "rejected");
+  const opened = settled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+  if (failed === undefined) return opened;
+  // One registry failing leaves no other one open behind it.
+  await Promise.allSettled(opened.map((source) => source.close()));
+  throw failed.reason;
 }
 
 /** A need's version replaces the one the lock held its dependency at. */
@@ -87,22 +113,13 @@ function withNeeds(
   return { ...request, want: [...held, ...needs] };
 }
 
-/** A refused read says how to sign in to this registry, unless its adapter already did. */
-async function withSignInHint(error: unknown, alias: string): Promise<unknown> {
-  if (!isAdapterError(error) || !isAuthFailure(error.failure) || error.hint !== undefined) {
-    return error;
-  }
-  const own = await loadAdapter(error.adapter).then(
-    (adapter) => adapter.credentialsHint,
-    () => undefined,
-  );
-  return new AdapterError(error.adapter, error.failure, error.message, {
-    artifact: error.artifact,
-    retryAfterMs: error.retryAfterMs,
-    problem: adapterProblem(error),
-    cause: error.cause,
-    hint: own ?? `Run \`aireg auth login ${alias}\`, or in CI set \`${tokenVariable(alias)}\`.`,
-  });
+/** A name your folder published may not exist yet, so the catalog is listed rather than asked by name. */
+function withAlso(
+  request: Request | undefined,
+  names: readonly string[] | undefined,
+): Request | undefined {
+  if (names === undefined || names.length === 0) return request;
+  return { want: request?.want ?? [], all: true };
 }
 
 async function acquireOne(
@@ -221,37 +238,20 @@ async function acquireOne(
   };
 }
 
-/** The impure half of the pipeline: everything after it is a pure function of what it returns. */
-export async function acquire(manifest: Manifest, options: AcquireOptions): Promise<Acquired[]> {
-  const owned = options.aliases === undefined ? undefined : new Set(options.aliases);
-  const locked = options.locked;
-  const view = locked === undefined ? undefined : lockView(locked.lock);
-  // A registry the manifest names no artifact from is never opened or downloaded.
-  const asked = Object.entries(manifest.registries)
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    .filter(([alias]) => owned === undefined || owned.has(alias))
-    .map(([alias, declared]) => ({
-      alias,
-      declared,
-      request: withNeeds(
-        withAlso(
-          locked === undefined || view === undefined
-            ? wanted(manifest, alias)
-            : lockedRequest(manifest, alias, locked, view),
-          options.also?.get(alias),
-        ),
-        options.needs?.get(alias),
-      ),
-    }))
-    .filter((entry): entry is typeof entry & { request: Request } => entry.request !== undefined);
-
-  const settled = await Promise.allSettled(
-    asked.map(({ alias, declared, request }) => acquireOne(alias, declared, request, options)),
+/** A refused read says how to sign in to this registry, unless its adapter already did. */
+async function withSignInHint(error: unknown, alias: string): Promise<unknown> {
+  if (!isAdapterError(error) || !isAuthFailure(error.failure) || error.hint !== undefined) {
+    return error;
+  }
+  const own = await loadAdapter(error.adapter).then(
+    (adapter) => adapter.credentialsHint,
+    () => undefined,
   );
-  const failed = settled.find((result) => result.status === "rejected");
-  const opened = settled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
-  if (failed === undefined) return opened;
-  // One registry failing leaves no other one open behind it.
-  await Promise.allSettled(opened.map((source) => source.close()));
-  throw failed.reason;
+  return new AdapterError(error.adapter, error.failure, error.message, {
+    artifact: error.artifact,
+    retryAfterMs: error.retryAfterMs,
+    problem: adapterProblem(error),
+    cause: error.cause,
+    hint: own ?? `Run \`aireg auth login ${alias}\`, or in CI set \`${tokenVariable(alias)}\`.`,
+  });
 }

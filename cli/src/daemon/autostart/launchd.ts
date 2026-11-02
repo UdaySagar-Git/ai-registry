@@ -14,22 +14,6 @@ const BOOTSTRAP_RETRY_MS = 200;
 /** The first program argument, whatever whitespace the tool that last wrote the plist used. */
 const PROGRAM = /<key>ProgramArguments<\/key>\s*<array>\s*<string>([^<]*)<\/string>/;
 
-function launchdLabel(suffix: string): string {
-  return suffix === "" ? LABEL : `${LABEL}.${suffix}`;
-}
-
-function xml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function string(value: string, indent = "  "): string {
-  return `${indent}<string>${xml(value)}</string>`;
-}
-
 /**
  * KeepAlive restarts only a non-zero exit, so `daemon stop` and a redundant
  * daemon exiting 0 stay down, while a crash or an update restart come back.
@@ -73,6 +57,22 @@ export function renderPlist(spec: ServiceSpec): string {
     "</plist>",
     "",
   ].join("\n");
+}
+
+function string(value: string, indent = "  "): string {
+  return `${indent}<string>${xml(value)}</string>`;
+}
+
+function xml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function launchdLabel(suffix: string): string {
+  return suffix === "" ? LABEL : `${LABEL}.${suffix}`;
 }
 
 export function launchdBackend(spec: ServiceSpec, exec: Exec): AutostartBackend {

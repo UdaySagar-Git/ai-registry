@@ -20,8 +20,9 @@ export interface MapNode {
   readonly children?: readonly MapNode[];
 }
 
-function isMapFormat(value: string): value is MapFormat {
-  return (MAP_FORMATS as readonly string[]).includes(value);
+export function docsUrl(page = "index"): string {
+  if (/^https?:\/\//.test(page)) return page;
+  return `${DOCS_URL}reference/${page === "index" ? "" : `${page}/`}`;
 }
 
 const ROOT_PATH = NAME;
@@ -34,9 +35,13 @@ export const ROOT_SUMMARY = "Install agent artifacts from any registry into any 
 
 export const ISSUES_URL = pkg.bugs.url;
 
-export function docsUrl(page = "index"): string {
-  if (/^https?:\/\//.test(page)) return page;
-  return `${DOCS_URL}reference/${page === "index" ? "" : `${page}/`}`;
+export function actionNode(command: CommandSpec, action: ActionSpec): MapNode {
+  return {
+    path: `${ROOT_PATH} ${command.name} ${action.name}`,
+    ...(action.summary === undefined ? {} : { summary: action.summary }),
+    ...(action.aliases === undefined ? {} : { aliases: action.aliases }),
+    ...described(action),
+  };
 }
 
 /** `usage` and `options` only when there are some, so a key's presence means something. */
@@ -45,15 +50,6 @@ function described(of: CommandSpec | ActionSpec) {
   return {
     ...(of.usage === undefined ? {} : { usage: of.usage }),
     ...(options.length === 0 ? {} : { options }),
-  };
-}
-
-export function actionNode(command: CommandSpec, action: ActionSpec): MapNode {
-  return {
-    path: `${ROOT_PATH} ${command.name} ${action.name}`,
-    ...(action.summary === undefined ? {} : { summary: action.summary }),
-    ...(action.aliases === undefined ? {} : { aliases: action.aliases }),
-    ...described(action),
   };
 }
 
@@ -86,27 +82,16 @@ export async function buildMap(): Promise<MapNode> {
   };
 }
 
-/** Tree text omits usage and options; they stay a JSON-only affordance. */
-function writeTree(node: MapNode, indent: string, lines: string[]): void {
-  const head =
-    node.summary === undefined ? `${indent}${node.path}` : `${indent}${node.path}\t${node.summary}`;
-  lines.push(head);
-  for (const child of node.children ?? []) writeTree(child, `${indent}  `, lines);
-}
-
-function writeCompact(node: MapNode, lines: string[]): void {
-  lines.push(node.path);
-  for (const child of node.children ?? []) writeCompact(child, lines);
-}
-
-const MAP_FLAG = "--map";
-
 /**
  * Only a known format is swallowed, so `aireg --map add` keeps `add` a
  * positional rather than an unknown-format error.
  */
 export function mapTakesValue(next: string | undefined): boolean {
   return next !== undefined && isMapFormat(next);
+}
+
+function isMapFormat(value: string): value is MapFormat {
+  return (MAP_FORMATS as readonly string[]).includes(value);
 }
 
 /**
@@ -121,6 +106,8 @@ export function findMapFormat(argv: readonly string[]): string | undefined {
   }
   return undefined;
 }
+
+const MAP_FLAG = "--map";
 
 /**
  * Runs instead of any command: exists so a coding agent gets the whole tree
@@ -148,4 +135,17 @@ export async function runMap(printer: Printer, format: string): Promise<ExitCode
   else writeCompact(root, lines);
   printer.info(lines.join("\n"));
   return ExitCode.Ok;
+}
+
+/** Tree text omits usage and options; they stay a JSON-only affordance. */
+function writeTree(node: MapNode, indent: string, lines: string[]): void {
+  const head =
+    node.summary === undefined ? `${indent}${node.path}` : `${indent}${node.path}\t${node.summary}`;
+  lines.push(head);
+  for (const child of node.children ?? []) writeTree(child, `${indent}  `, lines);
+}
+
+function writeCompact(node: MapNode, lines: string[]): void {
+  lines.push(node.path);
+  for (const child of node.children ?? []) writeCompact(child, lines);
 }

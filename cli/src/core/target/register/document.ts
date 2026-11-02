@@ -30,19 +30,6 @@ export interface ConfigDocument {
   value(): unknown;
 }
 
-function scalars(values: Readonly<Record<string, ConfigValue>>, file: string) {
-  const out: Record<string, TomlScalar> = {};
-  for (const [key, value] of Object.entries(values)) {
-    if (typeof value === "object") {
-      throw new AiregError(`Only plain values can be written to ${file}.`, {
-        code: ErrorCode.Invalid,
-      });
-    }
-    out[key] = value;
-  }
-  return out;
-}
-
 export function tomlDocument(text: string, file: string): ConfigDocument {
   let current = text;
   const unsupported = (): never => {
@@ -67,6 +54,19 @@ export function tomlDocument(text: string, file: string): ConfigDocument {
     render: () => current,
     value: () => (current.trim() === "" ? {} : current),
   };
+}
+
+function scalars(values: Readonly<Record<string, ConfigValue>>, file: string) {
+  const out: Record<string, TomlScalar> = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (typeof value === "object") {
+      throw new AiregError(`Only plain values can be written to ${file}.`, {
+        code: ErrorCode.Invalid,
+      });
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 export function jsonDocument(text: string | undefined, start: Table, file: string): ConfigDocument {

@@ -10,17 +10,6 @@ export interface Column<R> {
   optional?: boolean;
 }
 
-function padCell(text: string, width: number, align: "left" | "right" = "left"): string {
-  const gap = " ".repeat(Math.max(0, width - displayWidth(text)));
-  return align === "right" ? gap + text : text + gap;
-}
-
-interface TableOptions {
-  header?: boolean;
-  /** Leading spaces; a prompt frame supplies its own gutter. */
-  indent?: number;
-}
-
 /** The aligned lines, for a caller that places them itself, such as a prompt frame. */
 export function tableLines<R>(
   style: Styler,
@@ -47,6 +36,17 @@ export function tableLines<R>(
   if (options.header !== false)
     out.unshift(style.dim(line(shown.map(({ column }) => column.header))));
   return out;
+}
+
+interface TableOptions {
+  header?: boolean;
+  /** Leading spaces; a prompt frame supplies its own gutter. */
+  indent?: number;
+}
+
+function padCell(text: string, width: number, align: "left" | "right" = "left"): string {
+  const gap = " ".repeat(Math.max(0, width - displayWidth(text)));
+  return align === "right" ? gap + text : text + gap;
 }
 
 /** Every listing prints through here, so columns line up the same way everywhere. */

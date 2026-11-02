@@ -30,13 +30,6 @@ export function renamedTo(
   return RENAMEABLE.has(item.kind) && leaf !== item.upstreamName ? leaf : undefined;
 }
 
-/** Its namespace and name, then the registry's too: never install order, so every machine agrees. */
-function candidates(item: Selected): string[] {
-  const own = [item.group ?? item.source, item.upstreamName].join("-");
-  if (item.group === undefined) return [own];
-  return [own, [item.source, item.group, item.upstreamName].join("-")];
-}
-
 /**
  * A name for each artifact a target path clash left out. One the person named with `as:`,
  * or with no free valid name, stays left out.
@@ -63,6 +56,13 @@ export function renamesFor(
     renames.set(clash.dropped, name);
   }
   return renames;
+}
+
+/** Its namespace and name, then the registry's too: never install order, so every machine agrees. */
+function candidates(item: Selected): string[] {
+  const own = [item.group ?? item.source, item.upstreamName].join("-");
+  if (item.group === undefined) return [own];
+  return [own, [item.source, item.group, item.upstreamName].join("-")];
 }
 
 /** The renames a second plan carried out: the ones it no longer reports as left out. */

@@ -22,11 +22,60 @@ import {
 /** The scheduler's floor: a job run more often than this is a busy loop. */
 export const MINIMUM_INTERVAL_SECONDS = 60;
 
-/** A path a person writes by hand, so `~` is theirs to use. */
-function absolute(read: Readers, value: string, where: string): string {
-  const expanded = expandHome(value);
-  if (!isAbsolute(expanded)) throw read.fail(`\`${where}\` must be an absolute path.`);
-  return expanded;
+/** Each id as aireg 0.1 knew it, which is what an adapter built against it reads. */
+export function earlierIds(targetTable: Targets, ids: readonly string[]): string[] {
+  return ids.map((id) => earlierId(targetTable, id));
+}
+
+/** One job, held to every rule config.yml is; `where` names it in a message. */
+export function parseJob(value: unknown, where: string, read: Readers): Job {
+  const entry = read.record(value, where);
+  read.onlyKnown(entry, ["id", "name", "account", "schedule", "steps"], where);
+  if (!Array.isArray(entry.steps) || entry.steps.length === 0) {
+    throw read.fail(`\`${where}.steps\` must be a non-empty list.`);
+  }
+  const steps = entry.steps.map((item, at) => step(read, item, `${where}.steps[${at}]`));
+  if (new Set(steps.map(({ name }) => name)).size !== steps.length) {
+    throw read.fail(`\`${where}\` has two steps with the same name.`);
+  }
+
+  const names = new Set(steps.map(({ name }) => name));
+  for (const item of steps) {
+    for (const need of item.needs) {
+      if (!names.has(need)) {
+        throw read.fail(
+          `Step ${quoted(item.name)} of \`${where}\` needs ${quoted(need)}, which the job does not have.`,
+        );
+      }
+      if (need === item.name) {
+        throw read.fail(`Step ${quoted(item.name)} of \`${where}\` needs itself.`);
+      }
+    }
+  }
+
+  const parsed: Job = {
+    id: read.text(entry, "id", where),
+    account: read.text(entry, "account", where),
+    schedule: schedule(read, entry.schedule, `${where}.schedule`),
+    steps,
+  };
+  if (entry.name !== undefined) parsed.name = read.text(entry, "name", where);
+  return parsed;
+}
+
+function schedule(read: Readers, value: unknown, where: string): Schedule {
+  if (value === undefined || value === null) {
+    return { every: DEFAULT_INTERVAL_SECONDS, enabled: true };
+  }
+  const entry = read.record(value, where);
+  read.onlyKnown(entry, ["every", "enabled"], where);
+  return {
+    every:
+      entry.every === undefined
+        ? DEFAULT_INTERVAL_SECONDS
+        : duration(read, entry.every, `${where}.every`),
+    enabled: read.optionalFlag(entry, "enabled", true, where),
+  };
 }
 
 /** Seconds, or a plain duration a person would write: `900`, `15m`, `2h`. */
@@ -47,73 +96,6 @@ function duration(read: Readers, value: unknown, where: string): number {
     throw read.fail(`\`${where}\` must be at least ${MINIMUM_INTERVAL_SECONDS} seconds.`);
   return seconds;
 }
-
-function schedule(read: Readers, value: unknown, where: string): Schedule {
-  if (value === undefined || value === null) {
-    return { every: DEFAULT_INTERVAL_SECONDS, enabled: true };
-  }
-  const entry = read.record(value, where);
-  read.onlyKnown(entry, ["every", "enabled"], where);
-  return {
-    every:
-      entry.every === undefined
-        ? DEFAULT_INTERVAL_SECONDS
-        : duration(read, entry.every, `${where}.every`),
-    enabled: read.optionalFlag(entry, "enabled", true, where),
-  };
-}
-
-function selector(read: Readers, value: unknown, where: string): Selector {
-  const entry = read.record(value, where);
-  read.onlyKnown(entry, ["from", "match", "kinds", "target", "harness"], where);
-  const selected: Selector = {
-    from: absolute(read, read.text(entry, "from", where), `${where}.from`),
-  };
-  if (entry.match !== undefined) selected.match = read.text(entry, "match", where);
-  if (entry.kinds !== undefined) {
-    const kinds = read.textList(entry.kinds, `${where}.kinds`);
-    for (const kind of kinds) {
-      if (!isKind(kind))
-        throw read.fail(`\`${where}.kinds\` names an unknown kind, ${quoted(kind)}.`);
-    }
-    selected.kinds = kinds.filter(isKind);
-  }
-  return { ...selected, ...selectedTargets(read, entry, where) };
-}
-
-/** Each id as aireg 0.1 knew it, which is what an adapter built against it reads. */
-export function earlierIds(targetTable: Targets, ids: readonly string[]): string[] {
-  return ids.map((id) => earlierId(targetTable, id));
-}
-
-/**
- * Reads `harness`, the key aireg 0.1 writes, as `target`. A job read back from the daemon
- * carries both, so both are taken when they name the same targets.
- */
-function selectedTargets(
-  read: Readers,
-  entry: Record<string, unknown>,
-  where: string,
-): Pick<Selector, "target" | "harness"> {
-  if (entry.target === undefined && entry.harness === undefined) return {};
-  const targetTable = resolveTargets();
-  const named = (key: "target" | "harness") =>
-    entry[key] === undefined
-      ? undefined
-      : canonicalIds(targetTable, read.textList(entry[key], `${where}.${key}`));
-  const target = named("target");
-  const harness = named("harness");
-  if (target !== undefined && harness !== undefined && !sameIds(target, harness)) {
-    throw read.fail(
-      `\`${where}\` names different targets under \`target\` and \`harness\`, its earlier name; keep \`target\`.`,
-    );
-  }
-  const ids = target ?? harness ?? [];
-  return { target: ids, harness: earlierIds(targetTable, ids) };
-}
-
-const sameIds = (a: readonly string[], b: readonly string[]) =>
-  a.length === b.length && a.every((id) => b.includes(id));
 
 function step(read: Readers, value: unknown, where: string): Step {
   const entry = read.record(value, where);
@@ -168,38 +150,56 @@ function step(read: Readers, value: unknown, where: string): Step {
   return parsed;
 }
 
-/** One job, held to every rule config.yml is; `where` names it in a message. */
-export function parseJob(value: unknown, where: string, read: Readers): Job {
+function selector(read: Readers, value: unknown, where: string): Selector {
   const entry = read.record(value, where);
-  read.onlyKnown(entry, ["id", "name", "account", "schedule", "steps"], where);
-  if (!Array.isArray(entry.steps) || entry.steps.length === 0) {
-    throw read.fail(`\`${where}.steps\` must be a non-empty list.`);
-  }
-  const steps = entry.steps.map((item, at) => step(read, item, `${where}.steps[${at}]`));
-  if (new Set(steps.map(({ name }) => name)).size !== steps.length) {
-    throw read.fail(`\`${where}\` has two steps with the same name.`);
-  }
-
-  const names = new Set(steps.map(({ name }) => name));
-  for (const item of steps) {
-    for (const need of item.needs) {
-      if (!names.has(need)) {
-        throw read.fail(
-          `Step ${quoted(item.name)} of \`${where}\` needs ${quoted(need)}, which the job does not have.`,
-        );
-      }
-      if (need === item.name) {
-        throw read.fail(`Step ${quoted(item.name)} of \`${where}\` needs itself.`);
-      }
-    }
-  }
-
-  const parsed: Job = {
-    id: read.text(entry, "id", where),
-    account: read.text(entry, "account", where),
-    schedule: schedule(read, entry.schedule, `${where}.schedule`),
-    steps,
+  read.onlyKnown(entry, ["from", "match", "kinds", "target", "harness"], where);
+  const selected: Selector = {
+    from: absolute(read, read.text(entry, "from", where), `${where}.from`),
   };
-  if (entry.name !== undefined) parsed.name = read.text(entry, "name", where);
-  return parsed;
+  if (entry.match !== undefined) selected.match = read.text(entry, "match", where);
+  if (entry.kinds !== undefined) {
+    const kinds = read.textList(entry.kinds, `${where}.kinds`);
+    for (const kind of kinds) {
+      if (!isKind(kind))
+        throw read.fail(`\`${where}.kinds\` names an unknown kind, ${quoted(kind)}.`);
+    }
+    selected.kinds = kinds.filter(isKind);
+  }
+  return { ...selected, ...selectedTargets(read, entry, where) };
+}
+
+const sameIds = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((id) => b.includes(id));
+
+/** A path a person writes by hand, so `~` is theirs to use. */
+function absolute(read: Readers, value: string, where: string): string {
+  const expanded = expandHome(value);
+  if (!isAbsolute(expanded)) throw read.fail(`\`${where}\` must be an absolute path.`);
+  return expanded;
+}
+
+/**
+ * Reads `harness`, the key aireg 0.1 writes, as `target`. A job read back from the daemon
+ * carries both, so both are taken when they name the same targets.
+ */
+function selectedTargets(
+  read: Readers,
+  entry: Record<string, unknown>,
+  where: string,
+): Pick<Selector, "target" | "harness"> {
+  if (entry.target === undefined && entry.harness === undefined) return {};
+  const targetTable = resolveTargets();
+  const named = (key: "target" | "harness") =>
+    entry[key] === undefined
+      ? undefined
+      : canonicalIds(targetTable, read.textList(entry[key], `${where}.${key}`));
+  const target = named("target");
+  const harness = named("harness");
+  if (target !== undefined && harness !== undefined && !sameIds(target, harness)) {
+    throw read.fail(
+      `\`${where}\` names different targets under \`target\` and \`harness\`, its earlier name; keep \`target\`.`,
+    );
+  }
+  const ids = target ?? harness ?? [];
+  return { target: ids, harness: earlierIds(targetTable, ids) };
 }

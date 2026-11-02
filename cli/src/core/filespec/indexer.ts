@@ -87,10 +87,6 @@ export async function versionFolders(root: string): Promise<VersionFolder[]> {
   return found;
 }
 
-function json(root: string, path: string): Promise<unknown | undefined> {
-  return readJson(rootReader(root), path);
-}
-
 /**
  * Versions a `versions.json` already lists, mapped to their digests. `cache` keeps one read per
  * artifact for a run, since a read per version folder would be quadratic.
@@ -121,23 +117,8 @@ async function listedNow(root: string, at: string): Promise<Map<string, unknown>
   );
 }
 
-/**
- * Only a Markdown or JSON file can hold the spec or a description, so only those
- * are held; any other file is digested as it streams past, however large.
- */
-async function digested(dir: string, path: string) {
-  if (!/\.(md|json)$/.test(path)) {
-    const read = await hashRegular(dir, path);
-    return read.kind === "file" ? { ...read, bytes: new Uint8Array() } : read;
-  }
-  const read = await readRegular(dir, path);
-  if (read.kind !== "file") return read;
-  return {
-    kind: "file" as const,
-    digest: sha256(read.bytes),
-    size: read.bytes.byteLength,
-    bytes: read.bytes,
-  };
+function json(root: string, path: string): Promise<unknown | undefined> {
+  return readJson(rootReader(root), path);
 }
 
 /** A descriptor with no relative url, whose bytes the blob store holds (section 3.6). */
@@ -151,103 +132,12 @@ export function inBlobStore(file: unknown): file is FileDescriptor {
   return Array.isArray(urls) && urls.every((url) => typeof url === "string" && isRemote(url));
 }
 
-/** Why the blob store does not hold the bytes `file` names at `locator`, if it does not. */
-async function blobProblem(
-  root: string,
-  file: FileDescriptor,
-  locator: string,
-): Promise<string | undefined> {
-  const read = await hashRegular(root, locator).catch(() => undefined);
-  if (read === undefined) return "could not be read";
-  if (read.kind === "missing") return "is missing";
-  if (read.kind === "refused") return read.reason;
-  return read.digest === file.digest && read.size === file.size ? undefined : "holds other bytes";
-}
-
 /**
- * Files an existing `artifact.json` keeps in the blob store, which no folder holds:
- * carried into the new envelope once the blob is there with the bytes they name.
+ * Every version folder `versions.json` does not list yet gets an `artifact.json`, a row there and
+ * an `index.json` entry. Listed versions are released and never touched.
  */
-async function blobFiles(
-  root: string,
-  folder: VersionFolder,
-  existing: unknown,
-  onDisk: ReadonlySet<string>,
-  blobUrl: string,
-): Promise<FileDescriptor[]> {
-  const files = isRecord(existing) && Array.isArray(existing.files) ? existing.files : [];
-  const kept = files.filter((file) => inBlobStore(file) && !onDisk.has(file.path));
-  // A blob on another host is verified by whoever fetches it.
-  if (isRemote(blobUrl)) return kept;
-  for (const file of kept) {
-    const locator = locatorOf(file, folder.at, blobUrl);
-    const problem = await blobProblem(root, file, locator);
-    if (problem !== undefined) {
-      throw new SpecError(
-        `${folder.at}/${ENVELOPE} keeps ${file.path} in the blob store, but ${locator} ${problem}.`,
-        { path: locator },
-      );
-    }
-  }
-  return kept;
-}
-
-/** Keeps the metadata, `spec` and relationships an author added to an existing `artifact.json`. */
-async function envelopeOf(
-  root: string,
-  folder: VersionFolder,
-  kinds: Readonly<Record<string, KindManifest>>,
-  blobUrl: string,
-) {
-  const dir = join(root, ...folder.at.split(posix.sep));
-  const found = await authored(dir);
-  const [refused] = found.irregular;
-  if (refused !== undefined) {
-    const at = `${folder.at}/${refused.path}`;
-    throw new SpecError(`${at} ${refusal(refused)}.`, { path: at });
-  }
-  const records = found.files.filter((record) => record.path !== ENVELOPE);
-  if (records.length === 0)
-    throw new SpecError(`${folder.at} holds no files.`, { path: folder.at });
-  // Every path is kept, so the description sees how many files there are.
-  const bytes = new Map<string, Uint8Array>();
-  const files: FileDescriptor[] = [];
-  for (const record of records) {
-    const read = await digested(dir, record.path);
-    if (read.kind !== "file") {
-      const at = `${folder.at}/${record.path}`;
-      throw new SpecError(`${at} ${read.kind === "missing" ? "is missing" : read.reason}.`, {
-        path: at,
-      });
-    }
-    bytes.set(record.path, read.bytes);
-    files.push(describeFile(record.path, read.digest, read.size));
-  }
-  const existing = (await json(root, `${folder.at}/${ENVELOPE}`)) as
-    | { metadata?: Partial<EnvelopeMetadata>; spec?: unknown; relationships?: unknown }
-    | undefined;
-  const onDisk = new Set(records.map((record) => record.path));
-  files.push(...(await blobFiles(root, folder, existing, onDisk, blobUrl)));
-  const { digest: _digest, ...kept } = existing?.metadata ?? {};
-  const description = ownDescription(bytes, folder.name) ?? kept.description;
-  return buildEnvelope({
-    kind: folder.kind as ArtifactKind,
-    metadata: {
-      ...kept,
-      name: folder.name,
-      namespace: folder.namespace,
-      version: folder.version,
-      ...(description === undefined ? {} : { description }),
-    },
-    files,
-    spec:
-      existing?.spec === undefined
-        ? envelopeSpec(folder.kind, bytes, kinds, folder.name)
-        : (existing.spec as Record<string, unknown>),
-    ...(Array.isArray(existing?.relationships)
-      ? { relationships: existing.relationships as never }
-      : {}),
-  });
+export function indexRoot(root: string, at: string): Promise<Indexed> {
+  return withRegistryLease(root, () => indexRootNow(root, at));
 }
 
 /**
@@ -256,14 +146,6 @@ async function envelopeOf(
  */
 function withRegistryLease<T>(root: string, run: () => Promise<T>): Promise<T> {
   return withLease({ scope: "user", lock: join(root, REGISTRY_DOCUMENT) }, { wait: true }, run);
-}
-
-/**
- * Every version folder `versions.json` does not list yet gets an `artifact.json`, a row there and
- * an `index.json` entry. Listed versions are released and never touched.
- */
-export function indexRoot(root: string, at: string): Promise<Indexed> {
-  return withRegistryLease(root, () => indexRootNow(root, at));
 }
 
 async function indexRootNow(root: string, at: string): Promise<Indexed> {
@@ -368,19 +250,122 @@ async function recataloged(root: string, versionsAt: string, row: unknown): Prom
   return want === row.catalog_digest ? row : { ...row, catalog_digest: want };
 }
 
-/** An artifact whose `versions.json` is gone has nothing left to list. */
-async function withoutDeleted(
+/** Keeps the metadata, `spec` and relationships an author added to an existing `artifact.json`. */
+async function envelopeOf(
   root: string,
-  index: Record<string, unknown>,
-  at: string,
-): Promise<Record<string, unknown>> {
-  const entries = index.entries as Record<string, unknown>[];
-  const kept: Record<string, unknown>[] = [];
-  for (const row of entries) {
-    const path = versionsPath(String(row.namespace), String(row.kind), String(row.name));
-    if (await exists(join(root, ...path.split(posix.sep)))) kept.push(row);
+  folder: VersionFolder,
+  kinds: Readonly<Record<string, KindManifest>>,
+  blobUrl: string,
+) {
+  const dir = join(root, ...folder.at.split(posix.sep));
+  const found = await authored(dir);
+  const [refused] = found.irregular;
+  if (refused !== undefined) {
+    const at = `${folder.at}/${refused.path}`;
+    throw new SpecError(`${at} ${refusal(refused)}.`, { path: at });
   }
-  return kept.length === entries.length ? index : { ...index, generated_at: at, entries: kept };
+  const records = found.files.filter((record) => record.path !== ENVELOPE);
+  if (records.length === 0)
+    throw new SpecError(`${folder.at} holds no files.`, { path: folder.at });
+  // Every path is kept, so the description sees how many files there are.
+  const bytes = new Map<string, Uint8Array>();
+  const files: FileDescriptor[] = [];
+  for (const record of records) {
+    const read = await digested(dir, record.path);
+    if (read.kind !== "file") {
+      const at = `${folder.at}/${record.path}`;
+      throw new SpecError(`${at} ${read.kind === "missing" ? "is missing" : read.reason}.`, {
+        path: at,
+      });
+    }
+    bytes.set(record.path, read.bytes);
+    files.push(describeFile(record.path, read.digest, read.size));
+  }
+  const existing = (await json(root, `${folder.at}/${ENVELOPE}`)) as
+    | { metadata?: Partial<EnvelopeMetadata>; spec?: unknown; relationships?: unknown }
+    | undefined;
+  const onDisk = new Set(records.map((record) => record.path));
+  files.push(...(await blobFiles(root, folder, existing, onDisk, blobUrl)));
+  const { digest: _digest, ...kept } = existing?.metadata ?? {};
+  const description = ownDescription(bytes, folder.name) ?? kept.description;
+  return buildEnvelope({
+    kind: folder.kind as ArtifactKind,
+    metadata: {
+      ...kept,
+      name: folder.name,
+      namespace: folder.namespace,
+      version: folder.version,
+      ...(description === undefined ? {} : { description }),
+    },
+    files,
+    spec:
+      existing?.spec === undefined
+        ? envelopeSpec(folder.kind, bytes, kinds, folder.name)
+        : (existing.spec as Record<string, unknown>),
+    ...(Array.isArray(existing?.relationships)
+      ? { relationships: existing.relationships as never }
+      : {}),
+  });
+}
+
+/**
+ * Only a Markdown or JSON file can hold the spec or a description, so only those
+ * are held; any other file is digested as it streams past, however large.
+ */
+async function digested(dir: string, path: string) {
+  if (!/\.(md|json)$/.test(path)) {
+    const read = await hashRegular(dir, path);
+    return read.kind === "file" ? { ...read, bytes: new Uint8Array() } : read;
+  }
+  const read = await readRegular(dir, path);
+  if (read.kind !== "file") return read;
+  return {
+    kind: "file" as const,
+    digest: sha256(read.bytes),
+    size: read.bytes.byteLength,
+    bytes: read.bytes,
+  };
+}
+
+/**
+ * Files an existing `artifact.json` keeps in the blob store, which no folder holds:
+ * carried into the new envelope once the blob is there with the bytes they name.
+ */
+async function blobFiles(
+  root: string,
+  folder: VersionFolder,
+  existing: unknown,
+  onDisk: ReadonlySet<string>,
+  blobUrl: string,
+): Promise<FileDescriptor[]> {
+  const files = isRecord(existing) && Array.isArray(existing.files) ? existing.files : [];
+  const kept = files.filter((file) => inBlobStore(file) && !onDisk.has(file.path));
+  // A blob on another host is verified by whoever fetches it.
+  if (isRemote(blobUrl)) return kept;
+  for (const file of kept) {
+    const locator = locatorOf(file, folder.at, blobUrl);
+    const problem = await blobProblem(root, file, locator);
+    if (problem !== undefined) {
+      throw new SpecError(
+        `${folder.at}/${ENVELOPE} keeps ${file.path} in the blob store, but ${locator} ${problem}.`,
+        { path: locator },
+      );
+    }
+  }
+  return kept;
+}
+
+/** Why the blob store does not hold the bytes `file` names at `locator`, if it does not. */
+async function blobProblem(
+  root: string,
+  file: FileDescriptor,
+  locator: string,
+): Promise<string | undefined> {
+  const read = await hashRegular(root, locator).catch(() => undefined);
+  if (read === undefined) return "could not be read";
+  if (read.kind === "missing") return "is missing";
+  if (read.kind === "refused") return read.reason;
+  return read.digest === file.digest && read.size === file.size ? undefined : "holds other bytes";
 }
 
 /**
@@ -423,4 +408,19 @@ async function currentLatest(
     document: { ...document, latest: version },
     moved: document.latest !== version,
   };
+}
+
+/** An artifact whose `versions.json` is gone has nothing left to list. */
+async function withoutDeleted(
+  root: string,
+  index: Record<string, unknown>,
+  at: string,
+): Promise<Record<string, unknown>> {
+  const entries = index.entries as Record<string, unknown>[];
+  const kept: Record<string, unknown>[] = [];
+  for (const row of entries) {
+    const path = versionsPath(String(row.namespace), String(row.kind), String(row.name));
+    if (await exists(join(root, ...path.split(posix.sep)))) kept.push(row);
+  }
+  return kept.length === entries.length ? index : { ...index, generated_at: at, entries: kept };
 }

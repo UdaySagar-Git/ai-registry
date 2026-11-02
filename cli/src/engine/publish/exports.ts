@@ -95,26 +95,6 @@ export function forTarget(
   return { works: kept, skipped };
 }
 
-function untaken(work: Work, adapter: SourceAdapter, alias: string): string | undefined {
-  if (work.exported === undefined) return undefined;
-  const kinds = adapter.publishKinds ?? adapter.artifactKinds;
-  if (!kinds.includes(work.kind)) return `${alias} does not take ${work.kind}s`;
-  const files = work.exported.files?.length ?? 1;
-  if (work.kind !== "agent" || files <= 1 || adapter.capabilities.agentFolders === true) {
-    return undefined;
-  }
-  return `${alias} keeps no agent's files beyond its AGENT.md, and it has ${plural(files - 1, "more file")}`;
-}
-
-/** The work its registry takes, the exports it does not, and a warning for each edge left out. */
-export interface Taken {
-  works: Work[];
-  skipped: Skipped[];
-  /** The exports left out, by path, so an edge to one is left out too. */
-  left: Set<string>;
-  warnings: string[];
-}
-
 /** Skip unsupported exports and warn when their dependency edges are omitted. */
 export async function takenBy(
   works: readonly Work[],
@@ -146,6 +126,26 @@ export async function takenBy(
     }
   }
   return taken;
+}
+
+/** The work its registry takes, the exports it does not, and a warning for each edge left out. */
+export interface Taken {
+  works: Work[];
+  skipped: Skipped[];
+  /** The exports left out, by path, so an edge to one is left out too. */
+  left: Set<string>;
+  warnings: string[];
+}
+
+function untaken(work: Work, adapter: SourceAdapter, alias: string): string | undefined {
+  if (work.exported === undefined) return undefined;
+  const kinds = adapter.publishKinds ?? adapter.artifactKinds;
+  if (!kinds.includes(work.kind)) return `${alias} does not take ${work.kind}s`;
+  const files = work.exported.files?.length ?? 1;
+  if (work.kind !== "agent" || files <= 1 || adapter.capabilities.agentFolders === true) {
+    return undefined;
+  }
+  return `${alias} keeps no agent's files beyond its AGENT.md, and it has ${plural(files - 1, "more file")}`;
 }
 
 function localNeeds(entry: Export, found: ReadonlyMap<string, Export>, base: string): string[] {
@@ -200,23 +200,6 @@ export interface EdgeContext {
   planned: (path: string) => Promise<Planned | undefined>;
 }
 
-function sameRegistry(context: EdgeContext, alias: string): boolean {
-  if (alias === context.target.registry) return true;
-  const one = context.known[alias];
-  const other = context.known[context.target.registry];
-  return (
-    one !== undefined &&
-    other !== undefined &&
-    one.adapter === other.adapter &&
-    sourceKey(placeOf(one.location), one.config) ===
-      sourceKey(placeOf(other.location), other.config)
-  );
-}
-
-function placeOf(location: string): string {
-  return isAbsolute(location) ? resolve(location) : comparableLocation(location);
-}
-
 /** Resolve local exports and installed artifacts to exact dependency release labels. */
 export async function dependsOnFor(
   work: Work,
@@ -233,33 +216,6 @@ export async function dependsOnFor(
     if (edge !== undefined) edges.push(edge);
   }
   return edges;
-}
-
-/** Request only publish targets and dependencies by name, without version pins. */
-export async function publishWants(
-  works: readonly Work[],
-  where: ReadonlyMap<Work, { registry: string; namespace: string }>,
-  base: string,
-): Promise<Map<string, Want[]>> {
-  const wants = new Map<string, Map<string, Want>>();
-  const ask = (registry: string, want: Want) => {
-    const into = wants.get(registry) ?? new Map<string, Want>();
-    into.set(`${want.namespace}/${want.kind}/${want.name}`, want);
-    wants.set(registry, into);
-  };
-  for (const work of works) {
-    const target = where.get(work);
-    if (target === undefined) continue;
-    const { registry, namespace } = target;
-    ask(registry, { name: work.name, namespace, kind: work.kind });
-    for (const need of work.exported?.dependsOn ?? []) {
-      if (need.type !== "local") continue;
-      const path = artifactRoot(resolve(base, need.path));
-      const { name, kind } = works.find((each) => each.path === path) ?? (await fromPath(path));
-      ask(registry, { name, namespace, kind });
-    }
-  }
-  return new Map([...wants].map(([registry, into]) => [registry, [...into.values()]]));
 }
 
 async function localEdge(
@@ -329,4 +285,48 @@ async function remoteEdge(
     });
   }
   return { rel_type: "depends_on", to: `${ref.namespace}/${ref.kind}/${ref.name}@${locked}` };
+}
+
+function sameRegistry(context: EdgeContext, alias: string): boolean {
+  if (alias === context.target.registry) return true;
+  const one = context.known[alias];
+  const other = context.known[context.target.registry];
+  return (
+    one !== undefined &&
+    other !== undefined &&
+    one.adapter === other.adapter &&
+    sourceKey(placeOf(one.location), one.config) ===
+      sourceKey(placeOf(other.location), other.config)
+  );
+}
+
+function placeOf(location: string): string {
+  return isAbsolute(location) ? resolve(location) : comparableLocation(location);
+}
+
+/** Request only publish targets and dependencies by name, without version pins. */
+export async function publishWants(
+  works: readonly Work[],
+  where: ReadonlyMap<Work, { registry: string; namespace: string }>,
+  base: string,
+): Promise<Map<string, Want[]>> {
+  const wants = new Map<string, Map<string, Want>>();
+  const ask = (registry: string, want: Want) => {
+    const into = wants.get(registry) ?? new Map<string, Want>();
+    into.set(`${want.namespace}/${want.kind}/${want.name}`, want);
+    wants.set(registry, into);
+  };
+  for (const work of works) {
+    const target = where.get(work);
+    if (target === undefined) continue;
+    const { registry, namespace } = target;
+    ask(registry, { name: work.name, namespace, kind: work.kind });
+    for (const need of work.exported?.dependsOn ?? []) {
+      if (need.type !== "local") continue;
+      const path = artifactRoot(resolve(base, need.path));
+      const { name, kind } = works.find((each) => each.path === path) ?? (await fromPath(path));
+      ask(registry, { name, namespace, kind });
+    }
+  }
+  return new Map([...wants].map(([registry, into]) => [registry, [...into.values()]]));
 }

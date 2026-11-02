@@ -225,47 +225,6 @@ async function publishableTo(account: Account, source: RegistrySource): Promise<
         (adapter.publishKinds === undefined || adapter.publishKinds.includes(kind))));
 }
 
-function warnRefused(
-  refused: readonly { name: string; reason: string }[],
-  hooks: SyncExecutionHooks,
-): void {
-  for (const { name, reason } of refused) {
-    hooks.event(WARNING_EVENT, "importing", name, {
-      message: `Kept the previous copy of ${name}: ${reason}.`,
-    });
-  }
-}
-
-async function applyReported(
-  loaded: Loaded,
-  common: CommonOptions,
-  current: Scan,
-  names: ReadonlySet<string>,
-  published: ReadonlyMap<string, string | undefined>,
-  overrides: Overrides,
-  hooks: SyncExecutionHooks,
-): Promise<void> {
-  // An override is a person overruling the edit that caused the conflict, so
-  // the guard against an unasked-for overwrite has nothing left to protect.
-  const forced = [...overrides.values()].some((item) => item === "pull" || item === "remove-local");
-  const applied = await applyLocal(loaded, common, current, names, published, forced, (action) => {
-    if (action.kind !== "record") {
-      hooks.event("artifact.progress", "applying", action.name, { step: action.kind });
-    }
-  });
-  // What it did to a person's files, said wherever the run is followed.
-  for (const notice of applied.notices) {
-    hooks.event(WARNING_EVENT, "applying", undefined, notice);
-  }
-}
-
-function sends(outcome: SyncOutcome): boolean {
-  return (
-    (outcome.operation === "publish" || outcome.operation === "archive") &&
-    outcome.failure === undefined
-  );
-}
-
 /**
  * Reports each classified outcome now, except a publish or archive, which waits for its answer,
  * and one an import is about to change, which is held for the rescan after it.
@@ -285,47 +244,11 @@ function reportClassified(
   return { deferred, held };
 }
 
-/** A held row settles as the rescan after its import classified it, in the counts too. */
-function settleHeld(
-  held: readonly SyncOutcome[],
-  after: { outcomes: ReadonlyMap<string, SyncOutcome> } | undefined,
-  refreshed: readonly string[],
-  outcomes: SyncOutcome[],
-  hooks: SyncExecutionHooks,
-): SyncOutcome[] {
-  const deferred: SyncOutcome[] = [];
-  for (const before of held) {
-    const now =
-      (refreshed.includes(before.artifact)
-        ? after?.outcomes.get(artifactKey(before.kind, before.artifact))
-        : undefined) ?? before;
-    outcomes[outcomes.indexOf(before)] = now;
-    if (sends(now)) deferred.push(now);
-    else reportOutcome(now, hooks);
-  }
-  return deferred;
-}
-
-/** `--theirs` on a row of yours writes your folder too, which a pull alone never touches. */
-async function takeTheirs(
-  overrides: Overrides,
-  scan: Scan,
-  roots: Parameters<typeof takeIntoOrigins>[0],
-  registry: string,
-  hooks: SyncExecutionHooks,
-): Promise<void> {
-  const theirs = scan.items
-    .filter((item) => overrides.get(artifactKey(item.kind, item.name)) === "pull")
-    .map((item) => item.name);
-  if (theirs.length === 0) return;
-  for (const taken of await takeIntoOrigins(roots, theirs, backupStamp())) {
-    const kept = taken.backup === undefined ? "" : `; yours is in ${taken.backup}`;
-    hooks.event(WARNING_EVENT, "applying", taken.name, {
-      message: taken.written
-        ? `Wrote ${registry}'s ${taken.name} into ${taken.folder}${kept}.`
-        : `Kept ${taken.folder} as it is, since aireg may not replace it.`,
-    });
-  }
+function sends(outcome: SyncOutcome): boolean {
+  return (
+    (outcome.operation === "publish" || outcome.operation === "archive") &&
+    outcome.failure === undefined
+  );
 }
 
 function reportOutcome(outcome: SyncOutcome, hooks: SyncExecutionHooks): void {
@@ -344,130 +267,6 @@ function reportOutcome(outcome: SyncOutcome, hooks: SyncExecutionHooks): void {
     },
     outcome.detail === undefined ? undefined : { detail: outcome.detail },
   );
-}
-
-/**
- * A folder found before the import is a lock row after it, under the row's name: it settles
- * once, as that row, and the outcome classified for the folder is dropped.
- */
-function importedDeferred(
-  deferred: readonly SyncOutcome[],
-  current: Scan,
-  /** Outcome keys, from `refreshedKeys`. */
-  refreshed: readonly string[],
-  after: ReadonlyMap<string, SyncOutcome>,
-  initial: ReadonlyMap<string, SyncOperation>,
-): SyncOutcome[] {
-  const present = new Set([
-    ...current.items.map((item) => item.name),
-    ...current.local.map((item) => item.name),
-  ]);
-  const imported = refreshed.flatMap((key) => {
-    const item = after.get(key);
-    const sends = item?.operation === "publish" || item?.operation === "archive";
-    return item !== undefined && sends && item.failure === undefined && !initial.has(key)
-      ? [item]
-      : [];
-  });
-  return [...deferred.filter((item) => present.has(item.artifact)), ...imported];
-}
-
-/** The lock keys an import refreshed, as outcome keys: the row it just wrote says the kind. */
-function refreshedKeys(refreshed: readonly string[], lock: Loaded["lock"]): string[] {
-  return refreshed.flatMap((name) => {
-    const row = lock.artifacts[name];
-    return row === undefined ? [] : [artifactKey(row.kind, name)];
-  });
-}
-
-function withRefreshed(
-  operations: ReadonlyMap<string, SyncOperation>,
-  /** Outcome keys, from `refreshedKeys`. */
-  refreshed: readonly string[],
-  after: ReturnType<typeof classify>,
-): Map<string, SyncOperation> {
-  const updated = new Map(operations);
-  for (const key of refreshed) {
-    const item = after.outcomes.get(key);
-    if (item !== undefined) updated.set(key, item.operation);
-  }
-  return updated;
-}
-
-/** Folder rows live only in memory until the write, so they cross the reload. */
-async function reloadKeeping(
-  common: Parameters<typeof load>[0],
-  root: string,
-  loaded: Awaited<ReturnType<typeof load>>,
-  keys: readonly string[],
-): Promise<Awaited<ReturnType<typeof load>>> {
-  const rows = keys.flatMap((key) => {
-    const row = loaded.lock.artifacts[key];
-    return row === undefined ? [] : [[key, row] as const];
-  });
-  const fresh = await load(common, root);
-  for (const [key, row] of rows) fresh.lock.artifacts[key] = row;
-  return fresh;
-}
-
-/** Publishes, then settles each deferred outcome on what its own artifact met. */
-async function publishAndSettle(
-  mutate: (hooks: RemoteMutationHooks) => Promise<RemoteMutationResult>,
-  deferred: readonly SyncOutcome[],
-  hooks: SyncExecutionHooks,
-): Promise<{ remote: RemoteMutationResult; remoteError: unknown }> {
-  let remote: RemoteMutationResult = { published: new Map(), archived: new Set() };
-  let remoteError: unknown;
-  const refusals = new Map<string, unknown>();
-  const holds = new Map<string, string>();
-  // Only what reached the adapter can have been refused; the rest never left this machine.
-  const attempted = new Set<string>();
-  try {
-    remote = await mutate({
-      event: (step, artifact) => hooks.event("artifact.progress", "publishing", artifact, { step }),
-      sent: (artifact) => attempted.add(artifact),
-      failed: (artifact, error) => refusals.set(artifact, error),
-      held: (artifact, reason) => holds.set(artifact, reason),
-    });
-  } catch (error) {
-    remoteError = error;
-    // An archive can land before the publish after it fails, and that has
-    // already changed what the apply step must be rebased on.
-    remote = partialMutation(error) ?? remote;
-  }
-  settlePublished(
-    deferred,
-    {
-      attempted,
-      published: new Set(remote.published.keys()),
-      archived: remote.archived,
-      refusals,
-      holds,
-    },
-    remoteError,
-    hooks,
-  );
-  return { remote, remoteError };
-}
-
-/** The identical copies a claim found, moved aside so the pull can link the registry's. */
-async function moveClaimedAside(
-  claimed: readonly Claim[],
-  roots: Parameters<typeof moveAside>[3],
-  registry: string,
-  hooks: SyncExecutionHooks,
-): Promise<void> {
-  const stamp = backupStamp();
-  for (const claim of claimed) {
-    const moved = await moveAside(claim.kind, claim.name, claim.identical, roots, stamp);
-    if (moved.length === 0) continue;
-    const from = moved.map((copy) => copy.from).join(", ");
-    const to = moved.map((copy) => copy.to).join(", ");
-    hooks.event("artifact.progress", "claiming", claim.name, {
-      step: "claimed",
-      detail: `already in ${registry}; moved ${from} to ${to}`,
-    });
-  }
 }
 
 /**
@@ -515,4 +314,205 @@ async function claims(
     );
   }
   return moving;
+}
+
+/** The identical copies a claim found, moved aside so the pull can link the registry's. */
+async function moveClaimedAside(
+  claimed: readonly Claim[],
+  roots: Parameters<typeof moveAside>[3],
+  registry: string,
+  hooks: SyncExecutionHooks,
+): Promise<void> {
+  const stamp = backupStamp();
+  for (const claim of claimed) {
+    const moved = await moveAside(claim.kind, claim.name, claim.identical, roots, stamp);
+    if (moved.length === 0) continue;
+    const from = moved.map((copy) => copy.from).join(", ");
+    const to = moved.map((copy) => copy.to).join(", ");
+    hooks.event("artifact.progress", "claiming", claim.name, {
+      step: "claimed",
+      detail: `already in ${registry}; moved ${from} to ${to}`,
+    });
+  }
+}
+
+function warnRefused(
+  refused: readonly { name: string; reason: string }[],
+  hooks: SyncExecutionHooks,
+): void {
+  for (const { name, reason } of refused) {
+    hooks.event(WARNING_EVENT, "importing", name, {
+      message: `Kept the previous copy of ${name}: ${reason}.`,
+    });
+  }
+}
+
+/** The lock keys an import refreshed, as outcome keys: the row it just wrote says the kind. */
+function refreshedKeys(refreshed: readonly string[], lock: Loaded["lock"]): string[] {
+  return refreshed.flatMap((name) => {
+    const row = lock.artifacts[name];
+    return row === undefined ? [] : [artifactKey(row.kind, name)];
+  });
+}
+
+function withRefreshed(
+  operations: ReadonlyMap<string, SyncOperation>,
+  /** Outcome keys, from `refreshedKeys`. */
+  refreshed: readonly string[],
+  after: ReturnType<typeof classify>,
+): Map<string, SyncOperation> {
+  const updated = new Map(operations);
+  for (const key of refreshed) {
+    const item = after.outcomes.get(key);
+    if (item !== undefined) updated.set(key, item.operation);
+  }
+  return updated;
+}
+
+/**
+ * A folder found before the import is a lock row after it, under the row's name: it settles
+ * once, as that row, and the outcome classified for the folder is dropped.
+ */
+function importedDeferred(
+  deferred: readonly SyncOutcome[],
+  current: Scan,
+  /** Outcome keys, from `refreshedKeys`. */
+  refreshed: readonly string[],
+  after: ReadonlyMap<string, SyncOutcome>,
+  initial: ReadonlyMap<string, SyncOperation>,
+): SyncOutcome[] {
+  const present = new Set([
+    ...current.items.map((item) => item.name),
+    ...current.local.map((item) => item.name),
+  ]);
+  const imported = refreshed.flatMap((key) => {
+    const item = after.get(key);
+    const sends = item?.operation === "publish" || item?.operation === "archive";
+    return item !== undefined && sends && item.failure === undefined && !initial.has(key)
+      ? [item]
+      : [];
+  });
+  return [...deferred.filter((item) => present.has(item.artifact)), ...imported];
+}
+
+/** A held row settles as the rescan after its import classified it, in the counts too. */
+function settleHeld(
+  held: readonly SyncOutcome[],
+  after: { outcomes: ReadonlyMap<string, SyncOutcome> } | undefined,
+  refreshed: readonly string[],
+  outcomes: SyncOutcome[],
+  hooks: SyncExecutionHooks,
+): SyncOutcome[] {
+  const deferred: SyncOutcome[] = [];
+  for (const before of held) {
+    const now =
+      (refreshed.includes(before.artifact)
+        ? after?.outcomes.get(artifactKey(before.kind, before.artifact))
+        : undefined) ?? before;
+    outcomes[outcomes.indexOf(before)] = now;
+    if (sends(now)) deferred.push(now);
+    else reportOutcome(now, hooks);
+  }
+  return deferred;
+}
+
+/** Publishes, then settles each deferred outcome on what its own artifact met. */
+async function publishAndSettle(
+  mutate: (hooks: RemoteMutationHooks) => Promise<RemoteMutationResult>,
+  deferred: readonly SyncOutcome[],
+  hooks: SyncExecutionHooks,
+): Promise<{ remote: RemoteMutationResult; remoteError: unknown }> {
+  let remote: RemoteMutationResult = { published: new Map(), archived: new Set() };
+  let remoteError: unknown;
+  const refusals = new Map<string, unknown>();
+  const holds = new Map<string, string>();
+  // Only what reached the adapter can have been refused; the rest never left this machine.
+  const attempted = new Set<string>();
+  try {
+    remote = await mutate({
+      event: (step, artifact) => hooks.event("artifact.progress", "publishing", artifact, { step }),
+      sent: (artifact) => attempted.add(artifact),
+      failed: (artifact, error) => refusals.set(artifact, error),
+      held: (artifact, reason) => holds.set(artifact, reason),
+    });
+  } catch (error) {
+    remoteError = error;
+    // An archive can land before the publish after it fails, and that has
+    // already changed what the apply step must be rebased on.
+    remote = partialMutation(error) ?? remote;
+  }
+  settlePublished(
+    deferred,
+    {
+      attempted,
+      published: new Set(remote.published.keys()),
+      archived: remote.archived,
+      refusals,
+      holds,
+    },
+    remoteError,
+    hooks,
+  );
+  return { remote, remoteError };
+}
+
+/** Folder rows live only in memory until the write, so they cross the reload. */
+async function reloadKeeping(
+  common: Parameters<typeof load>[0],
+  root: string,
+  loaded: Awaited<ReturnType<typeof load>>,
+  keys: readonly string[],
+): Promise<Awaited<ReturnType<typeof load>>> {
+  const rows = keys.flatMap((key) => {
+    const row = loaded.lock.artifacts[key];
+    return row === undefined ? [] : [[key, row] as const];
+  });
+  const fresh = await load(common, root);
+  for (const [key, row] of rows) fresh.lock.artifacts[key] = row;
+  return fresh;
+}
+
+async function applyReported(
+  loaded: Loaded,
+  common: CommonOptions,
+  current: Scan,
+  names: ReadonlySet<string>,
+  published: ReadonlyMap<string, string | undefined>,
+  overrides: Overrides,
+  hooks: SyncExecutionHooks,
+): Promise<void> {
+  // An override is a person overruling the edit that caused the conflict, so
+  // the guard against an unasked-for overwrite has nothing left to protect.
+  const forced = [...overrides.values()].some((item) => item === "pull" || item === "remove-local");
+  const applied = await applyLocal(loaded, common, current, names, published, forced, (action) => {
+    if (action.kind !== "record") {
+      hooks.event("artifact.progress", "applying", action.name, { step: action.kind });
+    }
+  });
+  // What it did to a person's files, said wherever the run is followed.
+  for (const notice of applied.notices) {
+    hooks.event(WARNING_EVENT, "applying", undefined, notice);
+  }
+}
+
+/** `--theirs` on a row of yours writes your folder too, which a pull alone never touches. */
+async function takeTheirs(
+  overrides: Overrides,
+  scan: Scan,
+  roots: Parameters<typeof takeIntoOrigins>[0],
+  registry: string,
+  hooks: SyncExecutionHooks,
+): Promise<void> {
+  const theirs = scan.items
+    .filter((item) => overrides.get(artifactKey(item.kind, item.name)) === "pull")
+    .map((item) => item.name);
+  if (theirs.length === 0) return;
+  for (const taken of await takeIntoOrigins(roots, theirs, backupStamp())) {
+    const kept = taken.backup === undefined ? "" : `; yours is in ${taken.backup}`;
+    hooks.event(WARNING_EVENT, "applying", taken.name, {
+      message: taken.written
+        ? `Wrote ${registry}'s ${taken.name} into ${taken.folder}${kept}.`
+        : `Kept ${taken.folder} as it is, since aireg may not replace it.`,
+    });
+  }
 }

@@ -248,7 +248,7 @@ export function activityPanel(props: {
   code: number | undefined;
   /** What the run's own counts say it has got through, while it is going. */
   progress: string | undefined;
-  /** How long it has been going. A publish uploads one artifact at a time. */
+  /** Shown from 2 s on: a publish uploads one artifact at a time, so a run can take a while. */
   elapsedMs: number;
   /**
    * What the state actually says now that it has finished, read back rather

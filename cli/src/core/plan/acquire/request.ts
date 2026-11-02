@@ -121,7 +121,6 @@ function lockedWant(row: LockArtifact, free: boolean): Want {
   };
 }
 
-/** Whether the manifest still declares a registry the way the lock recorded reading it. */
 function sameDeclaration(declared: RegistrySource | undefined, locked: LockRegistry): boolean {
   return (
     declared !== undefined &&

@@ -95,10 +95,10 @@ export function operation(disposition: Disposition, policy: SyncPolicy): SyncOpe
       return selected(policy.delete, "archive");
     case "removed":
       return "forget";
-    case "conflict":
-    case "unknown":
     // A person has to look: retrying on a schedule would hide a withdrawn
     // artifact behind an error that never changes.
+    case "conflict":
+    case "unknown":
     case "unavailable":
       return "attention";
   }

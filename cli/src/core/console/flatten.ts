@@ -6,7 +6,7 @@ export type Line =
 
 export interface FlattenOptions {
   folded: ReadonlySet<string>;
-  /** Substring match on the name, the namespace and the state. */
+  /** Case-insensitive substring of the key, state, group label, namespace or version. */
   filter: string;
   /** When set, only rows in this state survive. */
   only: ArtifactState | undefined;

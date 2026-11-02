@@ -40,7 +40,7 @@ function trustedUrl(raw: unknown, origin: string | undefined, field: string): UR
   return url;
 }
 
-/** Read up to the cap and no further, so a server that never stops sending cannot exhaust memory. */
+/** Stops at the cap, so a server that never stops sending cannot exhaust memory. */
 async function readJson(response: Response): Promise<Record<string, unknown>> {
   const tooLarge = () => failed("The sign-in server's answer is too large.");
   if (Number(response.headers.get("content-length")) > MAX_BODY_BYTES) {

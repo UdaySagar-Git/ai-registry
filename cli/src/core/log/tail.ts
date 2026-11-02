@@ -31,12 +31,11 @@ interface Read {
   inode: number;
   /** True when the file was rolled or truncated, so reading began again at its start. */
   restarted: boolean;
-  /** Where the next read begins. */
-  end: number;
+  nextOffset: number;
   bytes: Buffer;
 }
 
-/** The bytes past `offset` up to the size the file has now, never past it. */
+/** The bytes from `offset` to the file's current size; undefined when it cannot be opened. */
 async function readPast(
   path: string,
   offset: number,
@@ -54,7 +53,12 @@ async function readPast(
     const from = restarted ? 0 : offset;
     const bytes = Buffer.alloc(size - from);
     const { bytesRead } = await handle.read(bytes, 0, bytes.length, from);
-    return { inode: ino, restarted, end: from + bytesRead, bytes: bytes.subarray(0, bytesRead) };
+    return {
+      inode: ino,
+      restarted,
+      nextOffset: from + bytesRead,
+      bytes: bytes.subarray(0, bytesRead),
+    };
   } finally {
     await handle.close();
   }
@@ -86,7 +90,7 @@ export async function* follow(options: TailOptions): AsyncGenerator<string> {
         // Rolled or truncated: whatever was buffered past the cut is gone.
         if (read.restarted) pending = Buffer.alloc(0);
         inode = read.inode;
-        offset = read.end;
+        offset = read.nextOffset;
         const bytes = Buffer.concat([pending, read.bytes]);
         const complete = bytes.lastIndexOf(NEWLINE) + 1;
         pending = bytes.subarray(complete);

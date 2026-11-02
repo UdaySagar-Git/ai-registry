@@ -73,7 +73,6 @@ function asked(request: Request | undefined, lock: Lock, alias: string): [Want[]
   return [[...names].map((name) => ({ name })), {}];
 }
 
-/** The namespaces a manifest takes whole from one registry; `*` for all of it. */
 /** The manifest's whole-registry and whole-namespace entries for one registry. */
 function wholes(manifest: Manifest, alias: string): Ref[] {
   return manifest.artifacts.filter((ref) => ref.registry === alias && ref.name === undefined);
@@ -176,18 +175,17 @@ function row(
     };
   }
 
-  // A source that attests content answers without a download; one that does not
-  // can only be compared on the version it publishes. A latest that a yank moved
-  // below what is installed is older, so it is not offered as an update.
+  // An attesting source compares content, any other only its version. A latest that a
+  // yank moved below what is installed is older, so it is not offered as an update.
   const moved =
     !olderThan(upstream.version, entry.version) &&
     (upstream.contentId !== undefined && entry.content !== ""
       ? upstream.contentId !== entry.content
       : upstream.version !== entry.version);
 
+  // `current` mirrors `latest`: the version when there is one, the content digest otherwise.
   return {
     ...base,
-    // Mirrors `latest`: the version when there is one, the content digest otherwise.
     current: entry.version ?? (entry.content === undefined ? "?" : abbreviate(entry.content)),
     latest,
     moved,
@@ -220,7 +218,7 @@ function additions(manifest: Manifest, lock: Lock, heads: Map<string, Head>): Ro
       if (entry?.kind !== "plugin" && entry?.group !== undefined && plugins.has(entry.group)) {
         continue;
       }
-      // Covered as install reads it: by a whole entry that doesn't leave it out.
+      // Covered as install reads it: by a whole entry that does not leave it out.
       const covered = refs.some(
         (ref) =>
           (ref.namespace === undefined || ref.namespace === namespace) &&

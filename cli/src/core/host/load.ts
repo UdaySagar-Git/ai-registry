@@ -84,7 +84,7 @@ export async function stepForFlags(
 /** Console tabs, in load order. A duplicate id is dropped, as for commands. */
 // biome-ignore lint/suspicious/noExplicitAny: each panel names its own state.
 export async function contributedPanels(): Promise<readonly PanelContribution<any>[]> {
-  // biome-ignore lint/suspicious/noExplicitAny: as above.
+  // biome-ignore lint/suspicious/noExplicitAny: each panel names its own state.
   const panels: PanelContribution<any>[] = [];
   const seen = new Set<string>();
   for (const { extend } of await loadedExtensions()) {

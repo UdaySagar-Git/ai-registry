@@ -105,7 +105,6 @@ describe("upstreamFacts", () => {
         operation: "publish",
         outcome: "changed",
       }),
-      // Reported, never sent: nothing upstream is waiting on it.
       event({
         artifact: "mine/edited",
         disposition: "publish",
@@ -113,6 +112,7 @@ describe("upstreamFacts", () => {
         outcome: "attention",
       }),
     ]);
+    // `mine/edited` was only reported, never sent, so nothing upstream waits on it.
     expect([...facts.pending]).toEqual(["mine/demo"]);
   });
 });

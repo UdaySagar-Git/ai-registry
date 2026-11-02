@@ -4,7 +4,6 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { Disposition } from "#core/sync/model.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
 
-/** What a run was asked to do. */
 export const RUN_MODES = ["sync", "pull", "publish"] as const;
 export type RunMode = (typeof RUN_MODES)[number];
 
@@ -53,7 +52,10 @@ export function isInterrupted(state: RunState): boolean {
   return state === "canceled" || state === "abandoned";
 }
 
-/** Why a run, or one item in it, failed; an adapter's refusal is `adapter_<failure>`. */
+/**
+ * Why a run, or one item in it, failed; an adapter's refusal is `adapter_<failure>`.
+ * `in_review` is held by the registry for review: waiting, not refused.
+ */
 export const RunErrorCode = {
   Canceled: "run_canceled",
   DaemonStopped: "daemon_stopped",
@@ -63,7 +65,6 @@ export const RunErrorCode = {
   LeaseLost: "lease_lost",
   ScopeUnmatched: "run_scope_unmatched",
   SyncFailed: "sync_failed",
-  /** Held by the registry for review: waiting, not refused. */
   InReview: "in_review",
 } as const;
 
@@ -149,7 +150,6 @@ export interface RunEvent {
   seq: number;
   occurredAtMs: number;
   eventType: string;
-  /** The step that emitted this. */
   step: string | undefined;
   /** The item this is about, as the step that emitted it names it. */
   artifact: string | undefined;

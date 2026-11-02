@@ -28,6 +28,7 @@ export async function chooseRegistry(
           : ask.usage(list(aliases, "or")),
     });
   }
+  // A cloned project's manifest can put line breaks and escapes in an address.
   const picked = await select<string>(
     {
       message: ask.message,
@@ -36,7 +37,6 @@ export async function chooseRegistry(
       options: aliases.map((alias) => ({
         value: alias,
         label: alias,
-        // A cloned project's manifest can put line breaks and escapes in an address.
         hint: sanitizeText(withoutCredentials(known[alias]?.location ?? "")),
       })),
     },

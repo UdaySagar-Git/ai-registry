@@ -8,22 +8,15 @@ import { assertRemovable, type RemovableRoots, removal } from "#core/plan/remova
 import { moveToBackup } from "#core/store/backups.ts";
 
 /**
- * What may happen to whatever sits where a link is about to go. Only what aireg
- * made is replaced; nothing a person put there is ever deleted.
+ * What happens to whatever sits where a link goes: `replace` nothing or aireg's own, `backup`
+ * (move aside) a person's swap of a recorded link, `keep` the rest. Nothing of theirs is deleted.
  */
-export type LinkGuard =
-  /** Nothing there, or aireg's own link or copy. */
-  | "replace"
-  /** A person swapped a link the lockfile recorded for their own: moved aside first. */
-  | "backup"
-  /** Never linked here by aireg, or reached through a link: left alone. */
-  | "keep";
+export type LinkGuard = "replace" | "backup" | "keep";
 
 export async function guardLink(
   to: string,
   recorded: LinkMode | undefined,
   roots: RemovableRoots,
-  /** What a written placement would hold, and the file it would hold it in. */
   rendered?: { file: string; text: string },
 ): Promise<LinkGuard> {
   const state = await inspect(to);

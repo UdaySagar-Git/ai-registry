@@ -215,7 +215,7 @@ export async function rollback(env: NodeJS.ProcessEnv = process.env): Promise<st
   return previous;
 }
 
-/** Oldest versions beyond `keep` newest, newest-first input not required. */
+/** The versions older than the newest `keep`, from input in any order. */
 export function versionsToPrune(versions: readonly string[], keep = 2): string[] {
   return [...versions].sort((a, b) => (gte(a, b) ? -1 : 1)).slice(keep);
 }

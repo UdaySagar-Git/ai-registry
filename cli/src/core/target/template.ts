@@ -84,7 +84,6 @@ function bind(segment: Segment, part: string, into: Record<string, string>): boo
   return true;
 }
 
-/** A path a template placed, and what it carries. */
 export interface PlacedPath {
   path: string;
   /** The target root it is under, which the template does not name. */

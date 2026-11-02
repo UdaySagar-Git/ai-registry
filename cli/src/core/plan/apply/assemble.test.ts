@@ -36,7 +36,6 @@ describe("assembling a projection", () => {
     await assemble(projection(), content(), ["claude-code"]);
     expect(await readdir(projection())).not.toContain("agents");
 
-    // What a run does: the rest of the namespace clones, then it rebuilds.
     await publish("agents", "rev.md");
     await assemble(projection(), content(), ["claude-code"]);
     expect(await readdir(projection())).toContain("agents");

@@ -54,6 +54,7 @@ describe("day", () => {
 });
 
 describe("displayWidth", () => {
+  // A frame glyph counted as two would leave every redraw a row short.
   test.each<[string, string, number]>([
     ["styling", "\u001B[32mok\u001B[0m", 2],
     ["wide glyphs", "日本한국어", 10],
@@ -61,7 +62,6 @@ describe("displayWidth", () => {
     ["a joined emoji", "👨‍👩‍👧", 2],
     ["a flag", "🇯🇵", 2],
     ["a combining mark", "e\u0301", 1],
-    // A frame glyph counted as two would leave every redraw a row short.
     ["the frame glyphs", "│❯●◐◆◇■▸▾├╴╰╴↳·↑↓←→", 19],
   ])("counts %s in terminal cells", (_, text, width) => {
     expect(displayWidth(text)).toBe(width);

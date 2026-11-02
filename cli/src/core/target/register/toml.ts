@@ -1,8 +1,5 @@
 import { AiregError, ErrorCode } from "#core/errors.ts";
 
-// A line editor for the tables a target config holds: it rewrites only the
-// lines of the one table it is given, so a person's comments and layout survive.
-
 export type TomlScalar = string | number | boolean;
 
 const MAX_BYTES = 1_000_000;
@@ -313,7 +310,10 @@ function rewrite(
   return render(found, [...lines.slice(0, start + 1), ...added, ...body, ...lines.slice(end)]);
 }
 
-/** Sets each key in the table at `at`, in place where it is already set. Other keys are kept. */
+/**
+ * Sets each key in the table at `at`, in place where it is already set. Only that table's lines
+ * change, so other keys and a person's comments and layout survive.
+ */
 export function setKeys(
   text: string,
   at: readonly string[],

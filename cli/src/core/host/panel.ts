@@ -153,7 +153,7 @@ export interface PanelContribution<S = unknown> {
   onKey?(input: string, context: PanelKeyContext<S>): void;
   /** Where `o` goes with this row selected. */
   link?(view: PanelView<S>): string | undefined;
-  /** A lazy read for the visible window, so a long list never reads every file to draw a screen; resolving true redraws. */
+  /** Reads only the visible window, so a long list never reads every file; true redraws. */
   prefetch?(view: PanelView<S>): Promise<boolean>;
   /** First rendered row of this list. Ink reports no geometry to measure. */
   listTop?: number;

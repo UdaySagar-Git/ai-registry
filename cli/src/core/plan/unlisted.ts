@@ -21,7 +21,7 @@ function listed(row: LockArtifact, source: Acquired): boolean {
   return entryFor(entries, row.namespace, row.kind, row.name) !== undefined;
 }
 
-// An empty listing is still taken for a broken read, whatever the adapter says of it.
+/** An empty listing is still taken for a broken read, whatever the adapter says of it. */
 function deletedFrom(source: Acquired): boolean {
   return (
     source.whole === true && source.catalog.complete === true && source.catalog.entries.length > 0
@@ -30,8 +30,7 @@ function deletedFrom(source: Acquired): boolean {
 
 /**
  * Rows a registry read this run stopped listing, though the manifest still reaches them. A short
- * listing is not a removal: only `aireg remove` takes an installed artifact out, unless the
- * adapter read the whole listing to its end and no entry names the row.
+ * listing is not a removal; only a complete read of the whole listing drops an unnamed row.
  */
 export function unlistedRows(
   manifest: Manifest,
@@ -58,14 +57,14 @@ export function unlistedRows(
   return found.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Why a row is held, for a sync to show beside its name: `acme no longer lists it`. */
+/** Why a row is held, for a sync to show beside its name. */
 export function unlistedReason(item: Unlisted): string {
   return item.empty
     ? `${item.registry} lists no artifacts now`
     : `${item.registry} no longer lists it`;
 }
 
-/** Why a row was kept, to end a sentence with: `acme no longer lists "lint", so it was kept`. */
+/** Why a row was kept, worded to end a sentence. */
 export function unlistedMessage(item: Unlisted): string {
   return item.empty
     ? `${item.registry} lists no artifacts now, so ${quoted(item.name)} was kept`

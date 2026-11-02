@@ -17,11 +17,8 @@ function isGitDir(segment: string): boolean {
 }
 
 /**
- * A relative POSIX path every platform writes inside the folder it is joined to:
- * no empty, `.` or `..` segment, no backslash, no `:` (a drive or a Windows stream),
- * no control character and no `.git` segment, which would make the folder a repository.
- * A spelling that would later be refused or rewritten must never reach the content
- * key, or two byte-identical trees hash differently.
+ * A relative POSIX path every platform writes inside the folder it joins, with no `.git` segment.
+ * A spelling later refused or rewritten must never reach the content key, or equal trees differ.
  */
 export function isSafePath(path: string): boolean {
   if (path === "" || posix.isAbsolute(path) || UNPRINTABLE.test(path)) return false;
@@ -62,7 +59,7 @@ export function isWithin(base: string, target: string): boolean {
   return !rel.startsWith(`..${sep}`) && rel !== ".." && !isAbsolute(rel);
 }
 
-/** Every path built from remote input passes through here before it is used. */
+/** Throws unless `target` is `base` or inside it; every path from remote input passes here. */
 export function assertWithin(base: string, target: string, what = "path"): void {
   if (!isWithin(base, target)) {
     throw new Error(`Refusing to use ${what} outside ${base}: ${target}`);
@@ -94,9 +91,8 @@ function absoluteFolders(path: string | undefined): string[] {
 }
 
 /**
- * `env` with PATH reduced to its absolute folders. A spawn resolves an empty or relative entry
- * against the child's working folder, which may be a checkout a registry wrote. A PATH with no
- * absolute folder throws rather than empties, since an empty PATH searches that folder too.
+ * `env` with PATH cut to its absolute folders: a spawn resolves any other entry against its working
+ * folder, which a registry may have written. Throws rather than empty PATH, which searches it too.
  */
 export function withAbsolutePath(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const kept = { ...env };

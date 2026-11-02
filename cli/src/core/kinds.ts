@@ -4,9 +4,8 @@ import { AGENT_CARD_ENTRY } from "./product.ts";
 
 /** How a kind appears in a registry, and what it is called there. */
 export interface KindSpec {
-  /** Directory name, both in a registry and in this scope's own copies. */
+  /** Plural directory name in this scope's own copies and in every target. */
   dir: string;
-  /** A skill is a directory with a SKILL.md; an agent is a single file. */
   shape: "directory" | "file";
   /** Extensions a file-shaped kind may use. Empty for directory-shaped kinds. */
   extensions: readonly string[];
@@ -25,7 +24,6 @@ export const SKILL_ENTRY = "SKILL.md";
 /** The one file a registry's agent version folder holds. */
 export const AGENT_ENTRY = "AGENT.md";
 
-/** Shared directory and shape vocabulary for discovery and staging. */
 export const KIND_SPECS: Record<ArtifactKind, KindSpec> = {
   plugin: { dir: "plugins", shape: "directory", extensions: [] },
   skill: { dir: "skills", shape: "directory", extensions: [], entry: SKILL_ENTRY },

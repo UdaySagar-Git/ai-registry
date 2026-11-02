@@ -207,6 +207,8 @@ async function rowFor(
   digest: string,
   recorded: LockArtifact | undefined,
 ): Promise<LockArtifact> {
+  // The folder a person wrote is already where the target reads it, so
+  // nothing is linked and nothing of theirs is ever pointed over.
   return {
     registry: origin.registry,
     id: recorded?.id,
@@ -223,8 +225,6 @@ async function rowFor(
       path: portable(roots, origin.from),
       step: origin.step,
     },
-    // The folder a person wrote is already where the target reads it, so
-    // nothing is linked and nothing of theirs is ever pointed over.
     links: [],
   };
 }
@@ -303,9 +303,8 @@ export function recordServed(
 }
 
 /**
- * Once no job watches a folder, the rows its folder step kept stop being yours to publish:
- * each row and the copy aireg kept of it go, and the folder they came from stays as it is.
- * The caller holds the scope's lease.
+ * Once no job watches a folder, its folder step's rows and the copies aireg kept go, and the
+ * folder itself stays. The caller holds the scope's lease.
  */
 export async function forgetOrigins(
   roots: Roots,

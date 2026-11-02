@@ -24,14 +24,16 @@ function subjectOf(items: readonly Planned[]): string {
   );
 }
 
-/** Publishes one registry's share of the work and says what happens next. */
+/**
+ * Publishes one registry's share of the work and says what happens next.
+ * `options.checkout` is where to `cd` to commit, when the registry folder is a git checkout.
+ */
 export async function sendTo(
   printer: CommandContext["printer"],
   step: Interaction,
   alias: string,
   items: Planned[],
   opened: Published,
-  /** Where to `cd` to commit, when the registry folder is a git checkout. */
   options: { message: string | undefined; asked: boolean; checkout: string | undefined },
 ): Promise<PublishResult | undefined | "canceled"> {
   const { adapter, handle } = opened.source;

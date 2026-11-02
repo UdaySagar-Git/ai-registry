@@ -93,11 +93,11 @@ function selection(resolved: Resolved, picks: CommonOptions) {
     picks.select !== undefined || resolved.name === undefined
       ? picks
       : { ...picks, select: [resolved.name] };
+  // Only one address is read on its own: a `--select` value may name a
+  // namespace, which the catalog has to be read to recognize.
   return {
     asked,
     named: asked.select?.includes("*") === true ? undefined : asked.select,
-    // Only one address is read on its own: a `--select` value may name a
-    // namespace, which the catalog has to be read to recognize.
     partial: resolved.name !== undefined && picks.select === undefined,
   };
 }

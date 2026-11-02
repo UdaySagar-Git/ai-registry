@@ -84,6 +84,7 @@ function planWith(
   for (const source of acquired) {
     next.registries[source.alias] = lockSourceOf(source.origin);
   }
+  // Namespaces wrap only at user scope, as the adapter contract says, whoever loads plugins.
   const state: BuildState = {
     lock,
     survey,
@@ -99,7 +100,6 @@ function planWith(
     wants: new Map(),
     recorded: new Map(),
     linked: new Set(),
-    // Namespaces wrap only at user scope, as the adapter contract says, whoever loads plugins.
     wrapping: new Set(
       options.roots.scope === "user"
         ? acquired.filter((source) => source.namespacePlugins).map((source) => source.alias)

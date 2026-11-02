@@ -23,10 +23,6 @@ import { type OriginOutcome, surveyOrigins } from "./origins.ts";
 import type { Scan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
 
-/**
- * Every input is a value the impure half already resolved, which is what lets a
- * dry run and a real run agree about the plan.
- */
 export interface SyncOutcome {
   artifact: string;
   kind: ArtifactKind;
@@ -207,6 +203,10 @@ function decided(item: SyncItem, operation: SyncOperation): SyncOutcome {
   };
 }
 
+/**
+ * Every input is a value the impure half already resolved, which is what lets a
+ * dry run and a real run agree about the plan.
+ */
 export function classify(
   scan: Scan,
   job: ScopeWork,

@@ -77,6 +77,7 @@ export async function add(
       job,
       existed,
     } = await withFreshConfig(client, async (config) => {
+      // Your own folders are there to be published; a flag still says otherwise.
       const made = await client.request("job.create", {
         expectedRevision: config.revision,
         root: planned.jobRoot,
@@ -88,7 +89,6 @@ export async function add(
         ...(origins === undefined ? {} : { origins }),
         ...(own.name === undefined ? {} : { name: own.name }),
         intervalSeconds: seconds,
-        // Your own folders are there to be published; a flag still says otherwise.
         policy: {
           ...(origins === undefined ? {} : { publish: "on" as const }),
           ...planned.policy,

@@ -22,7 +22,6 @@ import { envelopeSpec } from "./kind-manifests.ts";
 
 const reading = limiter(CONCURRENCY);
 
-/** Where one artifact goes: the caller decides the name, namespace and version. */
 export interface OfferTarget {
   name: string;
   kind: ArtifactKind;
@@ -35,7 +34,7 @@ export interface OfferTarget {
   asAgentDocument?: boolean | undefined;
   /** The edges the version carries, such as its `depends_on`. Absent, it carries none. */
   relationships?: readonly PublishRelationship[] | undefined;
-  /** Selected files in publication order, mapped to their destination paths. */
+  /** Selected files in publication order, mapped to destination paths. Absent, every file is sent. */
   files?: readonly { from: string; as: string }[] | undefined;
 }
 
@@ -74,7 +73,7 @@ function edgesOf(target: OfferTarget): PublishRelationship[] {
   });
 }
 
-/** A target's agent file may omit the name a registry agent requires; the artifact's name supplies it. */
+/** A registry agent requires a name the agent file may omit; the artifact's name fills it. */
 function agentDocument(content: Buffer, target: OfferTarget): UploadFile {
   const text = content.toString("utf8");
   const record = frontmatterRecord(text);
@@ -140,7 +139,7 @@ async function uploadFiles(path: string, target: OfferTarget): Promise<UploadFil
   );
 }
 
-/** One artifact on disk as an adapter takes it, described the way an adapter reads one. */
+/** One artifact on disk as an adapter takes it for a publish. */
 export async function offerFrom(
   path: string,
   target: OfferTarget,
@@ -167,6 +166,7 @@ export async function offerFrom(
     nativeAgent && entry !== undefined
       ? (frontmatterRecord(Buffer.from(entry.content).toString("utf8")) ?? {})
       : envelopeSpec(target.kind, bytes, undefined, target.name);
+  // Relationships are part of the content identity: a version whose only change is an edge is new.
   const input: PublishInput = {
     ...(target.id === undefined || target.id === "" ? {} : { id: target.id }),
     name: target.name,
@@ -180,7 +180,6 @@ export async function offerFrom(
         metadata: { name: target.name, ...(description === undefined ? {} : { description }) },
         files: descriptors,
         spec,
-        // Part of the content identity: a version whose only change is an edge is a new one.
         relationships,
       }),
     ),

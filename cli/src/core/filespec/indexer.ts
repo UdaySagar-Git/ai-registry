@@ -44,7 +44,6 @@ import { authored, exists, refusal, subdirectories } from "#core/fs/tree.ts";
 import { withLease } from "#core/lease/lease.ts";
 import { envelopeSpec, type KindManifest, kindsOf } from "./kind-manifests.ts";
 
-/** One version folder, as the path grammar reads it. */
 export interface VersionFolder {
   namespace: string;
   kind: string;
@@ -93,8 +92,8 @@ function json(root: string, path: string): Promise<unknown | undefined> {
 }
 
 /**
- * Versions a `versions.json` already lists, with their digests. `cache` keeps one read per
- * artifact for a run, since reading it per version folder would be quadratic.
+ * Versions a `versions.json` already lists, mapped to their digests. `cache` keeps one read per
+ * artifact for a run, since a read per version folder would be quadratic.
  */
 export async function listed(
   root: string,
@@ -193,10 +192,7 @@ async function blobFiles(
   return kept;
 }
 
-/**
- * The envelope a version folder should carry: its files described and digested,
- * with anything an author added to an existing `artifact.json` kept.
- */
+/** Keeps the metadata, `spec` and relationships an author added to an existing `artifact.json`. */
 async function envelopeOf(
   root: string,
   folder: VersionFolder,

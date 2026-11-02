@@ -497,6 +497,7 @@ export async function probe(
   const recorded = withLayout(config, listing.layout, open.adapter);
   const listedAt = (entry: Entry) =>
     listing.listed.find((candidate) => candidate.path === entry.path);
+  // `digestOf` asks one want at a time, so a version this source lacks does not hide the rest.
   return {
     alias: declaredAlias ?? own ?? alias,
     named: declaredAlias === undefined && own !== undefined ? "registry" : "address",
@@ -532,7 +533,6 @@ export async function probe(
       ).path;
     },
     adapter: open.adapter.id,
-    // Asked one at a time, so a version this source lacks does not hide the rest.
     digestOf: async (wanted) => {
       try {
         const [item] = (await resolveArtifacts(open, [wanted])).listed;

@@ -7,8 +7,6 @@ import type { Lock } from "#core/lock.ts";
 import { carriedIn } from "#core/plan/carries.ts";
 import type { Acquired, Placement } from "#core/plan/model.ts";
 
-/** A commit an adapter reports for one artifact, which the lockfile records and hands back. */
-
 export function leftOutOf(
   artifact: Artifact,
   leftOut: readonly string[] | undefined,
@@ -17,6 +15,7 @@ export function leftOutOf(
   return leftOut === undefined || entry === undefined ? {} : { leftOut: { entry, files: leftOut } };
 }
 
+/** A commit an adapter reports for one artifact, which the lockfile records and hands back. */
 export function revisionOf(artifact: Artifact): Pick<Placement, "revision"> {
   const { revision } = artifact;
   return typeof revision === "string" && /^[0-9a-f]{40}$/.test(revision) ? { revision } : {};

@@ -114,8 +114,6 @@ export function mergedVersions(
   const entry = unchanged
     ? previous
     : {
-        // Keep what the old row carried that we do not model, so a re-offer
-        // updates the digest without dropping fields a later spec added.
         ...previous,
         version: offered.version,
         digest: offered.digest,

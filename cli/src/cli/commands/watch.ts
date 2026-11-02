@@ -108,12 +108,12 @@ function withoutFolders(job: Job, dropped: ReadonlySet<string>): Job {
   });
   if (steps.some((step) => step.kind === "origins")) return { ...job, steps };
   const origins = job.steps.find((step) => step.kind === "origins")?.name;
+  // A watch turned publishing on for its folders; without them the publish step reports again.
   return {
     ...job,
     steps: steps.map((step) => ({
       ...step,
       needs: step.needs.filter((name) => name !== origins),
-      // A watch turned publishing on for its folders; without them it is reported again.
       policy:
         step.kind === "publish" && step.policy === "on" ? FOREGROUND_POLICY.publish : step.policy,
     })),

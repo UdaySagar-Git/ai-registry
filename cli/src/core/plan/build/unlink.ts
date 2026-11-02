@@ -41,7 +41,10 @@ export function unlinkRecorded(
   return unlink(build, name, resolve(build.options.roots.base, link.path), { link });
 }
 
-/** Removes the rows the plan no longer holds, keeping an edited copy and a row of yours. */
+/**
+ * Removes the rows the plan no longer holds, keeping an edited copy and a row of yours. Never the
+ * mirror: every scope shares it, so only a sweep that reads every lock knows what is unreferenced.
+ */
 export function removeStale(build: BuildState): void {
   for (const [name, entry] of Object.entries(build.lock.artifacts)) {
     if (build.next.artifacts[name] !== undefined) continue;
@@ -82,8 +85,6 @@ export function removeStale(build: BuildState): void {
       ),
       { edited },
     );
-    // Nothing is removed from the mirror: it is shared by every scope, so only a
-    // sweep that reads every lock could tell a version nothing references.
   }
 }
 

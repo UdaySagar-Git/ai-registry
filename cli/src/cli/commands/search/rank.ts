@@ -7,10 +7,7 @@ export interface Searchable {
   labels: Readonly<Record<string, string>> | undefined;
 }
 
-/**
- * Lower ranks first: the name exactly, a name that starts with the query, a name
- * that contains it, then a match anywhere else. Undefined when a word matches nothing.
- */
+/** Lower ranks first; undefined when a word matches nothing. */
 function rank(item: Searchable, words: readonly string[]): number | undefined {
   const name = item.name.toLowerCase();
   const fields = [

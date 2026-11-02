@@ -22,7 +22,6 @@ describe("daemon pidfile", () => {
   });
 });
 
-/** A process whose command line reads as a daemon's, as `ps` reports it. */
 function fakeDaemon() {
   return spawn(process.execPath, ["-e", "setInterval(() => {}, 1e9)", "--", "--internal-daemon"], {
     stdio: "ignore",

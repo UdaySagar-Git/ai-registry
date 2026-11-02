@@ -30,7 +30,7 @@ export function unwatchCommand(folders: readonly string[], scope: Scope): string
  */
 export function expandSteps(steps: readonly Step[]): Step[] {
   const expanded: Step[] = [];
-  /** What a step name means once composites are gone: its terminal leaves. */
+  // What a step name means once composites are gone: its terminal leaves.
   const terminals = new Map<string, string[]>();
 
   for (const step of steps) {

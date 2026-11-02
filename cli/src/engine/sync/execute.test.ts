@@ -15,9 +15,9 @@ import type { ScopeWork } from "./work.ts";
 const REGISTRY = "shop";
 const ENDPOINT = "https://shop.test/";
 
+// `roots` is enough of a scope for the import step to find an empty list, not a path built
+// from undefined.
 const loaded = {
-  // Enough of a scope for the import step to find an empty list rather than
-  // a path built from undefined.
   roots: {
     scope: "project",
     cwd: tmpdir(),

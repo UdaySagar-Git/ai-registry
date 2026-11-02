@@ -9,16 +9,13 @@ export const REGISTRY_DOCUMENT = "registry.json";
 export const INDEX_DOCUMENT = "index.json";
 /** An artifact's list of its versions, beside its version folders. */
 export const VERSIONS_DOCUMENT = "versions.json";
-/**
- * The spec reserves this name in a version directory, so it can never be
- * authored content: it stays out of digests and out of any copy a target loads.
- */
+/** Reserved in a version folder, so never authored content: out of digests and target copies. */
 export const ENVELOPE = "artifact.json";
 
 /** The longest namespace or name segment section 2.1 allows. */
 export const MAX_SEGMENT = 64;
 
-/** Section 2.1. Segments are case-sensitive and a version may not be `latest`. */
+/** Section 2.1's namespace and name grammar. */
 const SEGMENT = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/;
 const KIND_SEGMENT = /^[a-z][a-z0-9_]{0,31}$/;
 
@@ -65,7 +62,7 @@ export interface ArtifactPlace {
   version: string | undefined;
 }
 
-/** The innermost `artifacts/<namespace>/<kind>/<name>` in a path, read as the file spec lays it out. */
+/** The innermost `artifacts/<namespace>/<kind>/<name>` in a path, as the file spec lays it out. */
 export function artifactAt(path: string): ArtifactPlace | undefined {
   const parts = path.split("/").filter(Boolean);
   for (let at = parts.length - 4; at >= 0; at -= 1) {

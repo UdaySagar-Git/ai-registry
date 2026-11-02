@@ -65,6 +65,8 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
   const namespace = registryNameFromLocation(root, "skills");
   const { registry } = context.source;
 
+  // A version folder is already content the spec describes, so it is copied from where it sits,
+  // never staged into a second store; a publish writes in place, for the next resolve to read.
   return {
     resolve: (want, options): Promise<Resolution> =>
       translating(async () => {
@@ -77,15 +79,10 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
         return resolution;
       }),
 
-    /**
-     * The version directory is already content the spec describes, so it is
-     * copied from where it sits rather than staged into a second store first.
-     */
     localRoot: (artifact) => translating(() => files.localRoot(artifact)),
 
     fetch: (artifact, file) => translating(() => files.fetch(artifact, file)),
 
-    /** Written in place, and read by the next resolve. */
     async publish(
       changes: readonly PublishInput[],
       options?: PublishOptions,

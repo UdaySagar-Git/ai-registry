@@ -15,7 +15,6 @@ describe("parseRef", () => {
       "kit/sales/skill/deploy@2.0.0",
       { registry: "kit", namespace: "sales", kind: "skill", name: "deploy", version: "2.0.0" },
     ],
-    // Three segments read as namespace and name when the middle is not a kind.
     ["kit/sales/deploy", { registry: "kit", namespace: "sales", name: "deploy" }],
     [
       "kit/sales/deploy@2.0.0",

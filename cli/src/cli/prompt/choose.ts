@@ -45,10 +45,10 @@ export async function chooseArtifacts(
     groupDetails.set(namespace, `Everything ${namespace} publishes, including what it adds later.`);
   }
 
+  // Values are full addresses, so two namespaces' artifacts of one name stay two choices.
   const choices: Choice<string>[] = entries
     .filter((entry) => entry.kind !== "plugin")
     .map((entry) => ({
-      // The full address, so two namespaces' artifacts of one name stay two choices.
       value: [entry.group, entry.kind, entry.name].filter(Boolean).join("/"),
       label: entry.name,
       hint: entry.kind,
@@ -85,7 +85,7 @@ export async function chooseArtifacts(
   );
 }
 
-/** What a group holds, by kind: "4 skills, 1 agent". */
+/** What a group holds, counted by kind in kind order. */
 function contents(members: readonly Choice<string>[]): string {
   const counts = new Map<string, number>();
   for (const member of members) {

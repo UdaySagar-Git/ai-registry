@@ -30,8 +30,8 @@ const DIGEST_KEY = {
 } as const satisfies Record<ReleasePlatform, string>;
 
 /**
- * Fails on a name with no value *or* a value with no name. The second half
- * catches a renamed placeholder, which ships a script that can never match.
+ * Fails on a name with no value or a value with no name; the second catches a renamed
+ * placeholder, which ships a script that can never match.
  */
 export function renderTemplate(source: string, values: Readonly<Record<string, string>>): string {
   const unused = new Set(Object.keys(values));

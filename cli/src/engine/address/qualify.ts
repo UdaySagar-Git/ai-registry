@@ -26,9 +26,9 @@ export function qualify(
   if (missing.length > 0) {
     // Several plugins may publish the same leaf.
     const available = [...new Set(all.map((entry) => entry.name))].sort();
+    // A partial read has no complete catalog to offer as the hint.
     throw new AiregError(`${alias} publishes nothing named ${list(missing.map(quoted), "or")}.`, {
       code: ErrorCode.NotFound,
-      // A partial read cannot provide a complete catalog hint.
       hint: partial
         ? `Run \`aireg registry show ${shown}\` to see what it publishes.`
         : `Use ${list(available, "or")}.`,
@@ -79,7 +79,6 @@ export function namespaceChoice(namespace: string): string {
   return `${namespace}/`;
 }
 
-/** The namespace a picked value stands for, when it stands for one. */
 function pickedNamespace(value: string): string | undefined {
   return value.endsWith("/") ? value.slice(0, -1) : undefined;
 }

@@ -48,7 +48,7 @@ export async function writeInstallRecord(
   await writeAtomic(installRecordPath(modulePath), `${JSON.stringify(formatRecord(record))}\n`);
 }
 
-/** Hash the module and refuse it when an install record disagrees. */
+/** Refuses a module whose install record names another id or digest; no record passes. */
 export async function assertInstallRecord(modulePath: string, id: string): Promise<void> {
   const record = await readInstallRecord(modulePath);
   if (record === undefined) return;

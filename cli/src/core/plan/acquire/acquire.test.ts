@@ -9,7 +9,6 @@ import { answers, lockView } from "./lock-view.ts";
 import { newlyYanked } from "./placement.ts";
 import { wanted } from "./request.ts";
 
-/** What the fake adapter was asked and closed, and the artifacts it lists. */
 const fake = vi.hoisted(() => ({
   asked: new Map<string, { want: readonly unknown[]; all: boolean }>(),
   closed: new Set<string>(),

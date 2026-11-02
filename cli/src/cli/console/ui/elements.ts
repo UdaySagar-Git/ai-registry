@@ -4,9 +4,6 @@ import { sanitizeBlock } from "#adapter/text.ts";
 import type { HintKey } from "#core/host/panel.ts";
 import { COLOR } from "#core/term/theme.ts";
 
-// `createElement` rather than JSX: the CLI runs from TypeScript source under Node's type
-// stripping, which does not transform JSX.
-
 type BoxProps = (Parameters<typeof Box>[0] & Attributes) | null;
 type TextProps = (Parameters<typeof Text>[0] & Attributes) | null;
 
@@ -19,6 +16,8 @@ function inert(node: ReactNode): ReactNode {
   return Array.isArray(node) ? node.map(inert) : node;
 }
 
+// `createElement` rather than JSX: the CLI runs from TypeScript source under Node's type
+// stripping, which does not transform JSX.
 export function box(props: BoxProps, ...children: ReactNode[]): ReactElement {
   return createElement(Box, props, ...children);
 }

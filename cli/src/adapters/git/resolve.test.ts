@@ -7,8 +7,10 @@ import { parseSource, type SourceSpec } from "./url.ts";
 
 const PEELED = "a496748000000000000000000000000000000bbb";
 
-/** What `git ls-remote` prints for an annotated tag: the tag object, then the
- * commit it points at under the same name with `^{}` appended. */
+/**
+ * What `git ls-remote` prints for an annotated tag: the tag object, then the commit it points at
+ * under the same name with `^{}` appended.
+ */
 const annotated: RemoteRef[] = [
   { commit: "21cea2a0000000000000000000000000000000aa", name: "refs/tags/v1.0.0" },
   { commit: PEELED, name: "refs/tags/v1.0.0^{}" },

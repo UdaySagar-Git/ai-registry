@@ -44,7 +44,7 @@ export async function isDirectory(path: string): Promise<boolean> {
   }
 }
 
-/** The folders directly in `path`, sorted, leaving out dot folders; none when it cannot be read. */
+/** The folders directly in `path`, sorted, without dot folders; none when it is not a folder. */
 export async function subdirectories(path: string): Promise<string[]> {
   return (await entries(path))
     .filter((item) => item.isDirectory() && !item.name.startsWith("."))
@@ -68,7 +68,7 @@ export async function present(path: string): Promise<boolean> {
   return (await lstat(path).catch(() => undefined)) !== undefined;
 }
 
-/** Version-control metadata, OS litter and installed dependencies, which are never an artifact's content. */
+/** VCS metadata, OS litter and installed dependencies: never an artifact's content. */
 const LITTER = new Set([".git", ".hg", ".svn", "CVS", ".DS_Store", "Thumbs.db", "node_modules"]);
 
 /** Names that hold credentials far more often than skill content. */
@@ -159,8 +159,8 @@ export async function walk(root: string): Promise<FileRecord[]> {
 }
 
 /**
- * What an author's folder offers as an artifact: its regular files, without
- * VCS or OS litter, and every symlink or special file it holds, to be refused.
+ * What an author's folder offers as an artifact: its regular files, without VCS or OS litter, and
+ * every link, special file or likely credential it holds, to be refused.
  */
 export function authored(root: string): Promise<{ files: FileRecord[]; irregular: Irregular[] }> {
   return scan(root, true);

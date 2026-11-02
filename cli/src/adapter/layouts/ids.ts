@@ -1,6 +1,6 @@
 /**
- * How a source lays out what it holds, which says how it is read: a registry by the file spec, a
- * plugin marketplace, a site's Agent Skills index, or a plain folder of skills. Not a kind, which says what one artifact is.
+ * How a source lays out what it holds, which says how it is read: a file spec registry, a plugin
+ * marketplace, a site's Agent Skills index or a plain folder. Not a kind, which is one artifact's.
  */
 export const LAYOUT_IDS = ["registry", "marketplace", "well-known", "folder"] as const;
 

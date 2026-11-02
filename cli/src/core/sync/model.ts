@@ -5,25 +5,15 @@ import type { ArtifactKind } from "#adapter/kinds.ts";
  * that could be written down could also disagree with the bytes on disk.
  */
 export const DISPOSITIONS = [
-  /** The project and the registry hold the same bytes. */
   "synced",
-  /** Only the registry moved. */
   "pull",
-  /** The registry removed bytes that are unchanged here. */
   "pull-delete",
-  /** Only the project moved. */
   "publish",
-  /** Both moved. Reported, never reconciled. */
   "conflict",
-  /** Here and publishable, but no registry publishes it. */
   "adopt",
-  /** Deleted here while the registry still holds the base. */
   "archive",
-  /** Both sides deleted the content represented by the base. */
   "removed",
-  /** No base, so neither side can be shown to have moved. */
   "unknown",
-  /** The registry advertises it but would not serve it. */
   "unavailable",
 ] as const;
 

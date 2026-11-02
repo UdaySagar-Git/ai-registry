@@ -61,9 +61,8 @@ export async function survey(lock: Lock, roots: Roots): Promise<Survey> {
   return { artifacts };
 }
 
-/** What survey found for one locked artifact. */
 export interface ArtifactSurvey {
-  /** Present in the project's writable copy. */
+  /** Present in this scope's writable copy. */
   staged: boolean;
   /** Undefined when nothing is staged. */
   digest: string | undefined;

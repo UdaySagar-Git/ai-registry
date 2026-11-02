@@ -106,9 +106,8 @@ function launchable(
 }
 
 /**
- * Runs a command to completion without a shell. A non-zero exit, a timeout, a signal,
- * output past the limit or a missing binary is a `code` to read, never a throw. A command
- * found only through PATH is missing too when no folder on PATH is absolute.
+ * Runs a command without a shell. Any failure is a `code` to read, never a throw: a binary
+ * reachable only through a relative PATH entry counts as missing.
  */
 export function exec(
   command: string,

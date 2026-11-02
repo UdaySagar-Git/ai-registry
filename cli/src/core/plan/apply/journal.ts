@@ -38,7 +38,7 @@ async function readJournal(path: string): Promise<Journal | undefined> {
 export interface Recovered {
   /** What a crashed run wrote that the lock does not hold, now removed. */
   removed: string[];
-  /** What it wrote that was left in place, because a link now stands on the way. */
+  /** What it wrote that was left in place, as removing it was not safe, and why. */
   skipped: { path: string; reason: string }[];
 }
 

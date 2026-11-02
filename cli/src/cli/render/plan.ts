@@ -118,7 +118,6 @@ function renderPlan(
   printer.info(style.dim("Dry run. Nothing was changed."));
 }
 
-/** `reviewer needs`, `reviewer and triage need`. */
 export function whoNeeds(by: readonly string[]): string {
   return `${list(by)} need${by.length === 1 ? "s" : ""}`;
 }

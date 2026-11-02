@@ -213,7 +213,6 @@ export function nameClashes(needs: Closure, selected: readonly Selected[]): Conf
   });
 }
 
-/** Everything reachable from one artifact along its edges. */
 function descendants(start: string, forward: ReadonlyMap<string, readonly string[]>): Set<string> {
   const seen = new Set<string>();
   const stack = [start];

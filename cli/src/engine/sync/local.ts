@@ -66,10 +66,6 @@ function mergePlan(plan: Plan, previous: Lock, names: ReadonlySet<string>): Plan
 }
 
 /**
- * A publish sends this scope's copy, so what landed upstream is exactly what is
- * on disk; the row's digest is restated from it rather than from a refetch.
- */
-/**
  * Follows what this run published as `aireg publish` does: a row the source serves at the version
  * sent is restated from it, and one pinned or not served yet is said. A folder of yours keeps its row.
  */
@@ -91,6 +87,10 @@ function followPublished(
   return { restate, notices };
 }
 
+/**
+ * A publish sends this scope's copy, so what landed upstream is exactly what is
+ * on disk; the row's digest is restated from it rather than from a refetch.
+ */
 async function preservePublishedDigests(
   plan: Plan,
   scan: Scan,

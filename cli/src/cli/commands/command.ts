@@ -11,10 +11,7 @@ export type CommandContext = HostCommandContext & {
 
 type CommandRun = (context: CommandContext) => Promise<void>;
 
-/**
- * The order here is the order `--help` prints, and it is the order a new user
- * meets the tool in: set something up, install into it, check it, share it.
- */
+/** The order `--help` prints, which is the order a new user meets the tool in. */
 export const GROUPS = ["Set up", "Install", "Check", "Share", "Automate", "Maintain"] as const;
 
 export type Group = (typeof GROUPS)[number];

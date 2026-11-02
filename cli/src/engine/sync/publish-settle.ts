@@ -2,10 +2,6 @@ import { isAdapterError } from "#adapter/index.ts";
 import { failureCode, RunErrorCode } from "#core/run/model.ts";
 import type { SyncExecutionHooks, SyncOutcome } from "./decide.ts";
 
-/**
- * Each publish settles once known: changed, or failed with its own refusal or the batch's
- * error. One the rebased plan did not send needs a person.
- */
 export interface PublishTally {
   /** Staged and handed to the adapter. */
   attempted: ReadonlySet<string>;
@@ -16,6 +12,10 @@ export interface PublishTally {
   holds?: ReadonlyMap<string, string>;
 }
 
+/**
+ * Each publish settles once known: changed, or failed with its own refusal or the batch's
+ * error. One the rebased plan did not send, or the source holds, needs a person.
+ */
 export function settlePublished(
   deferred: readonly SyncOutcome[],
   tally: PublishTally,
@@ -48,6 +48,7 @@ export function settlePublished(
         ? batchError
         : undefined;
     const failed = !landed && error !== undefined;
+    // A code alone cannot say why the registry refused this one; the adapter's message can.
     hooks.item(
       item.artifact,
       item.operation === "archive" ? "archiving" : "publishing",
@@ -58,7 +59,6 @@ export function settlePublished(
         operation: item.operation,
         ...(failed ? failureCode(error) : {}),
       },
-      // A code alone cannot say why the registry refused this one; the adapter's message can.
       failed && isAdapterError(error) ? { detail: error.message } : undefined,
     );
   }

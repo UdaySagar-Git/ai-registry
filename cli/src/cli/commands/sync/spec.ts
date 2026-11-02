@@ -1,6 +1,7 @@
 import type { CommandSpec } from "#cli/commands/command.ts";
 import { DRY_RUN, POLICIES, SELECT, USER } from "#cli/options/flags.ts";
 
+// `resolve` sets no maxArguments: `resolve <job> <name>` must reach its own checks.
 export const SYNC_COMMAND: CommandSpec = {
   name: "sync",
   summary: "Sync this project with its registries",
@@ -18,7 +19,6 @@ export const SYNC_COMMAND: CommandSpec = {
       name: "resolve",
       summary: "Settle an artifact edited both here and in the registry",
       usage: ["aireg sync resolve <name> --mine | --theirs [options]"],
-      // No limit: `resolve <job> <name>` must reach resolve's own checks.
       examples: [
         {
           command: "aireg sync resolve pr-review --mine",

@@ -60,7 +60,6 @@ function readText(file: string): string | undefined {
   }
 }
 
-/** Appends the line once, after a newline if the file lacks a trailing one. */
 async function appendOnce(file: string, line: string): Promise<"added" | "present" | "failed"> {
   try {
     const text = await readFile(file, "utf8").catch((error: unknown) => {

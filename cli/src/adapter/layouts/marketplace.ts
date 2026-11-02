@@ -53,7 +53,6 @@ function relative(path: string): string | undefined {
   return rest === ".." || rest.startsWith("../") ? undefined : rest;
 }
 
-/** Where an entry's plugin lives in this source, or why aireg leaves it out. */
 /** Sources aireg fetches with git, which take a `ref` and a `sha`. */
 const FETCHED = new Set(["github", "url", "git-subdir"]);
 
@@ -78,6 +77,7 @@ function remoteOf(name: string, source: Json, path: string): RemotePlugin | unde
 
 type Located = { dir: string } | { remote: RemotePlugin } | { skip: string };
 
+/** Where an entry's plugin lives in this source, or why aireg leaves it out. */
 function sourceOf(entry: Json, name: string, marketplace: Marketplace): Located {
   const pluginRoot = marketplace.pluginRoot;
   const source =
@@ -147,7 +147,7 @@ const REMOTE = "@remote";
 const names = (marketplace: Marketplace) =>
   new Set(marketplace.entries.map((entry) => textOf(entry.name)).filter((n) => n !== undefined));
 
-/** Said when both marketplaces are there and disagree, so a plugin only one lists is not lost quietly. */
+/** Said when both marketplaces disagree, so a plugin only one lists is not lost quietly. */
 function disagreement(first: Marketplace, second: Marketplace): string | undefined {
   const [a, b] = [names(first), names(second)];
   const onlyFirst = [...a].filter((name) => !b.has(name)).sort();

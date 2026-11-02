@@ -19,11 +19,10 @@ const compiled = new WeakMap<object, ValidateFunction>();
 const NAMED_BACKREFERENCE = /(?:^|[^\\])(?:\\\\)*\\k</;
 
 /**
- * Registries serve their own kind schemas, so patterns run on RE2, which matches in linear
- * time; a lookaround or backreference fails to compile.
+ * Registries serve their own kind schemas, so patterns run on RE2: linear time, by code point as
+ * Ajv's "u" flag asks, and a lookaround or backreference fails to compile.
  */
 const re2: NonNullable<CodeOptions["regExp"]> = Object.assign(
-  // RE2 always matches by code point, as the "u" flag Ajv passes asks.
   (pattern: string) => {
     if (NAMED_BACKREFERENCE.test(pattern)) {
       throw new Error(
@@ -40,7 +39,6 @@ const re2: NonNullable<CodeOptions["regExp"]> = Object.assign(
       throw new Error(`pattern ${quoted(pattern)} uses syntax aireg does not support: ${reason}`);
     }
   },
-  // Ajv names the engine only in standalone code, which aireg never generates.
   { code: "re2" },
 );
 
@@ -56,7 +54,10 @@ function compiler(): Ajv2020 {
 
 const manifestShape = compiler().compile(manifestSchema);
 
-/** Validate both the manifest vocabulary and its Draft 2020-12 schema, resolving local refs only. */
+/**
+ * Checks the manifest vocabulary and its Draft 2020-12 schema, resolving local refs only, and
+ * caches the compiled validator `check` uses.
+ */
 export async function prepareManifest(
   root: string,
   schema: Record<string, unknown>,

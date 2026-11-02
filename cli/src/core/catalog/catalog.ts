@@ -1,7 +1,6 @@
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { Newest, Withheld } from "./withheld.ts";
 
-/** Where an entry was read from. */
 interface Provenance {
   /** A registry-relative file, or the id of the adapter that listed the entry. */
   file: string;
@@ -15,7 +14,7 @@ export interface Entry {
   kind: ArtifactKind;
   /** Registry-relative, POSIX separators, always inside the root. */
   path: string;
-  /** Owning plugin, when this entry came from one. */
+  /** The namespace or plugin that owns it, when one does. */
   group: string | undefined;
   /** Already stripped of control sequences at read time. */
   description: string | undefined;

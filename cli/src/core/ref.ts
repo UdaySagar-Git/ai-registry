@@ -4,10 +4,7 @@ import { isVersion } from "#adapter/spec/ref.ts";
 import { list, quoted, withoutCredentials } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "./errors.ts";
 
-/**
- * Breadth by segment count: `kit`, `kit/sales`, then `kit/skill/lint`, `kit/sales/deploy` or `kit/sales/skill/deploy`,
- * which take `@version`. With three, a middle kind reads as a kind, anything else as a namespace.
- */
+/** A whole registry, a whole namespace, or one artifact, which alone takes `@version`. */
 export interface Ref {
   registry: string;
   /** The namespace asked for, if any. Absent is "wherever it is". */
@@ -15,10 +12,7 @@ export interface Ref {
   /** Absent for a whole registry or namespace, and for a name whose kind the catalog settles. */
   kind?: ArtifactKind | undefined;
   name?: string | undefined;
-  /**
-   * The version asked for. Absent tracks whatever the registry calls latest,
-   * which is what makes the presence of this field the whole definition of a pin.
-   */
+  /** The version asked for; absent tracks the registry's latest, so this alone makes a pin. */
   version?: string | undefined;
   /** Explicit local name, when two artifacts would otherwise collide. */
   localName?: string | undefined;
@@ -79,7 +73,6 @@ function kindOf(input: string, segment: string, registry: string, name: string):
   );
 }
 
-/** Splits a trailing `@<version>` off, leaving the address to be segmented. */
 function splitVersion(input: string, trimmed: string): { address: string; version?: string } {
   const at = trimmed.indexOf("@");
   if (at === -1) return { address: trimmed };

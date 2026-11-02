@@ -31,7 +31,7 @@ interface Incoming {
   dir: string;
   entries: string[];
   name: string;
-  /** The Markdown file holding the front matter, and the name it gives. */
+  /** The file whose front matter names the artifact; undefined when none does. */
   front: { file: string; name: string } | undefined;
 }
 

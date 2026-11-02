@@ -21,7 +21,6 @@ const GLOBAL_FLAGS = new Set([
   "-h",
 ]);
 
-/** Globals that take a value, so the value has to be consumed with the flag. */
 const GLOBAL_VALUE_FLAGS = new Set(["--color", "--log-level"]);
 
 /**
@@ -30,7 +29,6 @@ const GLOBAL_VALUE_FLAGS = new Set(["--color", "--log-level"]);
  */
 const GLOBAL_OPTIONAL_VALUE_FLAGS = new Set(["--map"]);
 
-/** Where a misused global option is explained. */
 export const GLOBALS_HINT = "Run `aireg --help` for the global options.";
 
 function isGlobal(arg: string): boolean {

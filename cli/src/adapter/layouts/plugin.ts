@@ -184,7 +184,7 @@ export interface PluginInput {
   dir: string;
   /** Its marketplace entry, when a marketplace lists it. */
   entry?: Json | undefined;
-  /** Its entry's name, which it installs under; alone, the name to use when its manifest has none. */
+  /** Its entry's name, which it installs under; alone, the name when its manifest has none. */
   name: string;
   /** Listed by a marketplace whose source is its own root, so only the skills it names count. */
   rootSource: boolean;
@@ -225,7 +225,7 @@ async function filesOf(tree: Tree, input: PluginInput, named: readonly string[])
   return { files: [...files.values()], warnings };
 }
 
-/** Listed, a plugin installs under its entry's name, as Claude Code does; its own still namespaces. */
+/** A listed plugin installs under its entry's name, as in Claude Code; its own still namespaces. */
 function namesOf(manifest: Json, input: PluginInput): { name: string; manifestName?: string } {
   const manifestName = textOf(manifest.name);
   const name = input.entry === undefined ? (manifestName ?? input.name) : input.name;
@@ -283,6 +283,7 @@ export async function readPlugin(
 
   const prefix = dir === "" ? "" : `${dir}/`;
   const description = textOf(manifest.description);
+  // The manifest goes in as text, since it may hold numbers an envelope cannot.
   const plugin = await contentArtifact(tree, {
     id: dir === "" ? ROOT_ID : dir,
     kind: "plugin",
@@ -292,7 +293,6 @@ export async function readPlugin(
     spec: {
       name,
       ...(description === undefined ? {} : { description }),
-      // As text, since a manifest may hold numbers an envelope cannot.
       manifest: JSON.stringify({ ...manifest, name: manifestName ?? name }),
       commands: commands.map((command) => ({
         name: command.name,
@@ -309,7 +309,8 @@ export async function readPlugin(
       await artifactOf(tree, { kind: "skill", at, name: member, namespace: name }, warnings),
     );
   }
-  // Only an agent directly in its folder: a nested one's name is the folder path, which aireg cannot install under.
+  // Only an agent directly in its folder: a nested one's name is the folder path, which aireg
+  // cannot install under.
   for (const at of agents) {
     const member = posix.basename(at, ".md");
     if (!isArtifactName(member) || posix.dirname(at) !== under(dir, "agents")) continue;

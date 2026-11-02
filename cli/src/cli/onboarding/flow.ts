@@ -130,7 +130,6 @@ async function publishes(flow: OnboardingFlow, cwd: string): Promise<boolean> {
   return adapter.capabilities.publish !== false;
 }
 
-/** The scope `init` settled on, said the way each delegated command reads it. */
 function scopeArgv(scope: Scope): string[] {
   return scope === "user" ? ["-g"] : [];
 }

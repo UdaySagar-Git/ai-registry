@@ -4,7 +4,6 @@ import { dict } from "#core/fields.ts";
 import type { Ref } from "#core/ref.ts";
 import type { ExportFile } from "./export-fields.ts";
 
-/** One address, and whatever the adapter reading it needs to know. */
 export interface RegistrySource {
   location: string;
   /** Omitted means "ask which adapter recognizes this". */
@@ -19,14 +18,13 @@ export interface Manifest {
   description: string | undefined;
   /** Oldest aireg CLI that can read this file. Plain SemVer, meaning >=. */
   engine: string | undefined;
-  /** `targets:`, the targets to project into. Empty means `DEFAULT_TARGETS`. */
+  /** Empty means `DEFAULT_TARGETS`. */
   targets: string[];
-  /** `registries:`, keyed by the name a reference uses. */
+  /** Keyed by the name a reference uses. */
   registries: Record<string, RegistrySource>;
   artifacts: Ref[];
-  /** `exports:`, what this project makes for others to install. */
+  /** What this project makes for others to install. */
   exports: Export[];
-  /** `publish:`, where exports go. */
   publish: PublishTarget | undefined;
 }
 
@@ -75,7 +73,6 @@ export const MANIFEST_KEYS = [
   "publish",
 ] as const;
 
-/** Every key a mapping in `exports:` takes. */
 export const EXPORT_KEYS = [
   "path",
   "kind",
@@ -87,7 +84,7 @@ export const EXPORT_KEYS = [
   "include",
 ] as const;
 
-/** Every transport's keys; which are legal together is checked below. */
+/** Every transport's keys; the adapter decides which are legal together. */
 export const REGISTRY_KEYS = ["source", "adapter", "ref", "path", "layout", "config"] as const;
 
 export const ARTIFACT_KEYS = [

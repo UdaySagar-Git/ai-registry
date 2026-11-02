@@ -4,7 +4,7 @@ import { quoted } from "#adapter/text.ts";
 import type { Account } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 
-/** Accepts either handle, because the id is what a job stores and the alias is what a person types. */
+/** Accepts either handle: a job stores the id, and a person types the alias. */
 export function findAccount(accounts: readonly Account[], wanted: string): Account | undefined {
   return accounts.find(({ id, registry }) => id === wanted || registry === wanted);
 }

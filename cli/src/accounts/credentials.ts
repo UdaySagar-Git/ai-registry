@@ -41,7 +41,6 @@ async function signsIn(source: Source, location: string) {
   return adapter !== undefined && canSignIn(adapter);
 }
 
-/** What one lookup shares across the registries it resolves. */
 interface Lookup {
   found: Bindings;
   aliases: readonly string[];
@@ -60,8 +59,8 @@ async function lookup(signal: AbortSignal, aliases: readonly string[] = []): Pro
 }
 
 /**
- * Sent to the registry the current scope declares under `alias`, the one the
- * command works on; an address nothing declares under that name gets none.
+ * Sent only to the registry the current scope declares under `alias`; for an address
+ * nothing declares under that name, a set token is refused with an error.
  */
 function fromEnvironment(
   alias: string,
@@ -95,9 +94,8 @@ function fromEnvironment(
 }
 
 /**
- * `AIREG_TOKEN_<NAME>` wins over a stored sign-in. A stored one goes only to the
- * origin it was issued for, whatever address a project declares for its name; an
- * address nothing declares, which only a probe asks about, gets none from another origin.
+ * `AIREG_TOKEN_<NAME>` wins over a stored sign-in, which goes only to the origin it was issued
+ * for; an undeclared address, which only a probe asks about, gets none from another origin.
  */
 async function release(
   alias: string,

@@ -190,7 +190,7 @@ function unzip(zip: Uint8Array, into: Collector): void {
   }
 }
 
-/** A gzip-compressed tar or a zip, told apart by its first bytes, unpacked in memory within the limits. */
+/** A .tar.gz or a .zip, told apart by its first bytes, unpacked in memory within the limits. */
 export function unpack(name: string, archive: Uint8Array, limits = ARCHIVE_LIMITS): Unpacked[] {
   const into = new Collector(name, limits);
   if (archive[0] === 0x1f && archive[1] === 0x8b) {

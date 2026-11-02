@@ -307,6 +307,7 @@ describe("adapter jobs", () => {
       region: "eu",
       name: "watch_probe",
     });
+    // `region` is the adapter's own field, stored without aireg reading it.
     expect(created.job).toEqual({
       id: "watch_probe",
       name: "watch_probe",
@@ -319,7 +320,6 @@ describe("adapter jobs", () => {
           needs: [],
           select: [],
           policy: "on",
-          // The adapter's own field, stored without aireg reading it.
           extra: { region: "eu" },
         },
       ],

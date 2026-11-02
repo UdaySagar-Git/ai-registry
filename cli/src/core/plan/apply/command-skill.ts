@@ -15,9 +15,9 @@ export function commandSkill(name: string, source: string): Rendered {
   const described = typeof record.description === "string" ? record.description.trim() : "";
   const first = body.split("\n").find((line) => line.trim() !== "") ?? "";
   const description = (described || first.replace(/^#+\s*/, "")).slice(0, MAX_DESCRIPTION);
+  // JSON quotes a string the way YAML reads a double-quoted scalar.
   const front = [
     `name: ${name}`,
-    // JSON quotes a string the way YAML reads a double-quoted scalar.
     `description: ${JSON.stringify(description)}`,
     "disable-model-invocation: true",
   ];

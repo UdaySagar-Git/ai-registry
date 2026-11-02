@@ -12,7 +12,7 @@ export interface BuildOptions {
   targets: readonly string[];
   /** Every target, built in or defined by a file of yours. */
   targetTable: Targets;
-  /** Overwrite or remove a project copy that was edited after installation. */
+  /** Overwrite or remove a copy that was edited after installation. */
   force: boolean;
   /** Rows whose local edits this run may delete: what `remove` was told to take. */
   discard?: ReadonlySet<string>;
@@ -49,7 +49,7 @@ export interface BuildState {
   next: Lock;
   warnings: Warning[];
   rewritten: Rewritten[];
-  /** Plugin parts can collide in one target path: the first writer wins, loudly. */
+  /** Target paths, by the installed name that claimed each; the first writer wins, loudly. */
   claimed: Map<string, string>;
   /** Plugin directories claimed, by the namespace content each links: its artifacts share it. */
   plugins: Map<string, string>;

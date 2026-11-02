@@ -20,9 +20,8 @@ const MANIFESTS = new Set([".claude-plugin", ".codex-plugin", "plugin.json"]);
 const CLAUDE_MANIFEST = ".claude-plugin/plugin.json";
 
 /**
- * Relative, so moving the artifacts tree does not strand a projection. On Windows a junction:
- * a symlink needs Developer Mode, and a relative one inside a junction resolves the wrong way.
- * A junction reaches only a folder, so there a file, such as `.mcp.json`, is copied.
+ * Relative, so moving the artifacts tree does not strand a projection. Windows gets an absolute
+ * junction, as a symlink needs Developer Mode, and a file is copied, as a junction cannot reach it.
  */
 async function pointAt(from: string, to: string): Promise<void> {
   await rm(from, { recursive: true, force: true });

@@ -47,7 +47,7 @@ export function settings(pairs: readonly string[] | undefined): [string[], strin
   });
 }
 
-/** The fields a new artifact needs, filled from the name, defaults, `--set`, then placeholders. */
+/** Required fields from the name, defaults and `--set`; the rest are placeholders listed in `todo`. */
 export function scaffold(
   schema: SchemaNode,
   name: string,

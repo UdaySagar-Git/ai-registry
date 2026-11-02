@@ -75,13 +75,13 @@ async function printRuns(context: CommandContext, runs: readonly RunRecord[]): P
   const { style } = context.printer;
   const failed = runs.flatMap((run) => (run.errorCode === undefined ? [] : [run.id]));
   const reasons = await failureReasons(new Set(failed));
+  // A run started by `aireg sync` belongs to no job; the trigger says who started it.
   table(
     context.printer,
     [
       { header: "run", value: (run: RunRecord) => run.id },
       { header: "state", value: (run: RunRecord) => tone(context, run.state) },
       { header: "mode", value: (run: RunRecord) => run.mode },
-      // A run started by `aireg sync` belongs to no job; the trigger says who started it.
       { header: "job", value: (run: RunRecord) => run.jobId ?? style.dim("-") },
       { header: "trigger", value: (run: RunRecord) => style.dim(run.trigger) },
       { header: "started", value: (run: RunRecord) => ago(run.startedAtMs ?? run.requestedAtMs) },

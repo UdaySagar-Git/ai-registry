@@ -160,7 +160,6 @@ export function runRows(
   }));
 }
 
-/** The steps in the order they were declared: what this job actually does. */
 function summaryOf(job: Job): string {
   return job.steps.map((step) => `${step.name}:${step.kind}`).join(" \u2192 ");
 }

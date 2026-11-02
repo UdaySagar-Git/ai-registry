@@ -343,7 +343,6 @@ export async function createJob(
       every: inputs.intervalSeconds(params, "intervalSeconds", DEFAULT_INTERVAL_SECONDS),
       enabled: inputs.optionalFlag(params, "enabled", true),
     },
-    // The steps a person means by "keep this scope in sync".
     steps: [
       ...(origins === undefined ? [] : [origins]),
       {

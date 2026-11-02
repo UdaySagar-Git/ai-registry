@@ -90,9 +90,9 @@ export async function addAddress(
   let copied = false;
   let repinned: Repin[] = [];
   let { location, config } = source.declared;
+  // `--copy` and `--for` are recorded on the entries this adds, not applied to the whole scope.
   const result = await runPipeline(
     loaded.roots,
-    // `--copy` and `--for` are recorded on the entries this adds, not applied to the whole scope.
     { ...asked, scope: choices.scope, targets: undefined, copy: false },
     context.printer,
     context.cwd,
@@ -112,21 +112,19 @@ export async function addAddress(
         (ref) => !coveredByWhole(ref, manifest.artifacts),
       );
 
+      // Other registries stay as locked, so one add does not re-plan the scope. Naming something
+      // locked asks for its newest version; a namespace still installs the rest when a name is taken.
       return {
-        // Every other registry stays as the lock has it, so adding one skill
-        // does not fetch and re-plan the whole scope.
         aliases: [alias],
         ...(adopt === undefined ? {} : { adopt }),
-        // Naming something already locked is asking for its newest version again.
         moving: new Set(refs.flatMap((text) => reached(fresh.lock, parseRef(text)))),
-        // A whole namespace still installs the rest when one member's name is taken.
         adding: new Set(
           refs.map(parseRef).flatMap((ref) => (ref.name === undefined ? [] : [formatAddress(ref)])),
         ),
         approve: async (plan, targets) => {
+          // The targets picked for this add, which an entry may narrow from the scope's.
           approved = await confirmPlan(asking, plan, {
             verb: "Install",
-            // The targets picked for this add, which an entry may narrow from the scope's.
             targets: choices.targets ?? targets,
             kinds: choices.kinds,
             targetTable: fresh.targetTable,

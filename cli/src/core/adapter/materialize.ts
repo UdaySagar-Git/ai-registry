@@ -67,10 +67,7 @@ export function reasonOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/**
- * The member a published file belongs to: `<kind dir>/<name>`. A member missing
- * one file is broken, so it is dropped whole rather than half-installed.
- */
+/** The member a published file belongs to, `<kind dir>/<name>`; a top-level file is its own. */
 function memberOf(path: string): string {
   const parts = path.split(posix.sep);
   return parts.length > 2 ? parts.slice(0, 2).join(posix.sep) : path;
@@ -84,12 +81,12 @@ interface Written {
   reasons: Map<string, AdapterError>;
 }
 
+/** A `collection` survives a member it cannot fetch by dropping it; a single artifact does not. */
 async function writeFiles(
   root: string,
   artifact: Artifact,
   read: (file: FileRef) => Promise<Uint8Array>,
   fail: Fail,
-  /** A collection survives a member it cannot fetch; a single artifact does not. */
   collection: boolean,
   onRead?: (bytes: number) => void,
 ): Promise<Written> {
@@ -263,7 +260,7 @@ export interface MaterializeOptions {
    * they are, so a cached copy can be checked against the envelope asking for it.
    */
   into: (contentId: string) => string;
-  /** Trusted cache boundary for CLI-managed staging paths. */
+  /** No folder from this root down to a cache path may be a link; unchecked when absent. */
   boundary?: string;
   onRead?: ((bytes: number) => void) | undefined;
 }
@@ -287,7 +284,7 @@ export async function materialize(
 }> {
   const name = artifact.envelope.metadata.name;
   // The title is about the file, for a caller that already names the artifact;
-  // the message names it too, for one that doesn't.
+  // the message names it too, for one that does not.
   const fail: Fail = (file, message, code = "SPEC_INVALID") => {
     const title = `${file.path} ${message}.`;
     return new AdapterError(adapterId, failureOf({ code, title }), `${name}: ${title}`, {

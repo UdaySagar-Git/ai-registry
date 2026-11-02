@@ -137,6 +137,7 @@ jobs:
         run: pnpm run lint:changed --since="$BASE_SHA"
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      - run: pnpm run check:comments
       - run: pnpm run knip
       # Fails on a stale THIRD_PARTY_NOTICES.txt or a license outside the allowlist.
       - run: pnpm run notices --check

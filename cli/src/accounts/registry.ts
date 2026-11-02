@@ -12,7 +12,7 @@ import { roots, type Scope } from "#core/store/paths.ts";
 export interface ResolvedRegistry {
   alias: string;
   source: RegistrySource;
-  /** Absolute: a relative path in the manifest is relative to its own root. */
+  /** A local path is made absolute against the caller's `cwd`; a URL is kept as written. */
   location: string;
   adapter: SourceAdapter;
   key: string;
@@ -48,11 +48,6 @@ export async function resolveRegistry(
   };
 }
 
-/**
- * A host that knows its own address has nowhere else to say so: every other
- * route into `manifest.yml` creates a job as a side effect. A name declared at
- * another address is refused, so a sign-in never reaches the one not named.
- */
 /** The user scope's declaration of `alias`, refused when it is somewhere other than `location`. */
 export function heldAt(
   registries: Readonly<Record<string, RegistrySource>>,
@@ -74,6 +69,10 @@ export function heldAt(
   );
 }
 
+/**
+ * Declares `alias` in the user scope for a sign-in that names its address. A name declared at
+ * another address is refused, so a sign-in never reaches the one not named.
+ */
 export async function declareRegistryFor(alias: string, source: RegistrySource): Promise<void> {
   const cwd = process.cwd();
   const user = roots("user", cwd);

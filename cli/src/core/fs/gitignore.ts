@@ -1,4 +1,3 @@
-/** One pattern, read. */
 interface Rule {
   /** The pattern as written, which a caller reports by. */
   pattern: string;
@@ -67,7 +66,6 @@ function ruleOf(pattern: string): Rule | undefined {
   return { pattern, negated, folderOnly, regex: new RegExp(`^${prefix}${sourceOf(body)}$`, "s") };
 }
 
-/** Patterns read once and matched against many paths. */
 export interface Ignore {
   /** Whether git would leave this file out. */
   ignores(path: string): boolean;

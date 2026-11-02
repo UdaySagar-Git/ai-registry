@@ -30,7 +30,7 @@ function check(compiler: Ajv2020, schema: string, document: unknown): string[] {
 
 const read = (name: string): unknown => JSON.parse(readFileSync(join(FIXTURE, name), "utf8"));
 
-/** Read in place from the spec, so they stay honest about the registries this client reads. */
+// Read in place from the spec, so they stay honest about the registries this client reads.
 describe("the file spec schemas", () => {
   const compiler = ajv();
 
@@ -41,10 +41,8 @@ describe("the file spec schemas", () => {
     expect(check(compiler, "artifact.schema.json", read("artifact.json"))).toEqual([]);
   });
 
-  /**
-   * The client normalizes what it reads and publishes nothing, so these are the
-   * deliberate differences, asserted so none of them changes by accident.
-   */
+  // The client normalizes what it reads and publishes nothing, so these are the
+  // deliberate differences, asserted so none of them changes by accident.
   test("records where an envelope read from a working tree differs", () => {
     // A working tree sits in no namespace, publishes no version, and has no
     // kind document to carry, so a reader's envelope is not a publishable one.

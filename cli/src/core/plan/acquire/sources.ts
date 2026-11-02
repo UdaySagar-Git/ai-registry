@@ -4,7 +4,6 @@ import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { Lock, LockArtifact, LockRegistry } from "#core/lock.ts";
 import type { Acquired, Fetch, Origin } from "#core/plan/model.ts";
 
-/** Resolve content through the registry that produced the catalog entry. */
 export function fetchFrom(acquired: readonly Acquired[]): Fetch {
   const byAlias = new Map(acquired.map((entry) => [entry.alias, entry]));
   return (source, path) => {

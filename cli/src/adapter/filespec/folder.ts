@@ -54,7 +54,7 @@ export interface FolderRegistry {
   forget(): void;
 }
 
-/** Resolutions of folders that never change, newest last; bounded, since a daemon resolves forever. */
+/** Resolutions of unchanging folders, newest last; bounded, since a daemon resolves forever. */
 const SETTLED = new Map<string, Resolution>();
 const SETTLED_LIMIT = 32;
 

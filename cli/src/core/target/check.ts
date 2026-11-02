@@ -7,11 +7,8 @@ import { templateVars } from "./template.ts";
 
 /** Every `{var}` a definition may use, by where it is used. */
 const TEMPLATE_VARS = {
-  /** A kind's `subdir`. */
   placement: ["name", "source"],
-  /** A plugin manifest's body. */
   manifest: ["name", "description"],
-  /** A register entry: what its placement's path carries, and the target root. */
   register: ["name", "source", "root"],
 } as const;
 

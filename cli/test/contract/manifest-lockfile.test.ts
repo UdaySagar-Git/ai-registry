@@ -33,10 +33,8 @@ function accepts(read: (text: string) => unknown, text: string): boolean {
   }
 }
 
-/**
- * Schema and parser must agree, or one of them is lying to whoever edits the
- * file. `invalid-semantic-` marks what a schema cannot reach.
- */
+// Schema and parser must agree, or one of them is lying to whoever edits the
+// file. `invalid-semantic-` marks what a schema cannot reach.
 describe("manifest.schema.json", () => {
   const validate = validator("manifest.schema.json");
 
@@ -62,7 +60,7 @@ describe("manifest.schema.json", () => {
   }
 });
 
-/** Reading is deliberately looser, so the parser is not held to this answer. */
+// Reading is deliberately looser, so the parser is not held to this answer.
 describe("lockfile.schema.json", () => {
   const validate = validator("lockfile.schema.json");
 
@@ -83,7 +81,7 @@ describe("lockfile.schema.json", () => {
   });
 });
 
-/** Catches a key added to the parser that no fixture would mention. */
+// Catches a key added to the parser that no fixture would mention.
 describe("the schema describes every key the parser reads", () => {
   interface Node {
     properties?: Record<string, unknown>;
@@ -98,7 +96,7 @@ describe("the schema describes every key the parser reads", () => {
 
   const props = (node: Node | undefined): string[] => Object.keys(node?.properties ?? {});
 
-  /** A `Record<string, T>` becomes one pattern property; this reaches `T`. */
+  // A `Record<string, T>` becomes one pattern property; this reaches `T`.
   const entry = (node: unknown): Node =>
     Object.values((node as Node).patternProperties ?? {})[0] ?? {};
 
@@ -121,7 +119,7 @@ describe("the schema describes every key the parser reads", () => {
   });
 });
 
-/** The regenerate-and-diff gate, where it can name the command to run. */
+// The regenerate-and-diff gate, where it can name the command to run.
 describe("the published schema is what the definitions produce", () => {
   for (const [name, definition] of Object.entries(GENERATED)) {
     test(`${name} is up to date`, () => {

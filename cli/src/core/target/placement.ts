@@ -61,9 +61,8 @@ export interface KindTargets {
 }
 
 /**
- * The fewest folders that reach every selected target able to read this kind,
- * so a folder several of them share is written once and nothing lists twice.
- * `wrapped` items sit in plugin folders, which another tool cannot read through.
+ * The fewest folders reaching every selected target that reads this kind, so a shared one is
+ * written once. `wrapped` items sit in plugin folders, which another tool cannot read through.
  */
 export function placementFor(
   kind: ArtifactKind,

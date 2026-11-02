@@ -10,7 +10,6 @@ export const OWN_SKILLS_SOURCE = REPOSITORY;
 /** The folder in that repository that is the registry. */
 export const OWN_SKILLS_PATH = `examples/${NAME}`;
 
-/** Its alias once added, and the namespace that holds the skills. */
 export const OWN_SKILLS_ALIAS = REPOSITORY_NAME;
 export const OWN_SKILLS_NAMESPACE = NAME;
 

@@ -65,8 +65,6 @@ export class JobScheduler {
       }
       if (config.paused) return;
       const steady = await this.#steadyKinds();
-      // Each job is isolated: one that cannot start must not stop the rest of
-      // this tick from being considered.
       for (const job of config.jobs) {
         if (!job.schedule.enabled) continue;
         // Resuming leaves every held-back job overdue at once, so a started run
@@ -74,7 +72,6 @@ export class JobScheduler {
         if (await this.consider(job, steady)) break;
       }
     } catch (error) {
-      // The daemon log is where a stalled scheduler is recorded.
       this.#log.error("scheduler tick failed", { error });
     } finally {
       this.#ticking = false;

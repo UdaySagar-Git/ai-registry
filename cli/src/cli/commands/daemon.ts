@@ -19,10 +19,6 @@ export function daemonAction(argv: readonly string[]): string {
   return "status";
 }
 
-/**
- * Commands that need the daemon start it on their own, so these exist for the
- * times you want to see it, restart it, or read what it did.
- */
 export async function run(context: CommandContext): Promise<void> {
   const spec = DAEMON_COMMAND;
   parse(context.argv, spec);

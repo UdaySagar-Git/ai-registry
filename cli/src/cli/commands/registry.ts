@@ -10,10 +10,6 @@ import { validate } from "#cli/commands/registry/validate.ts";
 import { parse } from "#cli/options/parse.ts";
 import { type CommandContext, runAction } from "./command.ts";
 
-/**
- * Declaring a registry and installing from it are separate steps, so a project
- * can name its sources up front and let `add` pick from them by alias.
- */
 export async function run(context: CommandContext): Promise<void> {
   const spec = REGISTRY_COMMAND;
   const { positionals, common, own } = parse<Flags>(context.argv, spec);

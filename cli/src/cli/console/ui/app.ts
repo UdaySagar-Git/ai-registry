@@ -47,8 +47,6 @@ import {
 } from "./overlays.ts";
 import { toolkit } from "./toolkit.ts";
 
-// Every write goes through a confirm screen; there is no `--yes` equivalent in here.
-
 /** One line of what a run has got through, from its own counts. */
 function describe(live: Progress | undefined): string | undefined {
   if (live === undefined) return undefined;
@@ -151,10 +149,10 @@ function counted(panel: { label: string; length: (view: PanelView) => number }, 
 
 function useSize(): { width: number; height: number } {
   const { columns, rows } = useWindowSize();
+  // Ink writes a newline after each frame; a frame as tall as the terminal
+  // scrolls it a row, and the header off the top.
   return {
     width: Math.max(80, columns),
-    // Ink writes a newline after each frame; a frame as tall as the terminal
-    // scrolls it a row, and the header off the top.
     height: Math.max(20, rows - 1),
   };
 }
@@ -309,7 +307,7 @@ function useViews(context: ReturnType<typeof useSession>) {
   // and the footer. What is left is how many rows a list may draw.
   const listHeight = Math.max(4, height - 16);
 
-  /** A panel gets the toolkit and its own slice of the state, nothing else. */
+  // A panel gets the toolkit and its own slice of the state, nothing else.
   // biome-ignore lint/suspicious/noExplicitAny: each panel names its own state.
   const panelViewAt = (at: number): PanelView<any> => ({
     width,
@@ -323,9 +321,9 @@ function useViews(context: ReturnType<typeof useSession>) {
     ui: toolkit,
   });
 
+  // Overview counts its namespace rows: up and down have to do something on every
+  // view, and enter on one is the shortest path to its artifacts.
   const lengths: Record<string, number> = {
-    // The namespace rows: up and down have to do something on every view, and
-    // enter on one is the shortest path to its artifacts.
     overview: state.groups.length,
     artifacts: artifacts.lines.length,
     jobs: jobs.length,
@@ -381,6 +379,7 @@ function useViews(context: ReturnType<typeof useSession>) {
   };
 }
 
+/** Every write goes through a confirm screen; there is no `--yes` equivalent in here. */
 function useCommands(context: ReturnType<typeof useViews>) {
   const { props, state, stateRef, setActivity, reload } = context;
   const run = useCallback(
@@ -439,7 +438,7 @@ function useCommands(context: ReturnType<typeof useViews>) {
     };
   };
 
-  /** Runs the job that imports an edited folder; false when the row is not one. */
+  // Runs the job that imports an edited folder; false when the row is not one.
   const importNow = (row: ArtifactRow): boolean => {
     if (row.carriedBy === undefined || row.state !== "edited") return false;
     run(`importing ${row.name}`, commands.runJob(row.carriedBy));
@@ -481,7 +480,7 @@ function useLinks(context: ReturnType<typeof useCommands>) {
   const artifactLink = (row: ArtifactRow): string | undefined =>
     props.upstream?.artifact?.(facts, row);
 
-  /** Where `o` goes. The routes are the adapter's; which row is selected is not. */
+  // Where `o` goes. The routes are the adapter's; which row is selected is not.
   const openSelected = () => {
     let url: string | undefined;
     if (panel !== undefined && panelView !== undefined) {
@@ -519,7 +518,7 @@ function useNavigation(context: ReturnType<typeof useLinks>) {
     if (next !== undefined) setView(next.id);
   };
 
-  /** Movement, which every list-shaped view shares. */
+  // Movement, which every list-shaped view shares.
   const onNavKey = (input: string, key: Key): boolean => {
     // Left and right walk the tabs; folding a group is `enter` on its header.
     if (key.leftArrow) {
@@ -559,7 +558,7 @@ function useGlobalKeys(context: ReturnType<typeof useNavigation>) {
     nextAccount,
     onNavKey,
   } = context;
-  /** Keys every view answers to. Returns false when the view should try it. */
+  // Keys every view answers to. Returns false when the view should try it.
   const onGlobalKey = (input: string, key: Key): boolean => {
     if (onNavKey(input, key)) return true;
     // The digits match the labels on the registry tabs. Views move with the
@@ -608,7 +607,7 @@ function useOverlayKeys(context: ReturnType<typeof useGlobalKeys>) {
     artifactLink,
     onNavKey,
   } = context;
-  /** While the filter is open it owns the keyboard, or typing "p" publishes. */
+  // While the filter is open it owns the keyboard, or typing "p" publishes.
   const onFilterKey = (input: string, key: Key): void => {
     // The cursor still moves while you type, so a filter can be narrowed and
     // walked without closing it first.
@@ -689,7 +688,7 @@ function useViewKeys(context: ReturnType<typeof useOverlayKeys>) {
     importNow,
     publishPlan,
   } = context;
-  /** aireg never publishes to a git registry; its rows already say where an edit goes. */
+  // aireg never publishes to a git registry; its rows already say where an edit goes.
   const publishSelected = (): void => {
     if (state.account?.publishes === false) return;
     if (selectedArtifact?.kind === "artifact" && importNow(selectedArtifact.row)) return;
@@ -742,7 +741,7 @@ function useViewKeys(context: ReturnType<typeof useOverlayKeys>) {
     }
   };
 
-  /** Enter on a namespace opens it in Artifacts, with only that group shown. */
+  // Enter on a namespace opens it in Artifacts, with only that group shown.
   const onOverviewKey = (key: Key): void => {
     if (!key.return) return;
     const group = state.groups[cursor];
@@ -752,7 +751,7 @@ function useViewKeys(context: ReturnType<typeof useOverlayKeys>) {
     setCursors((current) => ({ ...current, artifacts: 0 }));
   };
 
-  /** A contributed tab's keys. It gets the console's verbs, not its state. */
+  // A contributed tab's keys. It gets the console's verbs, not its state.
   const onPanelKey = (input: string): void => {
     if (panel?.onKey === undefined || panelView === undefined) return;
     panel.onKey(input, {
@@ -785,7 +784,7 @@ function useMouseInteractions(context: ReturnType<typeof useViewKeys>) {
     cursor,
     move,
   } = context;
-  /** A click on the tab strips, which is the only chrome that is clickable. */
+  // A click on the tab strips, which is the only chrome that is clickable.
   const clickedTab = (event: MouseEvent): boolean => {
     if (event.row === LAYOUT.viewTabs) {
       const index = tabAt(event.column, viewTabWidths(tabs), 0);
@@ -803,7 +802,7 @@ function useMouseInteractions(context: ReturnType<typeof useViewKeys>) {
     return true;
   };
 
-  /** Which row of the current list a click at this screen row belongs to. */
+  // Which row of the current list a click at this screen row belongs to.
   const rowAt = (screenRow: number): number | undefined => {
     const total = length;
     if (total === 0) return undefined;
@@ -819,10 +818,8 @@ function useMouseInteractions(context: ReturnType<typeof useViewKeys>) {
     return index >= window.from && index < window.to ? index : undefined;
   };
 
-  /**
-   * A click lands on a rendered row, and the views lay out in a fixed order,
-   * so the row is turned back into a cursor position rather than measured.
-   */
+  // A click lands on a rendered row, and the views lay out in a fixed order,
+  // so the row is turned back into a cursor position rather than measured.
   const onMouse = (event: MouseEvent): void => {
     if (event.kind === "wheel-up" || event.kind === "wheel-down") {
       move(event.kind === "wheel-up" ? -3 : 3);
@@ -902,7 +899,7 @@ function drawBody(context: ReturnType<typeof useConsoleInput>) {
   } = context;
   const lastPull = state.runs.find((row) => row.mode === "sync")?.requestedAtMs;
 
-  /** A contributed block per panel, for the two views that aggregate. */
+  // A contributed block per panel, for the two views that aggregate.
   const blocks = (pick: "overview" | "settings"): ReactNode[] =>
     props.panels.flatMap((contribution) => {
       const data = state.panels[contribution.id];

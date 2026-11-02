@@ -127,7 +127,7 @@ interface Cleanup {
 }
 
 export const test = base
-  /** A folder for the whole file, for what every test reads and none changes, such as a registry. */
+  // `fileTmp` is one folder per file, for what every test reads and none changes, like a registry.
   .extend("fileTmp", { scope: "file" }, makeTmp)
   .extend("tmp", makeTmp)
   .extend("home", async ({ tmp }, { onCleanup }): Promise<Home> => {
@@ -142,7 +142,7 @@ export const test = base
   })
   .extend("project", makeProject)
   .extend("aireg", ({ home, project }) => cliIn(home, project))
-  /** Output with this test's folders, digests, times and the CLI version as placeholders. */
+  // `redact` replaces this test's folders, digests, times and the CLI version with placeholders.
   .extend("redact", ({ tmp, home, project }, { onCleanup }) => {
     const places: Places = { root: tmp, home: home.dir, project };
     redactPlaces(places);

@@ -38,7 +38,6 @@ export interface AcquireOptions {
   credentials?: Readonly<Record<string, Credential>>;
   signal?: AbortSignal;
   onBytes?: (count: number) => void;
-  /** Each artifact's bytes as they are downloaded, so progress can name what is arriving. */
   onDownload?: (artifact: Artifact, bytes: number) => void;
   /** Names to read beyond what the manifest asks for, by alias: what your own folders published. */
   also?: ReadonlyMap<string, readonly string[]>;
@@ -222,15 +221,12 @@ async function acquireOne(
   };
 }
 
-/**
- * The impure half of the pipeline: everything after this point is a pure
- * function of the values it returns.
- */
+/** The impure half of the pipeline: everything after it is a pure function of what it returns. */
 export async function acquire(manifest: Manifest, options: AcquireOptions): Promise<Acquired[]> {
-  // A registry the manifest names no artifact from is never opened or downloaded.
   const owned = options.aliases === undefined ? undefined : new Set(options.aliases);
   const locked = options.locked;
   const view = locked === undefined ? undefined : lockView(locked.lock);
+  // A registry the manifest names no artifact from is never opened or downloaded.
   const asked = Object.entries(manifest.registries)
     .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .filter(([alias]) => owned === undefined || owned.has(alias))

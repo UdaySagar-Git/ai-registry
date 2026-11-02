@@ -128,9 +128,9 @@ export async function run(context: CommandContext): Promise<void> {
     });
   }
 
+  // Each log is in time order, so the newest of all are among each one's newest.
   const history = chosen
     .flatMap((source) =>
-      // Each log is in time order, so the newest of all are among each one's newest.
       newestEntries(source.path, filter, limit).map((entry) => ({ log: source.label, entry })),
     )
     .sort((a, b) => {

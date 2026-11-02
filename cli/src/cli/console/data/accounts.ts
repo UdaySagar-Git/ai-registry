@@ -16,10 +16,10 @@ async function describe(
 ): Promise<AccountRow> {
   const declared = manifest.registries[account.registry];
   const { signIn, publishes } = await abilities(manifest, account.registry);
+  // A cloned project's manifest chose the address, and Ink prints escapes as they are.
   return {
     id: account.id,
     registry: account.registry,
-    // A cloned project's manifest chose it, and Ink prints escapes as they are.
     address: sanitizeText(withoutCredentials(declared?.location ?? ""), 2048),
     config: declared?.config ?? {},
     credentialsFile: signedIn ? credentialsPath() : undefined,

@@ -28,7 +28,7 @@ function snapshotPath(cache: string, spec: SourceSpec, commit: string): string {
   return join(cache, ...segments, commit);
 }
 
-/** Checkouts kept per repository: the one just taken and the one before, which a run may still read. */
+/** Checkouts kept per repository: the latest and the one before, which a run may still read. */
 const KEPT_PER_REPOSITORY = 2;
 
 /** Checkouts an open connection in this process still reads, which no prune removes. */
@@ -68,7 +68,6 @@ async function pruneOlder(repository: string, current: string): Promise<void> {
  * mean edits to the directory a person is authoring in never take effect.
  */
 export async function snapshot(
-  /** The adapter's cache folder, from the host. */
   cache: () => string,
   spec: SourceSpec,
   ref: string | undefined,

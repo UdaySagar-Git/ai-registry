@@ -14,9 +14,8 @@ export const IMPORTABLE_TARGETS: readonly string[] = BUILTIN_TARGETS.filter(
   .sort();
 
 /**
- * The id aireg 0.1 knew a built-in by, its first alias, `<id>:<profile>` included; any other
- * as given. Only while the table still reads that alias as this target, so a writer never
- * records an id the next command cannot resolve.
+ * The id aireg 0.1 knew a built-in by (its first alias, profile kept), else `id` as given; never
+ * an alias the table no longer reads as this target, which the next command could not resolve.
  */
 export function earlierId(targetTable: Targets, id: string): string {
   const at = id.indexOf(":");

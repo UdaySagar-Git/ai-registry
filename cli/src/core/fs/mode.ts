@@ -1,7 +1,6 @@
 /** Modes aireg creates files and folders with, named by who may use them. */
 export const PRIVATE_FILE = 0o600;
 export const PRIVATE_DIR = 0o700;
-/** A copy anyone may read, a program or a folder anyone may enter, and any execute bit. */
 
 /** Masks over a mode: any group or other bit, and group or other write. */
 export const OPEN_TO_OTHERS = 0o077;

@@ -72,7 +72,7 @@ export function policy(own: Own): Record<string, string> {
 
 /**
  * `-s` names inside the registry, each as the full address the manifest records, so a
- * bare name never reads as a registry of its own. Absent declares nothing.
+ * bare name never reads as a registry of its own. Undefined without `-s` or with `*`.
  */
 export async function refsFrom(
   common: CommonOptions,

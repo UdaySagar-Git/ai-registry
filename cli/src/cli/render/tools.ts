@@ -57,9 +57,8 @@ export function scopeTargets(manifest: Manifest, targetTable: Targets): string[]
 }
 
 /**
- * The targets a scope installs a row for: those of each manifest entry that
- * asks for it, the scope's own for an entry that names none or for a row only
- * something else needs.
+ * The targets a scope installs a row for: those of each entry asking for it, or the scope's own
+ * for an entry that names none and for a row only something else needs.
  */
 export function chosenFor(manifest: Manifest, scope: readonly string[], row: Pinnable): string[] {
   const asking = askingFor(manifest, row);
@@ -109,7 +108,7 @@ export function unhandled(
   return kinds.filter((kind) => target.kinds[kind] === undefined);
 }
 
-/** `Codex skips reviewer: it does not load agents.`, said the same by the plan and by status. */
+/** What a target skips and the kinds it cannot load, said the same by the plan and by status. */
 export function skipLine(
   targetTable: Targets,
   tool: string,

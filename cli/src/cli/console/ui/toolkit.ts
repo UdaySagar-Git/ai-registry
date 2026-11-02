@@ -18,7 +18,6 @@ import { action, box, dim, faint, heading, plain, rule, text } from "./elements.
 
 // The renderer, lent to a contributed panel. `PanelNode` is `unknown` on the
 // far side of that boundary, which is what these casts pay for.
-
 const node = (value: PanelNode): ReactNode => value as ReactNode;
 const nodes = (values: PanelNode[]): ReactNode[] => values.map(node);
 

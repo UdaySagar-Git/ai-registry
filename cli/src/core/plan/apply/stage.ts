@@ -5,8 +5,7 @@ import type { Action, Fetch, Plan, Staged } from "#core/plan/model.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { type ActionOf, linkKey, type Run } from "./run.ts";
 
-/** What a stage's content is keyed by, written once so both readers agree. */
-const staged = (source: string, path: string): string => `${source}\0${path}`;
+const stageKey = (source: string, path: string): string => `${source}\0${path}`;
 
 /** Enough to keep the transport busy; few enough that a failure stops the rest. */
 const AHEAD = 24;
@@ -24,11 +23,12 @@ export function prefetch(
   const fill = (): void => {
     while (next < stages.length && next - taken < AHEAD) {
       const action = stages[next++] as Extract<Action, { kind: "stage" }>;
-      const key = staged(action.source, action.path);
+      const key = stageKey(action.source, action.path);
       if (started.has(key)) continue;
 
       const pending = fetch(action.source, action.path);
-      pending.catch(() => {}); // Reported where it is awaited.
+      // Reported where it is awaited.
+      pending.catch(() => {});
 
       started.set(key, pending);
     }
@@ -38,7 +38,7 @@ export function prefetch(
   return (source, path) => {
     taken += 1;
     fill();
-    return started.get(staged(source, path)) ?? fetch(source, path);
+    return started.get(stageKey(source, path)) ?? fetch(source, path);
   };
 }
 

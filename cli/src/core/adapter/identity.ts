@@ -6,7 +6,10 @@ import { NAME } from "#core/product.ts";
 
 export type SourceConfig = Readonly<Record<string, string>>;
 
-/** Canonicalize adapter-defined scope selection before hashing or persistence. */
+/**
+ * Trimmed and sorted by key, so one selection hashes and saves the same way everywhere. A blank,
+ * reserved or repeated key throws.
+ */
 export function canonicalConfig(config: SourceConfig): Record<string, string> {
   const entries = Object.entries(config)
     .map(([key, value]) => [key.trim(), value.trim()] as const)

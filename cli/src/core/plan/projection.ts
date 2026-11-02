@@ -22,20 +22,20 @@ export interface ProjectionOptions {
 }
 
 export interface PlannedLink {
-  /** Target name, the same concept the lock records on a link. */
+  /** Target name, as on `LockLink`. */
   target: string;
   absolute: string;
   relative: string;
   from: string;
   /** A plugin directory is shared by every artifact in its namespace. */
   shared?: boolean;
-  /** The content the projection links to, when this link is a projection. */
+  /** Present when this link is a projection: the content it links to. */
   content?: string;
   /** Placed as a real directory of links, for a target that will not load a linked plugin. */
   fan?: boolean;
   /** The plugin name, when it had to differ from the namespace it holds. */
   renamed?: { namespace: string; name: string };
-  /** Written in the target's own format. */
+  /** Absent writes the bytes as they are. */
   codec?: Codec;
   /** Written as a real folder holding this file. */
   entry?: string;
@@ -43,7 +43,7 @@ export interface PlannedLink {
   copy?: boolean;
   /** A plugin's command, written as a skill a person invokes under this name. */
   command?: string;
-  /** The plugin's own account of itself, for the manifests its projection gets. */
+  /** Feeds the manifests the plugin's projection gets. */
   document?: PluginDocument;
   /** The kind of the plugin part this places, where a target takes the plugin as its parts. */
   part?: ArtifactKind;
@@ -125,8 +125,8 @@ export interface NamespaceWant {
 }
 
 /**
- * Plugin directories two registries' namespaces want under a bare name, repeated until no
- * qualified name lands on another's bare name; equal qualified names are left to clash in claim().
+ * Plugin directories two registries' namespaces want under a bare name; equal qualified names
+ * are left to clash in claim().
  */
 export function crowdedContainers(
   wants: Iterable<NamespaceWant>,
@@ -341,8 +341,8 @@ function pluginLinks(
           ...keysAt(name, leaf.kind, selected, options.targetTable, scope),
           part: leaf.kind,
         };
+        // A skill is a folder, so the command is written as one holding its SKILL.md.
         links.push(
-          // A skill is a folder, so the command is written as one holding its SKILL.md.
           leaf.command === true ? { ...link, entry: SKILL_ENTRY, command: leaf.name } : link,
         );
       }

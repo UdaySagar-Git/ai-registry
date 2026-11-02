@@ -23,7 +23,7 @@ interface Claimed {
   blocked: Blocked[];
 }
 
-/** `.agents/skills/pdf` or `.claude/agents/review.md`: the name a part is installed under. */
+/** The name a part is installed under, read from its link path. */
 const partName = (path: string) => (path.split(/[\\/]/).at(-1) ?? path).replace(/\.(md|toml)$/, "");
 
 /** Where `item` would link this run, before any other artifact claims a path. */

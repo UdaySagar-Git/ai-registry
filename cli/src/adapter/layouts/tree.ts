@@ -152,7 +152,7 @@ export async function openTree(root: string, limits: TreeLimits = TREE_LIMITS): 
     }
   };
 
-  /** A listed file as it is now: changed into something else since, it is left out, never followed. */
+  // A listed file as it is now: one changed into something else since is left out, not followed.
   const fileAt = async (path: string): Promise<TreeFile | Skip> => {
     const info = await lstat(join(root, ...path.split(posix.sep)));
     if (!info.isFile()) return { path, reason: "is not a regular file" };

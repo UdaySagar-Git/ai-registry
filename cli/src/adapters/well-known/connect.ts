@@ -50,7 +50,7 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
         throw fail(
           "invalid",
           `${registry} is a site's skills index, which has no versions, so ${pinned.name}@${pinned.version} cannot be installed.`,
-          "Leave off the `@<version>`: aireg installs what the site serves now.",
+          { hint: "Leave off the `@<version>`: aireg installs what the site serves now." },
         );
       }
       const warnings: string[] = [];
@@ -119,7 +119,7 @@ async function readIndex(
     `${location} has no Agent Skills index at ${indexUrls(location)
       .map((url) => url.href)
       .join(" or ")}.`,
-    `If it is a git repository, add it with \`--adapter git\`.`,
+    { hint: `If it is a git repository, add it with \`--adapter git\`.` },
   );
 }
 

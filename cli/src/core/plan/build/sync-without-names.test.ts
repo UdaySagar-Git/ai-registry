@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { emptyLock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
@@ -66,7 +66,7 @@ describe("a sync that reads one registry and names none", () => {
   const unlinks = (plan: { actions: Action[] }) =>
     plan.actions.filter((action) => action.kind === "unlink").map((action) => action.to);
 
-  it("counts a declared registry's rows, and leaves the directory they still record", () => {
+  test("counts a declared registry's rows, and leaves the directory they still record", () => {
     const plan = build(
       declaringFar(["kit", "far"]),
       farRow(),
@@ -78,7 +78,7 @@ describe("a sync that reads one registry and names none", () => {
     expect(unlinks(plan)).not.toContain(claudeSkills("engineering"));
   });
 
-  it("counts your own rows in a declared registry nothing asks for", () => {
+  test("counts your own rows in a declared registry nothing asks for", () => {
     const lock = farRow();
     const fmt = lock.artifacts.fmt as LockArtifact;
     lock.artifacts.fmt = {
@@ -95,7 +95,7 @@ describe("a sync that reads one registry and names none", () => {
     expect(linksTo(plan.actions, "claude-code")).toEqual([claudeSkills("kit-engineering")]);
   });
 
-  it("ignores the rows of a registry no longer declared", () => {
+  test("ignores the rows of a registry no longer declared", () => {
     const plan = build(
       kitManifest(["kit"]),
       farRow(),
@@ -106,7 +106,7 @@ describe("a sync that reads one registry and names none", () => {
     expect(linksTo(plan.actions, "claude-code")).toEqual([claudeSkills("engineering")]);
   });
 
-  it("still removes what a run naming that registry dropped, though it read nothing", () => {
+  test("still removes what a run naming that registry dropped, though it read nothing", () => {
     const plan = build(
       declaringFar([]),
       farRow(),

@@ -1,7 +1,7 @@
 import { closeSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, vi } from "vitest";
 import { logPath } from "#core/log/index.ts";
 import { cliClient, RpcClient } from "#daemon/rpc/client.ts";
 import { rpcEndpoint } from "#daemon/rpc/endpoint.ts";
@@ -58,7 +58,7 @@ unix("daemon lifecycle", () => {
 });
 
 describe("daemonEnv", () => {
-  it("drops the one-command floor opt-out and keeps everything else", () => {
+  test("drops the one-command floor opt-out and keeps everything else", () => {
     const env = {
       AIREG_SKIP_MIN_UPDATE: "1",
       AIREG_HOME: "/tmp/home",
@@ -68,7 +68,7 @@ describe("daemonEnv", () => {
     expect(env.AIREG_SKIP_MIN_UPDATE).toBe("1");
   });
 
-  it("drops every registry token in any case, so one command's token never outlives that command", () => {
+  test("drops every registry token in any case, so one command's token never outlives that command", () => {
     const env = {
       AIREG_TOKEN_ACME: "synthetic-token",
       AIREG_TOKEN_ACME_PROD: "synthetic-token",

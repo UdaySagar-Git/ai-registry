@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { PublishInput, PublishOptions } from "#adapter/index.ts";
 import { AdapterError } from "#adapter/index.ts";
 import type { SyncExecutionHooks, SyncOutcome } from "./decide.ts";
@@ -13,7 +13,7 @@ const empty = () => ({
 });
 
 describe("publishPartial", () => {
-  it("records what landed at the version sent, reports each refusal, and rethrows the first after", async () => {
+  test("records what landed at the version sent, reports each refusal, and rethrows the first after", async () => {
     const refused = new AdapterError("acme", "invalid", "blocked");
     const result = empty();
     const failed: string[] = [];
@@ -45,7 +45,7 @@ describe("publishPartial", () => {
     expect(failed).toEqual(["b"]);
   });
 
-  it("records nothing when an adapter that ignores partial throws", async () => {
+  test("records nothing when an adapter that ignores partial throws", async () => {
     const thrown = new AdapterError("git", "conflict", "HTTP 409");
     const result = empty();
     const publish = async () => {
@@ -57,7 +57,7 @@ describe("publishPartial", () => {
     expect(result.published.size).toBe(0);
   });
 
-  it("reports a held change without recording or failing it", async () => {
+  test("reports a held change without recording or failing it", async () => {
     const result = empty();
     const held: [string, string][] = [];
     const publish = async () => ({ held: [{ index: 0, reason: "in review" }] });
@@ -85,7 +85,7 @@ describe("settlePublished", () => {
     return { settled, hooks };
   };
 
-  it("settles each once: changed when it landed, failed with its own code when refused", () => {
+  test("settles each once: changed when it landed, failed with its own code when refused", () => {
     const { settled, hooks } = collect();
     settlePublished(
       [outcome("a"), outcome("b")],
@@ -110,7 +110,7 @@ describe("settlePublished", () => {
     ]);
   });
 
-  it("fails the rest with the batch's error when the whole batch was refused", () => {
+  test("fails the rest with the batch's error when the whole batch was refused", () => {
     const { settled, hooks } = collect();
     const batch = new AdapterError("acme", "unavailable", "HTTP 503");
     settlePublished(
@@ -131,7 +131,7 @@ describe("settlePublished", () => {
     ]);
   });
 
-  it("leaves one the plan no longer sent for a person, even when another was refused", () => {
+  test("leaves one the plan no longer sent for a person, even when another was refused", () => {
     const { settled, hooks } = collect();
     const refused = new AdapterError("acme", "invalid", "blocked");
     settlePublished(
@@ -147,7 +147,7 @@ describe("settlePublished", () => {
     expect(settled[0]?.[1]).not.toHaveProperty("errorCode");
   });
 
-  it("settles a held change as in review, not failed", () => {
+  test("settles a held change as in review, not failed", () => {
     const { settled, hooks } = collect();
     settlePublished(
       [outcome("a")],
@@ -172,7 +172,7 @@ describe("settlePublished", () => {
     ]);
   });
 
-  it("settles an archive that landed as changed and one refused with its own error", () => {
+  test("settles an archive that landed as changed and one refused with its own error", () => {
     const settled: [string, string, unknown][] = [];
     const hooks = {
       item: (name: string, phase: string, item: unknown) => settled.push([name, phase, item]),

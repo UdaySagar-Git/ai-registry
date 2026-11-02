@@ -89,7 +89,11 @@ Vitest runs five projects. `pnpm test` runs them all, and `pnpm run test:unit`, 
 
 A scenario in `test/scenarios/*.md` is a CLI session: `$ aireg ...` lines with the output expected, `? <code>` for an exit status, and `file` blocks for what should be on disk. `UPDATE_SCENARIOS=1` rewrites the expected output after a deliberate change.
 
-`pnpm run verify` runs the typecheck, lint, dead-code check, third-party notices check, build, package check and tests. Lint warns about a function over 100 lines or a file over 1000, blank lines aside and outside tests, a function whose cognitive complexity is over 25, and a reassigned parameter. Existing code may carry these warnings, but a pull request must leave every file it adds or edits free of them: CI runs `pnpm run lint:changed --since=<base>`, which fails on any warning in those files. Run it before you push, with `--since=origin/main`.
+`pnpm run verify` runs the typecheck, lint, dead-code check, third-party notices check, build, package check and tests.
+
+Lint fails on a function whose cognitive complexity is over 25, a function with more than six parameters, an import cycle, a barrel or `export *` module, an import below other code, a shadowed name, a nested ternary, a switch over a union that misses a case, a file name that is not kebab-case, and a test that asserts nothing, asserts conditionally or is named `it`. A rule that existing files break lists them in an override at the end of `biome.json`; that list only shrinks, so fix a file and take it off rather than add one.
+
+Lint also warns about a function over 100 lines or a file over 1000, blank lines aside and outside tests, and a reassigned parameter. These prompt a look, not a split: split a file when it holds more than one concern. Existing code may carry these warnings, but a pull request must leave every file it adds or edits free of them: CI runs `pnpm run lint:changed --since=<base>`, which fails on any warning in those files. Run it before you push, with `--since=origin/main`.
 
 ## Messages
 

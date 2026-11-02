@@ -1,5 +1,7 @@
+import type { DetectionRule } from "#core/target/index.ts";
+
 /** Where detection found a target, in a person's words. */
-export function foundBy(by: string | undefined): string {
+export function foundBy(by: DetectionRule | undefined): string {
   switch (by) {
     case "env":
       return "from its environment variables";
@@ -9,7 +11,7 @@ export function foundBy(by: string | undefined): string {
       return "in this project";
     case "user":
       return "in your home folder";
-    default:
+    case undefined:
       return "on this machine";
   }
 }

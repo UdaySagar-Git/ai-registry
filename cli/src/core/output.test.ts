@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { type ColorWhen, Printer, type PrinterOptions, Styler, sentence } from "#core/output.ts";
 
 function capture(options: PrinterOptions) {
@@ -13,7 +13,7 @@ function capture(options: PrinterOptions) {
 }
 
 describe("Printer", () => {
-  it("strips terminal escapes from every diagnostic, where remote text arrives in messages", () => {
+  test("strips terminal escapes from every diagnostic, where remote text arrives in messages", () => {
     const { printer, err } = capture({ verbose: true });
     const hostile = "zz\u001B]0;title\u0007\u001B]52;c;Zm9v\u0007\u001B[31mred\u202E";
     printer.error(`index.json lists ${hostile}.`);
@@ -27,7 +27,7 @@ describe("Printer", () => {
     );
   });
 
-  it("strips escapes from primary output, where manifest and registry text arrive, keeping its own styling", () => {
+  test("strips escapes from primary output, where manifest and registry text arrive, keeping its own styling", () => {
     const hostile = "zz\u001B]52;c;Zm9v\u0007\u001B[2J\u001B[8mhidden\u202E";
     const plain = capture({ color: "never" });
     plain.printer.info(`acme  ${hostile}`);
@@ -40,13 +40,13 @@ describe("Printer", () => {
     expect(styled.out()).toBe("\u001B[1macme\u001B[0m zzhidden\n");
   });
 
-  it("keeps the lines of a diagnostic", () => {
+  test("keeps the lines of a diagnostic", () => {
     const { printer, err } = capture({});
     printer.error("one\n  two");
     expect(err()).toBe("error: one\n  two\n");
   });
 
-  it("writes --verbose steps and details to stderr, never stdout", () => {
+  test("writes --verbose steps and details to stderr, never stdout", () => {
     const { printer, out, err } = capture({ verbose: true });
     printer.step("acme: /x");
     printer.detail("d");
@@ -54,7 +54,7 @@ describe("Printer", () => {
     expect(err()).toBe("· acme: /x\n  d\n");
   });
 
-  it("prints only results, warnings, errors and their hints under --quiet", () => {
+  test("prints only results, warnings, errors and their hints under --quiet", () => {
     const { printer, out, err } = capture({ quiet: true });
     printer.info("r");
     printer.success("s");
@@ -73,7 +73,7 @@ describe("Printer", () => {
 });
 
 describe("Styler", () => {
-  it("lets --color win over the environment, then NO_COLOR, then forcing, then CLICOLOR=0", () => {
+  test("lets --color win over the environment, then NO_COLOR, then forcing, then CLICOLOR=0", () => {
     const on = (env: NodeJS.ProcessEnv, when?: ColorWhen, isTTY = false) =>
       new Styler({ isTTY }, env, when).red("x") !== "x";
     expect(on({ FORCE_COLOR: "1" }, "never")).toBe(false);
@@ -86,13 +86,13 @@ describe("Styler", () => {
     expect(on({ CLICOLOR: "0", CLICOLOR_FORCE: "1" })).toBe(true);
   });
 
-  it("leaves empty text unstyled", () => {
+  test("leaves empty text unstyled", () => {
     expect(new Styler({ isTTY: true }, { FORCE_COLOR: "1" }).dim("")).toBe("");
   });
 });
 
 describe("sentence", () => {
-  it.each([
+  test.each([
     ["not found", "not found."],
     ["fatal: bad ref\n", "fatal: bad ref."],
     ["Already ended!", "Already ended!"],

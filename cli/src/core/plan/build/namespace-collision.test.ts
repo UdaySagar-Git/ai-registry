@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Lock, LockArtifact } from "#core/lock.ts";
 import { emptyLock } from "#core/lock.ts";
 import type { Manifest } from "#core/manifest.ts";
@@ -84,7 +84,7 @@ describe("two registries with a namespace of the same name", () => {
     return lock;
   }
 
-  it("gives each its own Claude plugin, named after its registry", () => {
+  test("gives each its own Claude plugin, named after its registry", () => {
     const plan = build(
       both(),
       emptyLock(),
@@ -105,7 +105,7 @@ describe("two registries with a namespace of the same name", () => {
     );
   });
 
-  it("gives Codex each namespace as a plugin of its own registry, so neither is renamed", () => {
+  test("gives Codex each namespace as a plugin of its own registry, so neither is renamed", () => {
     const plan = build(
       both(),
       emptyLock(),
@@ -122,7 +122,7 @@ describe("two registries with a namespace of the same name", () => {
     expect(linksTo(plan.actions, "universal")).toEqual([]);
   });
 
-  it("keeps the bare name while only one registry publishes the namespace", () => {
+  test("keeps the bare name while only one registry publishes the namespace", () => {
     const plan = build(
       kitManifest(["kit"]),
       emptyLock(),
@@ -134,7 +134,7 @@ describe("two registries with a namespace of the same name", () => {
     expect(plan.warnings.some((warning) => /another registry/.test(warning.message))).toBe(false);
   });
 
-  it("counts the namespace a registry this run did not open still holds", () => {
+  test("counts the namespace a registry this run did not open still holds", () => {
     const lock = farInstalled();
     const plan = build(
       both(),
@@ -155,7 +155,7 @@ describe("two registries with a namespace of the same name", () => {
     ).toBe(false);
   });
 
-  it("moves an installed namespace to its qualified name once another registry shares it", () => {
+  test("moves an installed namespace to its qualified name once another registry shares it", () => {
     // `kit` already ran and took its qualified name; `far` has not caught up.
     const lock = farInstalled();
     lock.registries.kit = lockSource("kit");
@@ -247,7 +247,7 @@ describe("registries whose plugin names meet once qualified", () => {
     source("y", "b-c", "four"),
   ];
 
-  it("links one registry's plugin where two qualified names meet, and reports the other", () => {
+  test("links one registry's plugin where two qualified names meet, and reports the other", () => {
     // `six` is a second skill in `three`'s namespace.
     const sources = [
       ...SOURCES.filter((each) => each.alias !== "a"),
@@ -272,7 +272,7 @@ describe("registries whose plugin names meet once qualified", () => {
     ]);
   });
 
-  it("qualifies a bare name that another registry's qualified name lands on", () => {
+  test("qualifies a bare name that another registry's qualified name lands on", () => {
     const plan = build(
       declaring(["q", "x", "z"]),
       emptyLock(),
@@ -289,7 +289,7 @@ describe("registries whose plugin names meet once qualified", () => {
     expect(plan.clashes).toEqual([]);
   });
 
-  it("frees a folder an installed artifact moves out of in the same run", () => {
+  test("frees a folder an installed artifact moves out of in the same run", () => {
     // Installed flat before `t` wrapped namespaces: `other/team` holds `.claude/skills/team`.
     const lock = emptyLock();
     installedAt(lock, { alias: "t", namespace: "other", skill: "team" }).links = [
@@ -316,7 +316,7 @@ describe("registries whose plugin names meet once qualified", () => {
     expect(plan.clashes).toEqual([]);
   });
 
-  it("leaves the plugin directory the lockfile gives another registry's namespace to it", () => {
+  test("leaves the plugin directory the lockfile gives another registry's namespace to it", () => {
     // `one` holds `a-b-c` already; `three`, planned first, moves there from `b-c` now `y` has one.
     const lock = emptyLock();
     installedAt(lock, { alias: "a-b", namespace: "c", skill: "one" }).links = [

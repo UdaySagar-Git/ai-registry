@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { binaryName, releasePlatform, requireReleasePlatform } from "./urls.ts";
 
 describe("releasePlatform", () => {
-  it("names only the platforms a standalone build is published for", () => {
+  test("names only the platforms a standalone build is published for", () => {
     // Node says `x64`; the published artifact says `amd64`, like uname and Go.
     expect(releasePlatform("linux", "x64")).toBe("linux-amd64");
     expect(releasePlatform("darwin", "arm64")).toBe("darwin-arm64");
@@ -19,14 +19,14 @@ describe("releasePlatform", () => {
 });
 
 describe("requireReleasePlatform", () => {
-  it("fails loudly rather than deriving a URL for a platform with no build", () => {
+  test("fails loudly rather than deriving a URL for a platform with no build", () => {
     expect(requireReleasePlatform("linux", "x64")).toBe("linux-amd64");
     expect(() => requireReleasePlatform("freebsd", "arm64")).toThrow(/No aireg build/);
   });
 });
 
 describe("binaryName", () => {
-  it("names the download after the platform", () => {
+  test("names the download after the platform", () => {
     expect(binaryName("darwin-arm64")).toBe("aireg-darwin-arm64");
     expect(binaryName("windows-arm64")).toBe("aireg-windows-arm64.exe");
   });

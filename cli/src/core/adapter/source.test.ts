@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { AdapterError, type Envelope, type SourceAdapter } from "#adapter/index.ts";
 import { ENVELOPE_API_VERSION } from "#adapter/spec/types.ts";
 import { resolveArtifacts } from "./source.ts";
@@ -57,7 +57,7 @@ async function resolveWith(adapter: SourceAdapter) {
 }
 
 describe("what the client refuses from an adapter", () => {
-  it.each([
+  test.each([
     ["../escape.md"],
     ["/etc/passwd"],
     ["a\\b.md"],
@@ -70,13 +70,13 @@ describe("what the client refuses from an adapter", () => {
     await expect(resolveWith(serving([{ path }]))).rejects.toThrow(AdapterError);
   });
 
-  it("rejects two paths a case-insensitive disk stores as one", async () => {
+  test("rejects two paths a case-insensitive disk stores as one", async () => {
     await expect(
       resolveWith(serving([{ path: "SKILL.md" }, { path: "skill.md" }])),
     ).rejects.toThrow('describes "skill.md" and "SKILL.md", which are one file on most disks');
   });
 
-  it("rejects a kind the adapter did not declare", async () => {
+  test("rejects a kind the adapter did not declare", async () => {
     const adapter = serving([{ path: "SKILL.md" }]);
     const handle = await adapter.connect({
       source: { registry: "p", location: "probe://x", config: {}, key: "k" },
@@ -97,7 +97,7 @@ describe("what the client refuses from an adapter", () => {
     );
   });
 
-  it("files a grouped plugin under its own namespace, not a nested plugin path", async () => {
+  test("files a grouped plugin under its own namespace, not a nested plugin path", async () => {
     const adapter: SourceAdapter = {
       ...serving([{ path: "SKILL.md" }]),
       artifactKinds: ["plugin", "skill"],
@@ -132,7 +132,7 @@ describe("what the client refuses from an adapter", () => {
     expect(listing.catalog.entries[0]?.group).toBe("sales");
   });
 
-  it("accepts a well-formed listing", async () => {
+  test("accepts a well-formed listing", async () => {
     const listing = await resolveWith(serving([{ path: "SKILL.md" }]));
     expect(listing.listed).toHaveLength(1);
     // A registry with no namespaces files an artifact under its own name;

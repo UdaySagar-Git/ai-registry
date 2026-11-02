@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { classify, type SyncOutcome } from "./decide.ts";
 import type { Scan } from "./scan.ts";
 import type { ScopeWork } from "./work.ts";
@@ -22,7 +22,7 @@ function scan(local: Scan["local"]): Scan {
 }
 
 describe("classify", () => {
-  it("holds a local artifact of a kind the adapter cannot publish, and publishes the rest", () => {
+  test("holds a local artifact of a kind the adapter cannot publish, and publishes the rest", () => {
     const { outcomes, mutates } = classify(
       scan([
         { name: "helper", kind: "agent" },
@@ -40,7 +40,7 @@ describe("classify", () => {
     expect(mutates).toBe(true);
   });
 
-  it("skips local work for a registry that takes no publishes at all", () => {
+  test("skips local work for a registry that takes no publishes at all", () => {
     const { outcomes, mutates } = classify(
       scan([{ name: "lint", kind: "skill" }] as Scan["local"]),
       job,
@@ -54,7 +54,7 @@ describe("classify", () => {
     expect(mutates).toBe(false);
   });
 
-  it("keeps two local artifacts that share a name apart", () => {
+  test("keeps two local artifacts that share a name apart", () => {
     const both = scan([
       { name: "lint", kind: "agent" },
       { name: "lint", kind: "skill" },
@@ -68,7 +68,7 @@ describe("classify", () => {
 });
 
 describe("classify across registries", () => {
-  it("leaves a name whose lock row another registry owns to that registry's job", () => {
+  test("leaves a name whose lock row another registry owns to that registry's job", () => {
     const served = {
       name: "shared/evals",
       kind: "skill",
@@ -123,7 +123,7 @@ describe("a folder of yours with a registry name", () => {
       acquired: [],
     }) as unknown as Scan;
 
-  it("keeps the registry's copy out, without asking anyone to act", () => {
+  test("keeps the registry's copy out, without asking anyone to act", () => {
     const { outcomes, writes } = classify(withFolder(), job, "acme", undefined, "sync", new Map());
     expect(outcomeFor(outcomes, "skill", "ws/hello")).toMatchObject({
       operation: "ignore",
@@ -132,7 +132,7 @@ describe("a folder of yours with a registry name", () => {
     expect(writes.has("ws/hello")).toBe(false);
   });
 
-  it("installs it when claiming is asked for, or when the lock already holds it", () => {
+  test("installs it when claiming is asked for, or when the lock already holds it", () => {
     const claiming = { ...job, policy: { ...job.policy, claim: "on" as const } };
     const claimed = classify(withFolder(), claiming, "acme", undefined, "sync", new Map());
     expect(outcomeFor(claimed.outcomes, "skill", "ws/hello")?.operation).toBe("pull");
@@ -152,7 +152,7 @@ describe("taking the registry's side", () => {
     digests: { base: undefined, local: undefined, upstream },
   });
 
-  it("removes what the registry deleted, and leaves one it would not serve a pull", () => {
+  test("removes what the registry deleted, and leaves one it would not serve a pull", () => {
     const taken = {
       items: [item("gone", "pull-delete", undefined), item("held", "unavailable", undefined)],
       local: [],

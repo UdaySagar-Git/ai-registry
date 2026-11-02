@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { readIndex, readVersions, SpecError } from "./documents.ts";
 import { mergedIndex, mergedVersions, newest, type OfferedVersion, specJson } from "./write.ts";
 
@@ -22,7 +22,7 @@ function rootOf(documents: Readonly<Record<string, unknown>>) {
 }
 
 describe("mergedVersions", () => {
-  it("adds a version above the ones before it, leaving them as written", () => {
+  test("adds a version above the ones before it, leaving them as written", () => {
     const existing = {
       namespace: "mine",
       kind: "skill",
@@ -48,7 +48,7 @@ describe("mergedVersions", () => {
     expect(document.latest).toBe("0.2.0");
   });
 
-  it("replaces a re-offered version in place, keeping its unmodeled fields", () => {
+  test("replaces a re-offered version in place, keeping its unmodeled fields", () => {
     const existing = {
       namespace: "mine",
       kind: "skill",
@@ -69,7 +69,7 @@ describe("mergedVersions", () => {
     expect(versions[1]).toEqual({ version: "0.3.0", digest: "sha256:cccc" });
   });
 
-  it("keeps latest on the highest active version when a lower one is offered", () => {
+  test("keeps latest on the highest active version when a lower one is offered", () => {
     const row = (version: string, yanked = false) => ({
       version,
       digest: `sha256:${version}`,
@@ -89,7 +89,7 @@ describe("mergedVersions", () => {
     expect(mergedVersions(existing, backport, "2026-01-02T00:00:00Z").latest).toBe("1.0.0");
   });
 
-  it("never makes a prerelease latest while a release is active", () => {
+  test("never makes a prerelease latest while a release is active", () => {
     const row = (version: string) => ({
       version,
       digest: `sha256:${version}`,
@@ -110,7 +110,7 @@ describe("mergedVersions", () => {
     expect(mergedVersions(only, candidate, "2026-01-02T00:00:00Z").latest).toBe("1.0.0-rc.1");
   });
 
-  it("lists a backport below every version that outranks it", () => {
+  test("lists a backport below every version that outranks it", () => {
     const existing = {
       namespace: "mine",
       kind: "skill",
@@ -127,7 +127,7 @@ describe("mergedVersions", () => {
     ]);
   });
 
-  it("refuses a version the reader would reject", () => {
+  test("refuses a version the reader would reject", () => {
     expect(() => mergedVersions(undefined, { ...OFFER, version: "not a version" }, "x")).toThrow(
       SpecError,
     );
@@ -138,33 +138,33 @@ describe("newest", () => {
   const latest = (...versions: string[]) =>
     newest(versions.map((version) => ({ version, status: "active", yanked: false })));
 
-  it("puts a prerelease ahead of a version that does not parse, in either order", () => {
+  test("puts a prerelease ahead of a version that does not parse, in either order", () => {
     expect(latest("2.0.0-beta", "2024-10-01")).toBe("2.0.0-beta");
     expect(latest("2024-10-01", "2.0.0-beta")).toBe("2.0.0-beta");
   });
 
-  it("takes the first row among equals", () => {
+  test("takes the first row among equals", () => {
     expect(latest("1.0.0+b", "1.0.0+a")).toBe("1.0.0+b");
   });
 
-  it("takes the first row when no version parses", () => {
+  test("takes the first row when no version parses", () => {
     expect(latest("2024-10-01", "2024-09-01")).toBe("2024-10-01");
     expect(latest("2024-09-01", "2024-10-01")).toBe("2024-09-01");
   });
 
-  it("reads only strict SemVer, so a v prefix or a leading zero never outranks it", () => {
+  test("reads only strict SemVer, so a v prefix or a leading zero never outranks it", () => {
     expect(latest("1.0.0", "v1.0.0")).toBe("1.0.0");
     expect(latest("v1.0.0", "1.0.0")).toBe("1.0.0");
     expect(latest("1.2.0", "01.10.0")).toBe("1.2.0");
   });
 
-  it("takes the highest release from a mixed list", () => {
+  test("takes the highest release from a mixed list", () => {
     expect(latest("1.9.0", "2024-10-01", "1.10.0", "2.0.0-beta", "v2")).toBe("1.10.0");
   });
 });
 
 describe("mergedIndex", () => {
-  it("upserts the offered row and leaves every other alone", () => {
+  test("upserts the offered row and leaves every other alone", () => {
     const existing = {
       format_version: 1,
       generated_at: "2026-01-01T00:00:00Z",
@@ -182,7 +182,7 @@ describe("mergedIndex", () => {
     expect(document.generated_at).toBe("2026-01-02T00:00:00Z");
   });
 
-  it("keys on namespace, kind and name together", () => {
+  test("keys on namespace, kind and name together", () => {
     const existing = {
       entries: [
         { namespace: "mine", kind: "agent", name: "my-helper", latest: "9.9.9", digest: "a" },
@@ -194,7 +194,7 @@ describe("mergedIndex", () => {
 });
 
 describe("what it writes, the reader reads", () => {
-  it("round-trips through readVersions and readIndex", async () => {
+  test("round-trips through readVersions and readIndex", async () => {
     const versions = mergedVersions(undefined, OFFER, "2026-01-02T00:00:00Z");
     const index = mergedIndex(undefined, [OFFER], "2026-01-02T00:00:00Z");
     const read = rootOf({

@@ -13,7 +13,7 @@ import { runCli } from "#test/kit/run.ts";
 import { testRoot } from "#test/kit/temp.ts";
 
 /** One command of the coding agent's own that lists what it loaded, and what its output holds. */
-export interface Probe {
+interface Probe {
   /** Run from the project for `project`, from the home folder for `user`. */
   scope: "project" | "user";
   argv: string[];

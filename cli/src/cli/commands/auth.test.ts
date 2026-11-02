@@ -36,8 +36,8 @@ function context(argv: string[], cwd = tmpdir()): CommandContext {
 }
 
 describe("auth list", () => {
-  afterEach(() => vi.unstubAllEnvs());
   beforeAll(() => registerBuiltinAdapters());
+  afterEach(() => vi.unstubAllEnvs());
 
   test("says a registry that needs no sign-in needs none, not that you are signed out", async () => {
     const home = join(scratch, "home");

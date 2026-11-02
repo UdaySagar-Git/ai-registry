@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { ErrorCode, ExitCode } from "#core/errors.ts";
 import { Printer } from "#core/output.ts";
 import { homeTest } from "#test/kit/fixtures.ts";
@@ -17,7 +17,7 @@ function capture(format: "text" | "json") {
 }
 
 describe("findMapFormat", () => {
-  it.each([
+  test.each([
     [["--map"], "tree"],
     [["--map=json"], "json"],
     [["--map", "json"], "json"],

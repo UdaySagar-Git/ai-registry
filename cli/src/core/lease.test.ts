@@ -25,6 +25,7 @@ import {
   type Lease,
   LeaseBusyError,
   LeaseError,
+  type LeaseHolder,
   leaseKey,
   readLease,
   withLease,
@@ -57,6 +58,14 @@ async function heldBy(lock: string, holder: { pid: number; host?: string }): Pro
   }));
   await writeFile(meta, JSON.stringify({ ...current, host: hostname(), ...holder }));
   await age(lock, 60_000);
+}
+
+/** Takes the scope and hands it back, returning the holder it wrote on disk meanwhile. */
+async function take(roots: { scope: "project"; lock: string }): Promise<LeaseHolder | undefined> {
+  const taken = await acquire(roots, { env });
+  const holder = await readLease(roots, env);
+  await taken.release();
+  return holder?.id === taken.id ? holder : undefined;
 }
 
 let children: ChildProcess[];
@@ -101,6 +110,7 @@ describe("acquire", () => {
   test("separates scopes by the lockfile they own", async () => {
     const project = await acquire(scope(join(home, "manifest.lock.yml")), { env });
     const local = await acquire(scope(join(home, "second.lock.yml")), { env });
+    expect(local.id).not.toBe(project.id);
     await project.release();
     await local.release();
   });
@@ -110,6 +120,7 @@ describe("acquire", () => {
     const held = await acquire(roots, { env });
 
     await expectMode(leaseMeta(roots.lock), 0o600);
+    expect(await readLease(roots, env)).toMatchObject({ id: held.id });
     await held.release();
   });
 });
@@ -119,8 +130,7 @@ describe("reclaiming a stale lease", () => {
     const roots = scope(join(home, "manifest.lock.yml"));
     await heldBy(roots.lock, { pid: await exited() });
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 
   test("keeps a stale lease whose holder is still running on this host", async () => {
@@ -136,24 +146,21 @@ describe("reclaiming a stale lease", () => {
     await heldBy(roots.lock, { pid: running() });
     await age(roots.lock, 11 * 60_000);
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 
   test.for([-1, 0, 1.5, "1234"])("reclaims a stale lease whose pid is %s", async (pid) => {
     const roots = scope(join(home, "manifest.lock.yml"));
     await heldBy(roots.lock, { pid: pid as number });
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 
   test("reclaims a stale lease held from another host by age alone", async () => {
     const roots = scope(join(home, "manifest.lock.yml"));
     await heldBy(roots.lock, { pid: running(), host: "elsewhere.invalid" });
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 
   test("reclaims a half-written lease that has no readable meta", async () => {
@@ -162,8 +169,7 @@ describe("reclaiming a stale lease", () => {
     await rm(leaseMeta(roots.lock), { force: true });
     await held.release();
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 
   test("does not release a lease that was reclaimed by someone else", async () => {
@@ -340,8 +346,7 @@ describe("clock steps", () => {
     const ahead = new Date(Date.now() + 60 * 60_000);
     await utimes(leaseMeta(roots.lock), ahead, ahead);
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 
   test("reclaims a coordination lock dated in the future", async () => {
@@ -351,8 +356,7 @@ describe("clock steps", () => {
     const ahead = new Date(Date.now() + 60 * 60_000);
     await utimes(coordination, ahead, ahead);
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 });
 
@@ -388,8 +392,7 @@ describe("coordination", () => {
     const past = new Date(Date.now() - 10_000);
     await utimes(coordination(), past, past);
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 });
 
@@ -403,8 +406,7 @@ describe("withLease", () => {
       }),
     ).rejects.toThrow("apply failed");
 
-    const taken = await acquire(roots, { env });
-    await taken.release();
+    expect(await take(roots)).toMatchObject({ pid: process.pid });
   });
 });
 

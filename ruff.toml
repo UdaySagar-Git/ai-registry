@@ -1,0 +1,8 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+# pycodestyle, pyflakes, import order, pyupgrade, bugbear and simplify. The formatter wraps lines,
+# so the long-line check would only flag strings and comments it leaves as they are.
+select = ["E", "W", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]

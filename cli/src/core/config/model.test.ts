@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { expandSteps, isNamespaceAddress, isStepPolicy, orderSteps, type Step } from "./model.ts";
 
 function step(over: Partial<Step> = {}): Step {
@@ -14,7 +14,7 @@ function step(over: Partial<Step> = {}): Step {
 }
 
 describe("expandSteps", () => {
-  it("replaces a composite with its leaves and rewires what followed it", () => {
+  test("replaces a composite with its leaves and rewires what followed it", () => {
     const expanded = expandSteps([
       step({ name: "mine", kind: "origins" }),
       step({ name: "sync", kind: "artifacts", needs: ["mine"], root: "/tmp/scope" }),
@@ -35,14 +35,14 @@ describe("expandSteps", () => {
     expect(expanded[4]?.needs).toEqual(["sync/pull", "sync/publish", "sync/prune"]);
   });
 
-  it("leaves a job of plain steps alone", () => {
+  test("leaves a job of plain steps alone", () => {
     const steps = [step(), step({ name: "publish", kind: "publish", needs: ["pull"] })];
     expect(expandSteps(steps)).toEqual(steps);
   });
 });
 
 describe("orderSteps", () => {
-  it("returns an order that satisfies every dependency", () => {
+  test("returns an order that satisfies every dependency", () => {
     const result = orderSteps([
       step({ name: "c", needs: ["b"] }),
       step({ name: "b", needs: ["a"] }),
@@ -51,7 +51,7 @@ describe("orderSteps", () => {
     expect("order" in result && result.order.map((item) => item.name)).toEqual(["a", "b", "c"]);
   });
 
-  it("names the cycle rather than looping", () => {
+  test("names the cycle rather than looping", () => {
     const result = orderSteps([
       step({ name: "a", needs: ["b"] }),
       step({ name: "b", needs: ["a"] }),
@@ -61,12 +61,12 @@ describe("orderSteps", () => {
 });
 
 describe("isNamespaceAddress", () => {
-  it("takes <registry>/<namespace>, each part in the spec's name grammar", () => {
+  test("takes <registry>/<namespace>, each part in the spec's name grammar", () => {
     expect(isNamespaceAddress("acme/engineering")).toBe(true);
     expect(isNamespaceAddress("acme-2/eng-1")).toBe(true);
   });
 
-  it("refuses anything else", () => {
+  test("refuses anything else", () => {
     for (const value of [
       "acme",
       "acme/eng/x",
@@ -83,7 +83,7 @@ describe("isNamespaceAddress", () => {
 });
 
 describe("isStepPolicy", () => {
-  it("takes on, report and off, and nothing else", () => {
+  test("takes on, report and off, and nothing else", () => {
     for (const value of ["on", "report", "off"]) expect(isStepPolicy(value)).toBe(true);
     for (const value of ["apply", "yes", ""]) expect(isStepPolicy(value)).toBe(false);
   });

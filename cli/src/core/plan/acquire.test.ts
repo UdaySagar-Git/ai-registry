@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, vi } from "vitest";
 import { type Artifact, buildEnvelope } from "#adapter/index.ts";
 import { emptyLock, type Lock } from "#core/lock.ts";
 import { type Manifest, parseManifest } from "#core/manifest.ts";
@@ -91,7 +91,7 @@ function locked(versions: Record<string, string>): Lock {
 }
 
 describe("wanted", () => {
-  it("keeps a pin beside a whole namespace from the same registry", () => {
+  test("keeps a pin beside a whole namespace from the same registry", () => {
     const request = wanted(manifest(["acme/platform", "acme/platform/skill/lint@1.0.0"]), "acme");
     expect(request).toEqual({
       want: [{ name: "lint", namespace: "platform", kind: "skill", version: "1.0.0" }],
@@ -99,7 +99,7 @@ describe("wanted", () => {
     });
   });
 
-  it("keeps a pin to the one artifact it names where another shares the name", () => {
+  test("keeps a pin to the one artifact it names where another shares the name", () => {
     const request = wanted(
       manifest(["acme/platform/skill/lint@1.0.0", "acme/data/agent/lint"]),
       "acme",
@@ -110,7 +110,7 @@ describe("wanted", () => {
     ]);
   });
 
-  it("asks for only the named artifacts when nothing is taken whole", () => {
+  test("asks for only the named artifacts when nothing is taken whole", () => {
     const request = wanted(
       manifest(["acme/platform/skill/lint", "acme/data/skill/profile@0.4.0"]),
       "acme",
@@ -124,7 +124,7 @@ describe("wanted", () => {
     });
   });
 
-  it("asks a marketplace for a plugin by name, since its parts come with it", () => {
+  test("asks a marketplace for a plugin by name, since its parts come with it", () => {
     const plugins = parseManifest(
       "registries:\n  acme: { source: github.com/acme/plugins, layout: marketplace }\nartifacts:\n  - acme/docs-kit\n",
     );
@@ -134,7 +134,7 @@ describe("wanted", () => {
     });
   });
 
-  it("is undefined for a registry the manifest takes nothing from", () => {
+  test("is undefined for a registry the manifest takes nothing from", () => {
     expect(wanted(manifest(["acme/platform"]), "other")).toBeUndefined();
   });
 });
@@ -159,7 +159,7 @@ describe("acquire, held to the lock", () => {
     return fake.asked.get("acme");
   }
 
-  it("asks for what the lock holds at the version it holds", async () => {
+  test("asks for what the lock holds at the version it holds", async () => {
     const request = await requested(
       manifest(["acme/platform/skill/lint"]),
       locked({ lint: "1.0.0" }),
@@ -167,7 +167,7 @@ describe("acquire, held to the lock", () => {
     expect(request?.want).toContainEqual(exact("lint", "1.0.0"));
   });
 
-  it("takes a whole namespace the lock settles as its rows, so a new artifact waits for update", async () => {
+  test("takes a whole namespace the lock settles as its rows, so a new artifact waits for update", async () => {
     const lock = locked({ lint: "1.0.0", test: "2.0.0" });
     expect(await requested(manifest(["acme/platform"]), lock)).toEqual({
       want: [exact("lint", "1.0.0"), exact("test", "2.0.0")],
@@ -175,7 +175,7 @@ describe("acquire, held to the lock", () => {
     });
   });
 
-  it("moves a marketplace plugin by name, never by reading the whole marketplace", async () => {
+  test("moves a marketplace plugin by name, never by reading the whole marketplace", async () => {
     const lock = locked({});
     lock.registries.acme = {
       ...(lock.registries.acme as Lock["registries"][string]),
@@ -195,7 +195,7 @@ describe("acquire, held to the lock", () => {
     expect(request).toEqual({ want: [{ name: "docs-kit", kind: "plugin" }], all: false });
   });
 
-  it("asks again for the rows a run moves, and for the whole namespace once all of it moves", async () => {
+  test("asks again for the rows a run moves, and for the whole namespace once all of it moves", async () => {
     const lock = locked({ lint: "1.0.0", test: "2.0.0" });
     const one = await requested(manifest(["acme/platform"]), lock, new Set(["platform/lint"]));
     expect(one).toEqual({ want: [exact("lint"), exact("test", "2.0.0")], all: false });
@@ -203,7 +203,7 @@ describe("acquire, held to the lock", () => {
     expect((await requested(manifest(["acme/platform"]), lock, both))?.all).toBe(true);
   });
 
-  it("asks for nothing new for a namespace every row of which was excluded, when held", async () => {
+  test("asks for nothing new for a namespace every row of which was excluded, when held", async () => {
     const lock = locked({ lint: "1.0.0" });
     const emptied = parseManifest(
       [
@@ -222,7 +222,7 @@ describe("acquire, held to the lock", () => {
     expect(answers(emptied, source, true)).toBe(true);
   });
 
-  it("lets a version the manifest pins win over the lock's", async () => {
+  test("lets a version the manifest pins win over the lock's", async () => {
     const request = await requested(
       manifest(["acme/platform/skill/lint@2.0.0"]),
       locked({ lint: "1.0.0" }),
@@ -233,7 +233,7 @@ describe("acquire, held to the lock", () => {
 });
 
 describe("answers", () => {
-  it("answers from the lock only while the manifest declares the registry it was read from", () => {
+  test("answers from the lock only while the manifest declares the registry it was read from", () => {
     const source = lockView(locked({ lint: "1.0.0" })).source("acme");
     if (source === undefined) throw new Error("no locked source");
     expect(answers(manifest(["acme/platform/skill/lint"]), source)).toBe(true);
@@ -260,11 +260,11 @@ describe("newlyYanked", () => {
     return [source];
   }
 
-  it("lets a yanked version through where the lock already holds it", () => {
+  test("lets a yanked version through where the lock already holds it", () => {
     expect(newlyYanked(serving("1.0.0"), locked({ lint: "1.0.0" }))).toEqual([]);
   });
 
-  it("names a yanked version the lock does not hold, and why it was yanked", () => {
+  test("names a yanked version the lock does not hold, and why it was yanked", () => {
     expect(newlyYanked(serving("2.0.0"), locked({ lint: "1.0.0" }))).toEqual([
       '"lint" 2.0.0 is yanked (broke the build)',
     ]);

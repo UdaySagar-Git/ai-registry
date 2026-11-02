@@ -166,6 +166,7 @@ describe("reclaiming a stale directory that cannot be removed", () => {
     failRm(".coordination", "EPERM", 1);
 
     const lease = await acquire(roots, { env });
+    expect(await readLease(roots, env)).toMatchObject({ id: lease.id });
     await lease.release();
   });
 

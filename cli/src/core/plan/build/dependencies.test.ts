@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import { build } from "#core/plan/build.ts";
 import type { Acquired } from "#core/plan/model.ts";
@@ -6,7 +6,7 @@ import { parseRef } from "#core/ref.ts";
 import { acquired, entry, kitManifest, PLAN_OPTIONS } from "#test/kit/builders/plan.ts";
 
 describe("dependencies", () => {
-  it("land in the targets their dependent was narrowed to", () => {
+  test("land in the targets their dependent was narrowed to", () => {
     const reviewer = "artifacts/eng/agent/reviewer.md";
     const lint = "artifacts/eng/skill/lint";
     const [source] = acquired([

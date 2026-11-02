@@ -1,7 +1,7 @@
 import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { exists } from "#core/fs/tree.ts";
 import { roots as makeRoots, type Roots, stagingDir } from "#core/store/paths.ts";
@@ -64,7 +64,7 @@ async function sync() {
 }
 
 describe("applyLocal", () => {
-  it("says where it moved a person's own folder that stood on a recorded link", async () => {
+  test("says where it moved a person's own folder that stood on a recorded link", async () => {
     await sync();
     const link = join(project, ".claude", "skills", "lint");
     await rm(link);
@@ -78,7 +78,7 @@ describe("applyLocal", () => {
     });
   });
 
-  it("cleans what a crashed run left before writing a journal of its own", async () => {
+  test("cleans what a crashed run left before writing a journal of its own", async () => {
     const orphan = join(stagingDir(), "kit", "kit", "skill", "gone", "0");
     await mkdir(orphan, { recursive: true });
     await writeFile(join(orphan, "SKILL.md"), "left behind\n");
@@ -90,7 +90,7 @@ describe("applyLocal", () => {
     expect(await exists(orphan)).toBe(false);
   });
 
-  it.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
+  test.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
     "refuses a target folder it cannot write into before writing anything",
     async () => {
       await mkdir(join(project, ".claude"), { recursive: true });

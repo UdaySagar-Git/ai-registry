@@ -1,5 +1,5 @@
 import { join, sep } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import { build } from "#core/plan/build.ts";
 import type { Action } from "#core/plan/model.ts";
@@ -29,7 +29,7 @@ const linksOf = (actions: readonly Action[]) =>
   actions.filter((action): action is Extract<Action, { kind: "link" }> => action.kind === "link");
 
 describe("a namespaced skill, projected", () => {
-  it("stages each skill and clones it under its own namespace", () => {
+  test("stages each skill and clones it under its own namespace", () => {
     const plan = planned();
     const staged = plan.actions.filter((action) => action.kind === "stage");
     expect(staged.map((action) => action.name).sort()).toEqual(["engineering/lint", "sales/lint"]);
@@ -53,7 +53,7 @@ describe("a namespaced skill, projected", () => {
   });
 
   // At user scope, where Claude and Codex read plugins from.
-  it("points Claude and Codex at the namespace's plugin directory, when its source says so", () => {
+  test("points Claude and Codex at the namespace's plugin directory, when its source says so", () => {
     const at = { ...OPTIONS, roots: roots("user", "/work") };
     const links = linksOf(planned(ENTRIES, at, true).actions);
     const froms = links
@@ -77,7 +77,7 @@ describe("a namespaced skill, projected", () => {
   });
 
   // A namespace is where a skill comes from, not a plugin, unless its source declares it one.
-  it("places a skill as itself at user scope, where Claude and Codex read it", () => {
+  test("places a skill as itself at user scope, where Claude and Codex read it", () => {
     const at = { ...OPTIONS, roots: roots("user", "/work") };
     const links = linksOf(planned(ENTRIES.slice(0, 1), at).actions);
     expect(links.map((link) => [link.target, link.to.split(/[\\/]/).slice(-3).join("/")])).toEqual([
@@ -88,7 +88,7 @@ describe("a namespaced skill, projected", () => {
     expect(links.some((link) => link.from.includes(".projections"))).toBe(false);
   });
 
-  it("refuses two namespaces' skills of one name at user scope, as in a project", () => {
+  test("refuses two namespaces' skills of one name at user scope, as in a project", () => {
     const at = { ...OPTIONS, roots: roots("user", "/work") };
     const plan = planned(ENTRIES, at);
     // The first keeps the folders; the second is reported rather than overwriting it.
@@ -99,14 +99,14 @@ describe("a namespaced skill, projected", () => {
     expect(plan.clashes.map((clash) => clash.name)).toEqual(["sales/lint"]);
   });
 
-  it("keeps a project's Codex skills flat, where Codex reads them", () => {
+  test("keeps a project's Codex skills flat, where Codex reads them", () => {
     const links = linksOf(planned(ENTRIES.slice(0, 1)).actions);
     const flat = links.filter((link) => link.target === "universal");
     expect(flat.map((link) => link.to)).toEqual([join("/work", ".agents", "skills", "lint")]);
     expect(links.some((link) => link.fan === true)).toBe(false);
   });
 
-  it("gives a target with no plugin folder a folder it reads when Claude's holds plugins", () => {
+  test("gives a target with no plugin folder a folder it reads when Claude's holds plugins", () => {
     const cursor = PLAN_OPTIONS.targetTable.cursor as Target;
     const targetTable = {
       ...PLAN_OPTIONS.targetTable,
@@ -126,7 +126,7 @@ describe("a namespaced skill, projected", () => {
     ).toEqual([["universal", true]]);
   });
 
-  it("lets Cursor read Claude's folder when it holds the skill as itself", () => {
+  test("lets Cursor read Claude's folder when it holds the skill as itself", () => {
     const at = { ...OPTIONS, roots: roots("user", "/work"), targets: ["claude-code", "cursor"] };
     const links = linksOf(planned(ENTRIES.slice(0, 1), at).actions);
     expect(links.map((link) => link.target)).toEqual(["claude-code"]);

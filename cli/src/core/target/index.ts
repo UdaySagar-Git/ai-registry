@@ -358,7 +358,7 @@ export function readTargets(selected: readonly string[], targetTable: Targets): 
   return [...out];
 }
 
-type DetectionRule = "env" | "binary" | "project" | "user";
+export type DetectionRule = "env" | "binary" | "project" | "user";
 
 export interface Detection {
   target: Target;

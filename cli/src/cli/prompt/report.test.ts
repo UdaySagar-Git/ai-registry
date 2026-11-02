@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { Styler } from "#core/output.ts";
 import type { PromptIo } from "./prompt.ts";
 import { note, spinner } from "./report.ts";
@@ -24,7 +24,7 @@ function expectInert(written: string): void {
 }
 
 describe("spinner", () => {
-  it("draws registry text as inert text, keeping its own styling", () => {
+  test("draws registry text as inert text, keeping its own styling", () => {
     const { io, written } = capture();
     const spin = spinner(io, style);
     spin.update(`Reading ${HOSTILE}`);
@@ -36,7 +36,7 @@ describe("spinner", () => {
 });
 
 describe("note", () => {
-  it("draws registry text as inert text, keeping its own styling", () => {
+  test("draws registry text as inert text, keeping its own styling", () => {
     const { io, written } = capture();
     note(io, style, `Remove ${HOSTILE}`, [`${style.dim("from")} ${HOSTILE}`]);
     expectInert(written());

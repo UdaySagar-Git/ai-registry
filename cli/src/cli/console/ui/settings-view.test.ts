@@ -1,6 +1,6 @@
 import { stripVTControlCharacters } from "node:util";
 import { render } from "ink";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { ConsoleState } from "#core/console/model.ts";
 import { settingsView } from "./settings-view.ts";
 
@@ -33,12 +33,12 @@ function drawn(state: Partial<ConsoleState>): string {
 }
 
 describe("settingsView", () => {
-  it("shows a delete policy that is on as on", () => {
+  test("shows a delete policy that is on as on", () => {
     const frame = drawn({ policy: { pull: "on", publish: "on", delete: "on" } });
     expect(frame).toContain("remove what vanished");
   });
 
-  it("shows every policy axis, with an absent adopt following publish", () => {
+  test("shows every policy axis, with an absent adopt following publish", () => {
     const frame = drawn({ policy: { pull: "on", publish: "report", delete: "off" } });
     expect(frame).toMatch(/adopt\s.*say it is new, send nothing/);
     expect(frame).toMatch(/claim\s.*do not look/);

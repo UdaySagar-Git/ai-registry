@@ -1,5 +1,7 @@
 import { isVersion } from "../spec/ref.ts";
 
+export { isVersion } from "../spec/ref.ts";
+
 // The file spec's paths and names, shared by the reader, the writer and every
 // command that names a registry document.
 
@@ -24,8 +26,6 @@ const KIND_SEGMENT = /^[a-z][a-z0-9_]{0,31}$/;
 
 /** Windows opens a device, not a folder, at these names, in any case and with any extension. */
 const DEVICE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
-
-export { isVersion };
 
 /** Section 2.1: no path segment may be one, or the registry cannot be checked out on Windows. */
 export function isDeviceName(value: string): boolean {

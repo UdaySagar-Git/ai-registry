@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { emptyLock } from "#core/lock.ts";
 import { build } from "#core/plan/build.ts";
 import { acquired, entry, kitManifest, PLAN_OPTIONS } from "#test/kit/builders/plan.ts";
 
 describe("engines.aireg", () => {
-  it("blocks an explicit artifact the running CLI is too old for", () => {
+  test("blocks an explicit artifact the running CLI is too old for", () => {
     const plan = build(
       kitManifest(["kit/skill/lint"]),
       emptyLock(),
@@ -16,7 +16,7 @@ describe("engines.aireg", () => {
     expect(plan.actions.filter((action) => action.kind === "stage")).toEqual([]);
   });
 
-  it("skips a too-new artifact in a whole-registry install, and warns", () => {
+  test("skips a too-new artifact in a whole-registry install, and warns", () => {
     const plan = build(
       kitManifest(["kit"]),
       emptyLock(),

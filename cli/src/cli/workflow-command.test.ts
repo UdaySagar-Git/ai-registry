@@ -1,14 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { workflowCommand } from "./workflow-command.ts";
 
 describe("a GitHub Actions workflow command", () => {
-  it("keeps a value that needs no escaping as it is", () => {
+  test("keeps a value that needs no escaping as it is", () => {
     expect(
       workflowCommand("error", { file: "artifacts/a", title: "registry" }, "is not valid."),
     ).toBe("::error file=artifacts/a,title=registry::is not valid.");
   });
 
-  it("cannot be ended or followed by another command from inside a value", () => {
+  test("cannot be ended or followed by another command from inside a value", () => {
     const folder = "artifacts/x\n::warning title=INJECTED::fake,y:z%0A\r\n";
     const line = workflowCommand("error", { file: folder, title: "registry" }, `${folder} is bad`);
     expect(line.split("\n")).toHaveLength(1);
@@ -18,7 +18,7 @@ describe("a GitHub Actions workflow command", () => {
     );
   });
 
-  it("drops terminal escapes, which the log viewer would render", () => {
+  test("drops terminal escapes, which the log viewer would render", () => {
     expect(workflowCommand("warning", {}, "a\u001B]0;title\u0007b\u001B[31m")).toBe(
       "::warning::ab",
     );

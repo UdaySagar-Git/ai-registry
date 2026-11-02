@@ -11,6 +11,7 @@ prose that shows the syntax with an example version is not a pin.
 It reads every page under docs/. Published skills are immutable and retain
 the install pins they were released with.
 """
+
 from __future__ import annotations
 
 import json
@@ -51,8 +52,10 @@ def main() -> int:
                 pins += 1
                 if match.group(1) != want:
                     errors += 1
-                    print(f"error: {path.relative_to(REPO)}:{number}: pins aireg {match.group(1)},"
-                          f" but cli/package.json is {want}")
+                    print(
+                        f"error: {path.relative_to(REPO)}:{number}: pins aireg {match.group(1)},"
+                        f" but cli/package.json is {want}"
+                    )
     if errors:
         print(f"{errors} error(s): set each pin to {want}")
         return 1

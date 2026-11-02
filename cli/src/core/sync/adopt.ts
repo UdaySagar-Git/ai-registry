@@ -1,7 +1,7 @@
 import type { Dirent } from "node:fs";
 import { readdir, readlink, stat } from "node:fs/promises";
 import { basename, dirname, join, posix, resolve } from "node:path";
-import { ifPresent } from "#adapter/files.ts";
+import { ifReadable } from "#adapter/files.ts";
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { inspect } from "#core/fs/link.ts";
@@ -137,7 +137,7 @@ async function collectKindCandidates(
 ): Promise<Candidate[]> {
   const dir = join(root, mapping.subdir);
 
-  const listing = (await ifPresent(readdir(dir))) ?? [];
+  const listing = (await ifReadable(readdir(dir))) ?? [];
   if (listing.length === 0) return [];
 
   const entries = await entriesIn(
@@ -194,7 +194,7 @@ function entryOf(kind: ArtifactKind): { entry?: string } {
  * projected as a directory of links into this scope's own tree.
  */
 async function holdsStagedLink(roots: Roots, full: string): Promise<boolean> {
-  const names = (await ifPresent(readdir(full))) ?? [];
+  const names = (await ifReadable(readdir(full))) ?? [];
   for (const name of names) {
     const { target } = await inspect(join(full, name));
     if (target !== undefined && isWithin(resolve(roots.artifacts), resolve(target))) return true;
@@ -217,13 +217,13 @@ export async function danglingLinks(
     const dir = join(root, mapping.subdir);
     if (seen.has(dir)) continue;
     seen.add(dir);
-    const items: Dirent[] = (await ifPresent(readdir(dir, { withFileTypes: true }))) ?? [];
+    const items: Dirent[] = (await ifReadable(readdir(dir, { withFileTypes: true }))) ?? [];
     for (const item of items) {
       if (item.name.startsWith(".") || !item.isSymbolicLink()) continue;
       const path = join(dir, item.name);
       // One aireg made is an installed artifact's `missing`, which status already says.
       if (claimed.has(join(canonical(dir), item.name)) || (await reachable(path))) continue;
-      const points = await ifPresent(readlink(path));
+      const points = await ifReadable(readlink(path));
       if (points === undefined || isWithin(store, resolve(canonical(dir), points))) continue;
       found.push({ path, linksTo: points, target });
     }

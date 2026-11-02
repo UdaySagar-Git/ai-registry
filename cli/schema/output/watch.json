@@ -162,25 +162,61 @@
       }
     },
     "remove": {
-      "additionalProperties": false,
-      "description": "One document per job the folders named.",
-      "type": "object",
-      "required": [
-        "jobId",
-        "watching"
-      ],
-      "properties": {
-        "jobId": {
-          "type": "string"
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "jobId",
+            "watching"
+          ],
+          "properties": {
+            "jobId": {
+              "type": "string"
+            },
+            "watching": {
+              "description": "The folders the job still watches.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         },
-        "watching": {
-          "description": "The folders the job still watches.",
-          "type": "array",
-          "items": {
-            "type": "string"
+        {
+          "additionalProperties": false,
+          "description": "When the folders belonged to several jobs.",
+          "type": "object",
+          "required": [
+            "jobs"
+          ],
+          "properties": {
+            "jobs": {
+              "type": "array",
+              "items": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "jobId",
+                  "watching"
+                ],
+                "properties": {
+                  "jobId": {
+                    "type": "string"
+                  },
+                  "watching": {
+                    "description": "The folders the job still watches.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
-      }
+      ]
     },
     "list": {
       "additionalProperties": false,

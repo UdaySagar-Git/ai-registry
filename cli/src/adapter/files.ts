@@ -307,3 +307,19 @@ export async function ifPresent<T>(pending: Promise<T>): Promise<T | undefined> 
     throw error;
   }
 }
+
+/**
+ * For a read-only probe, such as a scan or a status check: a path it may not read, or a link
+ * loop, is no entry rather than a failure. Code that writes keeps `ifPresent`.
+ */
+export async function ifReadable<T>(pending: Promise<T>): Promise<T | undefined> {
+  try {
+    return await pending;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    if (isAbsent(error) || code === "EACCES" || code === "EPERM" || code === "ELOOP") {
+      return undefined;
+    }
+    throw error;
+  }
+}

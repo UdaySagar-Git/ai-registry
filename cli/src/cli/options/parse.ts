@@ -144,8 +144,13 @@ function checkValues(
     const key = option.flag.slice(2);
     const value = values[key];
     if (typeof value !== "string") continue;
-    if (option.choices !== undefined && !option.choices.includes(value)) {
-      throw valueError(option, `${list(option.choices, "or")}`, value, path);
+    if (option.choices !== undefined) {
+      // `--kind Skill` names the same choice as `--kind skill`; the command sees the choice.
+      const chosen = option.choices.find((choice) => choice === value.trim().toLowerCase());
+      if (chosen === undefined) {
+        throw valueError(option, `${list(option.choices, "or")}`, value, path);
+      }
+      values[key] = chosen;
     }
     if (option.integer !== undefined) values[key] = integerOf(option, option.integer, value, path);
   }

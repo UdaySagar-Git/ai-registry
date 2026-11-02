@@ -277,7 +277,8 @@ export class SqliteRunStore implements RunStore {
     } catch (error) {
       if (path === ":memory:" || !unreadable(error)) throw error;
       const to = `${path}.corrupt-${new Date().toISOString().replace(/[-:]|\.\d+/g, "")}`;
-      for (const suffix of ["", "-wal", "-shm"]) {
+      // Sidecars first: one that will not move leaves the database where it was, not beside a new one.
+      for (const suffix of ["-wal", "-shm", ""]) {
         // A database without a write-ahead log has no -wal or -shm to move.
         await rename(`${path}${suffix}`, `${to}${suffix}`).catch((moving: unknown) => {
           if (!isAbsent(moving)) throw moving;

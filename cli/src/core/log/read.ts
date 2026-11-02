@@ -81,6 +81,12 @@ export function newestEntries(path: string, filter: Filter, limit: number): Entr
     fd = openSync(path, "r");
   } catch (error) {
     if (isAbsent(error)) return [];
+    // Often a log the daemon wrote while run with sudo: say which file, not a bare EACCES.
+    if ((error as NodeJS.ErrnoException).code === "EACCES") {
+      throw new AiregError(`Cannot read ${path}: permission denied.`, {
+        hint: `Run \`chmod u+r ${path}\`, or remove it and the daemon writes a new one.`,
+      });
+    }
     throw error;
   }
   const found: Entry[] = [];

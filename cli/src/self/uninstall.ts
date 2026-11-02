@@ -76,7 +76,7 @@ async function teardownPlan(scope: Roots, env: NodeJS.ProcessEnv): Promise<Plan>
 }
 
 /** aireg's own teardown of the user scope, under its lease so no job writes beside it. */
-export async function unlinkUserScope(env: NodeJS.ProcessEnv = process.env): Promise<string[]> {
+export async function unlinkUserScope(env: NodeJS.ProcessEnv): Promise<string[]> {
   const scope = roots("user", homeDir(env), env);
   return withLease(scope, { wait: true }, async () => {
     // A run that crashed may have linked paths the lock never recorded.

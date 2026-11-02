@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { CONCURRENCY, limiter } from "#adapter/concurrency.ts";
-import { ifPresent } from "#adapter/files.ts";
+import { ifReadable } from "#adapter/files.ts";
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { sanitizeName } from "#adapter/text.ts";
@@ -107,7 +107,7 @@ async function found(step: Step, selector: Selector): Promise<Origin[]> {
   if (kind === undefined) return [];
   if (selector.kinds !== undefined && !selector.kinds.includes(kind)) return [];
 
-  const entries = (await ifPresent(readdir(selector.from))) ?? [];
+  const entries = (await ifReadable(readdir(selector.from))) ?? [];
 
   const shape = KIND_SPECS[kind].shape;
   // A selector's id, or a folder's name such as `claude` from `.claude`, may be an alias.

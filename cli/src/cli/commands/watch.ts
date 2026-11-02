@@ -1,7 +1,7 @@
 import { list as listOf } from "#adapter/text.ts";
 import { type Saved, savedData, savedText, saveJob } from "#cli/commands/job/add.ts";
 import { folderKey, jobNamed, jobScope, scopeLabel, typedFolder } from "#cli/commands/job/find.ts";
-import type { WatchList, WatchRemoved } from "#cli/commands/watch/result.ts";
+import type { WatchList, WatchRemoved, WatchRemoveResult } from "#cli/commands/watch/result.ts";
 import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
 import { needsInput, parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
@@ -18,7 +18,7 @@ import type { CommonOptions } from "#engine/options.ts";
 import { scopeRoots } from "#engine/scope/locate.ts";
 import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
 import type { CommandContext } from "./command.ts";
-import { action, defineCommand, STREAMED } from "./define.ts";
+import { action, defineCommand } from "./define.ts";
 
 interface Own extends Record<string, unknown> {
   to?: string;
@@ -55,12 +55,33 @@ export const { run } = defineCommand<Options>({
       text: savedText,
     }),
     // A folder per job, each saved on its own, so each job's result prints as it lands.
+    // One command's folders may span several jobs; each is saved on its own.
     remove: action({
-      run: async ({ folders, common }, context) => {
-        await remove(context, folders, common);
-        return STREAMED;
+      run: async ({ folders, common }, context): Promise<Unwatched> => ({
+        jobs: await remove(context, folders, common),
+        cwd: context.cwd,
+      }),
+      // One job prints as it always has; several print as one document, not one each.
+      data: ({ jobs }): WatchRemoveResult => {
+        const removed = jobs.map(({ after }) => ({
+          jobId: after.id,
+          watching: watchedFolders(after),
+        }));
+        return removed.length === 1 ? (removed[0] as WatchRemoved) : { jobs: removed };
       },
-      text: () => {},
+      text: ({ jobs, cwd }, printer) => {
+        for (const { before, after } of jobs) {
+          const watching = watchedFolders(after);
+          const stopped = watchedFolders(before).filter((folder) => !watching.includes(folder));
+          const name = after.name ?? after.id;
+          printer.success(
+            `Stopped watching ${listOf(stopped.map(underHome))}. ` +
+              (watching.length === 0
+                ? `Job ${name} still keeps ${scopeLabel(rootOf(after), cwd)} up to date.`
+                : `Job ${name} still watches ${listOf(watching.map(underHome))}.`),
+          );
+        }
+      },
     }),
     // A project's scope is named against the folder the command ran in.
     list: action({
@@ -115,15 +136,27 @@ function needsFolder(action: string): AiregError {
   );
 }
 
+interface Changed {
+  before: Job;
+  after: Job;
+}
+
+interface Unwatched {
+  jobs: Changed[];
+  cwd: string;
+}
+
 async function remove(
   context: CommandContext,
   folders: string[],
   common: CommonOptions,
-): Promise<void> {
+): Promise<Changed[]> {
   if (folders.length === 0) throw needsFolder("remove");
   const scope = scopeRoots(common, context.cwd, "user");
   const found = byJob((await readConfig()).jobs, folders, scope, context.cwd);
-  for (const [job, dropped] of found) await unwatch(context, job, dropped);
+  const changed: Changed[] = [];
+  for (const [job, dropped] of found) changed.push(await unwatch(job, dropped));
+  return changed;
 }
 
 /** Each folder named, as a key, under the job in this scope that watches it. */
@@ -163,9 +196,9 @@ function elsewhere(job: Job, folder: string, cwd: string): string {
 }
 
 /** Stops publishing the folders and keeps the job, which goes on keeping its scope in sync. */
-async function unwatch(context: CommandContext, job: Job, dropped: ReadonlySet<string>) {
-  await withDaemon(async (client) => {
-    const { before, after } = await withFreshConfig(client, async (config) => {
+async function unwatch(job: Job, dropped: ReadonlySet<string>): Promise<Changed> {
+  return withDaemon((client) =>
+    withFreshConfig(client, async (config) => {
       const before = jobNamed(config, job.id);
       const after = withoutFolders(before, dropped);
       await client.request("settings.patch", {
@@ -173,22 +206,8 @@ async function unwatch(context: CommandContext, job: Job, dropped: ReadonlySet<s
         jobs: { upsert: [after] },
       });
       return { before, after };
-    });
-    const watching = watchedFolders(after);
-    if (context.printer.format === "json") {
-      const removed: WatchRemoved = { jobId: after.id, watching };
-      context.printer.json({ ok: true, data: removed });
-      return;
-    }
-    const stopped = watchedFolders(before).filter((folder) => !watching.includes(folder));
-    const name = after.name ?? after.id;
-    context.printer.success(
-      `Stopped watching ${listOf(stopped.map(underHome))}. ` +
-        (watching.length === 0
-          ? `Job ${name} still keeps ${scopeLabel(rootOf(after), context.cwd)} up to date.`
-          : `Job ${name} still watches ${listOf(watching.map(underHome))}.`),
-    );
-  });
+    }),
+  );
 }
 
 /**

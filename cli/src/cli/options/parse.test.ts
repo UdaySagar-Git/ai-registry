@@ -88,6 +88,10 @@ describe("parse, for an option's values", () => {
     });
   });
 
+  test("reads a choice in any case, and hands over the choice as declared", () => {
+    expect(parse(["--level", " Warn "], LOGS).own).toMatchObject({ level: "warn" });
+  });
+
   test.each([
     [["--level", "loud"], '--level takes info or warn, not "loud".'],
     [["--tail", "0"], '--tail takes a whole number from 1 to 9, not "0".'],

@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import type { WatchList, WatchRemoved } from "#cli/commands/watch/result.ts";
+import type { WatchList, WatchRemoveResult } from "#cli/commands/watch/result.ts";
 import { SCOPES } from "#core/store/paths.ts";
 import { Saved } from "./job.ts";
 import { matching, oneOf, outputDocument } from "./match.ts";
@@ -24,17 +24,25 @@ const List = matching<WatchList>()(
   ),
 );
 
-const Removed = matching<WatchRemoved>()(
-  Type.Object(
-    {
-      jobId: Type.String(),
-      watching: Type.Array(Type.String(), {
-        description: "The folders the job still watches.",
-      }),
-    },
-    { additionalProperties: false, description: "One document per job the folders named." },
-  ),
+const Removed = Type.Object(
+  {
+    jobId: Type.String(),
+    watching: Type.Array(Type.String(), {
+      description: "The folders the job still watches.",
+    }),
+  },
+  { additionalProperties: false },
+);
+
+const RemoveResult = matching<WatchRemoveResult>()(
+  Type.Union([
+    Removed,
+    Type.Object(
+      { jobs: Type.Array(Removed) },
+      { additionalProperties: false, description: "When the folders belonged to several jobs." },
+    ),
+  ]),
 );
 
 // `add` saves the same job `job add` does, so it prints the same data.
-export const OUTPUT = outputDocument("watch", { add: Saved, remove: Removed, list: List });
+export const OUTPUT = outputDocument("watch", { add: Saved, remove: RemoveResult, list: List });

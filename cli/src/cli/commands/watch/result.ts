@@ -21,3 +21,6 @@ export interface WatchRemoved {
   jobId: string;
   watching: string[];
 }
+
+/** `aireg watch remove`: the one job its folders belonged to, or each of several. */
+export type WatchRemoveResult = WatchRemoved | { jobs: WatchRemoved[] };

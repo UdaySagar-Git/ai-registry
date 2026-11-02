@@ -41,8 +41,9 @@ export async function installedVersion(env: NodeJS.ProcessEnv = process.env): Pr
       : await readlink(currentLink(env));
     if (target !== "") return target;
   } catch (error) {
-    // Source and npm installs have no ~/.aireg/cli/current yet.
-    if (!isAbsent(error)) throw error;
+    // Source and npm installs have no ~/.aireg/cli/current yet, and one that is a folder
+    // (EINVAL from readlink) was not put there by this installer either.
+    if (!isAbsent(error) && (error as NodeJS.ErrnoException).code !== "EINVAL") throw error;
   }
   return VERSION;
 }

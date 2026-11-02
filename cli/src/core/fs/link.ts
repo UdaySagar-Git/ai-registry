@@ -9,7 +9,7 @@ import {
   symlink,
 } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { ifPresent, isAbsent } from "#adapter/files.ts";
+import { ifPresent, ifReadable, isAbsent } from "#adapter/files.ts";
 import { copyInto, isDirectory, remove } from "#core/fs/tree.ts";
 import type { LinkMode } from "#core/lock.ts";
 
@@ -120,7 +120,7 @@ async function linksTo(path: string, target: string): Promise<boolean> {
 }
 
 export async function inspect(linkPath: string): Promise<LinkState> {
-  const info = await ifPresent(lstat(linkPath));
+  const info = await ifReadable(lstat(linkPath));
   if (info === undefined) return { exists: false, isLink: false, target: undefined };
   if (!info.isSymbolicLink()) {
     const source = info.isDirectory() ? await fanOutSource(linkPath) : undefined;

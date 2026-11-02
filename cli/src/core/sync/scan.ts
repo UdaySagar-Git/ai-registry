@@ -1,7 +1,7 @@
 import type { Stats } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { ifPresent } from "#adapter/files.ts";
+import { ifReadable } from "#adapter/files.ts";
 import type { ArtifactKind } from "#adapter/kinds.ts";
 import { sanitizeName } from "#adapter/text.ts";
 import type { Entry } from "#core/catalog/catalog.ts";
@@ -85,14 +85,14 @@ async function directoryEntry(
 }
 
 async function isFile(path: string): Promise<boolean> {
-  return (await ifPresent(stat(path)))?.isFile() ?? false;
+  return (await ifReadable(stat(path)))?.isFile() ?? false;
 }
 
 async function describe(
   file: string,
   fallback: string,
 ): Promise<{ name: string; description: string | undefined; engine: string | undefined }> {
-  const text = await ifPresent(readFile(file, "utf8"));
+  const text = await ifReadable(readFile(file, "utf8"));
   if (text === undefined) {
     return { name: sanitizeName(fallback), description: undefined, engine: undefined };
   }
@@ -136,7 +136,7 @@ async function describeToml(
   file: string,
   fallback: string,
 ): Promise<{ name: string; description: string | undefined; engine: undefined }> {
-  const keys = tomlKeys(await ifPresent(readFile(file, "utf8")));
+  const keys = tomlKeys(await ifReadable(readFile(file, "utf8")));
   const text = (key: string) => (typeof keys[key] === "string" ? keys[key] : undefined);
   const description = text("description");
   return {

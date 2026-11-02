@@ -257,7 +257,6 @@
         "src/core/fs/tree.test.ts",
         "src/core/kinds.test.ts",
         "src/core/plan/apply/link-guard.test.ts",
-        "src/daemon/process/process-info.test.ts",
         "src/daemon/rpc/endpoint.test.ts",
         "src/engine/sync/narrow.test.ts",
         "src/self/minimum-update.flow.test.ts",

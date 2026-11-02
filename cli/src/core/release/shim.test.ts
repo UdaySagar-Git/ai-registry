@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
@@ -12,7 +12,7 @@ test.beforeEach(({ tmp }) => {
 });
 
 function installed(version: string, body: string): string {
-  const home = mkdtempSync(join(scratch, "aireg-shim-"));
+  const home = join(scratch, "home");
   mkdirSync(join(home, "cli", version), { recursive: true });
   mkdirSync(join(home, "bin"));
   const binary = join(home, "cli", version, "aireg");

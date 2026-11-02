@@ -1,5 +1,4 @@
 import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import type { PublishInput } from "#adapter/index.ts";
@@ -7,6 +6,7 @@ import type { Account } from "#core/config/model.ts";
 import type { SyncItem } from "#core/sync/model.ts";
 import type { Loaded } from "#engine/scope/load.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { testRoot } from "#test/kit/temp.ts";
 import { executeSync } from "./execute.ts";
 import { RunScopeError } from "./narrow.ts";
 import type { Scan } from "./scan.ts";
@@ -20,9 +20,9 @@ const ENDPOINT = "https://shop.test/";
 const loaded = {
   roots: {
     scope: "project",
-    cwd: tmpdir(),
-    artifacts: join(tmpdir(), "aireg-execute-test-artifacts"),
-    base: tmpdir(),
+    cwd: testRoot(),
+    artifacts: join(testRoot(), "aireg-execute-test-artifacts"),
+    base: testRoot(),
   },
   manifest: {
     registries: { [REGISTRY]: { location: ENDPOINT, adapter: "acme", config: {} } },

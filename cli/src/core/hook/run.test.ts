@@ -11,6 +11,7 @@ import type { PipelineHook } from "#core/config/hook-stages.ts";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { formatConfig } from "#core/config/parse.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { sourceContext } from "#test/kit/source-context.ts";
 import { bindAdapter } from "./bind.ts";
 import { runPipelineHooks } from "./run.ts";
 
@@ -118,15 +119,7 @@ function probe(handle: SourceHandle): SourceAdapter {
 }
 
 function context(): SourceContext {
-  return {
-    source: { registry: "kit", location: "probe://x", config: {}, key: "k" },
-    credential: undefined,
-    signal: new AbortController().signal,
-    limits: { timeoutMs: 1000, retries: 0 },
-    onBytes: () => {},
-    cacheDir: () => "",
-    exclusive: (_key, run) => run(),
-  };
+  return sourceContext({ registry: "kit", location: "probe://x", config: {}, key: "k" });
 }
 
 function handle(over: Partial<SourceHandle> = {}): SourceHandle {

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, open, readdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import {
@@ -78,7 +78,8 @@ describe("materialize", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   async function into(work: (home: string) => Promise<void>): Promise<void> {
-    const home = await mkdtemp(join(scratch, "aireg-content-test-"));
+    const home = join(scratch, "home");
+    await mkdir(home);
     vi.stubEnv("AIREG_HOME", home);
     await work(home);
   }
@@ -187,7 +188,8 @@ describe("materialize", () => {
 
 describe("materialize, when a member arrives as something else", () => {
   async function into(work: (home: string) => Promise<void>): Promise<void> {
-    const home = await mkdtemp(join(scratch, "aireg-content-tamper-"));
+    const home = join(scratch, "home");
+    await mkdir(home);
     vi.stubEnv("AIREG_HOME", home);
     try {
       await work(home);
@@ -226,7 +228,8 @@ describe("a version read where its source keeps it", () => {
   async function inPlace(
     work: (version: string, home: string, handle: SourceHandle) => Promise<void>,
   ): Promise<void> {
-    const home = await mkdtemp(join(scratch, "aireg-content-local-"));
+    const home = join(scratch, "home");
+    await mkdir(home);
     vi.stubEnv("AIREG_HOME", home);
     const version = join(home, "registry", "lint", "1.0.0");
     await mkdir(version, { recursive: true });

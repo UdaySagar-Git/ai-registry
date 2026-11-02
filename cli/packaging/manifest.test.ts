@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { releaseBinary } from "#core/product.ts";
-import { RELEASE_PLATFORMS } from "#core/release/urls.ts";
+import { RELEASE_PLATFORMS } from "#core/release/platform.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { privateKeyFromSeed, signManifest, verifySigned } from "./manifest.ts";
 

@@ -2,8 +2,8 @@ import type { EventEmitter } from "node:events";
 import { Writable } from "node:stream";
 import { Box, type Key, render, Text, useApp, useInput } from "ink";
 import { createElement, type ReactElement, useEffect, useReducer, useState } from "react";
-import { ownStyleOnly } from "#core/output.ts";
 import { CSI_BODY, cells, ESC } from "#core/term/format.ts";
+import { ownStyleOnly } from "#core/term/printer.ts";
 import { wrapRows } from "./layout.ts";
 import {
   CANCEL,
@@ -13,7 +13,7 @@ import {
   type PromptIo,
   type PromptWriter,
   type Size,
-} from "./prompt.ts";
+} from "./model.ts";
 
 const DEFAULT_COLUMNS = 80;
 

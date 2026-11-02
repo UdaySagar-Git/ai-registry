@@ -3,7 +3,7 @@ import type { Artifact } from "../contract.ts";
 import { SpecError } from "../filespec/documents.ts";
 import { isArtifactName } from "../filespec/names.ts";
 import { quoted } from "../text.ts";
-import { contentArtifact } from "./envelope.ts";
+import { contentArtifact } from "./content-artifact.ts";
 import { artifactOf, ROOT_ID, SKILL_FILE, skipped } from "./folder.ts";
 import type { Tree } from "./tree.ts";
 

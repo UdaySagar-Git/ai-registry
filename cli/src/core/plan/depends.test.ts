@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { ArtifactKind } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { acquired, entry } from "#test/kit/builders/plan.ts";
 import { closure, idOf, type Need } from "./depends.ts";
 import type { Acquired, Selected } from "./model.ts";

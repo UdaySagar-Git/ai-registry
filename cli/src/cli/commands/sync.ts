@@ -10,24 +10,25 @@ import {
   type StoppedRun,
   stoppedError,
 } from "#cli/commands/sync/follow.ts";
-import { parse } from "#cli/options.ts";
-import { renderSync } from "#cli/render/sync.ts";
+import { renderSync } from "#cli/commands/sync/render.ts";
+import { SYNC_COMMAND } from "#cli/commands/sync/spec.ts";
+import { parse } from "#cli/options/parse.ts";
 import { isStepPolicy, STEP_POLICIES } from "#core/config/model.ts";
 import { registryToken } from "#core/env.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
-import { unknownRegistry } from "#core/manifest.ts";
+import { unknownRegistry } from "#core/manifest/errors.ts";
 import type { RunRecord } from "#core/run/model.ts";
 import { scopeName } from "#core/store/paths.ts";
 import { type Candidate, displayPath } from "#core/sync/adopt.ts";
 import { UNSETTLED } from "#core/sync/model.ts";
 import { POLICY_AXES, type PolicyAxis, type SyncPolicy } from "#core/sync/policy.ts";
-import { withDaemon } from "#daemon/service.ts";
-import { shadowedByYours, surveyClaims } from "#engine/claim.ts";
-import { FOREGROUND_POLICY } from "#engine/foreground.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { load } from "#engine/pipeline.ts";
-import { closeScan, scan } from "#engine/scan.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import { load } from "#engine/scope/load.ts";
+import { shadowedByYours, surveyClaims } from "#engine/sync/claim.ts";
+import { closeScan, scan } from "#engine/sync/scan.ts";
+import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
+import type { CommandContext } from "./command.ts";
 
 type Own = Record<string, unknown> & Partial<Record<PolicyAxis, string>>;
 
@@ -298,7 +299,7 @@ export async function run(context: CommandContext): Promise<void> {
     return settle({ ...context, argv: context.argv.slice(1) });
   }
 
-  const { common, positionals, own } = parse<Own>(context.argv, builtin("sync"));
+  const { common, positionals, own } = parse<Own>(context.argv, SYNC_COMMAND);
   const policy = policyFrom(own);
 
   if (common.dryRun) return report(context, common, policy, positionals[0]);

@@ -1,26 +1,22 @@
 import { list as listOf } from "#adapter/text.ts";
+import { add as addJob } from "#cli/commands/job/add.ts";
 import { folderKey, jobNamed, jobScope, scopeLabel, typedFolder } from "#cli/commands/job/find.ts";
-import { add as addJob } from "#cli/commands/job.ts";
-import { parse } from "#cli/options.ts";
+import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
+import { parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
-import {
-  type Job,
-  jobRoot,
-  type Step,
-  unwatchCommand,
-  watchedFolders,
-} from "#core/config/model.ts";
+import { jobRoot, unwatchCommand, watchedFolders } from "#core/config/jobs.ts";
+import type { Job, Step } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { type Roots, type Scope, scopeFor, scopeName, userScopeDir } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
-import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { scopeRoots } from "#engine/pipeline.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { scopeRoots } from "#engine/scope/locate.ts";
+import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 interface Own extends Record<string, unknown> {
   to?: string;
@@ -199,7 +195,7 @@ async function list(context: CommandContext): Promise<void> {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("watch");
+  const spec = WATCH_COMMAND;
   const { positionals, own, common } = parse<Own>(context.argv, spec);
   const [action = "list", ...folders] = positionals;
   return runAction(spec, action, {

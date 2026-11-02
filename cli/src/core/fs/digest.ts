@@ -2,10 +2,10 @@ import { createHash, type Hash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
+import { EXECUTE_BITS } from "#adapter/files.ts";
 import { ENVELOPE } from "#adapter/filespec/names.ts";
 import { hashStream, sha256 } from "#adapter/spec/canonical.ts";
 import { authored, type FileRecord, isDirectory, walk } from "#core/fs/tree.ts";
-import { EXECUTE_BITS } from "./mode.ts";
 
 type Listed = Pick<FileRecord, "path" | "size" | "mtimeMs" | "ino" | "executable">;
 

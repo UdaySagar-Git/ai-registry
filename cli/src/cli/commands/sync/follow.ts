@@ -1,9 +1,8 @@
 import { list, plural } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
-import { publishInstead } from "#cli/publish/target.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
 import { failureWords, itemLine } from "#cli/render/run.ts";
-import { loadAdapter } from "#core/adapter/registry.ts";
-import { readOnlyLayout } from "#core/adapter/writable.ts";
+import { loadAdapter } from "#core/adapter/load.ts";
+import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import {
   ITEM_EVENT,
@@ -14,7 +13,8 @@ import {
   WARNING_EVENT,
 } from "#core/run/model.ts";
 import { followRun, type RpcClient } from "#daemon/rpc/client.ts";
-import type { load } from "#engine/pipeline.ts";
+import { publishInstead } from "#engine/publish/target.ts";
+import type { load } from "#engine/scope/load.ts";
 
 type Loaded = Awaited<ReturnType<typeof load>>;
 

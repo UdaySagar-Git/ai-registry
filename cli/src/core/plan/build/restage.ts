@@ -1,14 +1,8 @@
 import { quoted } from "#adapter/text.ts";
 import { nativePath } from "#core/kinds.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import {
-  type Acquired,
-  type ArtifactSurvey,
-  copyEdited,
-  editedAnywhere,
-  editedHere,
-  type Selected,
-} from "#core/plan/model.ts";
+import type { Acquired, Selected } from "#core/plan/model.ts";
+import { type ArtifactSurvey, copyEdited, editedAnywhere, editedHere } from "#core/plan/survey.ts";
 import { scopeName, stagingPath } from "#core/store/paths.ts";
 import type { BuildState } from "./state.ts";
 

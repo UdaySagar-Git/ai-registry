@@ -1,12 +1,8 @@
 import { posixRelative } from "#core/fs/path.ts";
 import type { LinkMode, Lock, LockArtifact } from "#core/lock.ts";
-import {
-  type ArtifactSurvey,
-  editedAnywhere,
-  type Rewritten,
-  type Selected,
-} from "#core/plan/model.ts";
+import type { Rewritten, Selected } from "#core/plan/model.ts";
 import type { PlannedLink } from "#core/plan/projection.ts";
+import { type ArtifactSurvey, editedAnywhere } from "#core/plan/survey.ts";
 
 interface RowInput {
   item: Selected;

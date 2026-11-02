@@ -2,32 +2,26 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { stringify } from "yaml";
 import { list as listed, plural, quoted } from "#adapter/text.ts";
-import { parse } from "#cli/options.ts";
-import { foundBy } from "#cli/render/found.ts";
+import { foundBy } from "#cli/commands/targets/render.ts";
+import { TARGETS_COMMAND } from "#cli/commands/targets/spec.ts";
+import { parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { targetsDir } from "#core/store/paths.ts";
-import {
-  canonicalId,
-  type Detection,
-  detectAll,
-  type EarlierTarget,
-  earlierId,
-  earlierTable,
-  resolveTargets,
-  type Target,
-  type Targets,
-} from "#core/target/index.ts";
+import type { EarlierTarget, Target, Targets } from "#core/target/contract.ts";
+import { type Detection, detectAll } from "#core/target/detect.ts";
+import { canonicalId, earlierId, earlierTable } from "#core/target/ids.ts";
 import { BUILT_IN, checkTargetText, loadTargetFiles } from "#core/target/load.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { table } from "#core/term/table.ts";
 import { BUILTIN_TARGETS } from "#targets/index.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("targets"));
+  const { positionals, common } = parse(context.argv, TARGETS_COMMAND);
   const [action, argument] = positionals;
   if (action === undefined) return list(context, common.all);
-  return runAction(builtin("targets"), action, {
+  return runAction(TARGETS_COMMAND, action, {
     show: async () =>
       show(
         context,

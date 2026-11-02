@@ -1,7 +1,9 @@
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import { BUILTIN_TARGETS } from "#targets/index.ts";
-import { pluginProjection, resolveTargets, takesPlugin, trustFor } from "./index.ts";
+import { takesPlugin, trustFor } from "./placement.ts";
+import { pluginProjection } from "./roots.ts";
+import { resolveTargets } from "./table.ts";
 
 const BUILTIN = Object.fromEntries(BUILTIN_TARGETS.map((target) => [target.id, target]));
 

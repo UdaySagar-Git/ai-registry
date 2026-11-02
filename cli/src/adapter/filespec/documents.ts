@@ -1,9 +1,10 @@
 import type { RegistryIdentity } from "../contract.ts";
 import { type ArtifactKind, isKind } from "../kinds.ts";
 import { compareVersion, parseVersion, type Version } from "../semver.ts";
+import { isVersion } from "../spec/ref.ts";
 import { SUPPORTED_FORMAT } from "../spec/types.ts";
 import { list, quoted } from "../text.ts";
-import { INDEX_DOCUMENT, isVersion, REGISTRY_DOCUMENT, versionsPath } from "./names.ts";
+import { INDEX_DOCUMENT, REGISTRY_DOCUMENT, versionsPath } from "./names.ts";
 
 // The same paths work for every kind of root, so this is the only reader there is
 // and a transport is one function.

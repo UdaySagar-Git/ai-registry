@@ -1,7 +1,7 @@
 import { sanitizeText } from "#adapter/text.ts";
-import type { Printer } from "#core/output.ts";
 import { ITEM_EVENT, RunErrorCode, type RunEvent, WARNING_EVENT } from "#core/run/model.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
+import type { Printer } from "#core/term/printer.ts";
 import { underHome } from "./home.ts";
 
 /** Where a run has got to, in words; a phase not listed is shown as it is named. */

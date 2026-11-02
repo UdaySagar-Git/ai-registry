@@ -1,17 +1,18 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list, quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { authoredDigest } from "#core/fs/digest.ts";
 import { posixRelative } from "#core/fs/path.ts";
 import { authoredArtifact, copyAuthored, exists, type Irregular, refusal } from "#core/fs/tree.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
 import { emptyLock, type Lock, writeLock } from "#core/lock.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { artifactPath, type Roots, type Scope } from "#core/store/paths.ts";
 import { type Candidate, candidates, displayPath } from "#core/sync/adopt.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { type Loaded, load, scopeRoots, withScope } from "#engine/pipeline.ts";
+import { type Loaded, load, withScope } from "#engine/scope/load.ts";
+import { scopeRoots } from "#engine/scope/locate.ts";
 
 interface Found {
   name: string;

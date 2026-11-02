@@ -2,15 +2,27 @@ import { readSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { list } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
+import { defaultIo, quietly } from "#cli/prompt/ask.ts";
 import { blocker, explain } from "#cli/prompt/caller.ts";
-import { canAnimate, defaultIo, quietly, spinner } from "#cli/prompt/index.ts";
+import { canAnimate, spinner } from "#cli/prompt/spinner.ts";
 import { underHome } from "#cli/render/home.ts";
 import { inGitHubActions, isCI, isSet } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
-import { readManifest, writeManifest } from "#core/manifest.ts";
-import { Printer } from "#core/output.ts";
+import { canonical } from "#core/fs/realpath.ts";
+import { readManifest, writeManifest } from "#core/manifest/repository.ts";
+import { handOff } from "#core/process.ts";
+import { binDir, shimPath } from "#core/release/layout.ts";
+import { BINARY_NAME } from "#core/release/platform.ts";
+import { roots } from "#core/store/paths.ts";
+import { detectAll } from "#core/target/detect.ts";
+import { resolveTargets } from "#core/target/table.ts";
+import { Printer } from "#core/term/printer.ts";
+import { VERSION } from "#core/version.ts";
+import { probeDaemon, recycleDaemon } from "#daemon/process/lifecycle.ts";
+import { withScope } from "#engine/scope/load.ts";
+import { installBinaryFrom } from "#self/install.ts";
+import { addToPath, isOurs, resolvedOnPath, restartCommand } from "#self/shell-path.ts";
 import {
   OWN_SKILLS_ALIAS,
   OWN_SKILLS_NAMESPACE,
@@ -18,17 +30,7 @@ import {
   OWN_SKILLS_SOURCE,
   ownSkillsCommand,
   ownSkillsRef,
-} from "#core/own-skills.ts";
-import { handOff } from "#core/process.ts";
-import { binDir, shimPath } from "#core/release/layout.ts";
-import { BINARY_NAME } from "#core/release/urls.ts";
-import { roots } from "#core/store/paths.ts";
-import { detectAll, resolveTargets } from "#core/target/index.ts";
-import { VERSION } from "#core/version.ts";
-import { probeDaemon, recycleDaemon } from "#daemon/service.ts";
-import { withScope } from "#engine/pipeline.ts";
-import { installBinaryFrom } from "#self/install.ts";
-import { addToPath, isOurs, resolvedOnPath, restartCommand } from "#self/path-setup.ts";
+} from "./own-skills.ts";
 
 /**
  * One line from the terminal, read with blocking reads: macOS cannot watch a reopened

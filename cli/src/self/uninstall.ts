@@ -5,21 +5,23 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isWithin } from "#adapter/paths.ts";
 import { dict } from "#core/fields.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { homeDir } from "#core/fs/path.ts";
-import { withLease } from "#core/lease.ts";
+import { canonical } from "#core/fs/realpath.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { readLock } from "#core/lock.ts";
-import { readManifest } from "#core/manifest.ts";
-import { apply, recover } from "#core/plan/apply.ts";
-import { build } from "#core/plan/build.ts";
-import { fetchFrom, type Plan } from "#core/plan/model.ts";
+import { readManifest } from "#core/manifest/repository.ts";
+import { fetchFrom } from "#core/plan/acquire/sources.ts";
+import { apply } from "#core/plan/apply/apply.ts";
+import { recover } from "#core/plan/apply/journal.ts";
+import { build } from "#core/plan/build/build.ts";
+import type { Plan } from "#core/plan/model.ts";
 import { spawnDetached } from "#core/process.ts";
 import { NAME } from "#core/product.ts";
 import { runningEntry } from "#core/release/launch.ts";
 import { type Roots, roots, toolHome, userScopeDir } from "#core/store/paths.ts";
-import { resolveTargets } from "#core/target/index.ts";
-import { onPathIn } from "./path-setup.ts";
-import { REMOVE_AFTER_FLAG, removeTree } from "./remove-after.ts";
+import { resolveTargets } from "#core/target/table.ts";
+import { REMOVE_AFTER_FLAG, removeTree } from "./remove-after-exit.ts";
+import { onPathIn } from "./shell-path.ts";
 
 /** The files aireg put on this machine outside projects, as `aireg self uninstall` finds them. */
 export interface Footprint {

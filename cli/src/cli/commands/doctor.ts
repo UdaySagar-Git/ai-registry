@@ -5,22 +5,27 @@ import { join } from "node:path";
 import { advertisedCapabilities } from "#adapter/contract.ts";
 import { gte } from "#adapter/semver.ts";
 import { plural, sanitizeText } from "#adapter/text.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import { DOCTOR_COMMAND } from "#cli/commands/doctor/spec.ts";
+import {
+  ownSkillsCommand,
+  ownSkillsInstalled,
+  staleOwnSkillsPin,
+} from "#cli/onboarding/own-skills.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
-import { loadAdapters } from "#core/adapter/registry.ts";
+import { loadAdapters } from "#core/adapter/load.ts";
 import { fileExposure } from "#core/credentials/store.ts";
 import { ExitCode } from "#core/errors.ts";
 import { WRITABLE_BY_OTHERS } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { ownSkillsCommand, ownSkillsInstalled, staleOwnSkillsPin } from "#core/own-skills.ts";
 import { NAME } from "#core/product.ts";
 import { type ReleaseStamp, releaseStamp } from "#core/release/stamp.ts";
 import { cacheDir, credentialsPath, toolHome, userScopeDir } from "#core/store/paths.ts";
 import { displayWidth, pad } from "#core/term/format.ts";
 import { nodeTooOld, VERSION } from "#core/version.ts";
 import { autostartState } from "#daemon/autostart/index.ts";
-import { readUpdateCache, type UpdateCache } from "#self/check.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import { readUpdateCache, type UpdateCache } from "#self/update-cache.ts";
+import type { CommandContext } from "./command.ts";
 
 interface Check {
   name: string;
@@ -236,7 +241,7 @@ async function checksFor(
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals } = parse(context.argv, builtin("doctor"));
+  const { positionals } = parse(context.argv, DOCTOR_COMMAND);
   noArguments(
     positionals,
     "doctor",

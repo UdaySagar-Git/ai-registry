@@ -1,9 +1,12 @@
 import { join } from "node:path";
 import { plural, quoted } from "#adapter/text.ts";
-import { initAdapter } from "#cli/commands/adapter/scaffold.ts";
-import { parse } from "#cli/options.ts";
-import { cancel, interaction, interactive } from "#cli/prompt/flow.ts";
-import { canceled, confirm, defaultIo } from "#cli/prompt/index.ts";
+import { initAdapter } from "#cli/commands/adapter/init.ts";
+import { ADAPTER_COMMAND } from "#cli/commands/adapter/spec.ts";
+import { parse } from "#cli/options/parse.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
+import { cancel, interaction, interactive } from "#cli/prompt/interaction.ts";
+import { canceled } from "#cli/prompt/model.ts";
+import { confirm } from "#cli/prompt/select.ts";
 import { underHome } from "#cli/render/home.ts";
 import { downloadAdapter, resolveAdapter } from "#core/adapter/installed/fetch.ts";
 import { adapterSpecifier, unpinAdapter, writeInstalled } from "#core/adapter/installed/store.ts";
@@ -17,11 +20,11 @@ import { releaseStamp } from "#core/release/stamp.ts";
 import { toolHome } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
 import { VERSION } from "#core/version.ts";
-import { recycleDaemon } from "#daemon/service.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { recycleDaemon } from "#daemon/process/lifecycle.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("adapter");
+  const spec = ADAPTER_COMMAND;
   const { common, own, positionals } = parse<{ dir?: string }>(context.argv, spec);
   const [action = "list", argument] = positionals;
   return runAction(spec, action, {

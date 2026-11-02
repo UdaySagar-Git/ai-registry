@@ -6,11 +6,11 @@ import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
 import { ErrorCode } from "#core/errors.ts";
-import { Printer } from "#core/output.ts";
+import { Printer } from "#core/term/printer.ts";
 import { ADAPTER, ENDPOINT } from "#test/kit/daemon.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { run } from "./auth.ts";
-import type { CommandContext } from "./index.ts";
+import type { CommandContext } from "./command.ts";
 
 /** This test's folder, which the kit removes after it. */
 let scratch: string;

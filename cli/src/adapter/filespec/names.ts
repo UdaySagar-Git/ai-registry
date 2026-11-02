@@ -1,7 +1,5 @@
 import { isVersion } from "../spec/ref.ts";
 
-export { isVersion } from "../spec/ref.ts";
-
 // The file spec's paths and names, shared by the reader, the writer and every
 // command that names a registry document.
 

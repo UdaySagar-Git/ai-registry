@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { build } from "#core/plan/build.ts";
+import { build } from "#core/plan/build/build.ts";
 import {
   acquired,
   entry,

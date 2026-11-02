@@ -1,26 +1,29 @@
 import { credentialFor } from "#accounts/credentials.ts";
 import { contentDigest, type ResolveOptions, type Want } from "#adapter/index.ts";
-import { shownNames } from "#cli/names.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { type Watched, watchedFrom } from "#cli/render/installed.ts";
+import { connectSource, resolveArtifacts } from "#core/adapter/connect.ts";
+import { declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { declaredLayout } from "#core/adapter/registry.ts";
-import { connectSource, resolveArtifacts } from "#core/adapter/source.ts";
-import type { Entry } from "#core/catalog/model.ts";
+import type { Entry } from "#core/catalog/catalog.ts";
+import { olderThan } from "#core/engines.ts";
 import { ExitCode } from "#core/errors.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import { type Manifest, pinOf } from "#core/manifest.ts";
-import { abbreviate, type Printer, sentence } from "#core/output.ts";
-import { type Request, recordedAdapter, wanted } from "#core/plan/acquire.ts";
-import { listedAt } from "#core/plan/model.ts";
+import { pinOf } from "#core/manifest/match.ts";
+import type { Manifest } from "#core/manifest/model.ts";
+import { recordedAdapter } from "#core/plan/acquire/acquire.ts";
+import { type Request, wanted } from "#core/plan/acquire/request.ts";
+import { listedAt } from "#core/plan/acquire/sources.ts";
 import { excluded } from "#core/plan/select.ts";
 import type { Ref } from "#core/ref.ts";
-import { olderThan } from "#core/semver.ts";
 import { scopeName } from "#core/store/paths.ts";
-import type { Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { abbreviate, type Printer, sentence } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
-import { load } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import { shownNames } from "#engine/installed-names.ts";
+import { load } from "#engine/scope/load.ts";
+import type { CommandContext } from "./command.ts";
 
 interface Row {
   name: string;
@@ -255,7 +258,7 @@ function next(printer: Printer, moved: readonly Row[], scope: string): void {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("outdated"));
+  const { positionals, common } = parse(context.argv, OUTDATED_COMMAND);
   noArguments(positionals, "outdated");
   const { roots, manifest, targetTable, lock } = await load(common, context.cwd, "user");
 

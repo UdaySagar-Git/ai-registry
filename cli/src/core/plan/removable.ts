@@ -3,12 +3,13 @@ import { unlink } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { redirection } from "#adapter/files.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { isMissing, isStrictlyWithin, posixRelative } from "#core/fs/path.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { present, remove } from "#core/fs/tree.ts";
 import { NAME } from "#core/product.ts";
 import { type Roots, scopeName, stagingDir, toolHome, toolHomeRoot } from "#core/store/paths.ts";
-import { resolveTargets, targetRoot } from "#core/target/index.ts";
+import { targetRoot } from "#core/target/roots.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { fixedPrefix } from "#core/target/template.ts";
 
 export type RemovableRoots = Pick<Roots, "scope" | "cwd" | "artifacts">;

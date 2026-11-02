@@ -3,7 +3,7 @@ import type { Artifact } from "../contract.ts";
 import { SpecError } from "../filespec/documents.ts";
 import { list, quoted } from "../text.ts";
 import { ROOT_ID } from "./folder.ts";
-import type { FetchedPlugin, Found, Layout, LayoutContext, RemotePlugin } from "./layout.ts";
+import type { FetchedPlugin, Found, Layout, LayoutContext, RemotePlugin } from "./model.ts";
 import { type Json, pluginManifest, readObject, readPlugin } from "./plugin.ts";
 import { openTree, type Tree } from "./tree.ts";
 

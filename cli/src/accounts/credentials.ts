@@ -2,14 +2,14 @@ import { canSignIn } from "#adapter/contract.ts";
 import type { Credential } from "#adapter/index.ts";
 import { withoutCredentials } from "#adapter/text.ts";
 import { comparableLocation } from "#core/adapter/identity.ts";
+import { adapterFor, declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { adapterFor, declaredLayout } from "#core/adapter/registry.ts";
 import type { Account } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { CredentialStoreError } from "#core/credentials/store.ts";
 import { registryToken, tokenVariable } from "#core/env.ts";
 import { ErrorCode } from "#core/errors.ts";
-import type { RegistrySource } from "#core/manifest.ts";
+import type { RegistrySource } from "#core/manifest/model.ts";
 import { readRootManifest } from "./registry.ts";
 import { AccountService } from "./service.ts";
 

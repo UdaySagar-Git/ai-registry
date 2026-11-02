@@ -1,6 +1,7 @@
 import { isAbsolute } from "node:path";
+import { type ArtifactKind, KINDS } from "#adapter/kinds.ts";
 import { quoted } from "#adapter/text.ts";
-import { type ArtifactKind, KIND_SPECS, KINDS } from "#core/kinds.ts";
+import { KIND_SPECS } from "#core/kinds.ts";
 import type { ConfigValue, KindMapping, RegisterEntry, TargetDefinition } from "./contract.ts";
 import { templateVars } from "./template.ts";
 

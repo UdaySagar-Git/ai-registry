@@ -1,4 +1,4 @@
-import type { ArtifactKind } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 
 /**
  * Derived from three digests, never from a flag anyone stored: a disposition

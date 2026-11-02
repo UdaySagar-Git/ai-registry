@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { frontmatter } from "#core/catalog/frontmatter.ts";
 import { parseYaml } from "#core/yaml.ts";
+import { frontmatter } from "./frontmatter.ts";
 
 const HOSTILE = 'foo: !!evil "\u001B]0;title\u0007"\n';
 

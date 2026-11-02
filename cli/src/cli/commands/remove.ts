@@ -1,30 +1,27 @@
 import { list, sanitizeName } from "#adapter/text.ts";
-import { matchInstalled, rowsNamed, shownNames } from "#cli/names.ts";
-import { parse } from "#cli/options.ts";
-import {
-  cancel,
-  chooseRemovals,
-  confirmPlan,
-  interaction,
-  interactive,
-  preparing,
-  silence,
-} from "#cli/prompt/flow.ts";
-import { canceled, defaultIo } from "#cli/prompt/index.ts";
+import { REMOVE_COMMAND } from "#cli/commands/remove/spec.ts";
+import { parse } from "#cli/options/parse.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
+import { chooseRemovals } from "#cli/prompt/choose.ts";
+import { confirmPlan } from "#cli/prompt/confirm-plan.ts";
+import { cancel, interaction, interactive, preparing, silence } from "#cli/prompt/interaction.ts";
+import { canceled } from "#cli/prompt/model.ts";
 import { settleCollisions } from "#cli/render/collisions.ts";
 import { planReport, summarize, whoNeeds } from "#cli/render/plan.ts";
 import { loadedBy, toolName } from "#cli/render/tools.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { dict } from "#core/fields.ts";
 import type { Lock } from "#core/lock.ts";
-import { reaches } from "#core/manifest.ts";
-import { editedAnywhere } from "#core/plan/model.ts";
-import { survey } from "#core/plan/survey.ts";
+import { reaches } from "#core/manifest/match.ts";
+import { editedAnywhere, survey } from "#core/plan/survey.ts";
 import { formatAddress, parseRef, type Ref, relativeTo, withExclusions } from "#core/ref.ts";
 import { type Roots, scopeName } from "#core/store/paths.ts";
+import { run as runPipeline } from "#engine/install/pipeline.ts";
+import { selectTargets } from "#engine/install/targets.ts";
+import { matchInstalled, rowsNamed, shownNames } from "#engine/installed-names.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { type Loaded, load, run as runPipeline, selectTargets } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import { type Loaded, load } from "#engine/scope/load.ts";
+import type { CommandContext } from "./command.ts";
 
 /**
  * A ref naming a dropped artifact goes, as does a whole ref removed by its own address;
@@ -121,7 +118,7 @@ async function pickRemovals(
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("remove"));
+  const { positionals, common } = parse(context.argv, REMOVE_COMMAND);
   const named = [...positionals, ...(common.select ?? [])].filter((name) => name !== "*");
   const removeAll = common.all || common.select?.includes("*") === true;
 

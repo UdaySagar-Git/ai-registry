@@ -2,28 +2,29 @@ import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, relative } from "node:path";
 import { isAdapterError } from "#adapter/index.ts";
+import { KINDS } from "#adapter/kinds.ts";
 import { isWithin } from "#adapter/paths.ts";
 import { list, plural, quoted } from "#adapter/text.ts";
+import { INIT_COMMAND } from "#cli/commands/init/spec.ts";
 import { applyImport, planImport } from "#cli/onboarding/import.ts";
-import { noArguments, parse, USER } from "#cli/options.ts";
+import { USER } from "#cli/options/flags.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { isNamespaceAddress } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
-import { gitIn } from "#core/git.ts";
-import { KINDS } from "#core/kinds.ts";
-import { emptyManifest, formatManifest, readManifest } from "#core/manifest.ts";
+import { canonical } from "#core/fs/realpath.ts";
+import { formatManifest } from "#core/manifest/format.ts";
+import { emptyManifest } from "#core/manifest/model.ts";
+import { readManifest } from "#core/manifest/repository.ts";
+import { gitIn } from "#core/process.ts";
 import { ensureScopeIgnore } from "#core/store/ignore.ts";
 import { guardManagedPath } from "#core/store/managed-paths.ts";
 import { roots as makeRoots, userScopeDir } from "#core/store/paths.ts";
-import {
-  canonicalIds,
-  IMPORTABLE_TARGETS,
-  placementFor,
-  resolveTargets,
-} from "#core/target/index.ts";
+import { canonicalIds, IMPORTABLE_TARGETS } from "#core/target/ids.ts";
+import { placementFor } from "#core/target/placement.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { table } from "#core/term/table.ts";
-import { selectTargets } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import { selectTargets } from "#engine/install/targets.ts";
+import type { CommandContext } from "./command.ts";
 
 /**
  * Whether git would leave `path` out of a commit. False outside a repository or
@@ -140,7 +141,7 @@ export async function run(context: CommandContext): Promise<void> {
       hint: "Install into it with `aireg add -g`.",
     });
   }
-  const { positionals, common, own } = parse<Own>(context.argv, builtin("init"));
+  const { positionals, common, own } = parse<Own>(context.argv, INIT_COMMAND);
   noArguments(positionals, "init", "Run `aireg init` inside the project folder.");
   const scope = "project";
   const roots = makeRoots(scope, context.cwd);

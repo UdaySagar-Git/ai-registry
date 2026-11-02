@@ -1,15 +1,9 @@
-import type { Styler } from "#core/output.ts";
 import { cells } from "#core/term/format.ts";
+import type { Styler } from "#core/term/printer.ts";
 import { GLYPH } from "#core/term/theme.ts";
+import { ask } from "./ask.ts";
 import { type Mark, railLine, titleLine } from "./layout.ts";
-import {
-  ask,
-  CANCEL,
-  type Canceled,
-  type Keypress,
-  type Machine,
-  type PromptIo,
-} from "./prompt.ts";
+import { CANCEL, type Canceled, type Keypress, type Machine, type PromptIo } from "./model.ts";
 
 export interface TextOptions {
   message: string;

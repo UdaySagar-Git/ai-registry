@@ -3,11 +3,11 @@ import { join } from "node:path";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { PRIVATE_FILE } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { ensureHome, toolHome } from "#core/store/paths.ts";
+import { ConfigConflictError } from "./errors.ts";
 import { emptyRegistryConfig, type RegistryConfig } from "./model.ts";
 import { formatConfig, parseConfig } from "./parse.ts";
-import { ConfigConflictError } from "./parse-errors.ts";
 
 const CONFIG_FILENAME = "config.yml";
 let pendingWrite: Promise<unknown> = Promise.resolve();

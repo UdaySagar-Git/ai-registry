@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { RunEvent } from "#core/run/model.ts";
 import { RpcErrorCode } from "./codes.ts";
-import { PROTOCOL_VERSION } from "./protocol.ts";
+import { PROTOCOL_VERSION } from "./methods.ts";
 import { DaemonAlreadyRunningError, RpcServer } from "./server.ts";
 
 const paths: string[] = [];

@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { envName } from "#core/env.ts";
 import { HOME_DIR, NAME } from "#core/product.ts";
-import type { ReleasePlatform } from "#core/release/urls.ts";
+import type { ReleasePlatform } from "#core/release/platform.ts";
 import { TARGETS } from "#packaging/targets.ts";
 import { artifactBaseUrl, artifactsUrl, installerOrigin } from "./origin.ts";
 

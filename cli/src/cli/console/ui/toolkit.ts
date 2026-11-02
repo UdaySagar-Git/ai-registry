@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { windowAround } from "#cli/console/model/list.ts";
+import { windowAround } from "#cli/console/data/list.ts";
 import type { PanelBoxProps, PanelNode, PanelTextProps, PanelToolkit } from "#core/host/panel.ts";
 import {
   ago,

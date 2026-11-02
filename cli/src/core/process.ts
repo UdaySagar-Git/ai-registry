@@ -9,6 +9,7 @@ import { constants } from "node:os";
 import { isAbsolute } from "node:path";
 import { programPath, withAbsolutePath } from "#adapter/paths.ts";
 import { launchArgv } from "#core/release/launch.ts";
+import { gitTimeoutMs } from "./env.ts";
 
 /** True while `pid` runs; EPERM means it runs as another user, which still counts. */
 export function processAlive(pid: number): boolean {
@@ -162,5 +163,17 @@ export function handOff(
     const child = spawn(launch.command, [...launch.args], { stdio: "inherit", env });
     child.on("error", reject);
     child.on("exit", (code) => resolve(code ?? 1));
+  });
+}
+
+/**
+ * Git on a person's own repository. Inside a hook its environment names that repository,
+ * so it is passed through; only prompts and optional index locks are turned off.
+ */
+export function gitIn(cwd: string, args: readonly string[]): Promise<ExecResult> {
+  return exec("git", args, {
+    cwd,
+    timeoutMs: gitTimeoutMs(),
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_OPTIONAL_LOCKS: "0" },
   });
 }

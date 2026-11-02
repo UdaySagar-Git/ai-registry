@@ -1,7 +1,7 @@
 import type { Job, RegistryConfig } from "#core/config/model.ts";
 import type { Command } from "#core/console/actions.ts";
 import type { AccountRow, ArtifactRow, ConsoleState } from "#core/console/model.ts";
-import type { Manifest } from "#core/manifest.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import type { RunRecord } from "#core/run/model.ts";
 import type { RunStore } from "#core/run/store.ts";
 import type { EarlierTarget, Targets } from "#core/target/contract.ts";

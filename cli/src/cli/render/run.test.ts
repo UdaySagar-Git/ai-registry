@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { FAILURES } from "#adapter/errors.ts";
-import { Printer } from "#core/output.ts";
 import { RunErrorCode, type RunEvent } from "#core/run/model.ts";
+import { Printer } from "#core/term/printer.ts";
 import { eventLine, failureWords } from "./run.ts";
 
 const printer = new Printer({ out: { write: () => true, isTTY: false }, color: "never" });

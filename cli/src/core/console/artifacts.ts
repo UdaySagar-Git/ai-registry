@@ -1,8 +1,8 @@
 import { stat } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import type { Survey } from "#core/plan/model.ts";
 import type { ArtifactStatus } from "#core/plan/status.ts";
+import type { Survey } from "#core/plan/survey.ts";
 import { artifactPath, copyLeaf, type Roots } from "#core/store/paths.ts";
 import {
   type ArtifactGroup,

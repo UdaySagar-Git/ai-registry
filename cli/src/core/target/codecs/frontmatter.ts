@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { type Document, isMap, isScalar, parseDocument } from "yaml";
-import { splitFrontmatter } from "#core/catalog/frontmatter.ts";
+import { splitFrontmatter } from "#core/frontmatter.ts";
 import type { ConfigValue } from "#core/target/contract.ts";
 import type { Rendered } from "./index.ts";
 

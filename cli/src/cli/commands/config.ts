@@ -1,12 +1,13 @@
 import { list as listOf, quoted } from "#adapter/text.ts";
-import { parse } from "#cli/options.ts";
-import { closest, didYouMean } from "#cli/suggest.ts";
+import { CONFIG_COMMAND } from "#cli/commands/config/spec.ts";
+import { parse } from "#cli/options/parse.ts";
+import { closest, didYouMean } from "#cli/options/suggest.ts";
 import type { RegistryConfig } from "#core/config/model.ts";
 import { isNameCollision, isNamespaceAddress, nameCollisionOf } from "#core/config/model.ts";
 import { configPath, readConfig, updateConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { table } from "#core/term/table.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { type CommandContext, runAction } from "./command.ts";
 
 /**
  * Only the settings a person sets by hand. Accounts and jobs have their own
@@ -76,7 +77,7 @@ function isKey(value: string): value is Key {
 }
 
 export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("config");
+  const spec = CONFIG_COMMAND;
   const { positionals } = parse(context.argv, spec);
   const [action = "list", key, value] = positionals;
   return runAction(spec, action, {

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { KIND_SPECS, KINDS, kindDir, stagedLeaf } from "./kinds.ts";
+import { KINDS } from "#adapter/kinds.ts";
+import { KIND_SPECS, kindDir, stagedLeaf } from "./kinds.ts";
 
 describe("KIND_SPECS", () => {
   test("gives every kind a distinct directory", () => {

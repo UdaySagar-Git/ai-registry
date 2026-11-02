@@ -1,8 +1,6 @@
 import { isRecord } from "#core/fields.ts";
 import { RpcErrorCode } from "./codes.ts";
 
-export * from "./methods.ts";
-
 export type RpcId = string | number;
 
 interface RpcRequest {

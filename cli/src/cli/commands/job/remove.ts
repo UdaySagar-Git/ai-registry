@@ -1,12 +1,13 @@
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
 import { existing, folderKey, jobNamed, needsJob, scopeLabel } from "#cli/commands/job/find.ts";
 import { underHome } from "#cli/render/home.ts";
-import { type Job, type RegistryConfig, watchedFolders } from "#core/config/model.ts";
+import { watchedFolders } from "#core/config/jobs.ts";
+import type { Job, RegistryConfig } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
-import { readManifest } from "#core/manifest.ts";
+import { readManifest } from "#core/manifest/repository.ts";
 import { roots, scopeFor } from "#core/store/paths.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
 
 /** The folder a job keeps up to date from its registry: enabled, and pulling there. */
 function pulledInto(job: Job): string | undefined {

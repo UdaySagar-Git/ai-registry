@@ -9,7 +9,7 @@ import { type Fields, isRecord, textOf, unknownKeys } from "#core/fields.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { OPEN_TO_OTHERS, PRIVATE_FILE, WRITABLE_BY_OTHERS } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { withLease } from "#core/lease.ts";
+import { withLease } from "#core/lease/lease.ts";
 import { credentialsPath, ensureHome } from "#core/store/paths.ts";
 import { credentialOrigin } from "./origin.ts";
 

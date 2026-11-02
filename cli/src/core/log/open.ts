@@ -1,24 +1,19 @@
 import { ExitCode } from "#core/errors.ts";
 import { LOG_FILE, NAME } from "#core/product.ts";
 import { ensureHome } from "#core/store/paths.ts";
+import { CLI_DEFAULT, DAEMON_DEFAULT, resolveLevel } from "./level.ts";
+import { createLogger, nullLogger } from "./logger.ts";
+import type { Level, Logger, Sink } from "./model.ts";
 import {
-  CLI_DEFAULT,
-  createLogger,
-  DAEMON_DEFAULT,
   DAEMON_LOG_FILE,
   DAEMON_STDERR_FILE,
   fileSink,
-  type Level,
-  type Logger,
   logPath,
   multiSink,
-  nullLogger,
-  resolveLevel,
-  type Sink,
   stderrSink,
-  throttleSink,
   trimCapture,
-} from "./index.ts";
+} from "./sink.ts";
+import { throttleSink } from "./throttle.ts";
 
 export interface LogBootstrap {
   logger: Logger;

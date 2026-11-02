@@ -1,8 +1,13 @@
 import { useApp, useInput, useWindowSize } from "ink";
 import type { ReactElement, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { step, windowAround } from "#cli/console/model/list.ts";
-import { collect, type Progress, progress } from "#cli/console/model/state.ts";
+import { step, windowAround } from "#cli/console/data/list.ts";
+import { collect, type Progress, progress } from "#cli/console/data/state.ts";
+import { accountsView } from "#cli/console/ui/views/accounts.ts";
+import { artifactsSummary, artifactsView } from "#cli/console/ui/views/artifacts.ts";
+import { jobLines, jobsSummaryStrip, jobsView, runWindow } from "#cli/console/ui/views/jobs.ts";
+import { overviewView } from "#cli/console/ui/views/overview.ts";
+import { settingsView } from "#cli/console/ui/views/settings.ts";
 import { underHome } from "#cli/render/home.ts";
 import * as commands from "#core/console/actions.ts";
 import { publishable, selector } from "#core/console/artifacts.ts";
@@ -19,8 +24,6 @@ import type {
 import { POLICY_AXES } from "#core/sync/policy.ts";
 import { clock } from "#core/term/format.ts";
 import { COLOR } from "#core/term/theme.ts";
-import { accountsView } from "./accounts-view.ts";
-import { artifactsSummary, artifactsView } from "./artifacts-view.ts";
 import {
   accountTabs,
   accountTabWidths,
@@ -32,7 +35,6 @@ import {
   viewTabWidths,
 } from "./chrome.ts";
 import { box, faint, plain, text } from "./elements.ts";
-import { jobLines, jobsSummaryStrip, jobsView, runWindow } from "./jobs-view.ts";
 import { jobsIndexAt, LAYOUT, listTop, type MouseEvent, tabAt, useMouse } from "./mouse.ts";
 import {
   activityPanel,
@@ -43,8 +45,6 @@ import {
   publishConfirm,
   withLine,
 } from "./overlays.ts";
-import { overviewView } from "./overview-view.ts";
-import { settingsView } from "./settings-view.ts";
 import { toolkit } from "./toolkit.ts";
 
 // Every write goes through a confirm screen; there is no `--yes` equivalent in here.

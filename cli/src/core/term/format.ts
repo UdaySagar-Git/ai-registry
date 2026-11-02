@@ -1,5 +1,5 @@
 import stringWidth from "string-width";
-import { abbreviate } from "#core/output.ts";
+import { abbreviate } from "./printer.ts";
 
 const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 export const ESC = "\u001B";

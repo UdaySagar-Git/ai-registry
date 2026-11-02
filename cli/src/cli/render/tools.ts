@@ -1,8 +1,11 @@
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { list } from "#adapter/text.ts";
-import type { ArtifactKind } from "#core/kinds.ts";
-import { askingFor, type Manifest, type Pinnable } from "#core/manifest.ts";
+import { askingFor, type Pinnable } from "#core/manifest/match.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import type { LinkState } from "#core/plan/status.ts";
-import { DEFAULT_TARGETS, names, readsFor, type Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { DEFAULT_TARGETS, names } from "#core/target/ids.ts";
+import { readsFor } from "#core/target/placement.ts";
 
 /** A target by the name a person picks it by: a tool's own name, or a shared folder's path. */
 export function toolName(targetTable: Targets | undefined, name: string): string {

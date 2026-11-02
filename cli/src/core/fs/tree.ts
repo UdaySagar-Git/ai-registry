@@ -13,10 +13,9 @@ import {
   stat,
 } from "node:fs/promises";
 import { basename, dirname, join, posix } from "node:path";
-import { copyRegular } from "#adapter/files.ts";
+import { copyRegular, EXECUTABLE, EXECUTE_BITS, PUBLIC_FILE } from "#adapter/files.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isStrictlyWithin, posixRelative } from "#core/fs/path.ts";
-import { EXECUTABLE, EXECUTE_BITS, PUBLIC_FILE } from "./mode.ts";
 
 export interface FileRecord {
   /** POSIX-relative to the walked root, so digests match across platforms. */

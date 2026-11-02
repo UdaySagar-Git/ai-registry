@@ -1,5 +1,5 @@
-import type { Printer, Styler } from "#core/output.ts";
 import { displayWidth } from "./format.ts";
+import type { Printer, Styler } from "./printer.ts";
 
 export interface Column<R> {
   header: string;

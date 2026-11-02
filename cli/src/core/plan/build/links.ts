@@ -1,10 +1,11 @@
 import { resolve } from "node:path";
 import { list, quoted } from "#adapter/text.ts";
 import type { LinkMode, LockArtifact } from "#core/lock.ts";
-import { type Action, type ArtifactSurvey, copyEdited, type Selected } from "#core/plan/model.ts";
+import type { Action, Selected } from "#core/plan/model.ts";
 import { claim, linksFor, type PlannedLink } from "#core/plan/projection.ts";
 import { removal } from "#core/plan/removable.ts";
 import { addressOf } from "#core/plan/select.ts";
+import { type ArtifactSurvey, copyEdited } from "#core/plan/survey.ts";
 import { scopeName } from "#core/store/paths.ts";
 import { renamedTo } from "./rename.ts";
 import type { BuildState } from "./state.ts";

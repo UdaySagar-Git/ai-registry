@@ -2,9 +2,9 @@ import { posix } from "node:path";
 import type { Artifact } from "../contract.ts";
 import { isArtifactName, isNamespace } from "../filespec/names.ts";
 import { quoted } from "../text.ts";
-import { type ContentFile, contentArtifact } from "./envelope.ts";
+import { type ContentFile, contentArtifact } from "./content-artifact.ts";
 import { type Frontmatter, readFrontmatter, textField } from "./frontmatter.ts";
-import type { Found, Layout, LayoutContext } from "./layout.ts";
+import type { Found, Layout, LayoutContext } from "./model.ts";
 import { type Skip, type Tree, walksInto } from "./tree.ts";
 
 /** The file that makes a folder a skill. */

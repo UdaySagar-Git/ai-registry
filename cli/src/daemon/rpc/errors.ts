@@ -1,9 +1,9 @@
 import { adapterProblem } from "#adapter/errors.ts";
 import { isAdapterError } from "#adapter/index.ts";
-import { ConfigConflictError } from "#core/config/parse-errors.ts";
+import { ConfigConflictError } from "#core/config/errors.ts";
 import { CredentialStoreError } from "#core/credentials/store.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { staleSettings } from "#daemon/config-write.ts";
+import { staleSettings } from "#daemon/handlers/settings-write.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { ProtocolError } from "./protocol.ts";
 

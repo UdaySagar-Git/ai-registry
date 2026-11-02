@@ -1,8 +1,8 @@
 import { list, plural, quoted } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
 import { underHome } from "#cli/render/home.ts";
 import { eventLine, failureWords } from "#cli/render/run.ts";
-import { findJob } from "#core/config/model.ts";
+import { findJob } from "#core/config/jobs.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { failureReasons } from "#core/console/runs.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
@@ -17,10 +17,10 @@ import {
 import { scopeFor } from "#core/store/paths.ts";
 import { ago, duration } from "#core/term/format.ts";
 import { table } from "#core/term/table.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { followRun, type RpcClient, runEvents } from "#daemon/rpc/client.ts";
 import { RpcErrorCode } from "#daemon/rpc/codes.ts";
-import { MAX_PAGE_SIZE } from "#daemon/rpc/protocol.ts";
-import { withDaemon } from "#daemon/service.ts";
+import { MAX_PAGE_SIZE } from "#daemon/rpc/methods.ts";
 
 /** `run_` plus a v4 uuid, as `runner.ts` mints them. */
 const RUN_ID = /^run_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

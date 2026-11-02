@@ -102,3 +102,8 @@ export function adapterOf(error: unknown) {
   if (error instanceof Error && isAdapterError(error.cause)) return error.cause;
   return undefined;
 }
+
+/** The message of anything thrown, which need not be an `Error`. */
+export function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}

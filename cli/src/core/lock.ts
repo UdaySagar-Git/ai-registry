@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { stringify } from "yaml";
+import { messageOf } from "#adapter/errors.ts";
+import { isRecord, textOf } from "#adapter/fields.ts";
 import { type ArtifactKind, isKind } from "#adapter/index.ts";
 import { isSafePath } from "#adapter/paths.ts";
 import { quoted } from "#adapter/text.ts";
@@ -13,7 +15,7 @@ import type { Targets } from "#core/target/contract.ts";
 import { canonicalId, earlierId } from "#core/target/ids.ts";
 import { resolveTargets } from "#core/target/table.ts";
 import { AiregError, ErrorCode } from "./errors.ts";
-import { dict, isRecord, textMapOf, textOf, withoutUndefined } from "./fields.ts";
+import { dict, textMapOf, withoutUndefined } from "./fields.ts";
 import { parseYaml } from "./yaml.ts";
 
 export const LOCK_VERSION = 1;
@@ -51,7 +53,7 @@ export function parseLock(text: string, path = "The lockfile", scope: Scope = "p
   try {
     doc = parseYaml(text);
   } catch (error) {
-    const first = (error as Error).message.split("\n")[0]?.replace(/:$/, "");
+    const first = messageOf(error).split("\n")[0]?.replace(/:$/, "");
     throw unreadable(path, `is not valid YAML: ${first}`);
   }
   if (doc === null || doc === undefined) return emptyLock();

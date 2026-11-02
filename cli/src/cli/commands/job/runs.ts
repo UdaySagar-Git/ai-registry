@@ -1,5 +1,6 @@
 import { list, plural, quoted } from "#adapter/text.ts";
 import type { CommandContext } from "#cli/commands/command.ts";
+import { needsInput } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
 import { eventLine, failureWords } from "#cli/render/run.ts";
 import { findJob } from "#core/config/jobs.ts";
@@ -228,10 +229,7 @@ export async function retry(context: CommandContext, runId: string | undefined):
 /** Checked before connecting, so a missing or mistyped run never starts the daemon. */
 function needsRun(action: string, runId: string | undefined): string {
   if (runId === undefined) {
-    throw new AiregError(`\`aireg job ${action}\` needs a run id.`, {
-      code: ErrorCode.Usage,
-      hint: `Name the run: \`aireg job ${action} <run>\`.`,
-    });
+    throw needsInput(`job ${action}`, "a run id", `Name the run: \`aireg job ${action} <run>\`.`);
   }
   checkRunId(runId);
   return runId;

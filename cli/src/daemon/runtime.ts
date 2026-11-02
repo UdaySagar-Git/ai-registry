@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
 import { AccountService } from "#accounts/service.ts";
+import type { Fields } from "#adapter/fields.ts";
 import { list, quoted } from "#adapter/text.ts";
 import { updateAdapters } from "#core/adapter/installed/update.ts";
 import type { Account } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { removeTokens, tokenVariable, withRegistryTokens } from "#core/env.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import type { Fields } from "#core/fields.ts";
 import { nullLogger } from "#core/log/logger.ts";
 import type { Logger } from "#core/log/model.ts";
 import { installCrashHandlers, openDaemonLog } from "#core/log/open.ts";
@@ -22,7 +22,7 @@ import {
   type RunEvent,
   type RunRecord,
 } from "#core/run/model.ts";
-import { type Scope, toolHome, userScopeDir } from "#core/store/paths.ts";
+import { scopeName, toolHome, userScopeDir } from "#core/store/paths.ts";
 import { refreshAutostart, supervised } from "#daemon/autostart/index.ts";
 import { RESTART_EXIT_CODE } from "#daemon/autostart/model.ts";
 import { loginAccount, logoutAccount, removeAccount } from "#daemon/handlers/account.ts";
@@ -55,10 +55,6 @@ const HOME_WATCH_MS = 15_000;
 
 function noRun(runId: string): ProtocolError {
   return new ProtocolError(RpcErrorCode.NotFound, `No run named ${quoted(runId)}.`);
-}
-
-function where(scope: Scope): string {
-  return scope === "user" ? "your user scope" : "this project";
 }
 
 export class DaemonRuntime {
@@ -237,7 +233,7 @@ export class DaemonRuntime {
     return withSuppliedToken(params, () =>
       startResolution(this.#runner, params, job, account, {
         signal: context.signal,
-        place: `from ${account.registry} in ${where(job.scope)}`,
+        place: `from ${account.registry} in ${scopeName(job.scope)}`,
         ephemeral: true,
       }),
     );

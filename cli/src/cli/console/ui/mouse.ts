@@ -1,5 +1,6 @@
 import { useStdin, useStdout } from "ink";
 import { useEffect, useRef } from "react";
+import { windowAround } from "#cli/console/data/list.ts";
 import { ESC } from "#core/term/format.ts";
 
 // Mouse reporting, which Ink does not do. SGR events (1006) because the older encoding
@@ -69,26 +70,16 @@ export const LAYOUT = {
 } as const;
 
 /**
- * The first rendered row of a list, per view. A contributed panel states its own,
- * because only it knows how many rows it puts above its list.
+ * The list row a click lands on, for a list drawn from `top` as a window around the cursor.
+ * Rows are turned back into a position rather than measured: Ink reports no geometry.
  */
-export function listTop(view: string, panelTop?: number): number | undefined {
-  // Artifacts: the filter, a blank, then the column heading.
-  if (view === "artifacts") return LAYOUT.body + 3;
-  // Jobs: the JOBS heading, the jobs themselves, then a blank and RUNS.
-  if (view === "jobs") return LAYOUT.body + 1;
-  return panelTop;
-}
-
-/** Jobs stacks two lists; a click past the first one lands in the second. */
-export function jobsIndexAt(row: number, jobCount: number, firstRun: number): number | undefined {
-  const top = LAYOUT.body + 1;
-  if (row < top) return undefined;
-  const offset = row - top;
-  if (offset < jobCount) return offset;
-  // Two rows of heading sit between the jobs and the runs.
-  const runOffset = offset - jobCount - 2;
-  return runOffset < 0 ? undefined : jobCount + firstRun + runOffset;
+export function listRowAt(
+  screenRow: number,
+  list: { top: number; total: number; cursor: number; height: number },
+): number | undefined {
+  const window = windowAround(list.total, list.cursor, list.height);
+  const index = window.from + (screenRow - list.top);
+  return index >= window.from && index < window.to ? index : undefined;
 }
 
 /** Which tab a click at this column belongs to, given each label's width. */

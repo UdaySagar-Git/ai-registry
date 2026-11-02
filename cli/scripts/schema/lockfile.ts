@@ -94,7 +94,11 @@ const Origin = Type.Object(
       Type.String({ minLength: 1, description: "Whose folder conventions it follows." }),
     ),
     harness: EARLIER_ID,
-    path: Type.String({ minLength: 1, description: "Relative to the scope base." }),
+    path: Type.String({
+      minLength: 1,
+      description:
+        "Relative to the scope base; a watched folder beside the project starts with `../`.",
+    }),
     step: Type.Optional(Type.String({ minLength: 1, description: "The step that claimed it." })),
   },
   NAMES_TARGET,

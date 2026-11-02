@@ -1,8 +1,9 @@
 import { readdir } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { isWithin } from "#adapter/paths.ts";
+import { expandHome, isWithin } from "#adapter/paths.ts";
 import { sanitizeName } from "#adapter/text.ts";
-import type { Selector, Step } from "#core/config/model.ts";
+import { jobRoot, type Selector, type Step, watchedFolders } from "#core/config/model.ts";
+import { readConfig } from "#core/config/repository.ts";
 import { canonical, canonicalAsync } from "#core/fs/canonical.ts";
 import { authoredDigest } from "#core/fs/digest.ts";
 import { posixRelative } from "#core/fs/path.ts";
@@ -355,6 +356,14 @@ export async function takeIntoOrigins(
     const folder = resolve(roots.base, row.origin.path);
     const copy = resolve(roots.base, row.path);
     if (!(await exists(copy))) continue;
+    // The lock is committed and may be anyone's; only a job of this scope says a folder outside it is yours.
+    if (
+      !isWithin(roots.base, folder) &&
+      !(await watchedHere(roots)).some((at) => isWithin(at, folder))
+    ) {
+      taken.push({ name, folder, backup: undefined, written: false });
+      continue;
+    }
     let backup: string | undefined;
     if (await exists(folder)) {
       const copies = [{ from: folder, target: row.origin.target }];
@@ -371,4 +380,16 @@ export async function takeIntoOrigins(
     taken.push({ name, folder, backup, written: true });
   }
   return taken;
+}
+
+/** The folders this scope's own jobs watch, from the local config rather than the lock. */
+async function watchedHere(roots: Roots): Promise<string[]> {
+  const base = canonical(roots.base);
+  return (await readConfig()).jobs
+    .filter((job) => {
+      const root = jobRoot(job);
+      return root !== undefined && canonical(root) === base;
+    })
+    .flatMap(watchedFolders)
+    .map((folder) => canonical(expandHome(folder)));
 }

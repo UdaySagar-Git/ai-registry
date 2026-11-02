@@ -210,10 +210,20 @@ function parseNames(raw: unknown): string[] | undefined {
   return names.length === 0 ? undefined : [...new Set(names)].sort();
 }
 
+/**
+ * A watched folder may sit beside the project, so an origin may climb out of it with leading
+ * `../`; what follows still has to be a safe path. Writing there is checked against the jobs.
+ */
+function originPathOf(value: unknown, scope: Scope): string | undefined {
+  const path = textOf(value);
+  if (path === undefined || scope === "user") return path;
+  return isSafePath(path.replace(/^(\.\.\/)+/, "")) ? path : undefined;
+}
+
 function parseOrigin(entry: unknown, scope: Scope): LockOrigin | undefined {
   if (!isRecord(entry)) return undefined;
   const target = targetOf(entry);
-  const path = scopePathOf(entry.path, scope);
+  const path = originPathOf(entry.path, scope);
   if (target === undefined || path === undefined) return undefined;
   return { target, path, step: textOf(entry.step) ?? "" };
 }

@@ -193,6 +193,42 @@ describe("takeIntoOrigins", () => {
   });
 });
 
+describe("takeIntoOrigins, for a row whose folder is outside the project", () => {
+  async function outsideRow(tmp: string, origin: string) {
+    const project = join(tmp, "project");
+    const scope = makeRoots("project", project);
+    const path = ".registry/artifacts/acme/engineering/skills/helper";
+    await mkdir(join(project, path), { recursive: true });
+    await writeFile(join(project, path, "SKILL.md"), "---\nname: helper\ndescription: x\n---\n");
+    const lock = emptyLock();
+    lock.artifacts["engineering/helper"] = {
+      registry: "acme",
+      id: undefined,
+      name: "helper",
+      kind: "skill",
+      namespace: "engineering",
+      address: undefined,
+      content: undefined,
+      version: undefined,
+      path,
+      digest: "",
+      origin: { target: "claude-code", path: origin, step: "origins" },
+      links: [],
+    };
+    await writeLock(scope, lock);
+    return scope;
+  }
+
+  test("never writes to one that no job of the project watches, as a cloned lock may name", async ({
+    tmp,
+  }) => {
+    const scope = await outsideRow(tmp, "../elsewhere/helper");
+    const [taken] = await takeIntoOrigins(scope, ["engineering/helper"], "20260101T000000Z");
+    expect(taken?.written).toBe(false);
+    await expect(lstat(join(tmp, "elsewhere"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+});
+
 describe("recordServed", () => {
   const address = "artifacts/mine/skill/my-helper";
   const scan = (disposition: string) =>

@@ -12,7 +12,7 @@ import type { Targets } from "#core/target/contract.ts";
 import type { Printer } from "#core/term/printer.ts";
 import type { CommonOptions } from "#engine/options.ts";
 import { type Loaded, read, withScope } from "#engine/scope/load.ts";
-import { commit, prepareWrite, restore, unrecorded } from "./commit.ts";
+import { commit, lockUnchanged, prepareWrite, restore } from "./commit.ts";
 import { appliedNotices, keptMessage, recoveredNotices, warn } from "./notices.ts";
 import { closeAll, plan } from "./plan.ts";
 import {
@@ -86,7 +86,7 @@ export interface RunOptions {
 }
 
 /** The single install path: `add`, `update` and `remove` differ only in `edit`. */
-export async function run(options: RunOptions): Promise<RunResult> {
+export async function runPipeline(options: RunOptions): Promise<RunResult> {
   const { roots, common, printer, edit = () => ({}) } = options;
   const body = async (loaded: Loaded) => write(loaded, options, await edit(loaded));
   // A dry run writes nothing to the scope, so it takes no lease and leaves no lease folder behind.
@@ -182,7 +182,7 @@ async function write(
       onStep: (action) => report.step(action, planned, chosen),
       undo: async () => {
         // Nothing was recorded, so the manifest must not ask for it.
-        if (edited && (await unrecorded(roots, lock)))
+        if (edited && (await lockUnchanged(roots, lock)))
           await restore(roots.manifest, before, written);
       },
     });

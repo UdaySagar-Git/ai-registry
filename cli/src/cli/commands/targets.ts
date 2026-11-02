@@ -110,7 +110,7 @@ export const { run } = defineCommand<Options>({
           "a file",
           "Name the file to check: `aireg targets check <file>`.",
         );
-        const checked = await check(context.cwd, file);
+        const checked = await checkFile(context.cwd, file);
         if ("problems" in checked.result) context.exit = ExitCode.Error;
         return checked;
       },
@@ -246,7 +246,7 @@ function show(id: string): TargetShown {
 }
 
 /** A file checked as aireg would read it from your user scope, wherever it is now. */
-async function check(cwd: string, file: string): Promise<Checked> {
+async function checkFile(cwd: string, file: string): Promise<Checked> {
   const path = resolve(cwd, file);
   let text: string;
   try {

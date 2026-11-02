@@ -84,7 +84,7 @@ function files(id: string): Record<string, string> {
   const range = contractRange();
   const host = `${id}.example.test`;
   return {
-    "package.json": json({
+    "package.json": jsonText({
       name: `${NAME}-adapter-${id}`,
       version: "0.1.0",
       description: `An aireg adapter that reads ${name} registries.`,
@@ -96,7 +96,7 @@ function files(id: string): Record<string, string> {
       peerDependencies: { [PACKAGE]: range },
       devDependencies: { [PACKAGE]: range, "@types/node": "^22.0.0", typescript: "^5.9.0" },
     }),
-    "tsconfig.json": json({
+    "tsconfig.json": jsonText({
       compilerOptions: {
         target: "es2023",
         lib: ["es2023"],
@@ -209,6 +209,6 @@ function contractRange(): string {
   return `^${version.major}.${version.minor}`;
 }
 
-function json(value: unknown): string {
+function jsonText(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }

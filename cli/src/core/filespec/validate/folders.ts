@@ -18,7 +18,7 @@ import {
 } from "#core/filespec/kind-manifests.ts";
 import { check } from "#core/filespec/schema.ts";
 import { authored, refusal } from "#core/fs/tree.ts";
-import { type Problem, text, unparsed } from "./read.ts";
+import { type Problem, textAt, unparsed } from "./read.ts";
 
 /** What `<kind> init` could not fill in, and an author has not yet. */
 const PLACEHOLDER = "TODO";
@@ -96,7 +96,8 @@ export async function folderProblems(
   const present = new Set(records.map((record) => record.path));
   const contents = new Map<string, string>();
   for (const path of present) {
-    if (/\.(md|json)$/.test(path)) contents.set(path, (await text(root, `${where}/${path}`)) ?? "");
+    if (/\.(md|json)$/.test(path))
+      contents.set(path, (await textAt(root, `${where}/${path}`)) ?? "");
   }
   for (const message of versionProblems(manifest, folder, present, contents)) {
     problems.push({ path: where, message });

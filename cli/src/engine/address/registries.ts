@@ -146,15 +146,12 @@ export async function undeclaredRegistry(
     common.scope === "user" ? await load({ ...common, scope: undefined }, cwd, "user") : undefined;
   const there =
     project?.roots.scope === "project" && project.manifest.registries[alias] !== undefined;
-  return unknownRegistry(
-    alias,
-    scope,
-    Object.keys(known),
-    there
+  return unknownRegistry(alias, scope, Object.keys(known), {
+    hint: there
       ? `This project declares ${alias}, so run it without -g, or add it to your user scope with \`aireg registry add <address> -g\`.`
       : undefined,
-    knownIn(scope),
-  );
+    searched: knownIn(scope),
+  });
 }
 
 /** A project also reaches the registries your user scope declares, so both were looked in. */

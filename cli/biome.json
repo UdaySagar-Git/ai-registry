@@ -227,7 +227,7 @@
         "src/core/fs/digest.ts",
         "src/core/plan/acquire/acquire.ts",
         "src/core/plan/build/restage.ts",
-        "src/core/sync/index.ts",
+        "src/core/sync/reconcile.ts",
         "src/core/sync/scan.ts",
         "src/core/target/check.ts",
         "src/core/target/register/register.ts",

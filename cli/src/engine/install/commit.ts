@@ -71,8 +71,8 @@ export async function restore(
   else await writeAtomic(path, before);
 }
 
-/** Whether the lock on disk is still the one the run started from. */
-export async function unrecorded(roots: Roots, lock: Lock): Promise<boolean> {
+/** Against the lock the run started from; one that no longer reads counts as changed. */
+export async function lockUnchanged(roots: Roots, lock: Lock): Promise<boolean> {
   return readLock(roots).then(
     (now) => lockChanges(lock, now).length === 0,
     () => false,

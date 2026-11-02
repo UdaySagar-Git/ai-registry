@@ -12,7 +12,7 @@ import { locate } from "#engine/scope/locate.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { manifestPath, writeManifestIn } from "#test/kit/scope.ts";
 import { skillBody, writeSpecRoot } from "#test/kit/spec-root.ts";
-import { run } from "./pipeline.ts";
+import { runPipeline } from "./pipeline.ts";
 
 /** This test's folder, which the kit removes after it. */
 let scratch: string;
@@ -51,7 +51,7 @@ afterEach(async () => {
   vi.unstubAllEnvs();
 });
 
-describe("run", () => {
+describe("runPipeline", () => {
   async function failedAdd(): Promise<{ project: string; before: string }> {
     const dir = await mkdtemp(join(scratch, "aireg-pipeline-"));
     vi.stubEnv("AIREG_HOME", join(dir, "aireg"));
@@ -72,7 +72,7 @@ describe("run", () => {
     const printer = new Printer({ format: "json", out: quiet, err: quiet });
 
     await expect(
-      run({
+      runPipeline({
         roots: roots("project", project),
         common: COMMON,
         printer,

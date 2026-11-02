@@ -71,8 +71,8 @@ export interface Probed {
   labelsOf: (entry: Entry) => Readonly<Record<string, string>> | undefined;
   /** What a plugin from a source that is not a registry would have a target start. */
   carriesOf: (entry: Entry) => readonly Carried[];
-  /** The bytes an entry names, fetched now if they are not already here. */
-  content: (entry: Entry) => Promise<string>;
+  /** Where an entry's bytes are staged, fetched now if they are not already here. */
+  stage: (entry: Entry) => Promise<string>;
   /** The adapter that read it, as a lockfile records it. */
   adapter: string;
   /** The content digest the source serves for one want, or undefined when it serves none. */
@@ -505,7 +505,7 @@ export async function probe({
       if (artifact?.kind !== "plugin" || !isReadOnlyLayout(listing.layout)) return [];
       return carriedIn(artifact.envelope, manifestOf(artifact)).carries;
     },
-    content: async (entry) => {
+    stage: async (entry) => {
       const item = listedAt(entry);
       if (item === undefined) {
         throw new AiregError(`The registry at ${location} has no content for ${entry.name}.`, {

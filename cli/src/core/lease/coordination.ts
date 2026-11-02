@@ -27,7 +27,7 @@ export async function removeDir(dir: string): Promise<boolean> {
 }
 
 /** Windows answers EPERM, not EEXIST, for a folder another process is still deleting. */
-export function taken(error: unknown): boolean {
+export function alreadyTaken(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException).code;
   return (
     code === "EEXIST" || (process.platform === "win32" && (code === "EPERM" || code === "EBUSY"))
@@ -74,7 +74,7 @@ async function enterOnce(
     await mkdir(dir);
     return "entered";
   } catch (error) {
-    if (!taken(error)) throw error;
+    if (!alreadyTaken(error)) throw error;
     // A delete still pending clears in moments; one that never does is a real refusal.
     if ((error as NodeJS.ErrnoException).code !== "EEXIST" && !stillFailing(failing)) throw error;
     const age = await dirAgeMs(dir);

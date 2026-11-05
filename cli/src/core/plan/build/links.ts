@@ -1,10 +1,11 @@
 import { resolve } from "node:path";
 import { list, quoted } from "#adapter/text.ts";
 import type { LinkMode, LockArtifact } from "#core/lock.ts";
-import { type Action, type ArtifactSurvey, copyEdited, type Selected } from "#core/plan/model.ts";
+import type { Action, Selected } from "#core/plan/model.ts";
 import { claim, linksFor, type PlannedLink } from "#core/plan/projection.ts";
 import { removal } from "#core/plan/removable.ts";
 import { addressOf } from "#core/plan/select.ts";
+import { type ArtifactSurvey, copyEdited } from "#core/plan/survey.ts";
 import { scopeName } from "#core/store/paths.ts";
 import { renamedTo } from "./rename.ts";
 import type { BuildState } from "./state.ts";
@@ -22,13 +23,67 @@ interface Claimed {
   blocked: Blocked[];
 }
 
-/** `.agents/skills/pdf` or `.claude/agents/review.md`: the name a part is installed under. */
+/** The name a part is installed under, read from its link path. */
 const partName = (path: string) => (path.split(/[\\/]/).at(-1) ?? path).replace(/\.(md|toml)$/, "");
 
 /** Where `item` would link this run, before any other artifact claims a path. */
 export function wantedLinks(item: Selected, build: BuildState): PlannedLink[] {
   const wrapped = build.wrapping.has(item.source);
   return linksFor(item, "", build.options, wrapped, build.crowded);
+}
+
+/**
+ * The links this item gets, and what blocks the rest. In a project a link is written only where
+ * it could also be removed: a committed symlink on the way would carry the write outside it.
+ */
+export function placeLinks(
+  item: Selected,
+  copy: string,
+  previous: LockArtifact | undefined,
+  build: BuildState,
+): { links: PlannedLink[]; blocked: Blocked[] } {
+  const claimed = claimLinks(item, copy, build);
+  const project = build.options.roots.scope === "project";
+  let refused = false;
+  let yours = false;
+  const links = claimed.links.filter((link) => {
+    // The folder of yours this row came from is already there, and its target loads it.
+    if (link.relative === previous?.origin?.path) {
+      yours = true;
+      return false;
+    }
+    if (!project) return true;
+    const verdict = removal(link.absolute, build.options.roots, build.options.env);
+    if (verdict.how !== "refuse") return true;
+    refused = true;
+    build.warnings.push({
+      name: item.name,
+      message: `Did not install ${item.name} at ${link.relative}: ${verdict.reason}.`,
+    });
+    return false;
+  });
+  // Said only when it lands nowhere: a tool skipping a kind another tool reads is
+  // expected, and a clash or a refusal has already said where it went instead.
+  if (links.length === 0 && claimed.blocked.length === 0 && !refused && !yours) {
+    const other = build.options.roots.scope === "project" ? "user" : "project";
+    const reasons = [
+      ...(claimed.skipped.size === 0
+        ? []
+        : [`${list([...claimed.skipped])} cannot load ${item.kind}s`]),
+      ...(claimed.elsewhere.size === 0
+        ? []
+        : [
+            `${list([...claimed.elsewhere])} ${claimed.elsewhere.size === 1 ? "loads" : "load"} ${item.kind}s only in ${scopeName(other)}`,
+          ]),
+    ];
+    const why =
+      reasons.length === 0 ? `no selected target accepts a ${item.kind}` : reasons.join("; ");
+    build.warnings.push({
+      name: item.name,
+      message: `${quoted(item.name)} was fetched but installed into no target: ${why}.`,
+    });
+  }
+  return { links, blocked: claimed.blocked };
 }
 
 /** The links this item may take, first come first served, recording what another holds. */
@@ -78,60 +133,6 @@ function holds(holder: string, link: PlannedLink, build: BuildState): boolean {
   return link.shared !== true || wanted.content !== link.content;
 }
 
-/**
- * The links this item gets, and what blocks the rest. In a project a link is written only where
- * it could also be removed: a committed symlink on the way would carry the write outside it.
- */
-export function placeLinks(
-  item: Selected,
-  copy: string,
-  previous: LockArtifact | undefined,
-  build: BuildState,
-): { links: PlannedLink[]; blocked: Blocked[] } {
-  const claimed = claimLinks(item, copy, build);
-  const project = build.options.roots.scope === "project";
-  let refused = false;
-  let yours = false;
-  const links = claimed.links.filter((link) => {
-    // The folder of yours this row came from is already there, and its target loads it.
-    if (link.relative === previous?.origin?.path) {
-      yours = true;
-      return false;
-    }
-    if (!project) return true;
-    const verdict = removal(link.absolute, build.options.roots);
-    if (verdict.how !== "refuse") return true;
-    refused = true;
-    build.warnings.push({
-      name: item.name,
-      message: `Did not install ${item.name} at ${link.relative}: ${verdict.reason}.`,
-    });
-    return false;
-  });
-  // Said only when it lands nowhere: a tool skipping a kind another tool reads is
-  // expected, and a clash or a refusal has already said where it went instead.
-  if (links.length === 0 && claimed.blocked.length === 0 && !refused && !yours) {
-    const other = build.options.roots.scope === "project" ? "user" : "project";
-    const reasons = [
-      ...(claimed.skipped.size === 0
-        ? []
-        : [`${list([...claimed.skipped])} cannot load ${item.kind}s`]),
-      ...(claimed.elsewhere.size === 0
-        ? []
-        : [
-            `${list([...claimed.elsewhere])} ${claimed.elsewhere.size === 1 ? "loads" : "load"} ${item.kind}s only in ${scopeName(other)}`,
-          ]),
-    ];
-    const why =
-      reasons.length === 0 ? `no selected target accepts a ${item.kind}` : reasons.join("; ");
-    build.warnings.push({
-      name: item.name,
-      message: `${quoted(item.name)} was fetched but installed into no target: ${why}.`,
-    });
-  }
-  return { links, blocked: claimed.blocked };
-}
-
 interface LinkUpdate {
   item: Selected;
   links: readonly PlannedLink[];
@@ -178,6 +179,28 @@ export function updateLinks(
   return touched;
 }
 
+/** A copy is a real folder; anywhere else one means the link was replaced by content we do not own. */
+function inPlace(
+  observed: ArtifactSurvey["links"][string] | undefined,
+  copying: boolean,
+  from: string,
+): boolean {
+  return (
+    observed?.present === true &&
+    (copying ? !observed.isLink : observed.isLink) &&
+    (observed.target === undefined || resolve(observed.target) === resolve(from))
+  );
+}
+
+/** A target's own copy that was edited stays as it is unless forced; planning has said so. */
+function keepsEditedCopy(
+  prior: LockArtifact["links"][number] | undefined,
+  state: ArtifactSurvey | undefined,
+  build: BuildState,
+): boolean {
+  return prior !== undefined && !build.options.force && copyEdited(prior, state);
+}
+
 function linkAction(
   item: Selected,
   link: PlannedLink,
@@ -210,28 +233,6 @@ function linkAction(
       ? { adopt: true }
       : {}),
   };
-}
-
-/** A copy is a real folder; anywhere else one means the link was replaced by content we do not own. */
-function inPlace(
-  observed: ArtifactSurvey["links"][string] | undefined,
-  copying: boolean,
-  from: string,
-): boolean {
-  return (
-    observed?.present === true &&
-    (copying ? !observed.isLink : observed.isLink) &&
-    (observed.target === undefined || resolve(observed.target) === resolve(from))
-  );
-}
-
-/** A target's own copy that was edited stays as it is unless forced; planning has said so. */
-function keepsEditedCopy(
-  prior: LockArtifact["links"][number] | undefined,
-  state: ArtifactSurvey | undefined,
-  build: BuildState,
-): boolean {
-  return prior !== undefined && !build.options.force && copyEdited(prior, state);
 }
 
 /** Said once, when the renamed plugin first appears, rather than on every sync. */

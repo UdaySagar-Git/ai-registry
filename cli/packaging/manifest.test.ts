@@ -1,21 +1,20 @@
-import { generateKeyPairSync, type KeyObject } from "node:crypto";
+import type { KeyObject } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { releaseBinary } from "#core/product.ts";
-import { RELEASE_PLATFORMS } from "#core/release/urls.ts";
+import { RELEASE_PLATFORMS } from "#core/release/platform.ts";
 import { test } from "#test/kit/fixtures.ts";
+import { encodeKeyring, releaseKey } from "#test/kit/release.ts";
 import { privateKeyFromSeed, signManifest, verifySigned } from "./manifest.ts";
 
-/** The most artifacts one manifest may list. */
-const CEILING = 8;
+const MAX_ARTIFACTS = 8;
 
 function keys(id: string): { privateKey: KeyObject; keyring: string; seed: string } {
-  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-  const raw = publicKey.export({ format: "der", type: "spki" }).subarray(12);
+  const { privateKey, encoded } = releaseKey();
   return {
     privateKey,
-    keyring: Buffer.from(JSON.stringify({ [id]: raw.toString("base64") })).toString("base64"),
+    keyring: encodeKeyring({ [id]: encoded }),
     seed: privateKey.export({ format: "der", type: "pkcs8" }).subarray(16).toString("base64"),
   };
 }
@@ -32,7 +31,10 @@ describe("release manifest", () => {
   test("signs what the client verifier accepts, and nothing it would reject", ({ tmp }) => {
     const { privateKey, keyring } = keys("k1");
     const binaries = RELEASE_PLATFORMS.map((platform) => releaseBinary(platform));
-    const extras = Array.from({ length: CEILING - binaries.length }, (_, at) => `extra-${at}`);
+    const extras = Array.from(
+      { length: MAX_ARTIFACTS - binaries.length },
+      (_, at) => `extra-${at}`,
+    );
     const artifacts = files(tmp, [...binaries, ...extras]);
     const base = {
       channel: "stable" as const,
@@ -46,7 +48,7 @@ describe("release manifest", () => {
     const document = signManifest({ ...base, artifacts });
     const manifest = verifySigned(document, keyring, "stable");
     expect(manifest.version).toBe("1.2.3");
-    expect(manifest.artifacts).toHaveLength(CEILING);
+    expect(manifest.artifacts).toHaveLength(MAX_ARTIFACTS);
 
     const tampered = JSON.parse(document);
     tampered.artifacts[0].sha256 = "0".repeat(64);

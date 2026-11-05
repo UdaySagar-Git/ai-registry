@@ -1,77 +1,162 @@
 import { list as listOf } from "#adapter/text.ts";
+import { type Saved, savedData, savedText, saveJob } from "#cli/commands/job/add.ts";
 import { folderKey, jobNamed, jobScope, scopeLabel, typedFolder } from "#cli/commands/job/find.ts";
-import { add as addJob } from "#cli/commands/job.ts";
-import { parse } from "#cli/options.ts";
+import type { WatchList, WatchRemoved, WatchRemoveResult } from "#cli/commands/watch/result.ts";
+import { WATCH_COMMAND } from "#cli/commands/watch/spec.ts";
+import { needsInput, parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
-import {
-  type Job,
-  jobRoot,
-  type Step,
-  unwatchCommand,
-  watchedFolders,
-} from "#core/config/model.ts";
+import { jobRoot, unwatchCommand, watchedFolders } from "#core/config/jobs.ts";
+import type { Job, Step } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
-import { type Roots, type Scope, scopeFor, scopeName, userScopeDir } from "#core/store/paths.ts";
+import { canonical } from "#core/fs/realpath.ts";
+import { type Roots, scopeFor, scopeName, userScopeDir } from "#core/store/paths.ts";
 import { table } from "#core/term/table.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import { withFreshConfig } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
-import { FOREGROUND_POLICY } from "#engine/foreground.ts";
 import type { CommonOptions } from "#engine/options.ts";
-import { scopeRoots } from "#engine/pipeline.ts";
-import { builtin, type CommandContext, runAction } from "./index.ts";
+import { scopeRoots } from "#engine/scope/locate.ts";
+import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
+import type { CommandContext } from "./command.ts";
+import { action, defineCommand } from "./define.ts";
 
 interface Own extends Record<string, unknown> {
   to?: string;
 }
 
-interface Watch {
-  folder: string;
-  to: string;
-  jobId: string;
-  scope: Scope;
-  /** The project's folder, or your user scope's. */
-  root: string;
+interface Options {
+  folders: string[];
+  own: Own;
+  common: CommonOptions;
 }
 
-function needsFolder(action: string): AiregError {
-  return new AiregError(`\`aireg watch ${action}\` needs a folder.`, {
-    code: ErrorCode.Usage,
-    hint:
-      action === "add"
-        ? "Name it: `aireg watch add <folder> --to <registry>/<namespace>`."
-        : "Name it: `aireg watch remove <folder>`. Run `aireg watch list` to see them.",
-  });
+type Watch = WatchList["watches"][number];
+
+interface Listed extends WatchList {
+  cwd: string;
 }
+
+export const { run } = defineCommand<Options>({
+  spec: WATCH_COMMAND,
+  parse(argv) {
+    const { positionals, own, common } = parse<Own>(argv, WATCH_COMMAND);
+    const [verb = "list", ...folders] = positionals;
+    return { action: verb, options: { folders, own, common } };
+  },
+  actions: {
+    // A watch is the scope's sync job publishing a folder too, so adding one is `job add --watch`.
+    add: action({
+      run: ({ folders, own, common }, context): Promise<Saved> => {
+        if (folders.length === 0) throw needsFolder("add");
+        const watch = { watch: folders, ...(own.to === undefined ? {} : { to: own.to }) };
+        return saveJob(context, undefined, watch, common);
+      },
+      data: savedData,
+      text: savedText,
+    }),
+    // A folder per job, each saved on its own, so each job's result prints as it lands.
+    // One command's folders may span several jobs; each is saved on its own.
+    remove: action({
+      run: async ({ folders, common }, context): Promise<Unwatched> => ({
+        jobs: await remove(context, folders, common),
+        cwd: context.cwd,
+      }),
+      // One job prints as it always has; several print as one document, not one each.
+      data: ({ jobs }): WatchRemoveResult => {
+        const removed = jobs.map(({ after }) => ({
+          jobId: after.id,
+          watching: watchedFolders(after),
+        }));
+        return removed.length === 1 ? (removed[0] as WatchRemoved) : { jobs: removed };
+      },
+      text: ({ jobs, cwd }, printer) => {
+        for (const { before, after } of jobs) {
+          const watching = watchedFolders(after);
+          const stopped = watchedFolders(before).filter((folder) => !watching.includes(folder));
+          const name = after.name ?? after.id;
+          printer.success(
+            `Stopped watching ${listOf(stopped.map(underHome))}. ` +
+              (watching.length === 0
+                ? `Job ${name} still keeps ${scopeLabel(rootOf(after), cwd)} up to date.`
+                : `Job ${name} still watches ${listOf(watching.map(underHome))}.`),
+          );
+        }
+      },
+    }),
+    // A project's scope is named against the folder the command ran in.
+    list: action({
+      run: async (_options, context): Promise<Listed> => ({
+        watches: watches((await readConfig()).jobs),
+        cwd: context.cwd,
+      }),
+      data: ({ watches }): WatchList => ({ watches }),
+      text: ({ watches, cwd }, printer) => {
+        if (watches.length === 0) {
+          printer.info("No folder is published as it changes.");
+          printer.hint("Run `aireg watch add <folder> --to <registry>/<namespace>` to add one.");
+          return;
+        }
+        table(
+          printer,
+          [
+            { header: "folder", value: (item: Watch) => underHome(item.folder) },
+            { header: "to", value: (item: Watch) => item.to },
+            { header: "job", value: (item: Watch) => item.jobId },
+            { header: "scope", value: (item: Watch) => scopeLabel(item.root, cwd) },
+          ],
+          watches,
+        );
+      },
+    }),
+  },
+});
 
 /** The folder a job keeps in sync: its own, else your user scope's. */
 const rootOf = (job: Job) => jobRoot(job) ?? userScopeDir();
 
-/** A watch is the scope's sync job publishing a folder too, so adding one is `job add --watch`. */
-async function add(
-  context: CommandContext,
-  folders: string[],
-  own: Own,
-  common: CommonOptions,
-): Promise<void> {
-  if (folders.length === 0) throw needsFolder("add");
-  await addJob(
-    context,
-    undefined,
-    { watch: folders, ...(own.to === undefined ? {} : { to: own.to }) },
-    common,
+function watches(jobs: readonly Job[]): Watch[] {
+  return jobs.flatMap((job) => {
+    const root = rootOf(job);
+    const scope = scopeFor(root);
+    return job.steps.flatMap(({ kind, to, select }) =>
+      kind !== "origins" || to === undefined
+        ? []
+        : select.map(({ from }) => ({ folder: folderKey(from), to, jobId: job.id, scope, root })),
+    );
+  });
+}
+
+function needsFolder(action: string): AiregError {
+  return needsInput(
+    `watch ${action}`,
+    "a folder",
+    action === "add"
+      ? "Name it: `aireg watch add <folder> --to <registry>/<namespace>`."
+      : "Name it: `aireg watch remove <folder>`. Run `aireg watch list` to see them.",
   );
 }
 
-/** How to stop a folder another scope publishes: with -g, or in that project. */
-function elsewhere(job: Job, folder: string, cwd: string): string {
-  const root = rootOf(job);
-  const scope = scopeFor(root);
-  const command = unwatchCommand([underHome(folder)], scope);
-  return scope === "user"
-    ? `It is published from your user scope: run \`${command}\`.`
-    : `It is published from ${scopeLabel(root, cwd)}: run \`${command}\` there.`;
+interface Changed {
+  before: Job;
+  after: Job;
+}
+
+interface Unwatched {
+  jobs: Changed[];
+  cwd: string;
+}
+
+async function remove(
+  context: CommandContext,
+  folders: string[],
+  common: CommonOptions,
+): Promise<Changed[]> {
+  if (folders.length === 0) throw needsFolder("remove");
+  const scope = scopeRoots(common, context.cwd, "user");
+  const found = byJob((await readConfig()).jobs, folders, scope, context.cwd);
+  const changed: Changed[] = [];
+  for (const [job, dropped] of found) changed.push(await unwatch(job, dropped));
+  return changed;
 }
 
 /** Each folder named, as a key, under the job in this scope that watches it. */
@@ -100,6 +185,31 @@ function byJob(all: readonly Job[], folders: readonly string[], scope: Roots, cw
   return found;
 }
 
+/** How to stop a folder another scope publishes: with -g, or in that project. */
+function elsewhere(job: Job, folder: string, cwd: string): string {
+  const root = rootOf(job);
+  const scope = scopeFor(root);
+  const command = unwatchCommand([underHome(folder)], scope);
+  return scope === "user"
+    ? `It is published from your user scope: run \`${command}\`.`
+    : `It is published from ${scopeLabel(root, cwd)}: run \`${command}\` there.`;
+}
+
+/** Stops publishing the folders and keeps the job, which goes on keeping its scope in sync. */
+async function unwatch(job: Job, dropped: ReadonlySet<string>): Promise<Changed> {
+  return withDaemon((client) =>
+    withFreshConfig(client, async (config) => {
+      const before = jobNamed(config, job.id);
+      const after = withoutFolders(before, dropped);
+      await client.request("settings.patch", {
+        expectedRevision: config.revision,
+        jobs: { upsert: [after] },
+      });
+      return { before, after };
+    }),
+  );
+}
+
 /**
  * The job without those folders. With none left it goes back to the job `aireg add`
  * makes: no folder step, and edits made here reported rather than published.
@@ -112,99 +222,14 @@ function withoutFolders(job: Job, dropped: ReadonlySet<string>): Job {
   });
   if (steps.some((step) => step.kind === "origins")) return { ...job, steps };
   const origins = job.steps.find((step) => step.kind === "origins")?.name;
+  // A watch turned publishing on for its folders; without them the publish step reports again.
   return {
     ...job,
     steps: steps.map((step) => ({
       ...step,
       needs: step.needs.filter((name) => name !== origins),
-      // A watch turned publishing on for its folders; without them it is reported again.
       policy:
         step.kind === "publish" && step.policy === "on" ? FOREGROUND_POLICY.publish : step.policy,
     })),
   };
-}
-
-/** Stops publishing the folders and keeps the job, which goes on keeping its scope in sync. */
-async function unwatch(context: CommandContext, job: Job, dropped: ReadonlySet<string>) {
-  await withDaemon(async (client) => {
-    const { before, after } = await withFreshConfig(client, async (config) => {
-      const before = jobNamed(config, job.id);
-      const after = withoutFolders(before, dropped);
-      await client.request("settings.patch", {
-        expectedRevision: config.revision,
-        jobs: { upsert: [after] },
-      });
-      return { before, after };
-    });
-    const watching = watchedFolders(after);
-    if (context.printer.format === "json") {
-      context.printer.json({ ok: true, data: { jobId: after.id, watching } });
-      return;
-    }
-    const stopped = watchedFolders(before).filter((folder) => !watching.includes(folder));
-    const name = after.name ?? after.id;
-    context.printer.success(
-      `Stopped watching ${listOf(stopped.map(underHome))}. ` +
-        (watching.length === 0
-          ? `Job ${name} still keeps ${scopeLabel(rootOf(after), context.cwd)} up to date.`
-          : `Job ${name} still watches ${listOf(watching.map(underHome))}.`),
-    );
-  });
-}
-
-async function remove(
-  context: CommandContext,
-  folders: string[],
-  common: CommonOptions,
-): Promise<void> {
-  if (folders.length === 0) throw needsFolder("remove");
-  const scope = scopeRoots(common, context.cwd, "user");
-  const found = byJob((await readConfig()).jobs, folders, scope, context.cwd);
-  for (const [job, dropped] of found) await unwatch(context, job, dropped);
-}
-
-function watches(jobs: readonly Job[]): Watch[] {
-  return jobs.flatMap((job) => {
-    const root = rootOf(job);
-    const scope = scopeFor(root);
-    return job.steps.flatMap(({ kind, to, select }) =>
-      kind !== "origins" || to === undefined
-        ? []
-        : select.map(({ from }) => ({ folder: folderKey(from), to, jobId: job.id, scope, root })),
-    );
-  });
-}
-
-async function list(context: CommandContext): Promise<void> {
-  const found = watches((await readConfig()).jobs);
-  if (context.printer.format === "json") {
-    context.printer.json({ ok: true, data: { watches: found } });
-    return;
-  }
-  if (found.length === 0) {
-    context.printer.info("No folder is published as it changes.");
-    context.printer.hint("Run `aireg watch add <folder> --to <registry>/<namespace>` to add one.");
-    return;
-  }
-  table(
-    context.printer,
-    [
-      { header: "folder", value: (item: Watch) => underHome(item.folder) },
-      { header: "to", value: (item: Watch) => item.to },
-      { header: "job", value: (item: Watch) => item.jobId },
-      { header: "scope", value: (item: Watch) => scopeLabel(item.root, context.cwd) },
-    ],
-    found,
-  );
-}
-
-export async function run(context: CommandContext): Promise<void> {
-  const spec = builtin("watch");
-  const { positionals, own, common } = parse<Own>(context.argv, spec);
-  const [action = "list", ...folders] = positionals;
-  return runAction(spec, action, {
-    add: () => add(context, folders, own, common),
-    remove: () => remove(context, folders, common),
-    list: () => list(context),
-  });
 }

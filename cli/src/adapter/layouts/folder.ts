@@ -1,14 +1,12 @@
 import { posix } from "node:path";
 import type { Artifact } from "../contract.ts";
 import { isArtifactName, isNamespace } from "../filespec/names.ts";
+import { SKILL_ENTRY } from "../kinds.ts";
 import { quoted } from "../text.ts";
-import { type ContentFile, contentArtifact } from "./envelope.ts";
+import { type ContentFile, contentArtifact } from "./content-artifact.ts";
 import { type Frontmatter, readFrontmatter, textField } from "./frontmatter.ts";
-import type { Found, Layout, LayoutContext } from "./layout.ts";
+import type { Found, Layout, LayoutContext } from "./model.ts";
 import { type Skip, type Tree, walksInto } from "./tree.ts";
-
-/** The file that makes a folder a skill. */
-export const SKILL_FILE = "SKILL.md";
 
 /** The id of a source that is one skill, since an id is never empty. */
 export const ROOT_ID = ".";
@@ -40,44 +38,6 @@ export function skipped(skip: Skip): string {
   return `Skipped ${skip.path}, which ${skip.reason}.`;
 }
 
-/** Skill folders up to `SKILL_DEPTH` below the root, never looking inside one it found. */
-async function skillFolders(tree: Tree, warnings: string[]): Promise<string[]> {
-  if (await tree.isFile(SKILL_FILE)) return [""];
-  const found: string[] = [];
-  const visit = async (dir: string, depth: number): Promise<void> => {
-    for (const entry of await tree.list(dir)) {
-      if (entry.type === "link" && holdsSkills(dir)) {
-        warnings.push(skipped({ path: entry.path, reason: "is a symlink" }));
-      }
-      if (entry.type !== "folder" || !walksInto(entry.name)) continue;
-      if (await tree.isFile(`${entry.path}/${SKILL_FILE}`)) found.push(entry.path);
-      else if (depth < SKILL_DEPTH) await visit(entry.path, depth + 1);
-    }
-  };
-  await visit("", 1);
-  return found;
-}
-
-async function agentFiles(tree: Tree, warnings: string[]): Promise<string[]> {
-  const found: string[] = [];
-  for (const dir of AGENT_FOLDERS) {
-    for (const entry of await tree.list(dir)) {
-      if (!entry.name.endsWith(".md") || entry.name.toLowerCase() === "readme.md") continue;
-      if (entry.type === "link")
-        warnings.push(skipped({ path: entry.path, reason: "is a symlink" }));
-      if (entry.type === "file") found.push(entry.path);
-    }
-  }
-  return found;
-}
-
-/** `skills/<group>/<name>` files a skill under `<group>`; anything else under the registry's name. */
-function namespaceOf(folder: string, context: LayoutContext): string {
-  const parts = folder.split("/");
-  const group = parts.length === 3 && parts[0] === "skills" ? parts[1] : undefined;
-  return group !== undefined && isNamespace(group) ? group : context.namespace;
-}
-
 async function candidates(tree: Tree, context: LayoutContext, warnings: string[]) {
   const found: Candidate[] = [];
   const folders = await skillFolders(tree, warnings);
@@ -94,6 +54,44 @@ async function candidates(tree: Tree, context: LayoutContext, warnings: string[]
   for (const file of await agentFiles(tree, warnings)) {
     const name = posix.basename(file, ".md");
     found.push({ kind: "agent", at: file, name, namespace: context.namespace });
+  }
+  return found;
+}
+
+/** Skill folders up to `SKILL_DEPTH` below the root, never looking inside one it found. */
+async function skillFolders(tree: Tree, warnings: string[]): Promise<string[]> {
+  if (await tree.isFile(SKILL_ENTRY)) return [""];
+  const found: string[] = [];
+  const visit = async (dir: string, depth: number): Promise<void> => {
+    for (const entry of await tree.list(dir)) {
+      if (entry.type === "link" && holdsSkills(dir)) {
+        warnings.push(skipped({ path: entry.path, reason: "is a symlink" }));
+      }
+      if (entry.type !== "folder" || !walksInto(entry.name)) continue;
+      if (await tree.isFile(`${entry.path}/${SKILL_ENTRY}`)) found.push(entry.path);
+      else if (depth < SKILL_DEPTH) await visit(entry.path, depth + 1);
+    }
+  };
+  await visit("", 1);
+  return found;
+}
+
+/** `skills/<group>/<name>` files a skill under `<group>`; others go under the registry's name. */
+function namespaceOf(folder: string, context: LayoutContext): string {
+  const parts = folder.split("/");
+  const group = parts.length === 3 && parts[0] === "skills" ? parts[1] : undefined;
+  return group !== undefined && isNamespace(group) ? group : context.namespace;
+}
+
+async function agentFiles(tree: Tree, warnings: string[]): Promise<string[]> {
+  const found: string[] = [];
+  for (const dir of AGENT_FOLDERS) {
+    for (const entry of await tree.list(dir)) {
+      if (!entry.name.endsWith(".md") || entry.name.toLowerCase() === "readme.md") continue;
+      if (entry.type === "link")
+        warnings.push(skipped({ path: entry.path, reason: "is a symlink" }));
+      if (entry.type === "file") found.push(entry.path);
+    }
   }
   return found;
 }
@@ -121,26 +119,6 @@ function deduplicated(found: readonly Candidate[], warnings: string[]): Candidat
     kept.set(key, candidate);
   }
   return [...kept.values()];
-}
-
-function entryOf(candidate: Candidate): string {
-  if (candidate.kind === "agent") return candidate.at;
-  return candidate.at === ROOT_ID ? SKILL_FILE : `${candidate.at}/${SKILL_FILE}`;
-}
-
-async function frontOf(tree: Tree, path: string): Promise<Frontmatter | undefined> {
-  const bytes = await tree.read(path);
-  return bytes === undefined ? undefined : readFrontmatter(new TextDecoder().decode(bytes));
-}
-
-/** Front matter names the artifact as well; the folder wins, since the folder is what is installed. */
-function checkName(candidate: Candidate, front: Frontmatter | undefined, warnings: string[]): void {
-  const named = textField(front, "name");
-  if (named === undefined || named === candidate.name) return;
-  const entry = entryOf(candidate);
-  warnings.push(
-    `${entry} names the ${candidate.kind} ${quoted(named)}, but aireg installs it as ${quoted(candidate.name)}, the name of its ${candidate.kind === "skill" ? "folder" : "file"}.`,
-  );
 }
 
 /** One skill folder or agent file as an artifact with a content-only envelope. */
@@ -178,10 +156,30 @@ export async function artifactOf(
   });
 }
 
-/** A plain folder of skills: `SKILL.md` folders and `agents/*.md` files, as a repository holds them. */
+function entryOf(candidate: Candidate): string {
+  if (candidate.kind === "agent") return candidate.at;
+  return candidate.at === ROOT_ID ? SKILL_ENTRY : `${candidate.at}/${SKILL_ENTRY}`;
+}
+
+async function frontOf(tree: Tree, path: string): Promise<Frontmatter | undefined> {
+  const bytes = await tree.read(path);
+  return bytes === undefined ? undefined : readFrontmatter(new TextDecoder().decode(bytes));
+}
+
+/** Front matter may name the artifact too; its folder or file wins, since that is what installs. */
+function checkName(candidate: Candidate, front: Frontmatter | undefined, warnings: string[]): void {
+  const named = textField(front, "name");
+  if (named === undefined || named === candidate.name) return;
+  const entry = entryOf(candidate);
+  warnings.push(
+    `${entry} names the ${candidate.kind} ${quoted(named)}, but aireg installs it as ${quoted(candidate.name)}, the name of its ${candidate.kind === "skill" ? "folder" : "file"}.`,
+  );
+}
+
+/** A plain folder of skills: `SKILL.md` folders and `agents/*.md` files, as a repository has. */
 export const folderLayout: Layout = {
   id: "folder",
-  looksFor: [SKILL_FILE, "agents/*.md"],
+  looksFor: [SKILL_ENTRY, "agents/*.md"],
   async match(tree) {
     const found = await candidates(tree, { namespace: "", rootName: "" }, []);
     return found.length > 0 ? "yes" : "no";

@@ -1,18 +1,29 @@
 import { mkdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import { digestHex } from "#adapter/spec/ref.ts";
 import { sanitizeName } from "#adapter/text.ts";
 import { setting } from "#core/env.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { isSha256Hex, sha256Hex, shortHash } from "#core/fs/hash.ts";
 import { PRIVATE_DIR } from "#core/fs/mode.ts";
 import { homeDir } from "#core/fs/path.ts";
-import { type ArtifactKind, kindDir, stagedLeaf } from "#core/kinds.ts";
+import { canonical } from "#core/fs/realpath.ts";
+import { kindDir, stagedLeaf } from "#core/kinds.ts";
 import { HOME_DIR, LEGACY_TARGETS_DIR, TARGETS_DIR } from "#core/product.ts";
 
 /** Where a command installs: this project, or `-g` for the user. */
 export const SCOPES = ["user", "project"] as const;
 export type Scope = (typeof SCOPES)[number];
+
+/**
+ * Where a run places things: its scope, the folder a project's target roots are in, and the
+ * environment a target's own folder variables are read from. Built once, by the caller.
+ */
+export interface Where {
+  scope: Scope;
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+}
 
 /** The one folder each scope keeps its manifest, lock and installed copies in. */
 export const SCOPE_DIR = ".registry";
@@ -45,6 +56,14 @@ export function toolHome(env: NodeJS.ProcessEnv = process.env): string {
 export function toolHomeRoot(env: NodeJS.ProcessEnv = process.env): string {
   return setting("HOME", env) ?? join(homeDir(env), HOME_DIR);
 }
+
+/** What the CLI and the daemon keep between runs: the run database, pid, keys and update check. */
+export function stateDir(env: NodeJS.ProcessEnv = process.env): string {
+  return join(toolHome(env), "state");
+}
+
+/** Under the project's `.registry/`, or for the user scope under the home. */
+export const LEASES_DIR = "leases";
 
 /**
  * Creates the home owner-only before anything goes in it, whatever the umask: stored
@@ -103,7 +122,23 @@ export function adapterModulePath(
 
 /** The user scope's leases, outside its tree so they survive that tree being replaced. */
 export function leasesDir(env: NodeJS.ProcessEnv = process.env): string {
-  return join(toolHome(env), "leases");
+  return join(toolHome(env), LEASES_DIR);
+}
+
+export function roots(scope: Scope, cwd: string, env: NodeJS.ProcessEnv = process.env): Roots {
+  const user = scope === "user";
+  const dir = user ? userScopeDir(env) : join(cwd, SCOPE_DIR);
+  // The user base is canonical, like the scope folder under it: under a symlinked home every
+  // recorded path would otherwise escape upwards.
+  return {
+    scope,
+    cwd,
+    base: user ? homeDir(env) : cwd,
+    manifest: join(dir, MANIFEST_FILE),
+    lock: join(dir, LOCK_FILE),
+    artifacts: join(dir, "artifacts"),
+    applyJournal: journalPath(dir, env),
+  };
 }
 
 /** In aireg's home, not the scope: recovery deletes what it names, and a clone could ship one. */
@@ -111,22 +146,6 @@ function journalPath(dir: string, env: NodeJS.ProcessEnv): string {
   const scope = join(canonical(dirname(dir)), basename(dir));
   const key = shortHash(scope);
   return join(toolHome(env), "journals", `${key}.json`);
-}
-
-export function roots(scope: Scope, cwd: string, env: NodeJS.ProcessEnv = process.env): Roots {
-  const user = scope === "user";
-  const dir = user ? userScopeDir(env) : join(cwd, SCOPE_DIR);
-  return {
-    scope,
-    cwd,
-    // Canonical, like the home it is paired with: an artifacts tree under a
-    // symlinked root would otherwise make every recorded path escape upwards.
-    base: user ? homeDir(env) : cwd,
-    manifest: join(dir, MANIFEST_FILE),
-    lock: join(dir, LOCK_FILE),
-    artifacts: join(dir, "artifacts"),
-    applyJournal: journalPath(dir, env),
-  };
 }
 
 /** Scope is positional rather than declared: the user scope's folder, else a project. */
@@ -227,4 +246,9 @@ export function stagingPath(
 /** Where a command acts, in a person's words. */
 export function scopeName(scope: Scope): string {
   return scope === "user" ? "your user scope" : "this project";
+}
+
+/** The flag a command takes to act on `scope`, with its leading space, for a hint to print. */
+export function scopeFlag(scope: Scope): string {
+  return scope === "user" ? " -g" : "";
 }

@@ -1,7 +1,6 @@
-import { generateKeyPairSync, sign } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { ErrorCode } from "#core/errors.ts";
-import { decodeTrustedKeys, type TrustedKeys } from "./keyring.ts";
+import { type ReleaseSigner, releaseSigner } from "#test/kit/release.ts";
 import {
   artifactNamed,
   canonicalPayload,
@@ -21,17 +20,6 @@ const manifest: ReleaseManifest = {
   artifacts: [{ name: NAME, sha256: SHA, size: 4096 }],
 };
 
-function signer(): { keys: TrustedKeys; sign: (payload: Uint8Array) => string } {
-  const pair = generateKeyPairSync("ed25519");
-  const jwk = pair.publicKey.export({ format: "jwk" });
-  const encoded = Buffer.from(String(jwk.x), "base64url").toString("base64");
-  const keyring = Buffer.from(JSON.stringify({ release: encoded }), "utf8").toString("base64");
-  const keys = decodeTrustedKeys(keyring);
-  if (keys === undefined) throw new Error("keyring did not decode");
-  return { keys, sign: (payload) => sign(null, payload, pair.privateKey).toString("base64") };
-}
-
-/** The wire document a publisher would upload, plus whatever `over` changes. */
 function document(
   over: Record<string, unknown> = {},
   signature = "",
@@ -51,7 +39,7 @@ function document(
 
 /** Signed over the canonical payload of `manifest`, whatever `over` then says. */
 function signed(
-  keyring: ReturnType<typeof signer>,
+  keyring: ReleaseSigner,
   over: Record<string, unknown> = {},
   keyId = "release",
 ): string {
@@ -68,16 +56,16 @@ function failure(run: () => unknown): unknown {
 }
 
 describe("verifyManifest", () => {
-  it("accepts a manifest signed by a trusted key", () => {
-    const keyring = signer();
+  test("accepts a manifest signed by a trusted key", () => {
+    const keyring = releaseSigner();
     const parsed = verifyManifest(signed(keyring), keyring.keys, "stable");
     expect(parsed).toEqual(manifest);
     expect(artifactNamed(parsed, NAME)?.sha256).toBe(SHA);
     expect(artifactNamed(parsed, "other.tgz")).toBeUndefined();
   });
 
-  it("rejects a tampered manifest", () => {
-    const keyring = signer();
+  test("rejects a tampered manifest", () => {
+    const keyring = releaseSigner();
     const raw = signed(keyring, { version: "9.9.9" });
     expect(failure(() => verifyManifest(raw, keyring.keys, "stable"))).toMatchObject({
       code: ErrorCode.Integrity,
@@ -93,11 +81,13 @@ describe("verifyManifest", () => {
     });
   });
 
-  it("separates a substituted publisher from an unknown one", () => {
-    const keyring = signer();
+  test("separates a substituted publisher from an unknown one", () => {
+    const keyring = releaseSigner();
     // Same key id, a different key: the publisher this build trusts is broken
     // or substituted, so the manifest is refused rather than merely ignored.
-    expect(failure(() => verifyManifest(signed(signer()), keyring.keys, "stable"))).toMatchObject({
+    expect(
+      failure(() => verifyManifest(signed(releaseSigner()), keyring.keys, "stable")),
+    ).toMatchObject({
       code: ErrorCode.Integrity,
       message: expect.stringMatching(/verification failed/),
     });
@@ -110,8 +100,8 @@ describe("verifyManifest", () => {
     });
   });
 
-  it("rejects an unsigned, misencoded or over-long manifest", () => {
-    const keyring = signer();
+  test("rejects an unsigned, misencoded or over-long manifest", () => {
+    const keyring = releaseSigner();
     expect(
       failure(() => verifyManifest(signed(keyring, { signatures: [] }), keyring.keys, "stable")),
     ).toMatchObject({
@@ -135,8 +125,8 @@ describe("verifyManifest", () => {
     });
   });
 
-  it("refuses a manifest served for another channel, and unknown fields", () => {
-    const keyring = signer();
+  test("refuses a manifest served for another channel, and unknown fields", () => {
+    const keyring = releaseSigner();
     expect(failure(() => verifyManifest(signed(keyring), keyring.keys, "canary"))).toMatchObject({
       code: ErrorCode.Integrity,
       message: expect.stringMatching(/is for stable, not canary/),
@@ -149,13 +139,13 @@ describe("verifyManifest", () => {
     });
   });
 
-  it("accepts a pin whose signed channel is not the one this build asked for", () => {
-    const keyring = signer();
+  test("accepts a pin whose signed channel is not the one this build asked for", () => {
+    const keyring = releaseSigner();
     expect(verifyManifest(signed(keyring), keyring.keys).channel).toBe("stable");
   });
 
-  it("refuses a floor newer than the release, and a non-exact version", () => {
-    const keyring = signer();
+  test("refuses a floor newer than the release, and a non-exact version", () => {
+    const keyring = releaseSigner();
     const ahead = signed(keyring, { minimum_version: "0.9.0" });
     expect(failure(() => verifyManifest(ahead, keyring.keys, "stable"))).toMatchObject({
       code: ErrorCode.Invalid,
@@ -171,8 +161,8 @@ describe("verifyManifest", () => {
 });
 
 describe("a release that names its adapter", () => {
-  it("signs the name, so it cannot be changed to another adapter", () => {
-    const keyring = signer();
+  test("signs the name, so it cannot be changed to another adapter", () => {
+    const keyring = releaseSigner();
     const raw = JSON.stringify(
       document(
         { adapter: "acme" },
@@ -187,7 +177,7 @@ describe("a release that names its adapter", () => {
 });
 
 describe("canonicalPayload", () => {
-  it("covers only what the client acts on, so `url` cannot be signed into it", () => {
+  test("covers only what the client acts on, so `url` cannot be signed into it", () => {
     const payload = new TextDecoder().decode(canonicalPayload(manifest));
     expect(payload).toBe(
       '{"schema":"aireg-manifest.v1","channel":"stable","version":"0.2.0",' +
@@ -196,7 +186,7 @@ describe("canonicalPayload", () => {
     );
   });
 
-  it("states an absent floor rather than omitting the key", () => {
+  test("states an absent floor rather than omitting the key", () => {
     const payload = canonicalPayload({ ...manifest, minimumVersion: undefined });
     expect(new TextDecoder().decode(payload)).toContain('"minimum_version":null');
   });

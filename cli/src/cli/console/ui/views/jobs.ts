@@ -1,0 +1,251 @@
+import type { ReactElement } from "react";
+import { windowAround } from "#cli/console/data/list.ts";
+import { summaryStrip } from "#cli/console/ui/chrome.ts";
+import { action, box, dim, faint, heading, plain, text } from "#cli/console/ui/elements.ts";
+import { LAYOUT } from "#cli/console/ui/mouse.ts";
+import { defineView } from "#cli/console/ui/screen.ts";
+import { failureWords } from "#cli/render/run.ts";
+import * as commands from "#core/console/actions.ts";
+import type { ConsoleState, JobRow, RunRow } from "#core/console/model.ts";
+import { isFailed } from "#core/run/model.ts";
+import { ago, clock, interval, pad, truncate } from "#core/term/format.ts";
+import { COLOR, GLYPH, runColor, runGlyph } from "#core/term/theme.ts";
+
+type JobLine = { kind: "job"; job: JobRow } | { kind: "run"; run: RunRow };
+
+export const JOBS_VIEW = defineView<JobLine[]>("jobs", {
+  model: ({ state }) => jobLines(state),
+  length: (lines) => lines.length,
+  body: ({ frame, model, cursor }) =>
+    jobsView({
+      width: frame.width,
+      height: frame.height,
+      state: frame.state,
+      lines: model,
+      cursor,
+    }),
+  strip: ({ frame, model, cursor }) =>
+    jobsSummaryStrip({ width: frame.width, line: model[cursor], nowMs: frame.nowMs }),
+  rowAt: ({ frame, model, cursor }, screenRow) => {
+    const runs = runWindow(model, cursor, frame.height);
+    const index = jobsIndexAt(screenRow, frame.state.jobs.length, runs.from);
+    return index !== undefined && index < model.length ? index : undefined;
+  },
+  keys: {
+    "run-job": ({ model, cursor }, { run }) => {
+      const line = model[cursor];
+      if (line?.kind === "job") run(`running ${line.job.id}`, commands.runJob(line.job.id));
+    },
+    "toggle-job": ({ model, cursor }, { run }) => {
+      const line = model[cursor];
+      if (line?.kind !== "job") return;
+      const job = line.job;
+      run(
+        `${job.enabled ? "disabling" : "enabling"} ${job.id}`,
+        commands.setJobEnabled(job.id, !job.enabled),
+      );
+    },
+    "retry-run": ({ model, cursor }, { run }) => {
+      const line = model[cursor];
+      if (line?.kind === "run") run(`retrying ${line.run.id}`, commands.retryRun(line.run.id));
+    },
+  },
+});
+
+function jobLines(state: ConsoleState): JobLine[] {
+  return [
+    ...state.jobs.map((job) => ({ kind: "job" as const, job })),
+    ...state.runs.map((run) => ({ kind: "run" as const, run })),
+  ];
+}
+
+/** Which runs are on screen; the click mapping shares it, so a click retries the run it hit. */
+function runWindow(
+  lines: readonly JobLine[],
+  cursor: number,
+  height: number,
+): ReturnType<typeof windowAround> {
+  const jobs = lines.filter((line) => line.kind === "job").length;
+  return windowAround(
+    lines.filter((line) => line.kind === "run").length,
+    Math.max(0, cursor - jobs),
+    Math.max(3, height - 4 - jobs),
+  );
+}
+
+function jobsView(props: {
+  width: number;
+  height: number;
+  state: ConsoleState;
+  lines: readonly JobLine[];
+  cursor: number;
+}): ReactElement {
+  const jobs = props.lines.filter((line) => line.kind === "job");
+  const runs = props.lines.filter((line) => line.kind === "run");
+  const view = runWindow(props.lines, props.cursor, props.height);
+
+  const rendered: ReactElement[] = [];
+  for (const [index, line] of jobs.entries()) {
+    if (line.kind !== "job") continue;
+    rendered.push(box({ key: line.job.id }, jobLine(line.job, index === props.cursor)));
+  }
+
+  const runRows: ReactElement[] = [];
+  for (let index = view.from; index < view.to; index += 1) {
+    const line = runs[index];
+    if (line === undefined || line.kind !== "run") continue;
+    runRows.push(
+      box(
+        { key: line.run.id },
+        runLine(line.run, index + jobs.length === props.cursor, props.width),
+      ),
+    );
+  }
+
+  return box(
+    { flexDirection: "column", width: props.width },
+    box(
+      { justifyContent: "space-between" },
+      heading("jobs"),
+      faint(props.state.daemon.running ? "daemon running" : "daemon stopped"),
+    ),
+    ...rendered,
+    box({ marginTop: 1, justifyContent: "space-between" }, heading("runs"), faint("newest first")),
+    ...runRows,
+    view.below > 0 ? box(null, faint(`   … ${view.below} older`)) : box(null, plain("")),
+  );
+}
+
+function jobLine(job: JobRow, selected: boolean): ReactElement {
+  return box(
+    {
+      width: "100%",
+      justifyContent: "space-between",
+      ...(selected ? { backgroundColor: COLOR.selection } : {}),
+    },
+    box(
+      null,
+      text({ color: job.enabled ? COLOR.green : COLOR.faint }, `   ${GLYPH.bullet} `),
+      text({ color: job.enabled ? COLOR.white : COLOR.faint }, pad(job.name, 26)),
+      dim(pad(job.type, 9)),
+      dim(pad(interval(job.intervalSeconds), 12)),
+      faint(pad(truncate(job.summary, 46), 48)),
+      text(
+        { color: job.enabled ? COLOR.green : COLOR.faint },
+        pad(job.enabled ? "enabled" : "disabled", 10),
+      ),
+      job.nextRunAtMs === undefined ? plain("") : dim(`next ${clock(job.nextRunAtMs)}`),
+    ),
+    box(null, action("space", job.enabled ? "disable" : "enable"), plain("  "), action("R", "run")),
+  );
+}
+
+function runLine(run: RunRow, selected: boolean, width: number): ReactElement {
+  const failed = isFailed(run.state);
+  return box(
+    {
+      width: "100%",
+      justifyContent: "space-between",
+      ...(selected ? { backgroundColor: COLOR.selection } : {}),
+    },
+    box(
+      null,
+      text({ color: runColor(run.state) }, `   ${runGlyph(run.state)} `),
+      dim(pad(clock(run.requestedAtMs), 8)),
+      text({ color: COLOR.white }, pad(run.jobId ?? "manual", 26)),
+      dim(pad(run.mode, 9)),
+      text({ color: runColor(run.state) }, pad(run.state, 12)),
+      failed
+        ? text({ color: COLOR.red }, pad(failureWords(run.errorCode ?? "failed"), 18))
+        : dim(
+            pad(
+              `${run.counts.examined} checked · ${run.counts.changed} changed` +
+                (run.counts.failed > 0 ? ` · ${run.counts.failed} failed` : ""),
+              Math.max(18, Math.min(52, width - 80)),
+            ),
+          ),
+      run.reason === undefined ? plain("") : faint(truncate(run.reason, 40)),
+    ),
+    failed ? action("r", "retry") : plain(""),
+  );
+}
+
+function jobsSummaryStrip(props: {
+  width: number;
+  line: JobLine | undefined;
+  nowMs: number;
+}): ReactElement {
+  if (props.line === undefined) {
+    return summaryStrip({
+      width: props.width,
+      title: "Jobs",
+      badge: undefined,
+      lines: [],
+      hint: undefined,
+    });
+  }
+  if (props.line.kind === "job") {
+    const job = props.line.job;
+    return summaryStrip({
+      width: props.width,
+      title: job.name,
+      badge: {
+        label: job.enabled ? "ENABLED" : "DISABLED",
+        color: job.enabled ? COLOR.green : COLOR.faint,
+      },
+      lines: [
+        box(null, dim(`${job.type}  ·  ${interval(job.intervalSeconds)}  ·  `), faint(job.summary)),
+        box(
+          null,
+          dim(`last run ${ago(job.lastRunAtMs, props.nowMs)}`),
+          job.nextRunAtMs === undefined
+            ? faint("   not scheduled")
+            : dim(`   next ${clock(job.nextRunAtMs)}`),
+        ),
+      ],
+      hint: `R run now · space ${job.enabled ? "disable" : "enable"}`,
+    });
+  }
+  const run = props.line.run;
+  return summaryStrip({
+    width: props.width,
+    title: run.id,
+    badge: { label: run.state.toUpperCase(), color: runColor(run.state) },
+    lines: [
+      box(
+        null,
+        dim(`${run.mode} · ${run.jobId ?? "manual"} · trigger=${run.trigger}  `),
+        dim(
+          `${run.counts.examined} checked · ${run.counts.changed} changed · ` +
+            `${run.counts.skipped} skipped · ${run.counts.attention} attention · `,
+        ),
+        text(
+          { color: run.counts.failed > 0 ? COLOR.red : COLOR.dim },
+          `${run.counts.failed} failed`,
+        ),
+      ),
+      box(
+        null,
+        run.errorCode === undefined
+          ? faint(`finished ${ago(run.finishedAtMs, props.nowMs)}`)
+          : text(
+              { color: COLOR.red },
+              `${failureWords(run.errorCode)}${run.reason === undefined ? "" : `: ${truncate(run.reason, props.width - 30)}`}`,
+            ),
+      ),
+    ],
+    hint: isFailed(run.state) ? "r retry" : undefined,
+  });
+}
+
+/** Jobs stacks two lists; a click past the first one lands in the second. */
+function jobsIndexAt(row: number, jobCount: number, firstRun: number): number | undefined {
+  // The JOBS heading, the jobs themselves, then a blank and RUNS.
+  const top = LAYOUT.body + 1;
+  if (row < top) return undefined;
+  const offset = row - top;
+  if (offset < jobCount) return offset;
+  // Two rows of heading sit between the jobs and the runs.
+  const runOffset = offset - jobCount - 2;
+  return runOffset < 0 ? undefined : jobCount + firstRun + runOffset;
+}

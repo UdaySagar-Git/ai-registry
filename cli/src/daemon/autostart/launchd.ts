@@ -1,9 +1,9 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { PUBLIC_FILE } from "#adapter/files.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
-import { PUBLIC_FILE } from "#core/fs/mode.ts";
 import { readTextIfPresent } from "#core/fs/path.ts";
 import { SERVICE } from "#core/product.ts";
 import { type AutostartBackend, type Exec, type ServiceSpec, SUPERVISOR_ENV } from "./model.ts";
@@ -13,22 +13,6 @@ const BOOTSTRAP_ATTEMPTS = 5;
 const BOOTSTRAP_RETRY_MS = 200;
 /** The first program argument, whatever whitespace the tool that last wrote the plist used. */
 const PROGRAM = /<key>ProgramArguments<\/key>\s*<array>\s*<string>([^<]*)<\/string>/;
-
-function launchdLabel(suffix: string): string {
-  return suffix === "" ? LABEL : `${LABEL}.${suffix}`;
-}
-
-function xml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function string(value: string, indent = "  "): string {
-  return `${indent}<string>${xml(value)}</string>`;
-}
 
 /**
  * KeepAlive restarts only a non-zero exit, so `daemon stop` and a redundant
@@ -42,16 +26,16 @@ export function renderPlist(spec: ServiceSpec): string {
     '<plist version="1.0">',
     "<dict>",
     "  <key>Label</key>",
-    string(launchdLabel(spec.suffix)),
+    plistString(launchdLabel(spec.suffix)),
     "  <key>ProgramArguments</key>",
     "  <array>",
-    ...spec.daemon.map((arg) => string(arg, "    ")),
+    ...spec.daemon.map((arg) => plistString(arg, "    ")),
     "  </array>",
     "  <key>EnvironmentVariables</key>",
     "  <dict>",
     ...Object.entries(env).flatMap(([key, value]) => [
-      `    <key>${xml(key)}</key>`,
-      string(value, "    "),
+      `    <key>${escapeXml(key)}</key>`,
+      plistString(value, "    "),
     ]),
     "  </dict>",
     "  <key>RunAtLoad</key>",
@@ -68,11 +52,27 @@ export function renderPlist(spec: ServiceSpec): string {
     "  <key>LimitLoadToSessionType</key>",
     "  <string>Aqua</string>",
     "  <key>StandardErrorPath</key>",
-    string(spec.stderrLog),
+    plistString(spec.stderrLog),
     "</dict>",
     "</plist>",
     "",
   ].join("\n");
+}
+
+function plistString(value: string, indent = "  "): string {
+  return `${indent}<string>${escapeXml(value)}</string>`;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function launchdLabel(suffix: string): string {
+  return suffix === "" ? LABEL : `${LABEL}.${suffix}`;
 }
 
 export function launchdBackend(spec: ServiceSpec, exec: Exec): AutostartBackend {
@@ -134,7 +134,7 @@ export function launchdBackend(spec: ServiceSpec, exec: Exec): AutostartBackend 
     },
     async starts(program) {
       const found = await readTextIfPresent(path);
-      return found !== undefined && PROGRAM.exec(found)?.[1] === xml(program);
+      return found !== undefined && PROGRAM.exec(found)?.[1] === escapeXml(program);
     },
   };
 }

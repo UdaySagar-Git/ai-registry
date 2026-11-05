@@ -1,16 +1,21 @@
-import { list, plural, quoted } from "#adapter/text.ts";
-import { actionOf, builtin, type CommandContext } from "#cli/commands/index.ts";
-import { parse } from "#cli/options.ts";
-import { cancel, interaction, interactive, silence } from "#cli/prompt/flow.ts";
-import { canceled, confirm, defaultIo, note } from "#cli/prompt/index.ts";
+import { messageOf } from "#adapter/errors.ts";
+import { list, plural } from "#adapter/text.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
+import { STREAMED } from "#cli/commands/define.ts";
+import type { SelfUninstall } from "#cli/commands/self/result.ts";
+import { defaultIo } from "#cli/prompt/ask.ts";
+import { cancel, interaction, interactive, silence } from "#cli/prompt/interaction.ts";
+import { canceled } from "#cli/prompt/model.ts";
+import { confirm } from "#cli/prompt/select.ts";
+import { note } from "#cli/prompt/spinner.ts";
 import { underHome } from "#cli/render/home.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import type { Styler } from "#core/output.ts";
 import { pad } from "#core/term/format.ts";
+import type { Printer, Styler } from "#core/term/printer.ts";
 import { VERSION } from "#core/version.ts";
 import { autostartState, disableAutostart } from "#daemon/autostart/index.ts";
-import { probeDaemon, stopDaemon } from "#daemon/service.ts";
-import { removeFromPath } from "#self/path-setup.ts";
+import { probeDaemon, stopDaemon } from "#daemon/process/lifecycle.ts";
+import { removeFromPath } from "#self/shell-path.ts";
 import { deleteFolders, type Footprint, footprint, unlinkUserScope } from "#self/uninstall.ts";
 
 /** Everything aireg put on this machine outside projects. */
@@ -34,6 +39,82 @@ export async function stopEverything(): Promise<{ autostart: boolean }> {
   return { autostart: change?.changed === true };
 }
 
+export async function uninstall(
+  { dryRun, yes }: { dryRun: boolean; yes: boolean },
+  context: CommandContext,
+): Promise<SelfUninstall | typeof STREAMED> {
+  const { printer } = context;
+  const found = await survey();
+
+  if (dryRun) return { action: "would-uninstall", dryRun: true, ...found };
+
+  if (!yes) {
+    const step = interaction(printer, defaultIo(), false);
+    if (!interactive(step)) {
+      throw new AiregError("Uninstalling aireg needs confirmation.", {
+        code: ErrorCode.Usage,
+        hint: `Pass -y, or --dry-run to see what it removes (${silence(step)}).`,
+      });
+    }
+    note(step.io, printer.errStyle, "Uninstall aireg", planLines(found, printer.errStyle));
+    const agreed = await confirm(
+      { message: "Uninstall aireg?", style: printer.errStyle, initial: false },
+      step.io,
+    );
+    if (canceled(agreed) || !agreed) {
+      cancel(step);
+      return STREAMED;
+    }
+  }
+
+  let stopped: { autostart: boolean };
+  try {
+    stopped = await stopEverything();
+  } catch (error) {
+    throw new AiregError(`Could not stop the daemon: ${messageOf(error)}`, {
+      cause: error,
+      hint: "Nothing was removed. Run `aireg daemon stop`, then `aireg self uninstall` again.",
+    });
+  }
+  let links: string[];
+  try {
+    links = await unlinkUserScope(process.env);
+  } catch (error) {
+    throw new AiregError(`Could not remove your user scope's links: ${messageOf(error)}`, {
+      cause: error,
+      hint: "Only the daemon was stopped. Fix the cause, then run `aireg self uninstall` again.",
+    });
+  }
+  const path = await removeFromPath();
+  const folders = await deleteFolders();
+  const failed = [...path.failed, ...folders.failed];
+  if (failed.length > 0) {
+    throw new AiregError(`Could not remove ${list(failed.map(underHome))}.`, {
+      hint: "Everything else was removed. Delete these by hand.",
+    });
+  }
+  // Only what was on is reported as turned off.
+  return {
+    action: "uninstalled",
+    dryRun: false,
+    daemon: found.daemon,
+    autostart: found.autostart && stopped.autostart,
+    links,
+    startupFiles: path.removed,
+    folders: folders.deleted,
+    kept: found.kept,
+  };
+}
+
+export function printUninstall(result: SelfUninstall, printer: Printer): void {
+  if (result.action === "would-uninstall") {
+    printer.info("Would uninstall aireg:");
+    for (const line of planLines(result, printer.style)) printer.info(`  ${line}`);
+    return;
+  }
+  report(printer, result);
+}
+
 function planLines(found: Found, style: Styler): string[] {
   const rows: [string, string[]][] = [];
   const daemon = [found.daemon ? "stop it" : "", found.autostart ? "turn autostart off" : ""];
@@ -47,94 +128,7 @@ function planLines(found: Found, style: Styler): string[] {
   );
 }
 
-export async function run(context: CommandContext): Promise<void> {
-  const { common, positionals } = parse(context.argv, actionOf(builtin("self"), "uninstall"));
-  if (positionals.length > 0) {
-    throw new AiregError(
-      `\`aireg self uninstall\` takes no argument, not ${quoted(positionals[0] as string)}.`,
-      {
-        code: ErrorCode.Usage,
-        hint: "Run `aireg self uninstall --dry-run` to see what it removes.",
-      },
-    );
-  }
-  const { printer } = context;
-  const found = await survey();
-
-  if (common.dryRun) {
-    if (printer.format === "json") {
-      printer.json({ ok: true, data: { action: "would-uninstall", dryRun: true, ...found } });
-      return;
-    }
-    printer.info("Would uninstall aireg:");
-    for (const line of planLines(found, printer.style)) printer.info(`  ${line}`);
-    return;
-  }
-
-  if (!common.yes) {
-    const step = interaction(printer, defaultIo(), false);
-    if (!interactive(step)) {
-      throw new AiregError("Uninstalling aireg needs confirmation.", {
-        code: ErrorCode.Usage,
-        hint: `Pass -y, or --dry-run to see what it removes (${silence(step)}).`,
-      });
-    }
-    note(step.io, printer.errStyle, "Uninstall aireg", planLines(found, printer.errStyle));
-    const yes = await confirm(
-      { message: "Uninstall aireg?", style: printer.errStyle, initial: false },
-      step.io,
-    );
-    if (canceled(yes) || !yes) {
-      cancel(step);
-      return;
-    }
-  }
-
-  let stopped: { autostart: boolean };
-  try {
-    stopped = await stopEverything();
-  } catch (error) {
-    throw new AiregError(`Could not stop the daemon: ${(error as Error).message}`, {
-      cause: error,
-      hint: "Nothing was removed. Run `aireg daemon stop`, then `aireg self uninstall` again.",
-    });
-  }
-  let links: string[];
-  try {
-    links = await unlinkUserScope();
-  } catch (error) {
-    throw new AiregError(`Could not remove your user scope's links: ${(error as Error).message}`, {
-      cause: error,
-      hint: "Only the daemon was stopped. Fix the cause, then run `aireg self uninstall` again.",
-    });
-  }
-  const path = await removeFromPath();
-  const folders = await deleteFolders();
-  const done = {
-    daemon: found.daemon,
-    // Only what was on is reported as turned off.
-    autostart: found.autostart && stopped.autostart,
-    links,
-    startupFiles: path.removed,
-    folders: folders.deleted,
-    kept: found.kept,
-  };
-  const failed = [...path.failed, ...folders.failed];
-
-  if (failed.length > 0) {
-    throw new AiregError(`Could not remove ${list(failed.map(underHome))}.`, {
-      hint: "Everything else was removed. Delete these by hand.",
-    });
-  }
-  if (printer.format === "json") {
-    printer.json({ ok: true, data: { action: "uninstalled", dryRun: false, ...done } });
-    return;
-  }
-  report(context, done);
-}
-
-function report(context: CommandContext, done: Found): void {
-  const { printer } = context;
+function report(printer: Printer, done: Found): void {
   if (done.daemon && done.autostart)
     printer.success("Stopped the daemon and turned off autostart.");
   else if (done.daemon) printer.success("Stopped the daemon.");

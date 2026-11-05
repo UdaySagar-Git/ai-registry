@@ -1,26 +1,20 @@
 import type { ReactElement, ReactNode } from "react";
 import type { AccountRow } from "#core/console/model.ts";
+import { BUILT_IN_VIEWS } from "#core/console/model.ts";
 import type { HintKey } from "#core/host/panel.ts";
 import { clock, displayWidth, truncate, truncateStart } from "#core/term/format.ts";
 import { COLOR, GLYPH } from "#core/term/theme.ts";
 import { box, faint, hints, plain, rule, text } from "./elements.ts";
+import { VIEW_LABELS } from "./view.ts";
 
 export interface Tab {
   id: string;
   label: string;
 }
 
-const BUILT_IN_TABS: readonly Tab[] = [
-  { id: "overview", label: "Overview" },
-  { id: "artifacts", label: "Artifacts" },
-  { id: "jobs", label: "Jobs" },
-  { id: "accounts", label: "Registries" },
-  { id: "settings", label: "Settings" },
-];
-
 /** `after` names the tab to follow; anything unknown lands before Settings. */
 export function tabsWith(panels: readonly { id: string; label: string; after?: string }[]): Tab[] {
-  const tabs = [...BUILT_IN_TABS];
+  const tabs: Tab[] = BUILT_IN_VIEWS.map((id) => ({ id, label: VIEW_LABELS[id] }));
   for (const panel of panels) {
     const at = panel.after === undefined ? -1 : tabs.findIndex((tab) => tab.id === panel.after);
     const fallback = Math.max(0, tabs.length - 1);
@@ -48,22 +42,6 @@ const piece = (color: string, value: string, bold = false): Piece => ({
 });
 
 const widthOf = (pieces: readonly Piece[]) => pieces.reduce((sum, p) => sum + p.width, 0);
-
-function row(pieces: readonly Piece[]): ReactElement {
-  return box(null, ...pieces.map((p) => p.node));
-}
-
-/** A running command, in the slot the pull hint takes, with its line cut to `room`. */
-function running(activity: Activity, room: number): Piece[] {
-  const label = piece(
-    activity.failed ? COLOR.red : COLOR.yellow,
-    `${GLYPH.spin} ${activity.label}`,
-  );
-  const cancel = activity.done ? [] : [piece(COLOR.faint, "  esc cancel")];
-  const budget = Math.min(48, room - label.width - widthOf(cancel));
-  const line = activity.line === undefined || budget < 2 ? "" : truncate(activity.line, budget - 1);
-  return [label, piece(COLOR.faint, line === "" ? "" : ` ${line}`), ...cancel];
-}
 
 /** One line, never wrapped: as the width shrinks the daemon goes first, then the pull. */
 export function header(props: {
@@ -97,6 +75,22 @@ export function header(props: {
     box({ justifyContent: "space-between" }, row(brand), row(right)),
     rule(props.width),
   );
+}
+
+/** A running command, in the slot the pull hint takes, with its line cut to `room`. */
+function running(activity: Activity, room: number): Piece[] {
+  const label = piece(
+    activity.failed ? COLOR.red : COLOR.yellow,
+    `${GLYPH.spin} ${activity.label}`,
+  );
+  const cancel = activity.done ? [] : [piece(COLOR.faint, "  esc cancel")];
+  const budget = Math.min(48, room - label.width - widthOf(cancel));
+  const line = activity.line === undefined || budget < 2 ? "" : truncate(activity.line, budget - 1);
+  return [label, piece(COLOR.faint, line === "" ? "" : ` ${line}`), ...cancel];
+}
+
+function row(pieces: readonly Piece[]): ReactElement {
+  return box(null, ...pieces.map((p) => p.node));
 }
 
 /** Rendered width of each registry tab, so a click can be mapped back to one. */

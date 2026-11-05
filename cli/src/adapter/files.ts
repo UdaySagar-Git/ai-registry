@@ -3,6 +3,7 @@ import { constants, createWriteStream, lstatSync, type Stats } from "node:fs";
 import { type FileHandle, lstat, mkdir, open, rename, rm } from "node:fs/promises";
 import { dirname, join, posix, relative, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
+import { setTimeout as sleep } from "node:timers/promises";
 import { assertWithin } from "./paths.ts";
 import { hashStream } from "./spec/canonical.ts";
 
@@ -11,7 +12,9 @@ import { hashStream } from "./spec/canonical.ts";
 
 /** Modes a copied file is written with, and the mask that says it was executable. */
 export const PUBLIC_FILE = 0o644;
+
 export const EXECUTABLE = 0o755;
+
 export const EXECUTE_BITS = 0o111;
 
 /** Why a path under a root was not read. */
@@ -21,6 +24,24 @@ export type Regular =
   | { kind: "file"; bytes: Buffer; executable: boolean }
   | { kind: "missing" }
   | { kind: "refused"; reason: RefusedReason };
+
+/**
+ * A file under `root` read without following a link at any step, so the bytes
+ * can only ever come from inside it. `path` is POSIX and relative.
+ */
+export async function readRegular(
+  root: string,
+  path: string,
+  verified?: Set<string>,
+): Promise<Regular> {
+  const opened = await openRegular(root, path, verified);
+  if (opened.kind !== "open") return opened;
+  try {
+    return { kind: "file", bytes: await opened.handle.readFile(), executable: opened.executable };
+  } finally {
+    await opened.handle.close();
+  }
+}
 
 /**
  * A file under `root` opened without following a link at any step. `verified` holds
@@ -40,10 +61,7 @@ async function openRegular(
     throw new Error(`${path} is not a path inside ${root}.`);
   }
   if (verified?.has(root) !== true) {
-    const rootInfo = await lstat(root).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT" || error.code === "ENOTDIR") return undefined;
-      throw error;
-    });
+    const rootInfo = await ifPresent(lstat(root));
     if (rootInfo === undefined) return { kind: "missing" };
     if (rootInfo.isSymbolicLink()) return { kind: "refused", reason: "is a symlink" };
     if (!rootInfo.isDirectory()) return { kind: "refused", reason: "is not a regular file" };
@@ -54,10 +72,7 @@ async function openRegular(
   for (const part of parts) {
     at = join(at, part);
     if (at !== leaf && verified?.has(at) === true) continue;
-    const info = await lstat(at).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT" || error.code === "ENOTDIR") return undefined;
-      throw error;
-    });
+    const info = await ifPresent(lstat(at));
     if (info === undefined) return { kind: "missing" };
     if (info.isSymbolicLink()) return { kind: "refused", reason: "is a symlink" };
     if (at === leaf && !info.isFile()) return { kind: "refused", reason: "is not a regular file" };
@@ -71,24 +86,6 @@ async function openRegular(
     return { kind: "refused", reason: "is not a regular file" };
   }
   return { kind: "open", handle, executable: (info.mode & EXECUTE_BITS) !== 0 };
-}
-
-/**
- * A file under `root` read without following a link at any step, so the bytes
- * can only ever come from inside it. `path` is POSIX and relative.
- */
-export async function readRegular(
-  root: string,
-  path: string,
-  verified?: Set<string>,
-): Promise<Regular> {
-  const opened = await openRegular(root, path, verified);
-  if (opened.kind !== "open") return opened;
-  try {
-    return { kind: "file", bytes: await opened.handle.readFile(), executable: opened.executable };
-  } finally {
-    await opened.handle.close();
-  }
 }
 
 /** Like `readRegular`, but streamed into a digest, so a large file is never held whole. */
@@ -156,12 +153,14 @@ interface Redirection {
   problem: "symlink" | "not-directory";
 }
 
-/** Synchronous so planning can ask; `assertUnredirected` asks again at write time. */
+/**
+ * Synchronous so planning can ask; `assertUnredirected` asks again at write time. `verified` holds
+ * folders already found real in this pass, which are not checked again.
+ */
 export function redirection(
   root: string,
   path: string,
   includeLeaf = true,
-  /** Folders already found to be real ones in this pass, which are not checked again. */
   verified?: Set<string>,
 ): Redirection | undefined {
   const base = resolve(root);
@@ -201,26 +200,6 @@ export async function assertUnredirected(
   if (found !== undefined) throw new Error(`${found.at} is not a directory.`);
 }
 
-function scratch(target: string): string {
-  return join(dirname(target), `.${process.pid}-${randomUUID()}.tmp`);
-}
-
-async function syncDirectory(path: string): Promise<void> {
-  try {
-    const directory = await open(path, "r");
-    try {
-      await directory.sync();
-    } finally {
-      await directory.close();
-    }
-  } catch (error) {
-    const unsupported = new Set(["EACCES", "EINVAL", "EISDIR", "ENOTSUP", "EPERM"]);
-    if (!unsupported.has((error as NodeJS.ErrnoException).code ?? "")) throw error;
-  }
-}
-
-/** Long enough for a reader or a virus scan to let go; a held lease is refused well before. */
-const REPLACE_RETRY_MS = 5_000;
 const HELD = new Set(["EPERM", "EACCES", "EBUSY"]);
 
 /**
@@ -245,7 +224,7 @@ export async function replaceFile(
       const code = (error as NodeJS.ErrnoException).code ?? "";
       if (platform !== "win32" || !HELD.has(code) || Date.now() >= deadline) throw error;
     }
-    await new Promise((resolve) => setTimeout(resolve, wait));
+    await sleep(wait);
   }
 }
 
@@ -275,6 +254,7 @@ export async function writeAtomic(
     await file.chmod(mode);
     if (durable) await file.sync();
   } catch (error) {
+    // The write's own error is the one to report; a leftover scratch file costs only disk.
     await file.close().catch(() => {});
     await rm(temp, { force: true }).catch(() => {});
     throw error;
@@ -285,7 +265,61 @@ export async function writeAtomic(
     await replaceFile(temp, target, options.beforeRename);
     if (durable) await syncDirectory(parent);
   } catch (error) {
+    // As above.
     await rm(temp, { force: true }).catch(() => {});
+    throw error;
+  }
+}
+
+/** Long enough for a reader or a virus scan to let go; a held lease is refused well before. */
+const REPLACE_RETRY_MS = 5_000;
+
+function scratch(target: string): string {
+  return join(dirname(target), `.${process.pid}-${randomUUID()}.tmp`);
+}
+
+async function syncDirectory(path: string): Promise<void> {
+  try {
+    const directory = await open(path, "r");
+    try {
+      await directory.sync();
+    } finally {
+      await directory.close();
+    }
+  } catch (error) {
+    const unsupported = new Set(["EACCES", "EINVAL", "EISDIR", "ENOTSUP", "EPERM"]);
+    if (!unsupported.has((error as NodeJS.ErrnoException).code ?? "")) throw error;
+  }
+}
+
+/** Nothing is at the path, or an ancestor of it is a file, so nothing can be. */
+export function isAbsent(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+/** What a file operation gives, or undefined when nothing is at its path; any other failure throws. */
+export async function ifPresent<T>(pending: Promise<T>): Promise<T | undefined> {
+  try {
+    return await pending;
+  } catch (error) {
+    if (isAbsent(error)) return undefined;
+    throw error;
+  }
+}
+
+/**
+ * For a read-only probe, such as a scan or a status check: a path it may not read, or a link
+ * loop, is no entry rather than a failure. Code that writes keeps `ifPresent`.
+ */
+export async function ifReadable<T>(pending: Promise<T>): Promise<T | undefined> {
+  try {
+    return await pending;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    if (isAbsent(error) || code === "EACCES" || code === "EPERM" || code === "ELOOP") {
+      return undefined;
+    }
     throw error;
   }
 }

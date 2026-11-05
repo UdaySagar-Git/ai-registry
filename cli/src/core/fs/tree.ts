@@ -13,10 +13,16 @@ import {
   stat,
 } from "node:fs/promises";
 import { basename, dirname, join, posix } from "node:path";
-import { copyRegular } from "#adapter/files.ts";
+import {
+  copyRegular,
+  EXECUTABLE,
+  EXECUTE_BITS,
+  ifPresent,
+  isAbsent,
+  PUBLIC_FILE,
+} from "#adapter/files.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { isStrictlyWithin, posixRelative } from "#core/fs/path.ts";
-import { EXECUTABLE, EXECUTE_BITS, PUBLIC_FILE } from "./mode.ts";
 
 export interface FileRecord {
   /** POSIX-relative to the walked root, so digests match across platforms. */
@@ -29,23 +35,14 @@ export interface FileRecord {
 }
 
 export async function exists(path: string): Promise<boolean> {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
+  return (await ifPresent(stat(path))) !== undefined;
 }
 
 export async function isDirectory(path: string): Promise<boolean> {
-  try {
-    return (await stat(path)).isDirectory();
-  } catch {
-    return false;
-  }
+  return (await ifPresent(stat(path)))?.isDirectory() ?? false;
 }
 
-/** The folders directly in `path`, sorted, leaving out dot folders; none when it cannot be read. */
+/** The folders directly in `path`, sorted, without dot folders; none when it is not a folder. */
 export async function subdirectories(path: string): Promise<string[]> {
   return (await entries(path))
     .filter((item) => item.isDirectory() && !item.name.startsWith("."))
@@ -58,18 +55,17 @@ export async function entries(dir: string): Promise<Dirent[]> {
   try {
     return await readdir(dir, { withFileTypes: true });
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT" || code === "ENOTDIR") return [];
+    if (isAbsent(error)) return [];
     throw error;
   }
 }
 
 /** Whether anything is at `path`, a dangling link included. */
 export async function present(path: string): Promise<boolean> {
-  return (await lstat(path).catch(() => undefined)) !== undefined;
+  return (await ifPresent(lstat(path))) !== undefined;
 }
 
-/** Version-control metadata, OS litter and installed dependencies, which are never an artifact's content. */
+/** VCS metadata, OS litter and installed dependencies: never an artifact's content. */
 const LITTER = new Set([".git", ".hg", ".svn", "CVS", ".DS_Store", "Thumbs.db", "node_modules"]);
 
 /** Names that hold credentials far more often than skill content. */
@@ -85,32 +81,23 @@ const SECRET_NAMES = new Set([
   "id_ed25519",
   "id_rsa",
 ]);
-const SECRET_EXTENSIONS = [".key", ".p12", ".pem", ".pfx"];
-
-/** Refused rather than skipped, so a file someone meant to ship is never dropped without a word. */
-function maySecret(name: string): boolean {
-  if (SECRET_NAMES.has(name)) return true;
-  if (/^\.env\./.test(name)) return !/^\.env\.(example|sample|template)$/.test(name);
-  const lower = name.toLowerCase();
-  return SECRET_EXTENSIONS.some((extension) => lower.endsWith(extension));
-}
-
-function isLitter(name: string): boolean {
-  return LITTER.has(name) || name.startsWith("._") || /^\..+\.swp$/.test(name);
-}
-
-/** An entry an artifact cannot hold, and why. */
-export interface Irregular {
-  path: string;
-  reason: "is a symlink" | "is not a regular file" | "may hold credentials";
-}
-
 /** What index, validate and publish all say about an entry they refuse. */
 export function refusal(entry: Irregular): string {
   if (entry.reason === "may hold credentials") {
     return `${entry.reason}; move it out of the artifact folder, since everything there is published`;
   }
   return `${entry.reason}; an artifact holds regular files only`;
+}
+
+/** Sorted, so two walks of the same tree always produce the same list. */
+export async function walk(root: string): Promise<FileRecord[]> {
+  return (await scan(root, false)).files;
+}
+
+/** An entry an artifact cannot hold, and why. */
+export interface Irregular {
+  path: string;
+  reason: "is a symlink" | "is not a regular file" | "may hold credentials";
 }
 
 async function scan(
@@ -154,14 +141,23 @@ async function scan(
   return { files: files.sort((a, b) => a.path.localeCompare(b.path)), irregular };
 }
 
-/** Sorted, so two walks of the same tree always produce the same list. */
-export async function walk(root: string): Promise<FileRecord[]> {
-  return (await scan(root, false)).files;
+function isLitter(name: string): boolean {
+  return LITTER.has(name) || name.startsWith("._") || /^\..+\.swp$/.test(name);
+}
+
+const SECRET_EXTENSIONS = [".key", ".p12", ".pem", ".pfx"];
+
+/** Refused rather than skipped, so a file someone meant to ship is never dropped without a word. */
+function maySecret(name: string): boolean {
+  if (SECRET_NAMES.has(name)) return true;
+  if (/^\.env\./.test(name)) return !/^\.env\.(example|sample|template)$/.test(name);
+  const lower = name.toLowerCase();
+  return SECRET_EXTENSIONS.some((extension) => lower.endsWith(extension));
 }
 
 /**
- * What an author's folder offers as an artifact: its regular files, without
- * VCS or OS litter, and every symlink or special file it holds, to be refused.
+ * What an author's folder offers as an artifact: its regular files, without VCS or OS litter, and
+ * every link, special file or likely credential it holds, to be refused.
  */
 export function authored(root: string): Promise<{ files: FileRecord[]; irregular: Irregular[] }> {
   return scan(root, true);
@@ -240,23 +236,25 @@ export async function copyInto(source: string, dest: string): Promise<void> {
   });
 }
 
-/** A copy inherits its source's modes, and a projection has to be editable. */
-export async function unseal(root: string): Promise<void> {
-  await mode(root, EXECUTABLE, PUBLIC_FILE);
-}
-
 /** A file-shaped kind is one file, not a directory, so both shapes are handled. */
 async function mode(root: string, executable: number, plain: number): Promise<void> {
   if (!(await isDirectory(root))) {
-    const info = await stat(root).catch(() => undefined);
+    const info = await ifPresent(stat(root));
     if (info === undefined) return;
+    // A mode is a convenience: a file it cannot be set on still installs.
     await chmod(root, (info.mode & EXECUTE_BITS) !== 0 ? executable : plain).catch(() => {});
     return;
   }
   for (const file of await walk(root)) {
     const full = join(root, ...file.path.split(posix.sep));
+    // As above: a file whose mode cannot be set still installs.
     await chmod(full, file.executable ? executable : plain).catch(() => {});
   }
+}
+
+/** A copy inherits its source's modes, and a projection has to be editable. */
+export async function unseal(root: string): Promise<void> {
+  await mode(root, EXECUTABLE, PUBLIC_FILE);
 }
 
 export async function remove(path: string): Promise<void> {

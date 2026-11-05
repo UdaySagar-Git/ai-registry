@@ -1,43 +1,27 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, vi } from "vitest";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
 import { ErrorCode } from "#core/errors.ts";
-import { Printer } from "#core/output.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { ADAPTER, ENDPOINT } from "#test/kit/daemon.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { run } from "./auth.ts";
-import type { CommandContext } from "./index.ts";
 
-/** This test's folder, which the kit removes after it. */
 let scratch: string;
 test.beforeEach(({ tmp }) => {
   scratch = tmp;
 });
 
-function context(argv: string[], cwd = tmpdir()): CommandContext {
-  return {
-    argv,
-    cwd,
-    printer: new Printer({ format: "json", out: { write: () => {}, isTTY: false } }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  };
+function context(argv: string[], cwd = scratch, printed: string[] = []) {
+  return commandContext(argv, { cwd, printed });
 }
 
 describe("auth list", () => {
-  afterEach(() => vi.unstubAllEnvs());
   beforeAll(() => registerBuiltinAdapters());
+  afterEach(() => vi.unstubAllEnvs());
 
   test("says a registry that needs no sign-in needs none, not that you are signed out", async () => {
     const home = join(scratch, "home");
@@ -61,13 +45,8 @@ describe("auth list", () => {
     ];
     await writeConfig({ ...emptyRegistryConfig(), adapters: { dev: ADAPTER }, accounts }, 0);
     const printed: string[] = [];
-    const listing = context(["list"]);
-    listing.printer = new Printer({
-      format: "json",
-      out: { write: (text: string) => printed.push(text) && true, isTTY: false },
-    });
 
-    await run(listing);
+    await run(context(["list"], scratch, printed));
 
     expect(JSON.parse(printed.join("")).data.accounts).toEqual([
       { id: "acc_1", registry: "acme", signedIn: false, needsSignIn: false },
@@ -121,7 +100,7 @@ describe("auth login", () => {
     beforeAll(() => registerBuiltinAdapters());
 
     async function project(registries: string[], user: string[] = []): Promise<string> {
-      const root = await mkdtemp(join(scratch, "aireg-auth-project-"));
+      const root = scratch;
       const home = join(root, "home");
       await mkdir(join(root, ".registry"), { recursive: true });
       await mkdir(home, { recursive: true });

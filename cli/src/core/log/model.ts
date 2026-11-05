@@ -1,4 +1,4 @@
-import type { Fields } from "#core/fields.ts";
+import type { Fields } from "#adapter/fields.ts";
 
 export const LEVELS = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
 export type Level = (typeof LEVELS)[number];
@@ -14,7 +14,7 @@ export const LEVEL_WEIGHT: Record<Level, number> = Object.freeze({
 });
 
 export function isLevel(value: string): value is Level {
-  return value in LEVEL_WEIGHT;
+  return (LEVELS as readonly string[]).includes(value);
 }
 
 /** Base of each OTel range, so the sub-levels stay available to an exporter. */
@@ -30,7 +30,7 @@ export const SEVERITY_NUMBER: Record<Level, number> = Object.freeze({
 export interface SerializedError {
   name: string;
   message: string;
-  /** The stable classification, when the error carries one. */
+  /** The error's own `failure` or `code`, absent when it has neither. */
   code?: string;
   /** Present only for errors the codebase did not classify: see `error.ts`. */
   stack?: string;

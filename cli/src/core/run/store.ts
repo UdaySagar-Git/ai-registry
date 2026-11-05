@@ -1,9 +1,10 @@
-import type { ArtifactKind } from "#core/kinds.ts";
+import type { ArtifactKind } from "#adapter/kinds.ts";
 import type { Disposition } from "#core/sync/model.ts";
 import type { SyncOperation } from "#core/sync/policy.ts";
 import type {
   ItemOutcome,
   RunEvent,
+  RunEventType,
   RunMode,
   RunRecord,
   RunState,
@@ -24,7 +25,7 @@ export interface CreateRun {
 
 export interface AppendRunEvent {
   occurredAtMs: number;
-  eventType: string;
+  eventType: RunEventType;
   step?: string;
   artifact?: string;
   kind?: ArtifactKind;
@@ -43,6 +44,9 @@ export interface FinishRun {
   retryable?: boolean;
 }
 
+/** The most runs, or run events, one read returns. */
+export const MAX_PAGE_SIZE = 500;
+
 export interface RunQuery {
   jobId?: string;
   accountId?: string;
@@ -53,7 +57,7 @@ export interface RunQuery {
 export interface RunStore {
   create(input: CreateRun): RunRecord;
   start(id: string, step: string, atMs: number): RunRecord;
-  /** Moves a running run's step pointer and records the event, in one write; undefined once it stopped running. */
+  /** Moves the step pointer and records the event in one write; undefined once the run stopped. */
   progress(id: string, step: string, event: AppendRunEvent): RunEvent | undefined;
   forgetJobs(live: ReadonlySet<string>): number;
   finish(id: string, result: FinishRun): RunRecord;

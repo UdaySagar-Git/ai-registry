@@ -1,11 +1,13 @@
 import { isAbsolute, resolve } from "node:path";
 import { quoted } from "#adapter/text.ts";
+import { needsInput } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
-import { findJob, type Job, jobRoot, type RegistryConfig } from "#core/config/model.ts";
+import { findJob, jobRoot } from "#core/config/jobs.ts";
+import type { Job, RegistryConfig } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { canonical } from "#core/fs/canonical.ts";
 import { expandUserPath } from "#core/fs/path.ts";
+import { canonical } from "#core/fs/realpath.ts";
 import { roots, scopeFor, scopeName, userScopeDir } from "#core/store/paths.ts";
 
 export function noJob(wanted: string, hint = "Run `aireg job list` to see the jobs."): AiregError {
@@ -13,10 +15,7 @@ export function noJob(wanted: string, hint = "Run `aireg job list` to see the jo
 }
 
 export function needsJob(action: string): AiregError {
-  return new AiregError(`\`aireg job ${action}\` needs a job name.`, {
-    code: ErrorCode.Usage,
-    hint: `Name the job: \`aireg job ${action} <job>\`.`,
-  });
+  return needsInput(`job ${action}`, "a job name", `Name the job: \`aireg job ${action} <job>\`.`);
 }
 
 /** The job a person named, by id or name; an error when no job has it. */

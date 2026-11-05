@@ -1,14 +1,15 @@
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { isRecord, textOf } from "#adapter/fields.ts";
 import { sanitizeText } from "#adapter/text.ts";
 import type { Job, RegistryConfig } from "#core/config/model.ts";
-import { isRecord, textOf } from "#core/fields.ts";
-import { DAEMON_LOG_FILE, isRaw, logPath, parseLine } from "#core/log/index.ts";
+import { isRaw, parseLine } from "#core/log/read.ts";
+import { DAEMON_LOG_FILE, logPath } from "#core/log/sink.ts";
 import {
-  ITEM_EVENT,
   type ItemOutcome,
   isTerminal,
   type RunEvent,
+  RunEventType,
   type RunMode,
   type RunRecord,
 } from "#core/run/model.ts";
@@ -21,15 +22,6 @@ export function newestFinished(runs: readonly RunRecord[], mode?: RunMode): RunR
   return runs
     .filter((run) => (mode === undefined || run.mode === mode) && isTerminal(run.state))
     .sort((left, right) => right.requestedAtMs - left.requestedAtMs)[0];
-}
-
-function field(event: RunEvent, name: string): unknown {
-  return isRecord(event.data) ? event.data[name] : undefined;
-}
-
-/** A registry or adapter wrote this text, so it is printed only once it cannot drive the terminal. */
-function shown(text: string | undefined): string | undefined {
-  return text === undefined ? undefined : sanitizeText(text, 2000);
 }
 
 /**
@@ -59,6 +51,15 @@ export function upstreamFacts(events: readonly RunEvent[]): UpstreamFacts {
   return { failed, pending };
 }
 
+/** A registry or adapter wrote this text, so it is printed only once it cannot drive the terminal. */
+function shown(text: string | undefined): string | undefined {
+  return text === undefined ? undefined : sanitizeText(text, 2000);
+}
+
+function field(event: RunEvent, name: string): unknown {
+  return isRecord(event.data) ? event.data[name] : undefined;
+}
+
 /** A job that settled a local folder, and why it is held if it is. */
 export interface Carrier {
   job: string;
@@ -86,7 +87,7 @@ export function carriedPaths(
   const found = new Map<string, Carrier>();
   for (const { job, jobId, settledAtMs, events } of runs) {
     for (const event of events) {
-      if (event.eventType !== ITEM_EVENT || event.errorCode !== undefined) continue;
+      if (event.eventType !== RunEventType.ItemSettled || event.errorCode !== undefined) continue;
       if (!CARRIED.has(event.outcome)) continue;
       const paths = field(event, "paths");
       if (!Array.isArray(paths)) continue;
@@ -159,11 +160,6 @@ export function runRows(
   }));
 }
 
-/** The steps in the order they were declared: what this job actually does. */
-function summaryOf(job: Job): string {
-  return job.steps.map((step) => `${step.name}:${step.kind}`).join(" \u2192 ");
-}
-
 export function jobRows(config: RegistryConfig, runs: readonly RunRecord[]): JobRow[] {
   return config.jobs.map((job) => {
     const mine = runs
@@ -185,4 +181,8 @@ export function jobRows(config: RegistryConfig, runs: readonly RunRecord[]): Job
           : last + job.schedule.every * 1_000,
     };
   });
+}
+
+function summaryOf(job: Job): string {
+  return job.steps.map((step) => `${step.name}:${step.kind}`).join(" \u2192 ");
 }

@@ -2,13 +2,12 @@ import { join, sep } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import { emptyRegistryConfig, type Job, type Step } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
-import { Printer } from "#core/output.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
-import type { CommandContext } from "./index.ts";
 import { run } from "./watch.ts";
 
 const daemon = vi.hoisted(() => ({ withDaemon: vi.fn() }));
-vi.mock("#daemon/service.ts", () => daemon);
+vi.mock("#daemon/process/lifecycle.ts", () => daemon);
 
 let home: string;
 let scope: string;
@@ -16,25 +15,8 @@ let scope: string;
 /** A folder that was watched and is gone now, native to this platform. */
 const gone = (name: string) => join(home, "gone", name);
 
-function context(argv: string[], out: string[] = []): CommandContext {
-  return {
-    argv,
-    cwd: home,
-    printer: new Printer({
-      format: "json",
-      out: { write: (text: string) => out.push(text), isTTY: false },
-      err: { write: () => true, isTTY: false },
-    }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  };
+function context(argv: string[], printed: string[] = []) {
+  return commandContext(argv, { cwd: home, printed });
 }
 
 const step = (kind: string, more: Partial<Step> = {}): Step => ({

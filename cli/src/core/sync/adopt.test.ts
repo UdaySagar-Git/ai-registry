@@ -3,14 +3,14 @@ import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { emptyLock, type Lock } from "#core/lock.ts";
 import type { Roots } from "#core/store/paths.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { candidates, danglingLinks, registryPath } from "./adopt.ts";
 
 let root: string;
 let roots: Roots;
 
-const targetTable = resolveTargets();
+const targetTable = resolveTargets(process.env);
 
 const skill = (name: string) => `---\nname: ${name}\ndescription: written here\n---\nbody\n`;
 

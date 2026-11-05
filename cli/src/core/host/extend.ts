@@ -1,8 +1,8 @@
 import type { SourceAdapter, SourceContext } from "#adapter/index.ts";
 import type { Account, Step } from "#core/config/model.ts";
-import type { Printer } from "#core/output.ts";
 import type { ItemSettled, RunCounts, TerminalRunState } from "#core/run/model.ts";
 import type { RunStore } from "#core/run/store.ts";
+import type { Printer } from "#core/term/printer.ts";
 import type { PanelContribution, UpstreamContribution } from "./panel.ts";
 
 export interface ExtensionHost {
@@ -72,6 +72,10 @@ export interface OptionSpec {
   /** Present only on an option that takes a value; help prints it after the flag. */
   readonly value?: string;
   readonly multiple?: true;
+  /** The only values it takes; the parser refuses any other. */
+  readonly choices?: readonly string[];
+  /** Takes a whole number in this range, which the parser hands over as a number. */
+  readonly integer?: { readonly min?: number; readonly max?: number };
   readonly describe: string;
 }
 

@@ -1,43 +1,32 @@
 import { credentialFor } from "#accounts/credentials.ts";
+import { messageOf } from "#adapter/errors.ts";
 import { contentDigest, type ResolveOptions, type Want } from "#adapter/index.ts";
-import { shownNames } from "#cli/names.ts";
-import { noArguments, parse } from "#cli/options.ts";
-import { type Watched, watchedFrom } from "#cli/render/installed.ts";
+import type { OutdatedArtifact, OutdatedResult } from "#cli/commands/outdated/result.ts";
+import { OUTDATED_COMMAND } from "#cli/commands/outdated/spec.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
+import { watchedFrom } from "#cli/render/installed.ts";
+import { connectSource, resolveArtifacts } from "#core/adapter/connect.ts";
+import { declaredLayout } from "#core/adapter/load.ts";
 import { expandLocation } from "#core/adapter/location.ts";
-import { declaredLayout } from "#core/adapter/registry.ts";
-import { connectSource, resolveArtifacts } from "#core/adapter/source.ts";
-import type { Entry } from "#core/catalog/model.ts";
+import type { Entry } from "#core/catalog/catalog.ts";
+import { olderThan } from "#core/engines.ts";
 import { ExitCode } from "#core/errors.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import { type Manifest, pinOf } from "#core/manifest.ts";
-import { abbreviate, type Printer, sentence } from "#core/output.ts";
-import { type Request, recordedAdapter, wanted } from "#core/plan/acquire.ts";
-import { listedAt } from "#core/plan/model.ts";
+import { pinOf } from "#core/manifest/match.ts";
+import type { Manifest } from "#core/manifest/model.ts";
+import { recordedAdapter } from "#core/plan/acquire/acquire.ts";
+import { type Request, wanted } from "#core/plan/acquire/request.ts";
+import { listedAt } from "#core/plan/acquire/sources.ts";
 import { excluded } from "#core/plan/select.ts";
 import type { Ref } from "#core/ref.ts";
-import { olderThan } from "#core/semver.ts";
-import { scopeName } from "#core/store/paths.ts";
-import type { Targets } from "#core/target/index.ts";
+import { type Scope, scopeFlag, scopeName } from "#core/store/paths.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { abbreviate, type Printer, sentence } from "#core/term/printer.ts";
 import { table } from "#core/term/table.ts";
-import { load } from "#engine/pipeline.ts";
-import { builtin, type CommandContext } from "./index.ts";
-
-interface Row {
-  name: string;
-  registry: string;
-  current: string;
-  latest: string;
-  moved: boolean;
-  /** The version the manifest pinned, when it pinned one. */
-  pinned: string | undefined;
-  /** Set when the answer is unknown, rather than known to be unchanged. */
-  unchecked: string | undefined;
-  /** Published since the last install, under a registry or namespace the manifest takes whole. */
-  added?: boolean;
-  /** Published from a watched folder, so `aireg update` never moves it; its next publish does. */
-  watched?: Watched | undefined;
-  unpublished?: true;
-}
+import { shownNames } from "#engine/installed-names.ts";
+import type { CommonOptions } from "#engine/options.ts";
+import { load } from "#engine/scope/load.ts";
+import { defineCommand } from "./define.ts";
 
 /** What one source publishes right now, or why it could not be asked. */
 interface Head {
@@ -57,24 +46,105 @@ interface Upstream {
   namespace: string | undefined;
 }
 
-/**
- * Include locked names the manifest does not ask for, so a withdrawal stays
- * visible. Pins are dropped: asking at the pinned version would only echo it back.
- */
-function asked(request: Request | undefined, lock: Lock, alias: string): [Want[], ResolveOptions] {
-  if (request === undefined || request.all || request.want.length === 0) return [[], {}];
-  const locked = Object.values(lock.artifacts)
-    .filter((artifact) => artifact.registry === alias)
-    .map((artifact) => artifact.name);
-  const names = new Set([...request.want.map((item) => item.name), ...locked]);
-  return [[...names].map((name) => ({ name })), {}];
+/** What a run found, with the lockfile the table names each artifact by. */
+interface Found {
+  scope: Scope;
+  lock: Lock;
+  rows: OutdatedArtifact[];
 }
 
-/** The namespaces a manifest takes whole from one registry; `*` for all of it. */
-/** The manifest's whole-registry and whole-namespace entries for one registry. */
-function wholes(manifest: Manifest, alias: string): Ref[] {
-  return manifest.artifacts.filter((ref) => ref.registry === alias && ref.name === undefined);
-}
+export const { run } = defineCommand({
+  spec: OUTDATED_COMMAND,
+  parse(argv): CommonOptions {
+    const { positionals, common } = parse(argv, OUTDATED_COMMAND);
+    noArguments(positionals, "outdated");
+    return common;
+  },
+  async run(common, context): Promise<Found> {
+    const { roots, manifest, targetTable, lock } = await load(common, context.cwd, "user");
+
+    const heads = new Map<string, Head>();
+    for (const alias of new Set(Object.values(lock.artifacts).map((entry) => entry.registry))) {
+      heads.set(alias, await head(alias, manifest, lock, roots.base));
+    }
+
+    const rows: OutdatedArtifact[] = [];
+    for (const name of Object.keys(lock.artifacts).sort()) {
+      const entry = lock.artifacts[name] as LockArtifact;
+      rows.push(
+        row(
+          name,
+          entry,
+          heads.get(entry.registry) ?? {
+            byAddress: new Map(),
+            entries: [],
+            why: "its registry could not be read",
+          },
+          pinOf(manifest, entry),
+          targetTable,
+        ),
+      );
+    }
+    rows.push(...additions(manifest, lock, heads));
+
+    if (rows.some((entry) => (entry.moved && entry.pinned === undefined) || entry.unchecked)) {
+      context.exit = ExitCode.Changed;
+    }
+    return { scope: roots.scope, lock, rows };
+  },
+  data: ({ scope, rows }): OutdatedResult => ({ scope, artifacts: rows }),
+  text({ scope, lock, rows }, printer) {
+    if (rows.length === 0) {
+      printer.info(printer.style.dim(`Nothing is installed in ${scopeName(scope)}.`));
+      return;
+    }
+    const { style } = printer;
+    const shown = shownNames(lock);
+    // Not installed yet, so named like the rest: by its own name unless another row has it.
+    const leaf = (name: string) => name.split("/").at(-1) ?? name;
+    const taken = new Map<string, number>();
+    for (const entry of rows) {
+      const name = leaf(shown.get(entry.name) ?? entry.name);
+      taken.set(name, (taken.get(name) ?? 0) + 1);
+    }
+    const named = (entry: OutdatedArtifact) =>
+      shown.get(entry.name) ?? (taken.get(leaf(entry.name)) === 1 ? leaf(entry.name) : entry.name);
+    for (const entry of rows) {
+      if (entry.unpublished === true) {
+        printer.info(style.dim(`${named(entry)} is not published yet.`));
+      } else if (entry.unchecked !== undefined) {
+        printer.warning(`Could not check ${named(entry)}: ${sentence(entry.unchecked)}`);
+      }
+    }
+    const moved = rows.filter((entry) => entry.unchecked === undefined && entry.moved);
+    if (moved.length === 0) {
+      if (rows.every((entry) => entry.unchecked === undefined)) {
+        printer.success("Everything is up to date.");
+      }
+      return;
+    }
+    printer.info(style.bold(`${moved.length} with a newer version in ${scopeName(scope)}`));
+    table(
+      printer,
+      [
+        { header: "artifact", value: (entry: OutdatedArtifact) => named(entry) },
+        { header: "from", value: (entry: OutdatedArtifact) => entry.registry },
+        {
+          header: "current",
+          value: (entry: OutdatedArtifact) => {
+            const current = entry.added === true ? style.dim("new") : entry.current;
+            if (entry.watched !== undefined) return `${current} ${style.cyan("watched")}`;
+            return entry.pinned === undefined ? current : `${current} ${style.yellow("pinned")}`;
+          },
+        },
+        { header: "latest", value: (entry: OutdatedArtifact) => style.green(entry.latest) },
+      ],
+      moved,
+    );
+    printer.info();
+    next(printer, moved, scope);
+  },
+});
 
 async function head(alias: string, manifest: Manifest, lock: Lock, base: string): Promise<Head> {
   const declared = manifest.registries[alias];
@@ -122,8 +192,21 @@ async function head(alias: string, manifest: Manifest, lock: Lock, base: string)
       await open.handle.close();
     }
   } catch (error) {
-    return { byAddress: new Map(), entries: [], why: (error as Error).message };
+    return { byAddress: new Map(), entries: [], why: messageOf(error) };
   }
+}
+
+/**
+ * Include locked names the manifest does not ask for, so a withdrawal stays
+ * visible. Pins are dropped: asking at the pinned version would only echo it back.
+ */
+function asked(request: Request | undefined, lock: Lock, alias: string): [Want[], ResolveOptions] {
+  if (request === undefined || request.all || request.want.length === 0) return [[], {}];
+  const locked = Object.values(lock.artifacts)
+    .filter((artifact) => artifact.registry === alias)
+    .map((artifact) => artifact.name);
+  const names = new Set([...request.want.map((item) => item.name), ...locked]);
+  return [[...names].map((name) => ({ name })), {}];
 }
 
 function row(
@@ -132,8 +215,14 @@ function row(
   found: Head,
   pinned: string | undefined,
   targetTable: Targets,
-): Row {
-  const base = { name, registry: entry.registry, pinned, watched: watchedFrom(entry, targetTable) };
+): OutdatedArtifact {
+  const watched = watchedFrom(entry, targetTable);
+  const base = {
+    name,
+    registry: entry.registry,
+    ...(pinned === undefined ? {} : { pinned }),
+    ...(watched === undefined ? {} : { watched }),
+  };
   if (found.why !== undefined) {
     return { ...base, current: "", latest: "", moved: false, unchecked: found.why };
   }
@@ -146,7 +235,6 @@ function row(
       current: "",
       latest: "",
       moved: false,
-      unchecked: undefined,
       unpublished: true,
     };
   }
@@ -173,31 +261,29 @@ function row(
     };
   }
 
-  // A source that attests content answers without a download; one that does not
-  // can only be compared on the version it publishes. A latest that a yank moved
-  // below what is installed is older, so it is not offered as an update.
+  // An attesting source compares content, any other only its version. A latest that a
+  // yank moved below what is installed is older, so it is not offered as an update.
   const moved =
     !olderThan(upstream.version, entry.version) &&
     (upstream.contentId !== undefined && entry.content !== ""
       ? upstream.contentId !== entry.content
       : upstream.version !== entry.version);
 
+  // `current` mirrors `latest`: the version when there is one, the content digest otherwise.
   return {
     ...base,
-    // Mirrors `latest`: the version when there is one, the content digest otherwise.
     current: entry.version ?? (entry.content === undefined ? "?" : abbreviate(entry.content)),
     latest,
     moved,
-    unchecked:
-      upstream.contentId === undefined && upstream.version === undefined
-        ? "it publishes neither a content digest nor a version"
-        : undefined,
+    ...(upstream.contentId === undefined && upstream.version === undefined
+      ? { unchecked: "it publishes neither a content digest nor a version" }
+      : {}),
   };
 }
 
 /** Artifacts a whole registry or namespace now covers that nothing installed yet. */
-function additions(manifest: Manifest, lock: Lock, heads: Map<string, Head>): Row[] {
-  const rows: Row[] = [];
+function additions(manifest: Manifest, lock: Lock, heads: Map<string, Head>): OutdatedArtifact[] {
+  const rows: OutdatedArtifact[] = [];
   for (const [alias, found] of heads) {
     const refs = wholes(manifest, alias);
     if (refs.length === 0 || found.why !== undefined) continue;
@@ -217,7 +303,7 @@ function additions(manifest: Manifest, lock: Lock, heads: Map<string, Head>): Ro
       if (entry?.kind !== "plugin" && entry?.group !== undefined && plugins.has(entry.group)) {
         continue;
       }
-      // Covered as install reads it: by a whole entry that doesn't leave it out.
+      // Covered as install reads it: by a whole entry that does not leave it out.
       const covered = refs.some(
         (ref) =>
           (ref.namespace === undefined || ref.namespace === namespace) &&
@@ -232,8 +318,6 @@ function additions(manifest: Manifest, lock: Lock, heads: Map<string, Head>): Ro
           upstream.version ??
           (upstream.contentId === undefined ? "?" : abbreviate(upstream.contentId)),
         moved: true,
-        pinned: undefined,
-        unchecked: undefined,
         added: true,
       });
     }
@@ -241,8 +325,13 @@ function additions(manifest: Manifest, lock: Lock, heads: Map<string, Head>): Ro
   return rows.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function next(printer: Printer, moved: readonly Row[], scope: string): void {
-  const flag = scope === "user" ? " -g" : "";
+/** The manifest's whole-registry and whole-namespace entries for one registry. */
+function wholes(manifest: Manifest, alias: string): Ref[] {
+  return manifest.artifacts.filter((ref) => ref.registry === alias && ref.name === undefined);
+}
+
+function next(printer: Printer, moved: readonly OutdatedArtifact[], scope: Scope): void {
+  const flag = scopeFlag(scope);
   // A pin that is holding is not something to act on, and `update` never moves a watched row.
   if (moved.some((entry) => entry.pinned === undefined && entry.watched === undefined)) {
     printer.note("next", `aireg update${flag}`);
@@ -251,95 +340,5 @@ function next(printer: Printer, moved: readonly Row[], scope: string): void {
     printer.hint(
       `Run \`aireg sync --dry-run${flag}\` to compare; a watched folder waits for \`aireg sync resolve\` before it publishes over it.`,
     );
-  }
-}
-
-export async function run(context: CommandContext): Promise<void> {
-  const { positionals, common } = parse(context.argv, builtin("outdated"));
-  noArguments(positionals, "outdated");
-  const { roots, manifest, targetTable, lock } = await load(common, context.cwd, "user");
-
-  const heads = new Map<string, Head>();
-  for (const alias of new Set(Object.values(lock.artifacts).map((entry) => entry.registry))) {
-    heads.set(alias, await head(alias, manifest, lock, roots.base));
-  }
-
-  const rows: Row[] = [];
-  for (const name of Object.keys(lock.artifacts).sort()) {
-    const entry = lock.artifacts[name] as LockArtifact;
-    rows.push(
-      row(
-        name,
-        entry,
-        heads.get(entry.registry) ?? {
-          byAddress: new Map(),
-          entries: [],
-          why: "its registry could not be read",
-        },
-        pinOf(manifest, entry),
-        targetTable,
-      ),
-    );
-  }
-  rows.push(...additions(manifest, lock, heads));
-
-  if (context.printer.format === "json") {
-    context.printer.json({ ok: true, data: { scope: roots.scope, artifacts: rows } });
-  } else if (rows.length === 0) {
-    context.printer.info(
-      context.printer.style.dim(`Nothing is installed in ${scopeName(roots.scope)}.`),
-    );
-  } else {
-    const { style } = context.printer;
-    const shown = shownNames(lock);
-    // Not installed yet, so named like the rest: by its own name unless another row has it.
-    const leaf = (name: string) => name.split("/").at(-1) ?? name;
-    const taken = new Map<string, number>();
-    for (const entry of rows) {
-      const name = leaf(shown.get(entry.name) ?? entry.name);
-      taken.set(name, (taken.get(name) ?? 0) + 1);
-    }
-    const named = (entry: Row) =>
-      shown.get(entry.name) ?? (taken.get(leaf(entry.name)) === 1 ? leaf(entry.name) : entry.name);
-    for (const entry of rows) {
-      if (entry.unpublished === true) {
-        context.printer.info(style.dim(`${named(entry)} is not published yet.`));
-      } else if (entry.unchecked !== undefined) {
-        context.printer.warning(`Could not check ${named(entry)}: ${sentence(entry.unchecked)}`);
-      }
-    }
-    const moved = rows.filter((entry) => entry.unchecked === undefined && entry.moved);
-    if (moved.length === 0) {
-      if (rows.every((entry) => entry.unchecked === undefined)) {
-        context.printer.success("Everything is up to date.");
-      }
-    } else {
-      context.printer.info(
-        style.bold(`${moved.length} with a newer version in ${scopeName(roots.scope)}`),
-      );
-      table(
-        context.printer,
-        [
-          { header: "artifact", value: (entry: Row) => named(entry) },
-          { header: "from", value: (entry: Row) => entry.registry },
-          {
-            header: "current",
-            value: (entry: Row) => {
-              const current = entry.added === true ? style.dim("new") : entry.current;
-              if (entry.watched !== undefined) return `${current} ${style.cyan("watched")}`;
-              return entry.pinned === undefined ? current : `${current} ${style.yellow("pinned")}`;
-            },
-          },
-          { header: "latest", value: (entry: Row) => style.green(entry.latest) },
-        ],
-        moved,
-      );
-      context.printer.info();
-      next(context.printer, moved, roots.scope);
-    }
-  }
-
-  if (rows.some((entry) => (entry.moved && entry.pinned === undefined) || entry.unchecked)) {
-    context.exit = ExitCode.Changed;
   }
 }

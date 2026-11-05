@@ -4,35 +4,17 @@ import { afterEach, describe, expect, vi } from "vitest";
 import { emptyRegistryConfig, type Job, type StepPolicy } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
 import { AiregError } from "#core/errors.ts";
-import { Printer } from "#core/output.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
-import type { CommandContext } from "./index.ts";
 import { run } from "./job.ts";
 
 const daemon = vi.hoisted(() => ({ withDaemon: vi.fn() }));
-vi.mock("#daemon/service.ts", () => daemon);
+vi.mock("#daemon/process/lifecycle.ts", () => daemon);
 
 let home: string;
 
-function context(argv: string[], out: string[] = [], err: string[] = []): CommandContext {
-  return {
-    argv,
-    cwd: home,
-    printer: new Printer({
-      format: "json",
-      out: { write: (text: string) => out.push(text), isTTY: false },
-      err: { write: (text: string) => err.push(text), isTTY: false },
-    }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  };
+function context(argv: string[], printed: string[] = [], errors: string[] = []) {
+  return commandContext(argv, { cwd: home, printed, errors });
 }
 
 test.beforeEach(async ({ tmp }) => {
@@ -75,7 +57,7 @@ describe("job add --interval", () => {
     async (value) => {
       await expect(
         run(context(["add", "--registry", "undeclared", "--interval", value])),
-      ).rejects.toThrow(/--interval must be a whole number of seconds/);
+      ).rejects.toThrow(/--interval takes a whole number of at least 60, not/);
     },
   );
 });
@@ -114,7 +96,6 @@ describe("a job named by a name other than its id", () => {
   });
 });
 
-/** One step of a job, rooted at `root`. */
 const step = (kind: string, root = "/scope", policy: StepPolicy = "on", needs: string[] = []) => ({
   name: kind,
   kind,

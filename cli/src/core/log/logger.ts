@@ -1,4 +1,4 @@
-import type { Fields } from "#core/fields.ts";
+import type { Fields } from "#adapter/fields.ts";
 import { serializeError } from "./error.ts";
 import {
   LEVEL_WEIGHT,
@@ -18,14 +18,6 @@ interface LoggerOptions {
 }
 
 const NULL_SINK: Sink = { write: () => {} };
-
-function scrub(error: SerializedError): SerializedError {
-  const scrubbed: SerializedError = { name: error.name, message: redactText(error.message) };
-  if (error.code !== undefined) scrubbed.code = error.code;
-  if (error.stack !== undefined) scrubbed.stack = redactText(error.stack);
-  if (error.cause !== undefined) scrubbed.cause = scrub(error.cause);
-  return scrubbed;
-}
 
 export function createLogger(options: LoggerOptions): Logger {
   const { sink, level, bindings = {} } = options;
@@ -57,6 +49,14 @@ export function createLogger(options: LoggerOptions): Logger {
     error: (message, fields) => emit("error", message, fields),
     fatal: (message, fields) => emit("fatal", message, fields),
   };
+}
+
+function scrub(error: SerializedError): SerializedError {
+  const scrubbed: SerializedError = { name: error.name, message: redactText(error.message) };
+  if (error.code !== undefined) scrubbed.code = error.code;
+  if (error.stack !== undefined) scrubbed.stack = redactText(error.stack);
+  if (error.cause !== undefined) scrubbed.cause = scrub(error.cause);
+  return scrubbed;
 }
 
 /** Discards everything, so a caller never branches on whether logging is on. */

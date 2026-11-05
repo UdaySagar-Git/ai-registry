@@ -5,31 +5,109 @@ import { join } from "node:path";
 import { advertisedCapabilities } from "#adapter/contract.ts";
 import { gte } from "#adapter/semver.ts";
 import { plural, sanitizeText } from "#adapter/text.ts";
-import { noArguments, parse } from "#cli/options.ts";
+import type { Check, DoctorResult } from "#cli/commands/doctor/result.ts";
+import { DOCTOR_COMMAND } from "#cli/commands/doctor/spec.ts";
+import {
+  ownSkillsCommand,
+  ownSkillsInstalled,
+  staleOwnSkillsPin,
+} from "#cli/onboarding/own-skills.ts";
+import { noArguments, parse } from "#cli/options/parse.ts";
 import { underHome } from "#cli/render/home.ts";
-import { loadAdapters } from "#core/adapter/registry.ts";
+import { loadAdapters } from "#core/adapter/load.ts";
 import { fileExposure } from "#core/credentials/store.ts";
 import { ExitCode } from "#core/errors.ts";
 import { WRITABLE_BY_OTHERS } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { ownSkillsCommand, ownSkillsInstalled, staleOwnSkillsPin } from "#core/own-skills.ts";
 import { NAME } from "#core/product.ts";
 import { type ReleaseStamp, releaseStamp } from "#core/release/stamp.ts";
 import { cacheDir, credentialsPath, toolHome, userScopeDir } from "#core/store/paths.ts";
 import { displayWidth, pad } from "#core/term/format.ts";
+import type { Printer } from "#core/term/printer.ts";
+import { GLYPH } from "#core/term/theme.ts";
 import { nodeTooOld, VERSION } from "#core/version.ts";
 import { autostartState } from "#daemon/autostart/index.ts";
-import { readUpdateCache, type UpdateCache } from "#self/check.ts";
-import { builtin, type CommandContext } from "./index.ts";
+import { readUpdateCache, type UpdateCache } from "#self/update-cache.ts";
+import { defineCommand } from "./define.ts";
 
-interface Check {
-  name: string;
-  ok: boolean;
-  detail: string;
-  /** The one command that fixes or improves it. */
-  fix?: string;
-  /** Worth knowing, with nothing to do. */
-  info?: boolean;
+/** What a run found: each check, and each adapter as it advertises itself. */
+type Found = Omit<DoctorResult, "problems">;
+
+export const { run } = defineCommand({
+  spec: DOCTOR_COMMAND,
+  parse(argv): Record<string, never> {
+    const { positionals } = parse(argv, DOCTOR_COMMAND);
+    noArguments(
+      positionals,
+      "doctor",
+      "It only reads. To clear a stuck write lock, run `aireg unlock`.",
+    );
+    return {};
+  },
+  async run(_options, context): Promise<Found> {
+    const found = await loadAdapters();
+    const checks = await checksFor(context.cwd, found);
+    const adapters = found.loaded.map((adapter) => ({
+      id: adapter.id,
+      displayName: adapter.displayName,
+      capabilities: advertisedCapabilities(adapter.capabilities),
+    }));
+    if (fatal(checks)) context.exit = ExitCode.Error;
+    return { checks, adapters };
+  },
+  data: ({ checks, adapters }): DoctorResult => ({
+    problems: checks.filter((check) => !check.ok).length,
+    checks,
+    adapters,
+  }),
+  // Only what stops aireg running fails the envelope; `problems` counts every failed check.
+  ok: ({ checks }) => !fatal(checks),
+  text: ({ checks }, printer) => render(printer, checks),
+});
+
+async function checksFor(
+  cwd: string,
+  adapters: Awaited<ReturnType<typeof loadAdapters>>,
+): Promise<Check[]> {
+  const prerequisites: Check[] = [];
+  for (const adapter of adapters.loaded) {
+    for (const item of (await adapter.ready?.()) ?? []) prerequisites.push(item);
+  }
+  // One broken module is reported where it stands; every other check still runs.
+  for (const { id, error } of adapters.broken) {
+    const why = error instanceof Error ? sanitizeText(error.message) : "it did not load";
+    prerequisites.push({ name: `adapter ${id}`, ok: false, detail: why });
+  }
+  const cached = await readUpdateCache();
+  const tooOld = nodeTooOld();
+  // The telemetry row: aireg itself sends none; an adapter reports its own through `ready()`.
+  return [
+    { name: "cli", ok: true, detail: VERSION },
+    {
+      name: "node",
+      ok: tooOld === undefined,
+      detail: tooOld ?? process.versions.node,
+    },
+    ...prerequisites,
+    await canLink(),
+    {
+      name: "store",
+      ok: true,
+      detail: underHome(cacheDir()),
+    },
+    await autostart(),
+    await home(),
+    await credentials(),
+    userScope(),
+    await ownSkills(cwd),
+    {
+      name: "telemetry",
+      ok: true,
+      info: true,
+      detail: "none",
+    },
+    updates(releaseStamp(), cached),
+  ];
 }
 
 /** Can this machine make the links projection depends on? */
@@ -103,7 +181,7 @@ async function home(): Promise<Check> {
   return { name: "home", ok: true, detail: shown };
 }
 
-/** What every command would refuse about the file, by the store's own rule; its contents are never read. */
+/** What every command would refuse about the file, by the store's rule; never reads its contents. */
 async function credentials(): Promise<Check> {
   const path = credentialsPath();
   const shown = underHome(path);
@@ -190,81 +268,13 @@ function updates(stamp: ReleaseStamp | undefined, cached: UpdateCache | undefine
       };
 }
 
-async function checksFor(
-  cwd: string,
-  adapters: Awaited<ReturnType<typeof loadAdapters>>,
-): Promise<Check[]> {
-  const prerequisites: Check[] = [];
-  for (const adapter of adapters.loaded) {
-    for (const item of (await adapter.ready?.()) ?? []) prerequisites.push(item);
-  }
-  // One broken module is reported where it stands; every other check still runs.
-  for (const { id, error } of adapters.broken) {
-    const why = error instanceof Error ? sanitizeText(error.message) : "it did not load";
-    prerequisites.push({ name: `adapter ${id}`, ok: false, detail: why });
-  }
-  const cached = await readUpdateCache();
-  const tooOld = nodeTooOld();
-  return [
-    { name: "cli", ok: true, detail: VERSION },
-    {
-      name: "node",
-      ok: tooOld === undefined,
-      detail: tooOld ?? process.versions.node,
-    },
-    ...prerequisites,
-    await canLink(),
-    {
-      name: "store",
-      ok: true,
-      detail: underHome(cacheDir()),
-    },
-    await autostart(),
-    await home(),
-    await credentials(),
-    userScope(),
-    await ownSkills(cwd),
-    // aireg itself sends none; an installed adapter reports its own through `ready()`.
-    {
-      name: "telemetry",
-      ok: true,
-      info: true,
-      detail: "none",
-    },
-    updates(releaseStamp(), cached),
-  ];
+/** aireg cannot run here without git or a supported Node.js. */
+function fatal(checks: readonly Check[]): boolean {
+  return checks.some((check) => (check.name === "git" || check.name === "node") && !check.ok);
 }
 
-export async function run(context: CommandContext): Promise<void> {
-  const { positionals } = parse(context.argv, builtin("doctor"));
-  noArguments(
-    positionals,
-    "doctor",
-    "It only reads. To clear a stuck write lock, run `aireg unlock`.",
-  );
-
-  const found = await loadAdapters();
-  const checks = await checksFor(context.cwd, found);
-  const adapters = found.loaded.map((adapter) => ({
-    id: adapter.id,
-    displayName: adapter.displayName,
-    capabilities: advertisedCapabilities(adapter.capabilities),
-  }));
-  const fatal = checks.some(
-    (check) => (check.name === "git" || check.name === "node") && !check.ok,
-  );
-  if (fatal) context.exit = ExitCode.Error;
-  if (context.printer.format === "json") {
-    const problems = checks.filter((check) => !check.ok).length;
-    context.printer.json({ ok: !fatal, data: { problems, checks, adapters } });
-    return;
-  }
-  render(context, checks);
-}
-
-/** One line of versions, then a checklist: what passed, what to improve, what blocks installs. */
-function render(context: CommandContext, checks: readonly Check[]): void {
-  const { style } = context.printer;
+function render(printer: Printer, checks: readonly Check[]): void {
+  const { style } = printer;
   const version = (name: string) => checks.find((check) => check.name === name);
   const git = version("git");
   const node = version("node");
@@ -273,8 +283,8 @@ function render(context: CommandContext, checks: readonly Check[]): void {
     node?.ok === true ? `Node.js ${node.detail}` : undefined,
     git?.ok === true ? `git ${/\d+(\.\d+)+/.exec(git.detail)?.[0] ?? git.detail}` : undefined,
   ];
-  context.printer.info(style.bold(versions.filter(Boolean).join(" · ")));
-  context.printer.info();
+  printer.info(style.bold(versions.filter(Boolean).join(" · ")));
+  printer.info();
   const rows = checks.filter(
     (check) =>
       check.name !== "cli" && !((check.name === "git" || check.name === "node") && check.ok),
@@ -282,25 +292,23 @@ function render(context: CommandContext, checks: readonly Check[]): void {
   const width = Math.max(...rows.map((check) => displayWidth(check.name)));
   for (const check of rows) {
     const mark = !check.ok
-      ? style.red("✗")
+      ? style.red(GLYPH.failed)
       : check.fix !== undefined
         ? style.yellow("!")
         : check.info === true
           ? style.dim("i")
-          : style.green("✓");
+          : style.green(GLYPH.ok);
     const label = pad(check.name, width);
-    context.printer.info(
-      `  ${mark}  ${label}  ${check.ok ? style.dim(check.detail) : check.detail}`,
-    );
+    printer.info(`  ${mark}  ${label}  ${check.ok ? style.dim(check.detail) : check.detail}`);
     // One copyable command per line, never joined with `&&`.
     for (const command of check.fix?.split(" && ") ?? []) {
-      context.printer.info(`     ${pad("", width)}  ${command}`);
+      printer.info(`     ${pad("", width)}  ${command}`);
     }
   }
-  context.printer.info();
+  printer.info();
   const failed = rows.filter((check) => !check.ok).length;
   const suggested = rows.filter((check) => check.ok && check.fix !== undefined).length;
   const more = suggested === 0 ? "" : ` ${plural(suggested, "suggestion")} above.`;
-  if (failed === 0) context.printer.success(`This machine is ready.${more}`);
-  else context.printer.info(`${style.red("✗")} ${plural(failed, "problem")} to fix.${more}`);
+  if (failed === 0) printer.success(`This machine is ready.${more}`);
+  else printer.info(`${style.red(GLYPH.failed)} ${plural(failed, "problem")} to fix.${more}`);
 }

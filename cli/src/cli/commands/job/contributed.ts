@@ -1,23 +1,24 @@
 import { quoted } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
+import type { JobSaved } from "#cli/commands/job/result.ts";
+import { needsInput } from "#cli/options/parse.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import type { StepContribution } from "#core/host/extend.ts";
 import { type RpcClient, withFreshConfig } from "#daemon/rpc/client.ts";
 
 /** `job add --<flag>`: an adapter-contributed type owns no project tree. */
 export async function addContributedJob(
-  context: CommandContext,
   client: RpcClient,
   contribution: StepContribution,
   flags: Record<string, unknown>,
   intervalSeconds: number,
-): Promise<void> {
+): Promise<JobSaved> {
   if (typeof flags.account !== "string") {
     const flag = contribution.flag ?? contribution.kind;
-    throw new AiregError(`\`aireg job add --${flag}\` needs an account.`, {
-      code: ErrorCode.Usage,
-      hint: `Name the account: \`aireg job add --${flag} --account <account>\`.`,
-    });
+    throw needsInput(
+      `job add --${flag}`,
+      "an account",
+      `Name the account: \`aireg job add --${flag} --account <account>\`.`,
+    );
   }
   const extra = contribution.params?.(flags) ?? {};
   const { config: updated, job } = await withFreshConfig(client, (config) => {
@@ -39,7 +40,5 @@ export async function addContributedJob(
       ...extra,
     });
   });
-  context.printer.format === "json"
-    ? context.printer.json({ ok: true, data: { job, revision: updated.revision } })
-    : context.printer.success(`Added ${contribution.kind} job ${job.id}.`);
+  return { job, revision: updated.revision };
 }

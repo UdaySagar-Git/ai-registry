@@ -1,13 +1,13 @@
 import { existsSync } from "node:fs";
 import { readdir, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
+import { ifPresent, PUBLIC_FILE } from "#adapter/files.ts";
 import { isWithin } from "#adapter/paths.ts";
-import { inspectAdapterModule, isBuiltinAdapter } from "#core/adapter/registry.ts";
+import { inspectAdapterModule, isBuiltinAdapter } from "#core/adapter/load.ts";
 import { updateConfig } from "#core/config/repository.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { writeAtomic } from "#core/fs/atomic.ts";
 import { sha256Hex } from "#core/fs/hash.ts";
-import { PUBLIC_FILE } from "#core/fs/mode.ts";
 import { ADAPTER_MODULE_FILE } from "#core/product.ts";
 import { adapterDataDir, adapterModulePath, ensureHome, toolHome } from "#core/store/paths.ts";
 import { parseDispatch, writeInstallRecord } from "./record.ts";
@@ -65,23 +65,9 @@ async function pinAdapter(
   }, env);
   // Nothing loads the version this replaces, so it goes.
   if (replaced !== undefined && replaced !== specifier) {
+    // Left behind, the old version costs only disk: the pin has already moved.
     await removeManaged(id, replaced, env).catch(() => undefined);
   }
-}
-
-export async function unpinAdapter(
-  id: string,
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<string | undefined> {
-  let removed: string | undefined;
-  await mutateAdapters((adapters) => {
-    removed = adapters[id];
-    const rest = { ...adapters };
-    delete rest[id];
-    return rest;
-  }, env);
-  if (removed !== undefined) await removeVersions(id, env);
-  return removed;
 }
 
 async function mutateAdapters(
@@ -99,10 +85,25 @@ async function removeManaged(id: string, specifier: string, env: NodeJS.ProcessE
   await rm(dirname(resolved), { recursive: true, force: true });
 }
 
+export async function unpinAdapter(
+  id: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<string | undefined> {
+  let removed: string | undefined;
+  await mutateAdapters((adapters) => {
+    removed = adapters[id];
+    const rest = { ...adapters };
+    delete rest[id];
+    return rest;
+  }, env);
+  if (removed !== undefined) await removeVersions(id, env);
+  return removed;
+}
+
 /** Every version folder aireg installed for this adapter; its data beside them stays. */
 async function removeVersions(id: string, env: NodeJS.ProcessEnv): Promise<void> {
   const dir = adapterDataDir(id, env);
-  const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+  const entries = (await ifPresent(readdir(dir, { withFileTypes: true }))) ?? [];
   for (const entry of entries) {
     if (!entry.isDirectory() || !existsSync(join(dir, entry.name, ADAPTER_MODULE_FILE))) continue;
     await rm(join(dir, entry.name), { recursive: true, force: true });

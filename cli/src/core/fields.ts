@@ -1,12 +1,5 @@
+import { type Fields, isRecord, textOf } from "#adapter/fields.ts";
 import { list, quoted } from "#adapter/text.ts";
-
-/** A parsed document or message, read field by field because none of it is trusted yet. */
-export type Fields = Record<string, unknown>;
-
-/** A JSON object or YAML mapping: not null, and not a list. */
-export function isRecord(value: unknown): value is Fields {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 /** Names that would reach an object's prototype when used as a map key. */
 export const RESERVED_KEYS: ReadonlySet<string> = new Set([
@@ -25,18 +18,13 @@ export function dict<T>(entries: Iterable<readonly [string, T]> = []): Record<st
   return out;
 }
 
-/** A string with more than whitespace in it, or undefined. */
-export function textOf(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() !== "" ? value : undefined;
-}
-
-/** A non-empty list of such strings, or undefined. */
+/** A non-empty list of non-blank strings, or undefined. */
 export function namesOf(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || value.length === 0) return undefined;
   return value.every((item) => textOf(item) !== undefined) ? (value as string[]) : undefined;
 }
 
-/** Such strings keyed by such strings, or undefined. */
+/** Non-blank strings under non-blank keys, or undefined. */
 export function textMapOf(value: unknown): Record<string, string> | undefined {
   if (!isRecord(value)) return undefined;
   const entries = Object.entries(value);
@@ -53,7 +41,7 @@ export function unknownKeys(entry: Fields, known: readonly string[]): string[] {
     .sort();
 }
 
-/** `<owner> does not take ...; it takes ...`, or undefined when `entry` holds only `known` keys. */
+/** A message naming the keys `entry` has beyond `known`, or undefined when it has none. */
 export function unknownKeysProblem(
   entry: Fields,
   known: readonly string[],
@@ -167,7 +155,7 @@ const UNIT_MS: Readonly<Record<string, number>> = {
   d: 86_400_000,
 };
 
-/** `900`, `15m`, `2h` or `1d` as milliseconds; a bare number is seconds. Undefined for anything else. */
+/** `900`, `15m`, `2h` or `1d` as milliseconds, a bare number being seconds; else undefined. */
 export function parseDuration(text: string): number | undefined {
   const matched = DURATION.exec(text.trim());
   if (matched === null) return undefined;

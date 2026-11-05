@@ -1,4 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import { limiter } from "#adapter/concurrency.ts";
+import { messageOf } from "#adapter/errors.ts";
 import { AdapterError, type Failure, programPath } from "#adapter/index.ts";
 import { gitEnv } from "./env.ts";
 import { ID } from "./errors.ts";
@@ -6,13 +8,18 @@ import { ID } from "./errors.ts";
 /** The adapter contract's own words, so the git adapter passes a failure through unchanged. */
 type GitFailure = Extract<Failure, "not_found" | "unauthorized" | "unavailable" | "invalid">;
 
+interface GitErrorOptions {
+  stderr?: string;
+  hint?: string | undefined;
+}
+
 export class GitError extends AdapterError {
   declare readonly failure: GitFailure;
   readonly stderr: string;
 
-  constructor(failure: GitFailure, message: string, stderr = "", hint?: string) {
-    super(ID, failure, message, { hint });
-    this.stderr = stderr;
+  constructor(failure: GitFailure, message: string, options: GitErrorOptions = {}) {
+    super(ID, failure, message, { hint: options.hint });
+    this.stderr = options.stderr ?? "";
   }
 
   /** Refused by an organization's SAML SSO, which needs its own fix. */
@@ -44,26 +51,18 @@ const NOT_FOUND_MARKERS = [
   "couldn't find remote ref",
 ];
 
-/** Git repeats itself across several lines; the first fatal line is the cause. */
-function firstFatal(stderr: string): string {
-  const lines = stderr
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const fatal = lines.find((line) => line.startsWith("fatal:") || line.startsWith("error:"));
-  return (fatal ?? lines[0] ?? "git failed").replace(/^(fatal|error):\s*/, "");
+/** In its own group git does not get the terminal's Ctrl-C, so an interrupt passes it on. */
+export function stopGit(): void {
+  for (const child of running) kill(child);
 }
 
-/**
- * Failures are classified once, here. Repeating substring checks at each call
- * site is how a new caller silently loses the SSO hint.
- */
-function classify(stderr: string): GitFailure {
-  const text = stderr.toLowerCase();
-  if (SSO_MARKERS.some((m) => text.includes(m))) return "unauthorized";
-  if (NOT_FOUND_MARKERS.some((m) => text.includes(m))) return "not_found";
-  if (AUTH_MARKERS.some((m) => text.includes(m))) return "unauthorized";
-  return "unavailable";
+function kill(child: ChildProcess): void {
+  try {
+    if (GROUPED && child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
+    else child.kill("SIGKILL");
+  } catch {
+    // Already gone.
+  }
 }
 
 /** What the host allows a git operation: from the connection's limits, or set for the call. */
@@ -82,59 +81,38 @@ export interface GitOptions extends GitLimits {
 
 const MAX_BUFFER = 32 * 1024 * 1024;
 
-/** Its own process group, so a timeout also stops the helpers git starts, such as `git-remote-http`. */
+/** Its own process group, so a timeout also stops git's helpers, such as `git-remote-http`. */
 const GROUPED = process.platform !== "win32";
 
 /** Git runs still going, so an interrupted command can stop them on its way out. */
 const running = new Set<ChildProcess>();
 
-function kill(child: ChildProcess): void {
+export async function git(args: readonly string[], options: GitOptions): Promise<string> {
+  const timeout = options.timeoutMs;
+  let ran: Ran;
   try {
-    if (GROUPED && child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
-    else child.kill("SIGKILL");
-  } catch {
-    // Already gone.
+    ran = await spawnTool(args, options, timeout);
+  } catch (error) {
+    if (options.signal?.aborted === true) throw error;
+    if (error instanceof GitError) throw error;
+    const stderr = (error as { stderr?: string }).stderr ?? "";
+    throw notInstalled(error) ?? new GitError("unavailable", messageOf(error), { stderr });
   }
-}
-
-/** In its own group git does not get the terminal's Ctrl-C, so an interrupt passes it on. */
-export function stopGit(): void {
-  for (const child of running) kill(child);
-}
-
-function aborted(signal: AbortSignal): Error {
-  return Object.assign(new Error("The operation was aborted"), {
-    name: "AbortError",
-    code: "ABORT_ERR",
-    cause: signal.reason,
-  });
-}
-
-interface Ran {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-  timedOut: boolean;
-}
-
-/** At most this many git network calls at once, so dozens of registries stay under a host's limits. */
-const NETWORK_AT_ONCE = 6;
-const NETWORK = new Set(["clone", "fetch", "ls-remote"]);
-let networking = 0;
-const queued: (() => void)[] = [];
-
-/** Runs `task` once a network slot is free; local git work is never held back. */
-async function inNetworkSlot<T>(task: () => Promise<T>): Promise<T> {
-  if (networking >= NETWORK_AT_ONCE) await new Promise<void>((admit) => queued.push(admit));
-  else networking += 1;
-  try {
-    return await task();
-  } finally {
-    // Handed over, not released and retaken, which would let another in.
-    const next = queued.shift();
-    if (next === undefined) networking -= 1;
-    else next();
+  if (ran.timedOut) {
+    throw new GitError(
+      "unavailable",
+      `git timed out after ${timeout < 1000 ? `${timeout}ms` : `${Math.round(timeout / 1000)}s`}.`,
+      {
+        stderr: ran.stderr,
+        hint:
+          options.timeoutSetting === undefined
+            ? "Clone the repository yourself and add its local path."
+            : `Raise the limit with ${options.timeoutSetting}, or clone the repository yourself and add its local path.`,
+      },
+    );
   }
+  if (ran.code === 0) return ran.stdout;
+  throw new GitError(classify(ran.stderr), firstFatal(ran.stderr), { stderr: ran.stderr });
 }
 
 function spawnTool(args: readonly string[], options: GitOptions, timeout: number): Promise<Ran> {
@@ -156,12 +134,9 @@ function spawnOne(args: readonly string[], options: GitOptions, timeout: number)
     } catch (error) {
       // An empty PATH would find a program in the checkout git works in.
       reject(
-        new GitError(
-          "invalid",
-          (error as Error).message,
-          "",
-          "Set PATH to the absolute folders that hold git, then run the command again.",
-        ),
+        new GitError("invalid", messageOf(error), {
+          hint: "Set PATH to the absolute folders that hold git, then run the command again.",
+        }),
       );
       return;
     }
@@ -222,65 +197,62 @@ function spawnOne(args: readonly string[], options: GitOptions, timeout: number)
   });
 }
 
+interface Ran {
+  code: number | null;
+  stdout: string;
+  stderr: string;
+  timedOut: boolean;
+}
+
+/** At most this many git network calls at once, keeping dozens of registries under host limits. */
+const NETWORK_AT_ONCE = 6;
+/** Runs `task` once a network slot is free; local git work is never held back. */
+const inNetworkSlot = limiter(NETWORK_AT_ONCE);
+const NETWORK = new Set(["clone", "fetch", "ls-remote"]);
+
+function aborted(signal: AbortSignal): Error {
+  return Object.assign(new Error("The operation was aborted"), {
+    name: "AbortError",
+    code: "ABORT_ERR",
+    cause: signal.reason,
+  });
+}
+
 function notInstalled(error: unknown): GitError | undefined {
   return (error as NodeJS.ErrnoException).code === "ENOENT"
-    ? new GitError(
-        "invalid",
-        "git is not installed, or not on your PATH.",
-        "",
-        "Install git, then run the command again.",
-      )
+    ? new GitError("invalid", "git is not installed, or not on your PATH.", {
+        hint: "Install git, then run the command again.",
+      })
     : undefined;
 }
 
-export async function git(args: readonly string[], options: GitOptions): Promise<string> {
-  const timeout = options.timeoutMs;
-  let ran: Ran;
-  try {
-    ran = await spawnTool(args, options, timeout);
-  } catch (error) {
-    if (options.signal?.aborted === true) throw error;
-    if (error instanceof GitError) throw error;
-    const stderr = (error as { stderr?: string }).stderr ?? "";
-    throw notInstalled(error) ?? new GitError("unavailable", (error as Error).message, stderr);
-  }
-  if (ran.timedOut) {
-    throw new GitError(
-      "unavailable",
-      `git timed out after ${timeout < 1000 ? `${timeout}ms` : `${Math.round(timeout / 1000)}s`}.`,
-      ran.stderr,
-      options.timeoutSetting === undefined
-        ? "Clone the repository yourself and add its local path."
-        : `Raise the limit with ${options.timeoutSetting}, or clone the repository yourself and add its local path.`,
-    );
-  }
-  if (ran.code === 0) return ran.stdout;
-  throw new GitError(classify(ran.stderr), firstFatal(ran.stderr), ran.stderr);
+/**
+ * Failures are classified once, here. Repeating substring checks at each call
+ * site is how a new caller silently loses the SSO hint.
+ */
+function classify(stderr: string): GitFailure {
+  const text = stderr.toLowerCase();
+  if (SSO_MARKERS.some((m) => text.includes(m))) return "unauthorized";
+  if (NOT_FOUND_MARKERS.some((m) => text.includes(m))) return "not_found";
+  if (AUTH_MARKERS.some((m) => text.includes(m))) return "unauthorized";
+  return "unavailable";
 }
 
-export interface GitAttempt {
-  code: number;
-  stdout: string;
-  stderr: string;
-}
-
-/** Run git when a non-zero exit is data rather than an exception. */
-export async function gitTry(args: readonly string[], options: GitOptions): Promise<GitAttempt> {
-  let ran: Ran;
-  try {
-    ran = await spawnTool(args, options, options.timeoutMs);
-  } catch (error) {
-    if (options.signal?.aborted === true) throw error;
-    throw notInstalled(error) ?? error;
-  }
-  if (ran.timedOut) throw new GitError("unavailable", "git timed out.", ran.stderr);
-  return { code: ran.code ?? 1, stdout: ran.stdout, stderr: ran.stderr };
+/** Git repeats itself across several lines; the first fatal line is the cause. */
+function firstFatal(stderr: string): string {
+  const lines = stderr
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const fatal = lines.find((line) => line.startsWith("fatal:") || line.startsWith("error:"));
+  return (fatal ?? lines[0] ?? "git failed").replace(/^(fatal|error):\s*/, "");
 }
 
 export async function gitVersion(): Promise<string | undefined> {
   try {
     return (await git(["--version"], { timeoutMs: 5000 })).trim();
   } catch {
+    // No git, or one that will not run: either way there is no version to show.
     return undefined;
   }
 }

@@ -1,10 +1,12 @@
-import { shownNames } from "#cli/names.ts";
 import type { Lock, LockArtifact } from "#core/lock.ts";
-import { asksFor, type Manifest, pinOf } from "#core/manifest.ts";
-import { abbreviate, type Printer } from "#core/output.ts";
+import { asksFor, pinOf } from "#core/manifest/match.ts";
+import type { Manifest } from "#core/manifest/model.ts";
 import { type Scope, scopeName } from "#core/store/paths.ts";
-import { earlierId, type Targets } from "#core/target/index.ts";
+import type { Targets } from "#core/target/contract.ts";
+import { earlierId } from "#core/target/ids.ts";
+import { abbreviate, type Printer } from "#core/term/printer.ts";
 import type { Column } from "#core/term/table.ts";
+import { shownNames } from "#engine/installed-names.ts";
 
 export interface Installed {
   name: string;
@@ -16,9 +18,9 @@ export interface Installed {
   ref: string;
   pinned: boolean;
   targets: string[];
-  watched?: Watched | undefined;
+  watched?: Watched;
   /** What it is installed for, when the manifest does not ask for it itself. */
-  neededBy?: string[] | undefined;
+  neededBy?: string[];
 }
 
 /** The folder a watched row is published from, where its target reads it; nothing is linked. */
@@ -45,28 +47,28 @@ export function installed(lock: Lock, manifest: Manifest, targetTable: Targets):
     .map((name) => {
       const entry = lock.artifacts[name];
       const source = entry === undefined ? undefined : lock.registries[entry.registry];
+      const watched = watchedFrom(entry, targetTable);
+      const neededBy =
+        entry === undefined || asksFor(manifest, entry)
+          ? undefined
+          : entry.neededBy?.map((by) => shown.get(by) ?? by);
+      // A row of yours has a ref only once a publish is recorded; a commit sha names the registry.
+      // A plugin-loading target is named once, though it also gets a link inside the projection.
       return {
         name,
         shown: shown.get(name) ?? name,
         kind: entry?.kind ?? "",
         registry: entry?.registry ?? "",
         address: source?.location ?? "",
-        // A row of yours has a version once a publish of it is recorded, and a commit sha
-        // identifies the registry rather than the artifact.
         ref:
           entry?.version ??
           (entry?.origin !== undefined || source?.revision === undefined
             ? ""
             : abbreviate(source.revision)),
         pinned: entry !== undefined && pinOf(manifest, entry) !== undefined,
-        // One target, however many links it took to reach it: a target that loads plugins
-        // gets a link inside the projection as well as the one pointing at it.
         targets: [...new Set((entry?.links ?? []).map((link) => link.target))].sort(),
-        watched: watchedFrom(entry, targetTable),
-        neededBy:
-          entry === undefined || asksFor(manifest, entry)
-            ? undefined
-            : entry.neededBy?.map((by) => shown.get(by) ?? by),
+        ...(watched === undefined ? {} : { watched }),
+        ...(neededBy === undefined ? {} : { neededBy }),
       };
     });
 }

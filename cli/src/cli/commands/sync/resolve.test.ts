@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, vi } from "vitest";
-import type { CommandContext } from "#cli/commands/index.ts";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
-import { Printer } from "#core/output.ts";
+import { RunEventType } from "#core/run/model.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { run } from "./resolve.ts";
 
 const daemon = vi.hoisted(() => ({ withDaemon: vi.fn() }));
-vi.mock("#daemon/service.ts", () => daemon);
+vi.mock("#daemon/process/lifecycle.ts", () => daemon);
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -45,7 +45,7 @@ describe("aireg sync resolve --job", () => {
     const asked: unknown[] = [];
     const counts = { examined: 1, changed: 1, skipped: 0, attention: 0, failed: 0 };
     const finished = { id: "run_1", state: "succeeded", counts };
-    const ended = { id: 1, runId: "run_1", eventType: "run.finished", data: {} };
+    const ended = { id: 1, runId: "run_1", eventType: RunEventType.Finished, data: {} };
     const answers: Record<string, unknown> = {
       "conflict.resolve": { run: { id: "run_1", state: "queued" } },
       "run.events": { events: [ended], hasMore: false },
@@ -62,16 +62,9 @@ describe("aireg sync resolve --job", () => {
       }),
     );
     const out: string[] = [];
-    const context = {
-      argv: ["pr-review", "--theirs", "--job", "nightly"],
-      cwd: tmp,
-      printer: new Printer({
-        format: "json",
-        out: { write: (text: string) => out.push(text), isTTY: false },
-      }),
-    } as unknown as CommandContext;
-
-    await run(context);
+    await run(
+      commandContext(["pr-review", "--theirs", "--job", "nightly"], { cwd: tmp, printed: out }),
+    );
 
     expect(asked).toEqual([
       expect.objectContaining({ jobId: "job_1", name: "pr-review", resolution: "theirs" }),

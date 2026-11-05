@@ -1,41 +1,87 @@
-import { adapterProblem } from "#adapter/errors.ts";
+import { adapterProblem, messageOf } from "#adapter/errors.ts";
 import { isAdapterError } from "#adapter/index.ts";
-import { ConfigConflictError } from "#core/config/parse-errors.ts";
+import { quoted } from "#adapter/text.ts";
+import { ConfigConflictError } from "#core/config/errors.ts";
 import { CredentialStoreError } from "#core/credentials/store.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { staleSettings } from "#daemon/config-write.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { ProtocolError } from "./protocol.ts";
 
-/** SQLite's primary result code for a full disk, in the low byte of an extended code. */
-const SQLITE_FULL = 13;
+/** Why a handler turned a request down; `rpcError` sends each as its own JSON-RPC code. */
+type Refusal = "invalid" | "not-found" | "stale" | "busy";
 
-function diskFull(error: unknown): boolean {
-  const { code, errcode } = (error ?? {}) as { code?: unknown; errcode?: unknown };
-  if (code === "ENOSPC") return true;
-  return (
-    code === "ERR_SQLITE_ERROR" && typeof errcode === "number" && (errcode & 0xff) === SQLITE_FULL
+const REFUSAL_CODES = {
+  invalid: RpcErrorCode.InvalidParams,
+  "not-found": RpcErrorCode.NotFound,
+  stale: RpcErrorCode.StaleRevision,
+  busy: RpcErrorCode.Busy,
+} as const satisfies Record<Refusal, RpcErrorCode>;
+
+/** What a handler throws to refuse a request; its message and data reach the client as they are. */
+class RequestRefused extends Error {
+  readonly refusal: Refusal;
+  readonly data: unknown;
+
+  constructor(refusal: Refusal, message: string, data?: unknown) {
+    super(message);
+    this.name = "RequestRefused";
+    this.refusal = refusal;
+    this.data = data;
+  }
+}
+
+export function invalidParams(message: string, data?: unknown): Error {
+  return new RequestRefused("invalid", message, data);
+}
+
+export function noJob(jobId: string): Error {
+  return new RequestRefused("not-found", `No job named ${quoted(jobId)}.`);
+}
+
+export function noAccount(accountId: string): Error {
+  return new RequestRefused("not-found", `No account named ${quoted(accountId)}.`);
+}
+
+/** A job whose account was removed after it was written. */
+export function noJobAccount(jobId: string, accountId: string): Error {
+  return new RequestRefused(
+    "not-found",
+    `Job ${quoted(jobId)} signs in with account ${quoted(accountId)}, which no longer exists.`,
   );
+}
+
+export function runningAlready(jobId: string, mode: string): Error {
+  return new RequestRefused("busy", `A ${mode} run of job ${quoted(jobId)} is already running.`);
+}
+
+export function noRun(runId: string): Error {
+  return new RequestRefused("not-found", `No run named ${quoted(runId)}.`);
+}
+
+/** The caller retries on the code; the words are for when its retries run out. */
+export function staleSettings(revision: number): Error {
+  return new RequestRefused("stale", "The settings changed while this command ran. Run it again.", {
+    revision,
+  });
 }
 
 /** Classified failures stay named on the socket, with their code; a raw throw is internal. */
 export function rpcError(error: unknown): ProtocolError {
   if (error instanceof ProtocolError) return error;
+  if (error instanceof RequestRefused) {
+    return new ProtocolError(REFUSAL_CODES[error.refusal], error.message, error.data);
+  }
   const adapter = isAdapterError(error)
     ? error
     : error instanceof Error && isAdapterError(error.cause)
       ? error.cause
       : undefined;
   if (adapter !== undefined) {
-    return new ProtocolError(
-      RpcErrorCode.Server,
-      (error as Error).message,
-      adapterProblem(adapter),
-    );
+    return new ProtocolError(RpcErrorCode.Server, messageOf(error), adapterProblem(adapter));
   }
   // Another writer moved the config first: the caller resyncs and retries.
   if (error instanceof ConfigConflictError) {
-    return staleSettings(error.currentRevision);
+    return rpcError(staleSettings(error.currentRevision));
   }
   // The machine's problem, with one fix, so it is named rather than called internal.
   if (diskFull(error)) {
@@ -59,13 +105,24 @@ export function rpcError(error: unknown): ProtocolError {
   );
 }
 
-function rpcCodeFor(code: ErrorCode): RpcErrorCode {
-  if (code === ErrorCode.NotFound) return RpcErrorCode.NotFound;
-  if (code === ErrorCode.Usage || code === ErrorCode.Invalid) return RpcErrorCode.InvalidParams;
-  return RpcErrorCode.Server;
+/** SQLite's primary result code for a full disk, in the low byte of an extended code. */
+const SQLITE_FULL = 13;
+
+function diskFull(error: unknown): boolean {
+  const { code, errcode } = (error ?? {}) as { code?: unknown; errcode?: unknown };
+  if (code === "ENOSPC") return true;
+  return (
+    code === "ERR_SQLITE_ERROR" && typeof errcode === "number" && (errcode & 0xff) === SQLITE_FULL
+  );
 }
 
 function reason(error: Error): string | undefined {
   const cause = error.cause;
   return cause instanceof Error ? (cause.message.split("\n")[0] ?? cause.message) : undefined;
+}
+
+function rpcCodeFor(code: ErrorCode): RpcErrorCode {
+  if (code === ErrorCode.NotFound) return RpcErrorCode.NotFound;
+  if (code === ErrorCode.Usage || code === ErrorCode.Invalid) return RpcErrorCode.InvalidParams;
+  return RpcErrorCode.Server;
 }

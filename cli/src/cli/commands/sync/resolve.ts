@@ -1,19 +1,24 @@
-import { actionOf, builtin, type CommandContext } from "#cli/commands/index.ts";
+import { actionOf, type CommandContext } from "#cli/commands/command.ts";
+import { defineCommand, STREAMED } from "#cli/commands/define.ts";
 import { attentionHints, type Followed, follow, stoppedError } from "#cli/commands/sync/follow.ts";
-import { matchInstalled, rowsNamed } from "#cli/names.ts";
-import { parse } from "#cli/options.ts";
-import { cannotPublish } from "#cli/publish/target.ts";
-import { loadAdapter } from "#core/adapter/registry.ts";
-import { findJob, type Job } from "#core/config/model.ts";
+import type { SyncResolved } from "#cli/commands/sync/result.ts";
+import { needsInput, parse } from "#cli/options/parse.ts";
+import { loadAdapter } from "#core/adapter/load.ts";
+import { findJob } from "#core/config/jobs.ts";
+import type { Job } from "#core/config/model.ts";
 import { readConfig } from "#core/config/repository.ts";
 import { registryToken } from "#core/env.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
 import { readLock } from "#core/lock.ts";
 import { roots, scopeFor } from "#core/store/paths.ts";
+import { withDaemon } from "#daemon/process/lifecycle.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
-import { withDaemon } from "#daemon/service.ts";
-import { FOREGROUND_POLICY } from "#engine/foreground.ts";
-import { load } from "#engine/pipeline.ts";
+import { matchInstalled, rowsNamed } from "#engine/installed-names.ts";
+import type { CommonOptions } from "#engine/options.ts";
+import { cannotPublish } from "#engine/publish/target.ts";
+import { load } from "#engine/scope/load.ts";
+import { FOREGROUND_POLICY } from "#engine/sync/work.ts";
+import { SYNC_COMMAND } from "./spec.ts";
 
 interface Own extends Record<string, unknown> {
   mine?: boolean;
@@ -21,34 +26,54 @@ interface Own extends Record<string, unknown> {
   job?: string;
 }
 
-export async function run(context: CommandContext): Promise<void> {
-  const { common, positionals, own } = parse<Own>(
-    context.argv,
-    actionOf(builtin("sync"), "resolve"),
-  );
-  const name = positionals[0];
-  if (name === undefined) {
-    throw new AiregError("`aireg sync resolve` needs an artifact name.", {
-      code: ErrorCode.Usage,
-      hint: "Name it: `aireg sync resolve <name> --mine | --theirs`, with `--job <job>` for one a job left waiting.",
-    });
-  }
-  if (own.mine === own.theirs) {
-    throw new AiregError("`aireg sync resolve` needs exactly one of --mine or --theirs.", {
-      code: ErrorCode.Usage,
-      hint: "Pass `--mine` to publish your copy as a new version, or `--theirs` to take the registry's copy.",
-    });
-  }
-  const resolution = own.mine === true ? "mine" : "theirs";
+interface Options {
+  common: CommonOptions;
+  name: string;
+  resolution: "mine" | "theirs";
+  job: string | undefined;
+}
 
+// Each item prints as the daemon settles it, and the run's data once it ends.
+export const { run } = defineCommand({
+  spec: SYNC_COMMAND,
+  parse(argv): Options {
+    const { common, positionals, own } = parse<Own>(argv, actionOf(SYNC_COMMAND, "resolve"));
+    const name = positionals[0];
+    if (name === undefined) {
+      throw needsInput(
+        "sync resolve",
+        "an artifact name",
+        "Name it: `aireg sync resolve <name> --mine | --theirs`, with `--job <job>` for one a job left waiting.",
+      );
+    }
+    if (own.mine === own.theirs) {
+      throw needsInput(
+        "sync resolve",
+        "exactly one of --mine or --theirs",
+        "Pass `--mine` to publish your copy as a new version, or `--theirs` to take the registry's copy.",
+      );
+    }
+    return { common, name, resolution: own.mine === true ? "mine" : "theirs", job: own.job };
+  },
+  async run(options, context) {
+    await resolve(context, options);
+    return STREAMED;
+  },
+  text: () => {},
+});
+
+async function resolve(
+  context: CommandContext,
+  { common, name, resolution, job: named }: Options,
+): Promise<void> {
   await withDaemon(async (client) => {
     // A configured job names itself; anything else is this scope, whose job was
     // built for the run that found the conflict and never stored.
-    if (own.job !== undefined) {
+    if (named !== undefined) {
       const config = await readConfig();
-      const job = findJob(config, own.job);
+      const job = findJob(config, named);
       const { run: started } = await client.request("conflict.resolve", {
-        jobId: job?.id ?? own.job,
+        jobId: job?.id ?? named,
         name: await jobKey(job, name),
         resolution,
       });
@@ -63,6 +88,7 @@ export async function run(context: CommandContext): Promise<void> {
     const registry = lock.artifacts[key]?.registry as string;
     const row = lock.artifacts[key];
     const id = lock.registries[registry]?.adapter;
+    // One that will not load is refused, if at all, when the publish opens it.
     const adapter = id === undefined ? undefined : await loadAdapter(id).catch(() => undefined);
     if (resolution === "mine" && adapter !== undefined && !adapter.capabilities.publish) {
       throw cannotPublish(
@@ -97,7 +123,7 @@ async function jobKey(job: Job | undefined, name: string): Promise<string> {
   const root = job?.steps.find((step) => step.root !== undefined)?.root;
   if (root === undefined) return name;
   const lock = await readLock(roots(scopeFor(root), root));
-  // A name this scope doesn't know goes as typed: the daemon says which job it looked in.
+  // A name this scope does not know goes as typed: the daemon says which job it looked in.
   if (matchInstalled(name, lock).rows.length === 0) return name;
   return rowsNamed(name, lock)[0] as string;
 }
@@ -122,7 +148,8 @@ async function settled(
     });
   }
   if (context.printer.format === "json") {
-    context.printer.json({ ok: true, data: { run: outcome.run, artifacts: outcome.artifacts } });
+    const data: SyncResolved = { run: outcome.run, artifacts: outcome.artifacts };
+    context.printer.json({ ok: true, data });
   }
   if (outcome.attention) context.exit = ExitCode.Changed;
   return outcome;

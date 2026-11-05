@@ -1,4 +1,6 @@
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
+import { isRecord } from "#adapter/fields.ts";
+import { isAbsent } from "#adapter/files.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import { parseDuration } from "#core/fields.ts";
@@ -27,15 +29,26 @@ export function parseLine(line: string): Entry | undefined {
   const text = line.trim();
   if (text === "") return undefined;
   if (!text.startsWith("{")) return { raw: text };
+  let value: unknown;
   try {
-    const value = JSON.parse(text) as Partial<LogRecord>;
-    if (typeof value.body !== "string" || !isLevel(String(value.severity_text))) {
-      return { raw: text };
-    }
-    return value as LogRecord;
+    value = JSON.parse(text);
   } catch {
+    // Captured output that only starts like JSON.
     return { raw: text };
   }
+  return isLogRecord(value) ? value : { raw: text };
+}
+
+/** Every field a reader of a record takes from it, so a line that lacks one stays raw. */
+function isLogRecord(value: unknown): value is LogRecord {
+  return (
+    isRecord(value) &&
+    typeof value.body === "string" &&
+    typeof value.timestamp === "string" &&
+    isLevel(String(value.severity_text)) &&
+    isRecord(value.attributes) &&
+    (value.error === undefined || isRecord(value.error))
+  );
 }
 
 export function matches(entry: Entry, filter: Filter): boolean {
@@ -58,20 +71,23 @@ export function matches(entry: Entry, filter: Filter): boolean {
   return true;
 }
 
-/** How much of a log is read at a time, from its end back. */
 const CHUNK_BYTES = 64 * 1024;
 
-/**
- * The newest `limit` matching entries, oldest first. Read from the end back and stopped once
- * there are enough, so the last few lines of a large log cost kilobytes.
- */
+/** The newest `limit` matching entries, oldest first; read from the end, so a big log is cheap. */
 export function newestEntries(path: string, filter: Filter, limit: number): Entry[] {
   if (limit <= 0) return [];
   let fd: number;
   try {
     fd = openSync(path, "r");
-  } catch {
-    return [];
+  } catch (error) {
+    if (isAbsent(error)) return [];
+    // Often a log the daemon wrote while run with sudo: say which file, not a bare EACCES.
+    if ((error as NodeJS.ErrnoException).code === "EACCES") {
+      throw new AiregError(`Cannot read ${path}: permission denied.`, {
+        hint: `Run \`chmod u+r ${path}\`, or remove it and the daemon writes a new one.`,
+      });
+    }
+    throw error;
   }
   const found: Entry[] = [];
   const take = (line: Buffer) => {
@@ -80,7 +96,7 @@ export function newestEntries(path: string, filter: Filter, limit: number): Entr
   };
   try {
     let position = fstatSync(fd).size;
-    // The start of a line whose beginning is in a chunk not read yet.
+    // The end of a line whose start lies in a chunk not read yet.
     let partial = Buffer.alloc(0);
     while (position > 0 && found.length < limit) {
       const size = Math.min(CHUNK_BYTES, position);

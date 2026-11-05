@@ -1,20 +1,22 @@
 import { list, plural } from "#adapter/text.ts";
-import type { CommandContext } from "#cli/commands/index.ts";
-import { publishInstead } from "#cli/publish/target.ts";
+import type { CommandContext } from "#cli/commands/command.ts";
+import type { SettledArtifact } from "#cli/commands/sync/result.ts";
 import { failureWords, itemLine } from "#cli/render/run.ts";
-import { loadAdapter } from "#core/adapter/registry.ts";
-import { readOnlyLayout } from "#core/adapter/writable.ts";
+import { loadAdapter } from "#core/adapter/load.ts";
+import { readOnlyLayout } from "#core/adapter/read-only.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
 import {
-  ITEM_EVENT,
   isFailed,
   isInterrupted,
   RunErrorCode,
+  type RunEvent,
+  RunEventType,
   type RunRecord,
-  WARNING_EVENT,
 } from "#core/run/model.ts";
+import { scopeFlag } from "#core/store/paths.ts";
 import { followRun, type RpcClient } from "#daemon/rpc/client.ts";
-import type { load } from "#engine/pipeline.ts";
+import { publishInstead } from "#engine/publish/target.ts";
+import type { load } from "#engine/scope/load.ts";
 
 type Loaded = Awaited<ReturnType<typeof load>>;
 
@@ -28,9 +30,10 @@ export async function conflictHint(
   const short = key.split("/").at(-1) ?? key;
   const first = names.filter((name) => name.split("/").at(-1) === short).length === 1 ? short : key;
   const id = loaded.lock.registries[registry]?.adapter;
+  // Only the hint's wording depends on the adapter, so one that will not load gets the general one.
   const adapter = id === undefined ? undefined : await loadAdapter(id).catch(() => undefined);
   // Run as printed from anywhere: without `-g` a user scope's conflict is not found.
-  const resolve = `aireg sync resolve ${first}${loaded.roots.scope === "user" ? " -g" : ""}`;
+  const resolve = `aireg sync resolve ${first}${scopeFlag(loaded.roots.scope)}`;
   const theirs = `take the registry's copy with \`${resolve} --theirs\``;
   const ownRegistry = `Take the registry's copy with \`${resolve} --theirs\`, or keep yours by publishing it to a registry of your own, made with \`aireg registry init <folder>\`.`;
   const config = loaded.manifest.registries[registry]?.config ?? {};
@@ -56,13 +59,7 @@ export interface Followed {
   stopped: string | undefined;
   run: RunRecord;
   /** Each item that changed, needs you, or failed, as the text lists them. */
-  artifacts: {
-    name: string;
-    kind: string | undefined;
-    outcome: string;
-    operation?: string;
-    disposition?: string;
-  }[];
+  artifacts: SettledArtifact[];
   /** What the run did to your own files, or left undone. */
   warnings: string[];
 }
@@ -77,11 +74,11 @@ export function runSummary(
   if (changed === 0 && attention === 0 && failed === 0 && skipped === 0) {
     return `In sync with ${named ?? "every registry"} (${plural(examined, "artifact")}).`;
   }
+  // Skipped means left alone by a policy that is off, or by a registry that takes no publishes.
   const parts = [
     changed > 0 ? `${changed} changed` : "",
     attention > 0 ? `${attention} ${attention === 1 ? "needs" : "need"} attention` : "",
     failed > 0 ? `${failed} failed` : "",
-    // Left alone by a policy that is off, or by a registry that takes no publishes: not in sync.
     skipped > 0 ? `${skipped} left as ${skipped === 1 ? "it is" : "they are"}` : "",
   ].filter((part) => part !== "");
   return `${prefix}Checked ${plural(examined, "artifact")}: ${list(parts)}.`;
@@ -103,7 +100,7 @@ export async function follow(
   const warnings: string[] = [];
 
   await followRun(client, runId, (event) => {
-    if (event.eventType === WARNING_EVENT) {
+    if (event.eventType === RunEventType.Warning) {
       const { message, hint } = (event.data ?? {}) as { message?: unknown; hint?: unknown };
       if (typeof message !== "string") return;
       warnings.push(message);
@@ -111,16 +108,10 @@ export async function follow(
       if (typeof hint === "string") context.printer.hint(hint);
       return;
     }
-    if (event.artifact === undefined || event.eventType !== ITEM_EVENT) return;
+    if (event.artifact === undefined || event.eventType !== RunEventType.ItemSettled) return;
     if (event.outcome === "unchanged" || event.outcome === "skipped") return;
     context.printer.info(itemLine(context.printer, event));
-    artifacts.push({
-      name: event.artifact,
-      kind: event.kind,
-      outcome: event.outcome ?? "changed",
-      ...(event.operation === undefined ? {} : { operation: event.operation }),
-      ...(event.disposition === undefined ? {} : { disposition: event.disposition }),
-    });
+    artifacts.push(settledOf(event.artifact, event));
     if (event.outcome === "attention") attention = true;
     if (event.outcome === "failed") failed = true;
   });
@@ -139,6 +130,17 @@ export async function follow(
     attention = true;
   }
   return { attention, failed, stopped, run, artifacts, warnings };
+}
+
+/** An item event as JSON carries it, each unset field left out. */
+function settledOf(name: string, event: RunEvent): SettledArtifact {
+  return {
+    name,
+    ...(event.kind === undefined ? {} : { kind: event.kind }),
+    outcome: event.outcome ?? "changed",
+    ...(event.operation === undefined ? {} : { operation: event.operation }),
+    ...(event.disposition === undefined ? {} : { disposition: event.disposition }),
+  };
 }
 
 /** A run that stopped before its work was done, under the name its command gave it. */

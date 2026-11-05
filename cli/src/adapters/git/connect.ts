@@ -9,7 +9,7 @@ import {
   type Want,
 } from "#adapter/index.ts";
 import { isLayoutId, type LayoutId } from "#adapter/layouts/ids.ts";
-import { detectLayout, openLayoutRoot } from "#adapter/layouts/index.ts";
+import { detectLayout, openLayoutRoot } from "#adapter/layouts/open.ts";
 import { list } from "#adapter/text.ts";
 import { fail, translating } from "./errors.ts";
 import { GitError, type GitLimits } from "./exec.ts";
@@ -18,14 +18,6 @@ import { resolveRef } from "./resolve.ts";
 import { holdSnapshot, snapshot } from "./snapshot.ts";
 import { parseSource } from "./url.ts";
 import { GitVersions, releaseTag } from "./versions.ts";
-
-/** The layout the manifest recorded or `--layout` forced; undefined detects it. */
-function layoutOf(context: SourceContext): LayoutId | undefined {
-  const named = context.source.config.layout;
-  if (named === undefined) return undefined;
-  if (!isLayoutId(named)) throw fail("invalid", `${named} is not a layout this adapter reads.`);
-  return named;
-}
 
 /**
  * A repository that is a file spec root, or a plain folder of skills. The clone is only a cache,
@@ -69,7 +61,7 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
     return { root: await registryPath(placed.root, folder, true), commit: placed.commit ?? commit };
   };
 
-  /** Not a registry: one commit, chosen by the versions asked for, the ref, or the newest release. */
+  // Not a registry: one commit, chosen by the versions asked for, the ref, or the newest release.
   const targetOf = async (want: readonly Want[]): Promise<string> => {
     // A want with its own revision is a fetched plugin's, whose version is its own repository's.
     const pinned = want.filter((item) => item.version !== undefined && item.revision === undefined);
@@ -86,8 +78,7 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
         throw new GitError(
           "invalid",
           `${list(named)} are at different commits of ${spec.location}, which aireg reads at one commit.`,
-          "",
-          "Pin them all to one version, or leave the versions off to take the newest.",
+          { hint: "Pin them all to one version, or leave the versions off to take the newest." },
         );
       }
       return distinct[0] as string;
@@ -152,4 +143,12 @@ export async function connect(context: SourceContext): Promise<SourceHandle> {
       for (const release of held.splice(0)) release();
     },
   };
+}
+
+/** The layout the manifest recorded or `--layout` forced; undefined detects it. */
+function layoutOf(context: SourceContext): LayoutId | undefined {
+  const named = context.source.config.layout;
+  if (named === undefined) return undefined;
+  if (!isLayoutId(named)) throw fail("invalid", `${named} is not a layout this adapter reads.`);
+  return named;
 }

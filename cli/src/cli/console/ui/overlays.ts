@@ -2,41 +2,10 @@ import type { ReactElement, ReactNode } from "react";
 import type { ArtifactGroup, ArtifactRow, ArtifactState } from "#core/console/model.ts";
 import { ARTIFACT_STATES } from "#core/console/model.ts";
 import { STATE_MEANING, stateStyle } from "#core/console/state-style.ts";
+import type { HintKey } from "#core/host/panel.ts";
 import { ago, duration, pad, shortDigest, truncate, truncateStart } from "#core/term/format.ts";
 import { COLOR, GLYPH } from "#core/term/theme.ts";
 import { action, box, dim, faint, plain, text } from "./elements.ts";
-
-function panel(title: string, width: number, ...children: ReactNode[]): ReactElement {
-  return box(
-    {
-      flexDirection: "column",
-      width,
-      borderStyle: "round",
-      borderColor: COLOR.faint,
-      paddingX: 1,
-    },
-    box(
-      { justifyContent: "space-between" },
-      text({ color: COLOR.white, bold: true }, title),
-      plain(""),
-    ),
-    box({ flexDirection: "column", marginTop: 1 }, ...children),
-  );
-}
-
-function field(label: string, value: ReactNode): ReactElement {
-  return box(null, dim(pad(label, 12)), value);
-}
-
-/** Only the fields the artifact actually has: an empty row says nothing. */
-function known(
-  label: string,
-  value: string | undefined,
-  node?: ReactNode,
-): ReactElement | undefined {
-  if (value === undefined || value === "" || value === "\u2014") return undefined;
-  return field(label, node ?? text({ color: COLOR.white }, value));
-}
 
 export function artifactDetail(props: {
   width: number;
@@ -135,6 +104,38 @@ export function artifactDetail(props: {
       plain("      "),
       action("esc", "close"),
     ),
+  );
+}
+
+/** Only the fields the artifact actually has: an empty row says nothing. */
+function known(
+  label: string,
+  value: string | undefined,
+  node?: ReactNode,
+): ReactElement | undefined {
+  if (value === undefined || value === "" || value === "\u2014") return undefined;
+  return field(label, node ?? text({ color: COLOR.white }, value));
+}
+
+function field(label: string, value: ReactNode): ReactElement {
+  return box(null, dim(pad(label, 12)), value);
+}
+
+function panel(title: string, width: number, ...children: ReactNode[]): ReactElement {
+  return box(
+    {
+      flexDirection: "column",
+      width,
+      borderStyle: "round",
+      borderColor: COLOR.faint,
+      paddingX: 1,
+    },
+    box(
+      { justifyContent: "space-between" },
+      text({ color: COLOR.white, bold: true }, title),
+      plain(""),
+    ),
+    box({ flexDirection: "column", marginTop: 1 }, ...children),
   );
 }
 
@@ -248,7 +249,7 @@ export function activityPanel(props: {
   code: number | undefined;
   /** What the run's own counts say it has got through, while it is going. */
   progress: string | undefined;
-  /** How long it has been going. A publish uploads one artifact at a time. */
+  /** Shown from 2 s on: a publish uploads one artifact at a time, so a run can take a while. */
   elapsedMs: number;
   /**
    * What the state actually says now that it has finished, read back rather
@@ -297,42 +298,13 @@ export function activityPanel(props: {
   );
 }
 
-const KEYS: [string, string][] = [
-  ["left right", "previous or next view"],
-  ["1 - 9", "switch registry"],
-  ["click", "a tab, or a row"],
-  ["wheel", "scroll"],
-  ["tab", "next registry"],
-  ["u", "pull latest from the registry"],
-  ["p", "publish a group, or the edited row"],
-  ["up down / j k", "move"],
-  ["h l", "fold or unfold a group"],
-  ["enter", "expand detail, or confirm"],
-  ["R", "run a job now"],
-  ["r", "retry a failed run"],
-  ["space", "enable or disable a job"],
-  ["/", "filter"],
-  ["g", "reload"],
-  ["? q", "keys, quit"],
-];
-
-/**
- * `extra` is each contributed panel's own keys, listed with aireg's rather than
- * under a heading of their own: to a reader they are all just keys.
- */
-export function helpPanel(
-  width: number,
-  extra: readonly { key: string; label: string }[],
-): ReactElement {
-  const keys: [string, string][] = [
-    ...KEYS,
-    ...extra.map((k): [string, string] => [k.key, k.label]),
-  ];
+/** The keymap's lines, then each contributed panel's own keys. */
+export function helpPanel(width: number, keys: readonly HintKey[]): ReactElement {
   return panel(
     "Keys",
     width,
-    ...keys.map(([key, meaning]) =>
-      box({ key }, text({ color: COLOR.white }, pad(key, 18)), faint(meaning)),
+    ...keys.map(({ key, label }) =>
+      box({ key }, text({ color: COLOR.white }, pad(key, 18)), faint(label)),
     ),
     box({ marginTop: 1 }, text({ color: COLOR.white, bold: true }, "States")),
     ...ARTIFACT_STATES.map((state: ArtifactState) => {

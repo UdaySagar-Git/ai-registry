@@ -69,6 +69,7 @@
     "lint:changed": "biome ci --changed --error-on-warnings --no-errors-on-unmatched .",
     "fix": "biome lint --only=correctness/noUnusedImports --write --unsafe . && biome check --write .",
     "knip": "knip",
+    "check:comments": "node --experimental-strip-types --no-warnings scripts/comments/check.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
@@ -81,7 +82,7 @@
     "notices": "node --experimental-strip-types scripts/notices/generate.ts",
     "check:package": "publint --strict",
     "release:compile": "node --experimental-strip-types packaging/main.ts compile",
-    "verify": "pnpm run typecheck && pnpm run lint:ci && pnpm run knip && pnpm run notices --check && pnpm run build && pnpm run check:package && pnpm run test"
+    "verify": "pnpm run typecheck && pnpm run lint:ci && pnpm run check:comments && pnpm run knip && pnpm run notices --check && pnpm run build && pnpm run check:package && pnpm run test"
   },
   "dependencies": {
     "ajv": "8.20.0",

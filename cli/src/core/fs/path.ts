@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { posix, relative, resolve, sep } from "node:path";
 import { expandHome, isWithin } from "#adapter/paths.ts";
-import { canonical } from "./canonical.ts";
+import { canonical } from "./realpath.ts";
 
 /** `HOME`, then `USERPROFILE`, then what the OS reports, so a test or a moved home is honored. */
 export function userHome(env: NodeJS.ProcessEnv = process.env): string {
@@ -24,12 +24,6 @@ export function posixRelative(from: string, to: string): string {
 /** `path` is inside `dir` and is not `dir` itself. */
 export function isStrictlyWithin(dir: string, path: string): boolean {
   return isWithin(dir, path) && relative(resolve(dir), resolve(path)) !== "";
-}
-
-/** Nothing is at the path, or an ancestor of it is a file, so nothing can be. */
-export function isAbsent(error: unknown): boolean {
-  const code = (error as NodeJS.ErrnoException | undefined)?.code;
-  return code === "ENOENT" || code === "ENOTDIR";
 }
 
 /** Nothing is at the path a filesystem call was given. */

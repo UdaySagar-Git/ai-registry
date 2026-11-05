@@ -1,7 +1,12 @@
 import { homedir } from "node:os";
+import { messageOf } from "#adapter/errors.ts";
 import { list, quoted, sanitizeBlock } from "#adapter/text.ts";
 import { stopGit } from "#adapters/git/api.ts";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
+import type { Command, CommandContext } from "#cli/commands/command.ts";
+import { lookup, warnHidden } from "#cli/commands/index.ts";
+import { findMapFormat, runMap } from "#cli/help/map.ts";
+import { printHelp, printShortHelp, unknownCommand } from "#cli/help/print.ts";
 import {
   colorWhen,
   findCommand,
@@ -10,23 +15,21 @@ import {
   misplacedOption,
   misusedGlobal,
   readGlobals,
-} from "#cli/argv.ts";
-import { type CommandContext, type CommandSpec, lookup, warnHidden } from "#cli/commands/index.ts";
-import { printHelp, printShortHelp, unknownCommand } from "#cli/help.ts";
-import { findMapFormat, runMap } from "#cli/map.ts";
-import { reportError } from "#cli/report.ts";
-import { closest, didYouMean } from "#cli/suggest.ts";
+} from "#cli/options/globals.ts";
+import { closest, didYouMean } from "#cli/options/suggest.ts";
+import { reportError } from "#cli/render/error.ts";
 import { AiregError, ErrorCode, ExitCode } from "#core/errors.ts";
-import { releaseLeasesOnInterrupt } from "#core/lease.ts";
-import { LogLevelError } from "#core/log/index.ts";
+import { releaseLeasesOnInterrupt } from "#core/lease/lease.ts";
+import { LogLevelError } from "#core/log/level.ts";
 import { type LogBootstrap, openCliLog } from "#core/log/open.ts";
-import { Printer } from "#core/output.ts";
+import { DAEMON_FLAG, REMOVE_AFTER_FLAG, UPDATE_CHECK_FLAG } from "#core/product.ts";
+import { Printer } from "#core/term/printer.ts";
 import { NODE_REQUIREMENT, nodeTooOld, VERSION, versionInfo } from "#core/version.ts";
 import { extensionHost } from "#daemon/extension-host.ts";
-import { recycleDaemon } from "#daemon/service.ts";
-import { hintUpdate, refreshUpdates, scheduleUpdateCheck, UPDATE_CHECK_FLAG } from "#self/check.ts";
-import { applyMinimumUpdate } from "#self/minimum.ts";
-import { REMOVE_AFTER_FLAG, removeAfterExit } from "#self/remove-after.ts";
+import { recycleDaemon } from "#daemon/process/lifecycle.ts";
+import { applyMinimumUpdate } from "#self/minimum-update.ts";
+import { removeAfterExit } from "#self/remove-after-exit.ts";
+import { hintUpdate, refreshUpdates, scheduleUpdateCheck } from "#self/update-check.ts";
 
 registerBuiltinAdapters();
 
@@ -69,8 +72,8 @@ async function mapIfRequested(printer: Printer, argv: string[]): Promise<ExitCod
 }
 
 async function unknownKind(name: string, action: string): Promise<AiregError> {
-  const { findRegistry } = await import("#core/filespec/write/init.ts");
-  const { kindsOf, leftOutKind } = await import("#core/filespec/write/kinds.ts");
+  const { findRegistry } = await import("#core/filespec/init.ts");
+  const { kindsOf, leftOutKind } = await import("#core/filespec/kind-manifests.ts");
   const root = findRegistry(process.cwd());
   const left = root === undefined ? undefined : await leftOutKind(root, name);
   if (left !== undefined) {
@@ -158,7 +161,7 @@ async function dispatch(
   const misused = misusedGlobal(values);
   if (misused !== undefined) return reportError(printer, misused);
 
-  if (argv.length === 1 && argv[0] === "--internal-daemon") {
+  if (argv.length === 1 && argv[0] === DAEMON_FLAG) {
     // A daemon outlives whatever started it, so it must not keep that
     // process's directory: one it cannot read fails every `process.cwd()`.
     process.chdir(homedir());
@@ -166,10 +169,12 @@ async function dispatch(
     return (await runDaemon(VERSION)) as ExitCode;
   }
   if (argv.length === 3 && argv[0] === REMOVE_AFTER_FLAG) {
+    // This helper's only job; once it fails there is nobody left to tell.
     await removeAfterExit(Number(argv[1]), argv[2] as string).catch(() => undefined);
     return ExitCode.Ok;
   }
   if (argv.length === 1 && argv[0] === UPDATE_CHECK_FLAG) {
+    // A background check: a failure only means asking again next time.
     await refreshUpdates(recycleDaemon).catch(() => undefined);
     return ExitCode.Ok;
   }
@@ -186,7 +191,7 @@ async function dispatch(
   if (answered !== undefined) return answered;
   if (name === undefined) return ExitCode.Usage;
 
-  const spec: CommandSpec | undefined = await lookup(name);
+  const spec: Command | undefined = await lookup(name);
   const action = rest[0];
   const kindAction = action === "new" || action === "bump";
   if (spec === undefined && kindAction) {
@@ -251,7 +256,7 @@ async function runCommand(
   printer: Printer,
   argv: string[],
   name: string,
-  spec: CommandSpec,
+  spec: Command,
   rest: string[],
   values: GlobalValues,
 ): Promise<ExitCode> {
@@ -260,7 +265,7 @@ async function runCommand(
     log = openCliLog(VERSION, values["log-level"] as string | undefined);
   } catch (error) {
     // Reached before the logger exists, so this one is only ever printed.
-    const message = error instanceof Error ? error.message : String(error);
+    const message = messageOf(error);
     const code = error instanceof LogLevelError ? ErrorCode.Usage : ErrorCode.Error;
     return reportError(printer, new AiregError(message, { code, hint: GLOBALS_HINT }));
   }
@@ -285,6 +290,7 @@ async function runCommand(
     await run(context);
     const code = context.exit ?? ExitCode.Ok;
     if (code === ExitCode.Ok && checksUpdates) {
+      // An optional hint never changes how the command ended.
       await hintUpdate(printer).catch(() => undefined);
     }
     command.info("command finished", { code, durationMs: Date.now() - startedAtMs });
@@ -294,6 +300,7 @@ async function runCommand(
     command.error("command failed", { error, durationMs: Date.now() - startedAtMs });
     return reportError(printer, error);
   } finally {
+    // As above: scheduling the check never changes how the command ended.
     if (checksUpdates) await scheduleUpdateCheck().catch(() => undefined);
     log.close();
   }

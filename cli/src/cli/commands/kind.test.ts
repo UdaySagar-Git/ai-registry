@@ -2,28 +2,15 @@ import { mkdir, readdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { ErrorCode } from "#core/errors.ts";
-import { indexRoot } from "#core/filespec/write/indexer.ts";
-import { writeRoot } from "#core/filespec/write/init.ts";
-import { validateRoot } from "#core/filespec/write/validate.ts";
-import { Printer } from "#core/output.ts";
+import { indexRoot } from "#core/filespec/indexer.ts";
+import { writeRoot } from "#core/filespec/init.ts";
+import { validateRoot } from "#core/filespec/validate/validate.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { type CommandContext, lookup } from "./index.ts";
+import { lookup } from "./index.ts";
 
-function context(cwd: string, argv: string[]): CommandContext {
-  return {
-    argv,
-    cwd,
-    printer: new Printer({ format: "json", out: { write: () => undefined, isTTY: false } }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  };
+function context(cwd: string, argv: string[]) {
+  return commandContext(argv, { cwd });
 }
 
 describe("skill new --set", () => {

@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { createConnection, type Socket } from "node:net";
+import { isRecord } from "#adapter/fields.ts";
 import { plural } from "#adapter/text.ts";
 import type { RegistryConfig } from "#core/config/model.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isRecord } from "#core/fields.ts";
 import { NAME } from "#core/product.ts";
-import { isTerminal, type RunEvent } from "#core/run/model.ts";
+import { isTerminal, type RunEvent, RunEventType } from "#core/run/model.ts";
+import { MAX_PAGE_SIZE } from "#core/run/store.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { assertOwnSocket, daemonChallenge, provesDaemon } from "./endpoint.ts";
 import { FrameDecoder } from "./frames.ts";
@@ -15,12 +16,9 @@ import {
   type DaemonMethods,
   type DaemonNotification,
   type DaemonNotifications,
-  encodeMessage,
-  MAX_PAGE_SIZE,
   PROTOCOL_VERSION,
-  type RpcId,
-  type RpcResponse,
-} from "./protocol.ts";
+} from "./methods.ts";
+import { encodeMessage, type RpcId, type RpcResponse } from "./protocol.ts";
 
 interface Pending {
   resolve(value: unknown): void;
@@ -46,6 +44,14 @@ function waited(ms: number): string {
   return ms < 1_000 ? plural(ms, "millisecond") : plural(Math.round(ms / 1_000), "second");
 }
 
+/** The daemon's package version, which can differ while the protocol version matches. */
+function handshakeVersion(value: unknown): string | undefined {
+  if (!compatibleHandshake(value)) return undefined;
+  const server = (value as Record<string, unknown>).server;
+  if (!isRecord(server) || server.name !== NAME) return undefined;
+  return typeof server.version === "string" && server.version !== "" ? server.version : undefined;
+}
+
 function compatibleHandshake(value: unknown): boolean {
   if (!isRecord(value) || !isRecord(value.daemon)) return false;
   const { daemon } = value;
@@ -55,14 +61,6 @@ function compatibleHandshake(value: unknown): boolean {
     Number.isSafeInteger(daemon.startedAtMs) &&
     Number.isSafeInteger(daemon.serverNowMs)
   );
-}
-
-/** The daemon's package version, which can differ while the protocol version matches. */
-function handshakeVersion(value: unknown): string | undefined {
-  if (!compatibleHandshake(value)) return undefined;
-  const server = (value as Record<string, unknown>).server;
-  if (!isRecord(server) || server.name !== NAME) return undefined;
-  return typeof server.version === "string" && server.version !== "" ? server.version : undefined;
 }
 
 /** What answered may be another user's process, or a daemon an older aireg started. */
@@ -97,15 +95,6 @@ export class RpcClient {
   #serverVersion = "";
   #stopping = false;
 
-  get serverVersion(): string {
-    return this.#serverVersion;
-  }
-
-  /** The daemon is finishing its runs on the way out, and answers nothing else. */
-  get stopping(): boolean {
-    return this.#stopping;
-  }
-
   private constructor(socket: Socket) {
     this.#socket = socket;
     const decoder = new FrameDecoder("the aireg daemon");
@@ -130,6 +119,49 @@ export class RpcClient {
     socket.once("close", () => this.#fail(new Error(CLOSED)));
   }
 
+  get serverVersion(): string {
+    return this.#serverVersion;
+  }
+
+  /** The daemon is finishing its runs on the way out, and answers nothing else. */
+  get stopping(): boolean {
+    return this.#stopping;
+  }
+
+  request<M extends DaemonMethod>(
+    method: M,
+    params: DaemonMethods[M]["params"],
+    options: { timeoutMs?: number } = {},
+  ): Promise<DaemonMethods[M]["result"]> {
+    const id = this.#nextId++;
+    return new Promise((resolve, reject) => {
+      const timeout = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
+      const timer = setTimeout(() => {
+        this.#pending.delete(id);
+        reject(
+          new Error(
+            `The aireg daemon did not answer within ${waited(timeout)}. ` +
+              "Run `aireg daemon status` to check on it.",
+          ),
+        );
+      }, timeout);
+      this.#pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer });
+      this.#socket.write(encodeMessage({ jsonrpc: "2.0", id, method, params }));
+    });
+  }
+
+  onNotification(
+    listener: <M extends DaemonNotification>(method: M, params: DaemonNotifications[M]) => void,
+  ): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  onClose(listener: (error: Error) => void): () => void {
+    this.#closeListeners.add(listener);
+    return () => this.#closeListeners.delete(listener);
+  }
+
   /** A daemon at its client limit drops new connections, so those wait for a slot. */
   static async connect(endpoint: string, clientInfo: ClientInfo): Promise<RpcClient> {
     const deadline = Date.now() + BUSY_WAIT_MS;
@@ -141,6 +173,10 @@ export class RpcClient {
         await new Promise((wake) => setTimeout(wake, 20 + Math.random() * 80));
       }
     }
+  }
+
+  close(): void {
+    this.#socket.destroy();
   }
 
   static async #connectOnce(endpoint: string, clientInfo: ClientInfo): Promise<RpcClient> {
@@ -206,44 +242,6 @@ export class RpcClient {
     this.#pending.clear();
     for (const listener of this.#closeListeners) listener(error);
     this.#closeListeners.clear();
-    this.#socket.destroy();
-  }
-
-  request<M extends DaemonMethod>(
-    method: M,
-    params: DaemonMethods[M]["params"],
-    options: { timeoutMs?: number } = {},
-  ): Promise<DaemonMethods[M]["result"]> {
-    const id = this.#nextId++;
-    return new Promise((resolve, reject) => {
-      const timeout = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
-      const timer = setTimeout(() => {
-        this.#pending.delete(id);
-        reject(
-          new Error(
-            `The aireg daemon did not answer within ${waited(timeout)}. ` +
-              "Run `aireg daemon status` to check on it.",
-          ),
-        );
-      }, timeout);
-      this.#pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer });
-      this.#socket.write(encodeMessage({ jsonrpc: "2.0", id, method, params }));
-    });
-  }
-
-  onNotification(
-    listener: <M extends DaemonNotification>(method: M, params: DaemonNotifications[M]) => void,
-  ): () => void {
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
-  }
-
-  onClose(listener: (error: Error) => void): () => void {
-    this.#closeListeners.add(listener);
-    return () => this.#closeListeners.delete(listener);
-  }
-
-  close(): void {
     this.#socket.destroy();
   }
 }
@@ -322,12 +320,13 @@ export async function followRun(
     resolveFinished = resolve;
     rejectFinished = reject;
   });
+  // Awaited later; a rejection before then must not surface as an unhandled one.
   void finished.catch(() => {});
   const show = (event: RunEvent) => {
     if (event.id <= shown) return;
     shown = event.id;
     onEvent(event);
-    if (event.eventType === "run.finished") {
+    if (event.eventType === RunEventType.Finished) {
       finishedSeen = true;
       resolveFinished();
     }

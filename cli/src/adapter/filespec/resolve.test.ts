@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { test } from "#test/kit/fixtures.ts";
@@ -55,9 +55,8 @@ const OPS_DRAFT: SpecArtifact = {
 
 async function root(
   extra: readonly SpecArtifact[] = [],
-  dir?: string,
 ): Promise<(path: string) => Promise<Uint8Array | undefined>> {
-  const at = dir ?? (await mkdtemp(join(scratch, "aireg-spec-read-")));
+  const at = join(scratch, "registry");
   await writeSpecRoot(at, [
     {
       namespace: "aireg",
@@ -196,8 +195,8 @@ describe("resolveFromRoot", () => {
   });
 
   test("verifies the envelope as written, fields it does not know included", async () => {
-    const dir = await mkdtemp(join(scratch, "aireg-spec-read-"));
-    const read = await root([], dir);
+    const read = await root();
+    const dir = join(scratch, "registry");
     const at = join(dir, "artifacts/aireg/skill/add/0.1.0/artifact.json");
     const raw = JSON.parse(await readFile(at, "utf8"));
     raw.x_future = { since: 2 };

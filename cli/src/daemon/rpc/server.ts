@@ -2,32 +2,28 @@ import { randomUUID } from "node:crypto";
 import { chmod, link, lstat, unlink } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
 import { dirname, join } from "node:path";
+import { isRecord } from "#adapter/fields.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isRecord } from "#core/fields.ts";
 import { PRIVATE_FILE } from "#core/fs/mode.ts";
 import { isMissing } from "#core/fs/path.ts";
-import { type Logger, nullLogger } from "#core/log/index.ts";
-import { settledWithin } from "#daemon/settled.ts";
+import { nullLogger } from "#core/log/logger.ts";
+import type { Logger } from "#core/log/model.ts";
+import { settledWithin } from "#core/wait.ts";
 import { RpcErrorCode } from "./codes.ts";
 import { daemonProof, listening } from "./endpoint.ts";
 import { rpcError } from "./errors.ts";
 import { FrameDecoder, MAX_RPC_FRAME_BYTES, MAX_RPC_FRAME_SHOWN } from "./frames.ts";
 import {
+  type DaemonHandlers,
   type DaemonNotification,
   type DaemonNotifications,
-  encodeMessage,
   PROTOCOL_VERSION,
-  type RpcFailure,
-  type RpcId,
-  type RpcIncoming,
-} from "./protocol.ts";
+  type RpcContext,
+} from "./methods.ts";
+import { encodeMessage, type RpcFailure, type RpcId, type RpcIncoming } from "./protocol.ts";
 
-export interface RpcContext {
-  signal: AbortSignal;
-}
-
-export type RpcHandler = (params: unknown, context: RpcContext) => Promise<unknown>;
+type RpcHandler = (params: unknown, context: RpcContext) => Promise<unknown>;
 type Sender = (message: Parameters<typeof encodeMessage>[0]) => boolean;
 const MAX_CLIENTS = 32;
 const MAX_REQUESTS_PER_SECOND = 200;
@@ -161,10 +157,27 @@ export class RpcServer {
     this.#log = log;
   }
 
+  /** The transport alone; the daemon registers through `methods`, which checks each against its type. */
   method(name: string, handler: RpcHandler): void {
     if (this.#handlers.has(name))
       throw new Error(`JSON-RPC method "${name}" is already registered.`);
     this.#handlers.set(name, handler);
+  }
+
+  methods(handlers: DaemonHandlers): void {
+    for (const [name, handler] of Object.entries(handlers)) this.method(name, handler);
+  }
+
+  broadcast<M extends DaemonNotification>(method: M, params: DaemonNotifications[M]): void {
+    const frame = encodeMessage({ jsonrpc: "2.0", method, params });
+    // Past the limit it would drop every client at once.
+    if (Buffer.byteLength(frame) > MAX_RPC_FRAME_BYTES) {
+      this.#log.warn("left out a notification larger than the frame limit", { method });
+      return;
+    }
+    for (const [client, state] of this.#clients) {
+      if (state.initialized) sendFrame(client, frame, MAX_QUEUED_NOTIFICATION_BYTES);
+    }
   }
 
   async listen(endpoint: string): Promise<void> {
@@ -195,6 +208,7 @@ export class RpcServer {
       if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new DaemonAlreadyRunningError();
       throw error;
     } finally {
+      // A stray staging name costs nothing; clients reach the endpoint.
       await unlink(staging).catch(() => undefined);
     }
     const { dev, ino } = await lstat(endpoint);
@@ -210,6 +224,25 @@ export class RpcServer {
   drain(): void {
     this.#draining = true;
     for (const client of [...this.#clients.keys()]) client.destroy();
+  }
+
+  async close(): Promise<void> {
+    for (const client of this.#clients.keys()) client.destroy();
+    if (this.#server !== undefined) {
+      await new Promise<void>((resolve, reject) =>
+        this.#server?.close((error) => (error === undefined ? resolve() : reject(error))),
+      );
+    }
+    // A handler stuck on a wait it cannot leave would otherwise keep the daemon
+    // from ever stopping, and so from ever being replaced.
+    await settledWithin(this.#inflight, CLOSE_GRACE_MS);
+    if (this.#endpoint !== undefined && this.#bound !== undefined) {
+      await unlinkOwn(this.#endpoint, this.#bound);
+    }
+    this.#server = undefined;
+    this.#endpoint = undefined;
+    this.#bound = undefined;
+    this.#draining = false;
   }
 
   #accept(socket: Socket): void {
@@ -306,6 +339,7 @@ export class RpcServer {
       try {
         decoder.end();
       } catch {
+        // A frame the close cut short is dropped with the socket.
         socket.destroy();
       }
     });
@@ -387,36 +421,5 @@ export class RpcServer {
       if (requestId === undefined) return;
       send(failure(requestId, mapped.code, mapped.message, mapped.data));
     }
-  }
-
-  broadcast<M extends DaemonNotification>(method: M, params: DaemonNotifications[M]): void {
-    const frame = encodeMessage({ jsonrpc: "2.0", method, params });
-    // Past the limit it would drop every client at once.
-    if (Buffer.byteLength(frame) > MAX_RPC_FRAME_BYTES) {
-      this.#log.warn("left out a notification larger than the frame limit", { method });
-      return;
-    }
-    for (const [client, state] of this.#clients) {
-      if (state.initialized) sendFrame(client, frame, MAX_QUEUED_NOTIFICATION_BYTES);
-    }
-  }
-
-  async close(): Promise<void> {
-    for (const client of this.#clients.keys()) client.destroy();
-    if (this.#server !== undefined) {
-      await new Promise<void>((resolve, reject) =>
-        this.#server?.close((error) => (error === undefined ? resolve() : reject(error))),
-      );
-    }
-    // A handler stuck on a wait it cannot leave would otherwise keep the daemon
-    // from ever stopping, and so from ever being replaced.
-    await settledWithin(this.#inflight, CLOSE_GRACE_MS);
-    if (this.#endpoint !== undefined && this.#bound !== undefined) {
-      await unlinkOwn(this.#endpoint, this.#bound);
-    }
-    this.#server = undefined;
-    this.#endpoint = undefined;
-    this.#bound = undefined;
-    this.#draining = false;
   }
 }

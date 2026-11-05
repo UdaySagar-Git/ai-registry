@@ -8,9 +8,6 @@ import type { SyncPolicy } from "#core/sync/policy.ts";
 
 export const PROTOCOL_VERSION = 1;
 
-/** The most runs, or run events, one request returns. */
-export const MAX_PAGE_SIZE = 500;
-
 /** Who a connection says it is; checked for shape, never trusted. */
 export interface ClientInfo {
   kind: "cli";
@@ -193,4 +190,17 @@ export interface DaemonNotifications {
 }
 
 export type DaemonMethod = keyof DaemonMethods;
+
+export interface RpcContext {
+  signal: AbortSignal;
+}
+
+/** A method's handler: its params arrive unchecked, and it must answer with its declared result. */
+type DaemonHandler<M extends DaemonMethod> = (
+  params: unknown,
+  context: RpcContext,
+) => Promise<DaemonMethods[M]["result"]>;
+
+/** One handler per method, so the daemon cannot leave one out or answer with the wrong shape. */
+export type DaemonHandlers = { [M in DaemonMethod]: DaemonHandler<M> };
 export type DaemonNotification = keyof DaemonNotifications;

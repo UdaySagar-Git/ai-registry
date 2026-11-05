@@ -1,8 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 import { Document, isMap, isScalar, isSeq, parseDocument, YAMLSeq } from "yaml";
+import { isRecord } from "#adapter/fields.ts";
 import { quoted } from "#adapter/text.ts";
 import { AiregError, ErrorCode } from "#core/errors.ts";
-import { isRecord } from "#core/fields.ts";
 import { NAME } from "#core/product.ts";
 import type { ConfigValue } from "#core/target/contract.ts";
 import { dropTable, readTable, setKeys, type TomlScalar, unsetKeys } from "./toml.ts";
@@ -12,7 +12,7 @@ type Table = Record<string, unknown>;
 /** The comment on a list item aireg added, so one a person wrote is never taken out. */
 const MARK = NAME;
 
-/** The operations a register entry needs, over one config file in either format. */
+/** The operations a register entry needs, over one config file in any format. */
 export interface ConfigDocument {
   /** The table at `at`, or undefined when there is none. */
   table(at: readonly string[]): Table | undefined;
@@ -30,24 +30,12 @@ export interface ConfigDocument {
   value(): unknown;
 }
 
-function scalars(values: Readonly<Record<string, ConfigValue>>, file: string) {
-  const out: Record<string, TomlScalar> = {};
-  for (const [key, value] of Object.entries(values)) {
-    if (typeof value === "object") {
-      throw new AiregError(`Only plain values can be written to ${file}.`, {
-        code: ErrorCode.Invalid,
-      });
-    }
-    out[key] = value;
-  }
-  return out;
-}
-
 export function tomlDocument(text: string, file: string): ConfigDocument {
   let current = text;
   const unsupported = (): never => {
     throw new AiregError(`${file} holds no list aireg can edit.`, { code: ErrorCode.Invalid });
   };
+  // `value`: a blank file is an empty table; one holding only comments is still someone's text.
   return {
     table: (at) => readTable(current, at),
     set: (at, values) => {
@@ -64,9 +52,21 @@ export function tomlDocument(text: string, file: string): ConfigDocument {
     addMarked: unsupported,
     dropMarked: unsupported,
     render: () => current,
-    // A blank file is an empty table; one holding only comments is still someone's text.
     value: () => (current.trim() === "" ? {} : current),
   };
+}
+
+function scalars(values: Readonly<Record<string, ConfigValue>>, file: string) {
+  const out: Record<string, TomlScalar> = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (typeof value === "object") {
+      throw new AiregError(`Only plain values can be written to ${file}.`, {
+        code: ErrorCode.Invalid,
+      });
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 export function jsonDocument(text: string | undefined, start: Table, file: string): ConfigDocument {
@@ -85,7 +85,7 @@ export function jsonDocument(text: string | undefined, start: Table, file: strin
     root = parsed;
   }
 
-  /** The object holding the last key of `at`, made on the way when `create` is set. */
+  // The object holding the last key of `at`, made on the way when `create` is set.
   const parent = (at: readonly string[], create: boolean): Table | undefined => {
     let node = root;
     for (const key of at.slice(0, -1)) {

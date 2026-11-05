@@ -1,15 +1,11 @@
 import { join, posix, win32 } from "node:path";
 import type { Artifact, FileRef, Resolution, Want } from "../contract.ts";
-import { assertUnredirected, readRegular } from "../files.ts";
+import { messageOf } from "../errors.ts";
+import { assertUnredirected, isAbsent, readRegular } from "../files.ts";
+import { setRecent } from "../lru.ts";
 import { isSafePath } from "../paths.ts";
 import { identityOf, type ReadPath, readRegistry, SpecError } from "./documents.ts";
 import { besideEnvelope, resolveFromRoot } from "./resolve.ts";
-
-function refuseUnsafe(path: string): void {
-  if (!isSafePath(path) || win32.isAbsolute(path)) {
-    throw new SpecError(`${path} is not a path inside the registry root.`, { path });
-  }
-}
 
 /** A folder inside the registry, with every component from the root down checked for links. */
 export async function registryPath(root: string, path: string, allowRoot = false): Promise<string> {
@@ -18,9 +14,15 @@ export async function registryPath(root: string, path: string, allowRoot = false
   try {
     await assertUnredirected(root, target);
   } catch (cause) {
-    throw new SpecError(`${path}: ${(cause as Error).message}`, { path, cause });
+    throw new SpecError(`${path}: ${messageOf(cause)}`, { path, cause });
   }
   return target;
+}
+
+function refuseUnsafe(path: string): void {
+  if (!isSafePath(path) || win32.isAbsolute(path)) {
+    throw new SpecError(`${path} is not a path inside the registry root.`, { path });
+  }
 }
 
 /**
@@ -34,9 +36,8 @@ export function rootReader(root: string, verified?: Set<string>): ReadPath {
     try {
       read = await readRegular(root, path, verified);
     } catch (cause) {
-      const code = (cause as NodeJS.ErrnoException).code;
-      if (code === "ENOENT" || code === "ENOTDIR") return undefined;
-      throw new SpecError(`${path}: ${(cause as Error).message}`, { path, cause });
+      if (isAbsent(cause)) return undefined;
+      throw new SpecError(`${path}: ${messageOf(cause)}`, { path, cause });
     }
     if (read.kind === "missing") return undefined;
     if (read.kind === "refused") throw new SpecError(`${path} ${read.reason}.`, { path });
@@ -54,13 +55,9 @@ export interface FolderRegistry {
   forget(): void;
 }
 
-/** Resolutions of folders that never change, newest last; bounded, since a daemon resolves forever. */
+/** Resolutions of unchanging folders, newest last; bounded, since a daemon resolves forever. */
 const SETTLED = new Map<string, Resolution>();
 const SETTLED_LIMIT = 32;
-
-function settledKey(root: string, wanted: readonly Want[], all: boolean | undefined): string {
-  return `${root}\u0000${JSON.stringify(wanted)}\u0000${all === true}`;
-}
 
 /**
  * For any adapter whose registry ends up as a folder on disk, such as a checkout
@@ -101,10 +98,7 @@ export function openFolderRegistry(
         const found = await resolveFromRoot(read, { blobUrl: registry.blobUrl, wanted, all });
         resolution = { ...found, registry: identityOf(registry) };
         if (options.immutable === true) {
-          SETTLED.delete(key);
-          SETTLED.set(key, structuredClone(resolution));
-          const [oldest] = SETTLED.keys();
-          if (SETTLED.size > SETTLED_LIMIT && oldest !== undefined) SETTLED.delete(oldest);
+          setRecent(SETTLED, key, structuredClone(resolution), SETTLED_LIMIT);
         }
       }
       root = at;
@@ -134,4 +128,8 @@ export function openFolderRegistry(
       listed.clear();
     },
   };
+}
+
+function settledKey(root: string, wanted: readonly Want[], all: boolean | undefined): string {
+  return `${root}\u0000${JSON.stringify(wanted)}\u0000${all === true}`;
 }

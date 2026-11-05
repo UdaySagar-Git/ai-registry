@@ -1,20 +1,19 @@
 import { dirname } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
-import type { CommandContext } from "#cli/commands/index.ts";
+import { run } from "#cli/commands/job.ts";
 import { emptyRegistryConfig } from "#core/config/model.ts";
 import { writeConfig } from "#core/config/repository.ts";
-import { Printer } from "#core/output.ts";
 import { NAME } from "#core/product.ts";
-import { EMPTY_RUN_COUNTS, type RunEvent, type RunRecord } from "#core/run/model.ts";
+import { EMPTY_RUN_COUNTS, type RunEvent, RunEventType, type RunRecord } from "#core/run/model.ts";
 import type { RpcClient } from "#daemon/rpc/client.ts";
 import { privateDirectory, rpcEndpoint } from "#daemon/rpc/endpoint.ts";
-import { PROTOCOL_VERSION } from "#daemon/rpc/protocol.ts";
+import { PROTOCOL_VERSION } from "#daemon/rpc/methods.ts";
 import { RpcServer } from "#daemon/rpc/server.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
-import { runs } from "./runs.ts";
 
 // The test serves the socket itself, so no daemon is started or stopped.
-vi.mock("#daemon/service.ts", async () => {
+vi.mock("#daemon/process/lifecycle.ts", async () => {
   const { cliClient, RpcClient } = await import("#daemon/rpc/client.ts");
   return {
     withDaemon: async <T>(work: (client: RpcClient) => Promise<T>) => {
@@ -46,7 +45,7 @@ const record: RunRecord = {
   counts: EMPTY_RUN_COUNTS,
 } as unknown as RunRecord;
 
-function event(id: number, eventType = "artifact.progress"): RunEvent {
+function event(id: number, eventType: RunEventType = RunEventType.Progress): RunEvent {
   return {
     id,
     runId: RUN_ID,
@@ -61,32 +60,19 @@ function event(id: number, eventType = "artifact.progress"): RunEvent {
 
 let home: string;
 let server: RpcServer;
-let printed: unknown[];
+let printed: string[];
 
-function context(argv: string[]): CommandContext {
-  return {
-    argv,
-    cwd: home,
-    printer: new Printer({
-      format: "json",
-      out: {
-        write: (chunk: string) => {
-          for (const line of chunk.split("\n")) if (line !== "") printed.push(JSON.parse(line));
-          return true;
-        },
-        isTTY: false,
-      },
-    }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  } as CommandContext;
+function context(argv: string[]) {
+  return commandContext(argv, { cwd: home, printed });
+}
+
+/** Each JSON document printed so far, one per line. */
+function documents(): unknown[] {
+  return printed
+    .join("")
+    .split("\n")
+    .filter((line) => line !== "")
+    .map((line) => JSON.parse(line));
 }
 
 test.beforeEach(async ({ tmp }) => {
@@ -117,9 +103,11 @@ describe.skipIf(process.platform === "win32")("aireg job runs <id>", () => {
     server.method("run.events", async () => ({ events: [event(1), event(2)], hasMore: false }));
     await listen();
 
-    await runs(context([]), RUN_ID, {});
+    await run(context(["runs", RUN_ID]));
 
-    expect(printed).toEqual([{ ok: true, data: { run: record, events: [event(1), event(2)] } }]);
+    expect(documents()).toEqual([
+      { ok: true, data: { run: record, events: [event(1), event(2)] } },
+    ]);
   });
 
   test("prints each event once when following, whether replayed or live", async () => {
@@ -130,16 +118,16 @@ describe.skipIf(process.platform === "win32")("aireg job runs <id>", () => {
     });
     await listen();
 
-    const following = runs(context([]), RUN_ID, { follow: true });
-    await vi.waitFor(() => expect(printed).toHaveLength(2));
+    const following = run(context(["runs", RUN_ID, "--follow"]));
+    await vi.waitFor(() => expect(documents()).toHaveLength(2));
     server.broadcast("run.event", event(2));
     server.broadcast("run.event", event(3));
-    server.broadcast("run.event", event(4, "run.finished"));
+    server.broadcast("run.event", event(4, RunEventType.Finished));
     await following;
 
-    expect(printed.map((line) => (line as { data: { event: RunEvent } }).data.event.id)).toEqual([
-      1, 2, 3, 4,
-    ]);
+    expect(
+      documents().map((line) => (line as { data: { event: RunEvent } }).data.event.id),
+    ).toEqual([1, 2, 3, 4]);
   });
 });
 
@@ -178,9 +166,9 @@ describe.skipIf(process.platform === "win32")("aireg job runs --job", () => {
     });
     await listen();
 
-    await runs(context([]), undefined, { job: "nightly" });
+    await run(context(["runs", "--job", "nightly"]));
 
     expect(asked).toEqual([{ jobId: "job_1" }]);
-    expect(printed).toEqual([{ ok: true, data: { runs: [record] } }]);
+    expect(documents()).toEqual([{ ok: true, data: { runs: [record] } }]);
   });
 });

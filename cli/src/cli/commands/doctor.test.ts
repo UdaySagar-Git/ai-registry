@@ -2,13 +2,12 @@ import { chmod, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, vi } from "vitest";
 import { registerBuiltinAdapters } from "#adapters/index.ts";
-import { Printer } from "#core/output.ts";
 import type { TrustedKeys } from "#core/release/keyring.ts";
 import type { ReleaseStamp } from "#core/release/stamp.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { resolveTargets } from "#core/target/table.ts";
+import { commandContext } from "#test/kit/command.ts";
 import { test } from "#test/kit/fixtures.ts";
 import { run } from "./doctor.ts";
-import type { CommandContext } from "./index.ts";
 
 // The stamp is build-time only, so a test substitutes one rather than reading env.
 const stub = vi.hoisted(() => ({ stamp: undefined as ReleaseStamp | undefined }));
@@ -32,24 +31,8 @@ async function checks(cwd: string): Promise<Map<string, { ok: boolean; detail: s
   return new Map(payload.data.checks.map((check) => [check.name, check]));
 }
 
-function context(cwd: string, writes: string[]): CommandContext {
-  return {
-    argv: [],
-    cwd,
-    printer: new Printer({
-      format: "json",
-      out: { write: (chunk: string) => writes.push(chunk), isTTY: false },
-    }),
-    host: {
-      version: "test",
-      connectAccount: async () => {
-        throw new Error("no host");
-      },
-      openRunStore: async () => {
-        throw new Error("no host");
-      },
-    },
-  };
+function context(cwd: string, printed: string[]) {
+  return commandContext([], { cwd, printed });
 }
 
 describe("doctor", () => {
@@ -73,7 +56,8 @@ describe("doctor", () => {
     const names = payload.data.checks.map((check) => check.name);
     expect(names).toContain("symlinks");
     // `aireg targets` is the one place tools are listed.
-    for (const target of Object.keys(resolveTargets())) expect(names).not.toContain(target);
+    for (const target of Object.keys(resolveTargets(process.env)))
+      expect(names).not.toContain(target);
   });
 
   // Windows keeps no POSIX permission bits for the owner-only check to read.

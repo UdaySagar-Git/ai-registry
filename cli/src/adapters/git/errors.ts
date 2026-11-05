@@ -1,6 +1,5 @@
-import { AdapterError, SpecError } from "#adapter/index.ts";
+import { AdapterError, type Failure, SpecError } from "#adapter/index.ts";
 
-/** The adapter's id, under which every failure it reports is filed. */
 export const ID = "git";
 
 /** Git registries take no token from aireg: git brings its own credentials. */
@@ -8,11 +7,11 @@ export const CREDENTIALS =
   "Sign in with git: run `gh auth login`, or set up a git credential helper.";
 
 export function fail(
-  failure: "invalid" | "not_found",
+  failure: Extract<Failure, "invalid" | "not_found">,
   message: string,
-  artifact?: string,
+  options: { artifact?: string | undefined; hint?: string | undefined } = {},
 ): AdapterError {
-  return new AdapterError(ID, failure, message, { artifact });
+  return new AdapterError(ID, failure, message, options);
 }
 
 /** The file spec speaks its own failures; the client only ever sees the contract's. */

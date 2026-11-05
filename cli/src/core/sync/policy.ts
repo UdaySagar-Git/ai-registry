@@ -1,4 +1,9 @@
-import type { BuiltinStepKind, Step, StepPolicy } from "#core/config/model.ts";
+import {
+  type BuiltinStepKind,
+  isBuiltinStepKind,
+  type Step,
+  type StepPolicy,
+} from "#core/config/model.ts";
 import type { Disposition } from "./model.ts";
 
 /**
@@ -34,18 +39,18 @@ export const OPTIONAL_AXES = ["adopt", "claim"] as const satisfies readonly Poli
 export const NOTHING: SyncPolicy = Object.freeze({ pull: "off", publish: "off", delete: "off" });
 
 /** The policy axis each step kind sets. */
-const OWNS: Readonly<Partial<Record<string, PolicyAxis>>> = Object.freeze({
+const OWNS: Readonly<Partial<Record<BuiltinStepKind, PolicyAxis>>> = {
   pull: "pull",
   publish: "publish",
   prune: "delete",
   adopt: "adopt",
   claim: "claim",
-} satisfies Partial<Record<BuiltinStepKind, PolicyAxis>>);
+};
 
 export function policyOf(steps: readonly Step[]): SyncPolicy {
   const policy: SyncPolicy = { ...NOTHING };
   for (const step of steps) {
-    const axis = OWNS[step.kind];
+    const axis = isBuiltinStepKind(step.kind) ? OWNS[step.kind] : undefined;
     if (axis !== undefined) policy[axis] = step.policy;
   }
   return policy;
@@ -65,20 +70,6 @@ export const SYNC_OPERATIONS = [
 
 export type SyncOperation = (typeof SYNC_OPERATIONS)[number];
 
-/** Operations that changed something on disk or upstream. */
-export const CHANGING_OPERATIONS: readonly SyncOperation[] = [
-  "pull",
-  "remove-local",
-  "publish",
-  "archive",
-  "forget",
-];
-
-function selected(value: StepPolicy, change: SyncOperation) {
-  if (value === "on") return change;
-  return value === "report" ? "report" : "ignore";
-}
-
 export function operation(disposition: Disposition, policy: SyncPolicy): SyncOperation {
   switch (disposition) {
     case "synced":
@@ -95,11 +86,16 @@ export function operation(disposition: Disposition, policy: SyncPolicy): SyncOpe
       return selected(policy.delete, "archive");
     case "removed":
       return "forget";
-    case "conflict":
-    case "unknown":
     // A person has to look: retrying on a schedule would hide a withdrawn
     // artifact behind an error that never changes.
+    case "conflict":
+    case "unknown":
     case "unavailable":
       return "attention";
   }
+}
+
+function selected(value: StepPolicy, change: SyncOperation) {
+  if (value === "on") return change;
+  return value === "report" ? "report" : "ignore";
 }

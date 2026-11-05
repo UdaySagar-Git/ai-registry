@@ -6,14 +6,16 @@ import { join, relative, sep } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, test } from "vitest";
 import { onPath } from "#adapter/paths.ts";
-import { resolveTargets } from "#core/target/index.ts";
+import { HOME_DIR } from "#core/product.ts";
+import { SCOPE_DIR } from "#core/store/paths.ts";
+import { resolveTargets } from "#core/target/table.ts";
 import { registry } from "#test/kit/builders/registry.ts";
 import { homeEnv } from "#test/kit/home.ts";
 import { runCli } from "#test/kit/run.ts";
 import { testRoot } from "#test/kit/temp.ts";
 
 /** One command of the coding agent's own that lists what it loaded, and what its output holds. */
-export interface Probe {
+interface Probe {
   /** Run from the project for `project`, from the home folder for `user`. */
   scope: "project" | "user";
   argv: string[];
@@ -46,7 +48,7 @@ const PLANNER = "---\nname: planner\ndescription: Plans a change.\n---\n\nPlan t
 const SHIP = "---\nname: ship\ndescription: Ships a change.\n---\n\nShip it.\n";
 
 /** Folders aireg keeps for itself, which no target reads. */
-const OWN = [".aireg", ".registry", ".run", "fixtures", join("project", ".registry")];
+const OWN = [HOME_DIR, SCOPE_DIR, ".run", "fixtures", join("project", SCOPE_DIR)];
 
 const digest = (text: string) => createHash("sha256").update(text).digest("hex");
 

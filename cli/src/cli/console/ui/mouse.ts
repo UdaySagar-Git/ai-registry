@@ -1,10 +1,10 @@
 import { useStdin, useStdout } from "ink";
 import { useEffect, useRef } from "react";
+import { windowAround } from "#cli/console/data/list.ts";
 import { ESC } from "#core/term/format.ts";
 
 // Mouse reporting, which Ink does not do. SGR events (1006) because the older encoding
 // cannot express a column past 223, and this console is meant to be full width.
-
 const ENABLE = `${ESC}[?1000h${ESC}[?1006h`;
 const DISABLE = `${ESC}[?1006l${ESC}[?1000l`;
 
@@ -16,13 +16,6 @@ export interface MouseEvent {
   row: number;
   column: number;
   kind: "press" | "release" | "wheel-up" | "wheel-down";
-}
-
-function decode(button: number, final: string): MouseEvent["kind"] | undefined {
-  if ((button & 64) !== 0) return (button & 1) === 0 ? "wheel-up" : "wheel-down";
-  // Only the left button drives anything here; a drag is a press we ignore.
-  if ((button & 3) !== 0 || (button & 32) !== 0) return undefined;
-  return final === "M" ? "press" : "release";
 }
 
 export function useMouse(onEvent: (event: MouseEvent) => void): void {
@@ -59,38 +52,34 @@ export function useMouse(onEvent: (event: MouseEvent) => void): void {
   }, [stdin, stdout, setRawMode, isRawModeSupported]);
 }
 
+function decode(button: number, final: string): MouseEvent["kind"] | undefined {
+  if ((button & 64) !== 0) return (button & 1) === 0 ? "wheel-up" : "wheel-down";
+  // Only the left button drives anything here; a drag is a press we ignore.
+  if ((button & 3) !== 0 || (button & 32) !== 0) return undefined;
+  return final === "M" ? "press" : "release";
+}
+
 /**
- * Constants rather than measurements: the views lay out in a fixed order, and a measured
- * layout would need Ink to report geometry it does not expose.
+ * Screen rows of the header, its rule, the registry tabs, their rule and the view tabs. Fixed,
+ * because a measured layout would need Ink to report geometry it does not expose.
  */
 export const LAYOUT = {
-  /** Header, its rule, the registry tabs, their rule, the view tabs. */
   accountTabs: 2,
   viewTabs: 4,
   body: 6,
 } as const;
 
 /**
- * The first rendered row of a list, per view. A contributed panel states its own,
- * because only it knows how many rows it puts above its list.
+ * The list row a click lands on, for a list drawn from `top` as a window around the cursor.
+ * Rows are turned back into a position rather than measured: Ink reports no geometry.
  */
-export function listTop(view: string, panelTop?: number): number | undefined {
-  // Artifacts: the filter, a blank, then the column heading.
-  if (view === "artifacts") return LAYOUT.body + 3;
-  // Jobs: the JOBS heading, the jobs themselves, then a blank and RUNS.
-  if (view === "jobs") return LAYOUT.body + 1;
-  return panelTop;
-}
-
-/** Jobs stacks two lists; a click past the first one lands in the second. */
-export function jobsIndexAt(row: number, jobCount: number, firstRun: number): number | undefined {
-  const top = LAYOUT.body + 1;
-  if (row < top) return undefined;
-  const offset = row - top;
-  if (offset < jobCount) return offset;
-  // Two rows of heading sit between the jobs and the runs.
-  const runOffset = offset - jobCount - 2;
-  return runOffset < 0 ? undefined : jobCount + firstRun + runOffset;
+export function listRowAt(
+  screenRow: number,
+  list: { top: number; total: number; cursor: number; height: number },
+): number | undefined {
+  const window = windowAround(list.total, list.cursor, list.height);
+  const index = window.from + (screenRow - list.top);
+  return index >= window.from && index < window.to ? index : undefined;
 }
 
 /** Which tab a click at this column belongs to, given each label's width. */

@@ -17,6 +17,7 @@ import {
   specOf,
   specParseProblem,
 } from "#core/filespec/kind-manifests.ts";
+import { mcpPolicyProblems } from "#core/filespec/mcp-server.ts";
 import { check } from "#core/filespec/schema.ts";
 import { authored, refusal } from "#core/fs/tree.ts";
 import { type Problem, textAt, unparsed } from "./read.ts";
@@ -39,6 +40,7 @@ export function versionProblems(
     return [...problems, why];
   }
   problems.push(...check(manifest, spec));
+  if (manifest.title === "mcp_server") problems.push(...mcpPolicyProblems(spec));
   for (const field of placeholders(spec)) problems.push(`\`${field}\` is still ${PLACEHOLDER}`);
   if (typeof spec.name === "string" && spec.name !== at.name) {
     problems.push(`is named ${quoted(spec.name)} in its front matter but sits in ${at.name}/`);

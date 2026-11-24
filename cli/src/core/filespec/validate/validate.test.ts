@@ -282,6 +282,38 @@ describe("validateRoot on blob storage", () => {
   });
 });
 
+describe("validateRoot on an MCP server", () => {
+  const VERSION = "artifacts/engineering/mcp_server/issue-tracker/1.2.0";
+  const edit = async <T>(root: string, file: string, change: (document: T) => void) => {
+    const at = join(root, VERSION, file);
+    const document = JSON.parse(await readFile(at, "utf8")) as T;
+    change(document);
+    await writeFile(at, JSON.stringify(document));
+  };
+  const messages = async (root: string) =>
+    (await validateRoot(root)).problems.map((problem) => problem.message);
+
+  test("checks server.json against the MCP Registry's draft-07 schema", async ({ root }) => {
+    await cp(ACME, root, { recursive: true });
+    await edit<{ packages: [{ transport: unknown }] }>(root, "server.json", (server) => {
+      server.packages[0].transport = { type: "carrier-pigeon" };
+    });
+
+    expect(await messages(root)).toContain('`server` must match "then" schema');
+  });
+
+  test("refuses a policy that gives a secret a value", async ({ root }) => {
+    await cp(ACME, root, { recursive: true });
+    await edit<{ inputs: Record<string, string> }>(root, "policy.json", (policy) => {
+      policy.inputs.ISSUES_TOKEN = "hunter2";
+    });
+
+    expect(await messages(root)).toContain(
+      "`policy.inputs.ISSUES_TOKEN` is a secret in server.json, so the policy cannot give it a value",
+    );
+  });
+});
+
 describe("validateRoot against a base", () => {
   const LINT = "artifacts/eng/skill/lint";
 

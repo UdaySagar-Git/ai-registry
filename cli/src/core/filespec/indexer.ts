@@ -280,7 +280,16 @@ async function envelopeOf(
   const onDisk = new Set(records.map((record) => record.path));
   files.push(...(await blobFiles(root, folder, existing, onDisk, blobUrl)));
   const { digest: _digest, ...kept } = existing?.metadata ?? {};
-  const description = ownDescription(bytes, folder.name) ?? kept.description;
+  const spec =
+    existing?.spec === undefined
+      ? envelopeSpec(folder.kind, bytes, kinds, folder.name)
+      : (existing.spec as Record<string, unknown>);
+  // An MCP server's Markdown is documentation; its catalog text is the server's own.
+  const server = folder.kind === "mcp_server" ? serverCatalog(spec) : undefined;
+  const description = server
+    ? (server.description ?? kept.description)
+    : (ownDescription(bytes, folder.name) ?? kept.description);
+  const displayName = server?.title ?? kept.display_name;
   return buildEnvelope({
     kind: folder.kind as ArtifactKind,
     metadata: {
@@ -289,12 +298,10 @@ async function envelopeOf(
       namespace: folder.namespace,
       version: folder.version,
       ...(description === undefined ? {} : { description }),
+      ...(displayName === undefined ? {} : { display_name: displayName }),
     },
     files,
-    spec:
-      existing?.spec === undefined
-        ? envelopeSpec(folder.kind, bytes, kinds, folder.name)
-        : (existing.spec as Record<string, unknown>),
+    spec,
     ...(Array.isArray(existing?.relationships)
       ? { relationships: existing.relationships as never }
       : {}),
@@ -406,4 +413,17 @@ async function withoutDeleted(
     if (await exists(join(root, ...path.split(posix.sep)))) kept.push(row);
   }
   return kept.length === entries.length ? index : { ...index, generated_at: at, entries: kept };
+}
+
+/** The description and title an MCP server's `server.json` gives, within the envelope's limits. */
+function serverCatalog(spec: Record<string, unknown>): { description?: string; title?: string } {
+  const out: { description?: string; title?: string } = {};
+  if (typeof spec.description === "string" && spec.description.length <= 4000) {
+    out.description = spec.description;
+  }
+  const server = spec.server;
+  if (isRecord(server) && typeof server.title === "string" && server.title.length <= 200) {
+    out.title = server.title;
+  }
+  return out;
 }

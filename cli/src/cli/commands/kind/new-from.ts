@@ -21,6 +21,7 @@ import {
   specOf,
   specParseProblem,
 } from "#core/filespec/kind-manifests.ts";
+import { mcpPolicyProblems } from "#core/filespec/mcp-server.ts";
 import { check } from "#core/filespec/schema.ts";
 import { withName } from "#core/frontmatter.ts";
 import { refuseRedirect } from "#core/fs/fresh.ts";
@@ -153,7 +154,10 @@ async function incoming(
     ...fileProblems(manifest, new Set(entries)),
     ...(spec === undefined
       ? [specParseProblem(manifest, texts) ?? "has no front matter"]
-      : check(manifest, spec)),
+      : [
+          ...check(manifest, spec),
+          ...(manifest.title === "mcp_server" ? mcpPolicyProblems(spec) : []),
+        ]),
   ];
   const fallback =
     typeof spec?.name === "string"

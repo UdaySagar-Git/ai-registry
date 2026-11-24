@@ -16,7 +16,8 @@ themselves and [file-spec.md](../file-spec.md) are the contract.
 | [relationship.schema.json](relationship.schema.json) | one `relationships[]` edge | §3.4, §4.3, §6 |
 | [host.schema.json](host.schema.json) | the host document at `/.well-known/registry.json` | §8 |
 | [kind-manifest.schema.json](kind-manifest.schema.json) | what `kinds[].manifest_url` points at | §3.1 |
-| [kinds/skill.json](kinds/skill.json), [kinds/agent.json](kinds/agent.json) | the `spec` of those kinds | §3.4 |
+| [kinds/skill.json](kinds/skill.json), [kinds/agent.json](kinds/agent.json), [kinds/mcp_server.json](kinds/mcp_server.json) | the `spec` of those kinds | §3.4 |
+| [kinds/vendor/mcp/](kinds/vendor/mcp/README.md) | the MCP Registry's `server.json` schemas, unchanged, which `kinds/mcp_server.json` refers to | §3.4 |
 | [common.schema.json](common.schema.json) | shared `$defs`; never instantiated | §2.1, §4 |
 
 An envelope is validated against **both** artifact schemas on purpose. The plain one is the
@@ -32,7 +33,10 @@ A kind manifest chooses its own policy for `spec`. The skill schema is closed; t
 preserves additional native front-matter fields. Writers validate against that policy at publish.
 
 **`$id`s are relative, and are identifiers rather than locations.** A schema's `$id` is the path it
-sits at under this directory, and every `$ref` is a relative path resolved the same way. Nothing
+sits at under this directory, and every `$ref` is a relative path resolved the same way. The one
+exception is a schema under a `vendor/` folder, which is another project's file copied byte for
+byte and keeps that project's `$id`, `$schema` and internal references; it is still reached by its
+path here, and its folder's README records its source and sha256. Nothing
 dereferences an `$id` over the network, so a validator preloads this directory into a resolver
 rather than fetching `$ref`s. No schema file is covered by a content digest or a catalog digest, so
 giving the `$id`s an absolute base later moves no digest.

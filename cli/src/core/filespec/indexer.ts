@@ -243,7 +243,10 @@ async function recataloged(root: string, versionsAt: string, row: unknown): Prom
   return want === row.catalog_digest ? row : { ...row, catalog_digest: want };
 }
 
-/** Keeps the metadata, `spec` and relationships an author added to an existing `artifact.json`. */
+/**
+ * Keeps the metadata, `spec` and relationships an author added to an existing `artifact.json`,
+ * except an MCP server's `spec`, which only its files give.
+ */
 async function envelopeOf(
   root: string,
   folder: VersionFolder,
@@ -280,12 +283,15 @@ async function envelopeOf(
   const onDisk = new Set(records.map((record) => record.path));
   files.push(...(await blobFiles(root, folder, existing, onDisk, blobUrl)));
   const { digest: _digest, ...kept } = existing?.metadata ?? {};
+  // An MCP server's spec wraps its server.json and policy.json, so it is always read from them:
+  // a copied artifact.json must not carry an older policy into a new version.
+  const mcp = kinds[folder.kind]?.title === "mcp_server";
   const spec =
-    existing?.spec === undefined
+    mcp || existing?.spec === undefined
       ? envelopeSpec(folder.kind, bytes, kinds, folder.name)
       : (existing.spec as Record<string, unknown>);
   // An MCP server's Markdown is documentation; its catalog text is the server's own.
-  const server = folder.kind === "mcp_server" ? serverCatalog(spec) : undefined;
+  const server = mcp ? serverCatalog(spec) : undefined;
   const description = server
     ? (server.description ?? kept.description)
     : (ownDescription(bytes, folder.name) ?? kept.description);

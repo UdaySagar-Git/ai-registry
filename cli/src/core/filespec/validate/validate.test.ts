@@ -312,6 +312,33 @@ describe("validateRoot on an MCP server", () => {
       "`policy.inputs.ISSUES_TOKEN` is a secret in server.json, so the policy cannot give it a value",
     );
   });
+
+  test("names the JSON file that does not parse", async ({ root }) => {
+    await cp(ACME, root, { recursive: true });
+    await writeFile(join(root, VERSION, "policy.json"), "{");
+
+    expect(await messages(root)).toContain("has a policy.json that is not valid JSON");
+  });
+
+  test("says once that server.json is missing, and nothing of front matter", async ({ root }) => {
+    await cp(ACME, root, { recursive: true });
+    await rm(join(root, VERSION, "server.json"));
+
+    const found = await messages(root);
+    expect(found.filter((message) => message === "has no server.json")).toHaveLength(1);
+    expect(found.some((message) => message.includes("front matter"))).toBe(false);
+  });
+
+  test("reports an unfilled description once, where server.json holds it", async ({ root }) => {
+    await cp(ACME, root, { recursive: true });
+    await edit<{ description: string }>(root, "server.json", (server) => {
+      server.description = "TODO";
+    });
+
+    const found = await messages(root);
+    expect(found).toContain("`server.description` is still TODO");
+    expect(found).not.toContain("`description` is still TODO");
+  });
 });
 
 describe("validateRoot against a base", () => {

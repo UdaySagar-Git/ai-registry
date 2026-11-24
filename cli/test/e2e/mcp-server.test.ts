@@ -87,4 +87,20 @@ describe("an MCP server's catalog entry and import", () => {
     expect(result.code).not.toBe(0);
     expect(result.stderr).toContain("`policy.inputs.ISSUES_TOKEN` is a secret in server.json");
   });
+
+  test("refuses to import a folder without server.json, without asking for front matter", async ({
+    aireg,
+    tmp,
+  }) => {
+    const source = join(tmp, "policy-only");
+    await mkdir(source, { recursive: true });
+    await cp(issues("policy.json"), join(source, "policy.json"));
+    const engineering = join(root, "artifacts", "engineering");
+
+    const result = await aireg(["mcp_server", "new", "--from", source, "-y"], { cwd: engineering });
+
+    expect(result.code).not.toBe(0);
+    expect(result.stderr).toContain("has no server.json.");
+    expect(result.stderr).not.toContain("front matter");
+  });
 });
